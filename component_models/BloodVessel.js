@@ -106,6 +106,16 @@ export class BloodVessel extends BloodCapacitance {
     });
   }
   
+  // keep the owned input resistors in sync with this vessel's enabled state, also when the
+  // vessel itself is disabled — calc_model does not run then, which would otherwise leave the
+  // resistors enabled and still conducting flow through a disabled vessel
+  step_model() {
+    Object.values(this._resistors).forEach((resistor) => {
+      resistor.is_enabled = this.is_enabled;
+    });
+    super.step_model();
+  }
+
   calc_model() {
     // call this class specific calculation methods
     this.calc_resistances();
@@ -173,8 +183,8 @@ export class BloodVessel extends BloodCapacitance {
     this.r_for_eff = this.r_for * r_total_factor;
     this.r_back_eff = this.r_back * r_total_factor;
 
-    // r_k carries its own factor stack but the same ANS coupling, matching the
-    // pre-existing additive convention.
+    // r_k carries its own factor stack but the same ANS coupling, composed
+    // multiplicatively like the linear resistance above.
     const r_k_total_factor =
       this.r_k_factor *
       this.r_k_factor_ps *

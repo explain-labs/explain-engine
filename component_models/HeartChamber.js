@@ -72,14 +72,24 @@ export class HeartChamber extends TimeVaryingElastance {
     // call the parent method from the TimeVaryingElastance class to update the volume
     super.volume_in(dvol, comp_from);
 
+    // a fixed-composition compartment is an infinite reservoir: hold its composition
+    // (and temperature/viscosity) constant
+    if (this.fixed_composition) return;
+
+    // guard against division by zero on an empty compartment (would produce NaN concentrations)
+    if (this.vol <= 0.0) return;
+
     // process the gases o2 and co2
     this.to2 += ((comp_from.to2 - this.to2) * dvol) / this.vol;
     this.tco2 += ((comp_from.tco2 - this.tco2) * dvol) / this.vol;
 
-    // process the solutes
+    // process the solutes (default to 0 if the source lacks the solute, to avoid NaN)
     Object.keys(this.solutes).forEach((solute) => {
-      this.solutes[solute] +=
-        ((comp_from.solutes[solute] - this.solutes[solute]) * dvol) / this.vol;
+      let solute_from = 0;
+      if (comp_from.solutes[solute]) {
+        solute_from = comp_from.solutes[solute];
+      }
+      this.solutes[solute] += ((solute_from - this.solutes[solute]) * dvol) / this.vol;
     });
 
     // process the temperature (treat it as a solute)
@@ -88,10 +98,13 @@ export class HeartChamber extends TimeVaryingElastance {
     // process the viscosity (treat it as a solute)
     this.viscosity += ((comp_from.viscosity - this.viscosity) * dvol) / this.vol;
 
-    // process the drug concentrations
+    // process the drug concentrations (default to 0 if the source lacks the drug, to avoid NaN)
     Object.keys(this.drugs).forEach((drug) => {
-      this.drugs[drug] +=
-        ((comp_from.drugs[drug] - this.drugs[drug]) * dvol) / this.vol;
+      let drug_from = 0.0;
+      if (comp_from.drugs[drug]) {
+        drug_from = comp_from.drugs[drug];
+      }
+      this.drugs[drug] += ((drug_from - this.drugs[drug]) * dvol) / this.vol;
     });
   }
 }

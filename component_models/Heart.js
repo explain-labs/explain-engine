@@ -207,27 +207,27 @@ export class Heart extends BaseModelClass {
     // state going from diastole to systole (end diastolic)
     if (this.prev_cardiac_cycle_state === 0 && this.cardiac_cycle_state === 1) {
       this.lv_edv = this._lv ? this._lv.vol : 0;
-      this.lv_esp = this._lv ? this._lv.pres_in : 0;
+      this.lv_edp = this._lv ? this._lv.pres_in : 0;
 
       this.la_edv = this._la ? this._la.vol : 0;
-      this.la_esp = this._la ? this._la.pres_in : 0;
-      
+      this.la_edp = this._la ? this._la.pres_in : 0;
+
       this.rv_edv = this._rv ? this._rv.vol : 0;
-      this.rv_esp = this._rv ? this._rv.pres_in : 0;
-      
+      this.rv_edp = this._rv ? this._rv.pres_in : 0;
+
       this.ra_edv = (this._raivci ? this._raivci.vol : 0) + (this._rasvc ? this._rasvc.vol : 0);
-      this.ra_esp = 0.5 * ((this._raivci ? this._raivci.pres_in : 0) + (this._rasvc ? this._rasvc.pres_in : 0));
+      this.ra_edp = 0.5 * ((this._raivci ? this._raivci.pres_in : 0) + (this._rasvc ? this._rasvc.pres_in : 0));
 
       if (this._ra) {
         this.ra_edv = this._ra.vol
-        this.ra_esp = this._ra.pres_in
+        this.ra_edp = this._ra.pres_in
       }
 
-      // store the other parameters
+      // store the other parameters (guard ejection fraction against a zero end-diastolic volume)
       this.lv_sv = this.lv_edv - this.lv_esv
       this.rv_sv = this.rv_edv - this.rv_esv
-      this.lv_ef = this.lv_sv / this.lv_edv
-      this.rv_ef = this.rv_sv / this.rv_edv
+      this.lv_ef = this.lv_edv > 0 ? this.lv_sv / this.lv_edv : 0
+      this.rv_ef = this.rv_edv > 0 ? this.rv_sv / this.rv_edv : 0
     }
 
   }
