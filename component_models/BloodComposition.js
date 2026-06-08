@@ -17,6 +17,7 @@ const delta_o2_limits = 10.0; // delta for pO2 limits
 const brent_accuracy  = 1e-6;
 const max_iterations  = 60;
 const gas_constant    = 62.36367;
+const DEFAULT_HALDANE_COEFF = 1.0; // default Haldane coefficient (0 = effect off); calibrate per scenario
 
 // -----------------------------------------------------------------------------
 // Independent variables
@@ -52,11 +53,13 @@ let uma = 0.0;
 let prev_ph = 7.37; // previous pH value, used to set the limits for H⁺ concentration
 let prev_po2 = 18.7; // previous pO2 value, used to set the limits for pO2
 let dpH = 0;             //Bohr effect: ↓pH → right shift → ↑P₅₀)
-let dpCO2 = 0;       // Haldane effect: ↑pCO2 → right shift → ↑P₅₀
+let dpCO2 = 0;       // CO₂-Bohr effect: ↑pCO2 → right shift → ↑P₅₀
 let dT = 0;          // ↑T → right shift → ↑P₅₀
 let dDPG = 0;          // ↑DPG → right shift → ↑P₅₀
 let hemoglobin_gdl = 0.0;
 let inv_mmol_to_ml = 0.0;
+let haldane_coeff = 0.0; // Haldane effect: ↓SO₂ → ↑CO₂-carrying capacity → ↓pCO2 at given tCO2
+let so2_prev = 0.98;     // SO₂ fraction from previous calculation (breaks the O₂↔CO₂ coupling)
 
 
 
@@ -121,6 +124,13 @@ function _calc_blood_composition_js(bc) {
     temp = bc.temp;
     prev_ph = bc.prev_ph || 7.37; // previous pH value, used to set the limits for H⁺ concentration
     prev_po2 = bc.prev_po2 || 18.7; // previous pO2 value, used to set the limits for pO2
+
+    // Haldane effect inputs: SO₂-dependent CO₂ binding capacity.
+    // Use the previous-step SO₂ (stored on bc.so2 in percent) to break the O₂↔CO₂ coupling.
+    // At steady state so2_prev == so2, so the one-step lag vanishes.
+    haldane_coeff = bc.haldane_coeff ?? DEFAULT_HALDANE_COEFF;
+    so2_prev = bc.so2 > 0 ? bc.so2 / 100.0 : 0.98;
+
     hemoglobin_gdl = hemoglobin / 0.6206;
     inv_mmol_to_ml = 760.0 / (gas_constant * (273.15 + temp));
 
@@ -160,11 +170,11 @@ function _calc_blood_composition_js(bc) {
     }
 
     dpH = ph - 7.40;             //Bohr effect: ↓pH → right shift → ↑P₅₀)
-    dpCO2 = pco2 - 40.0;         // Haldane effect: ↑pCO2 → right shift → ↑P₅₀
+    dpCO2 = pco2 - 40.0;         // carbamino-specific CO₂-Bohr effect (~0.0015/mmHg); pH-mediated part runs via the -0.48·dpH term
     dT = temp - 37.0;            // ↑T → right shift → ↑P₅₀
     dDPG = dpg - 5.0;            // ↑DPG → right shift → ↑P₅₀
 
-    log10_p50 = Math.log10(P50_0) - 0.48 * dpH + 0.014 * dpCO2 + 0.024 * dT + 0.051 * dDPG;
+    log10_p50 = Math.log10(P50_0) - 0.48 * dpH + 0.0015 * dpCO2 + 0.024 * dT + 0.051 * dDPG;
     P50 = Math.pow(10.0, log10_p50);
     P50_n = Math.pow(P50, n);
 
@@ -207,7 +217,9 @@ function _calc_blood_composition_js(bc) {
 
 function _net_charge_plasma(hp_estimate) {
     ph = -Math.log10(hp_estimate / 1000.0);
-    let cco2p = tco2 / (1.0 + kc/hp_estimate + (kc*kd)/(hp_estimate * hp_estimate));
+    // Haldane effect: lower SO₂ raises the CO₂-carrying capacity, so an extra SO₂-dependent
+    // term in the denominator lowers dissolved CO₂ (and pCO2/hco3) at a given tCO2.
+    let cco2p = tco2 / (1.0 + kc/hp_estimate + (kc*kd)/(hp_estimate * hp_estimate) + haldane_coeff * (1.0 - so2_prev));
     hco3       = (kc * cco2p) / hp_estimate;
     let co3p = (kd * hco3) / hp_estimate;
     let ohp  = kw / hp_estimate;

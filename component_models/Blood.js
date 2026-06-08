@@ -15,6 +15,7 @@ export class Blood extends BaseModelClass {
     this.tco2 = 0.0; // total carbon dioxide concentration (mmol/l)
     this.solutes = {}; // dictionary holding the initial circulating solutes
     this.P50_0 = 20.0; // PO2 at which 50% of Hgb is saturated by O2 (fetal = 18.8 (high Hb O2 affinity), neonatal = 20.0, adult = 26.7)
+    this.haldane_coeff = 1.0; // Haldane effect strength (0 = off): lower SO2 raises CO2-carrying capacity
     this.blood_containing_modeltypes = [
       "BloodVessel",
       "HeartChamber",
@@ -49,6 +50,8 @@ export class Blood extends BaseModelClass {
       const model = this._model_engine.models[model_name];
       if (this.blood_containing_modeltypes.includes(model.model_type)) {
         this._blood_components.push(model);
+        // propagate the Haldane coefficient to every blood component (outside the to2/tco2 guard)
+        model.haldane_coeff = this.haldane_coeff;
         if (model.to2 == 0.0 && model.tco2 == 0.0) {
           model.to2 = this.to2;
           model.tco2 = this.tco2;
@@ -123,6 +126,13 @@ export class Blood extends BaseModelClass {
     this.viscosity = new_viscosity;
     this._blood_components.forEach((model) => {
       model.viscosity = new_viscosity;
+    });
+  }
+
+  set_haldane_coeff(new_coeff) {
+    this.haldane_coeff = new_coeff;
+    this._blood_components.forEach((model) => {
+      model.haldane_coeff = new_coeff;
     });
   }
 

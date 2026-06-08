@@ -51,6 +51,24 @@ All capacitance properties are available. See the Capacitance base model for the
 
 Note: `ph`, `pco2`, `po2`, `so2`, `hco3`, and `be` are initialized to -1 and are calculated by external gas exchange models (e.g., `AcidBase`). They are not computed by the BloodCapacitance itself.
 
+### Haldane effect
+
+`calc_blood_composition` (in `BloodComposition.js`) couples oxygen saturation back into the CO2
+dissociation. The plasma CO2 partition gains an SO₂-dependent term:
+
+```
+cco2p = tco2 / (1 + kc/hp + kc*kd/hp² + haldane_coeff * (1 - so2))
+pco2  = cco2p / alpha_co2p
+```
+
+Lower SO₂ raises the effective CO2-carrying capacity, so at a given `tco2` deoxygenated blood shows a
+lower `pco2`/`hco3` — the Haldane effect. `so2` is taken from the previous calculation step (the
+acid-base and oxygen solvers run sequentially); at steady state the one-step lag vanishes. The
+strength is set by `haldane_coeff` on the `Blood` model (propagated to every blood component and
+adjustable at runtime via `Blood.set_haldane_coeff`); `haldane_coeff = 0` disables the effect and
+reproduces the previous behaviour. Note this is distinct from the **CO₂-Bohr effect** (high pCO₂
+right-shifts P50, reducing O₂ affinity), which is modelled separately via the `dpCO2` term.
+
 ## Mixing logic (`volume_in`)
 
 BloodCapacitance overrides the `volume_in` method to perform composition mixing when blood flows in from another compartment. For each tracked substance, the mixing uses a linear dilution formula:
