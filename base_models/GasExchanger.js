@@ -57,7 +57,8 @@ export class GasExchanger extends BaseModelClass {
     let po2_gas = this._gas.po2;
     let pco2_gas = this._gas.pco2;
 
-    if (this._blood.vol === 0.0) return;
+    // guard against division by zero on either compartment (both volumes are used as denominators)
+    if (this._blood.vol <= 0.0 || this._gas.vol <= 0.0) return;
 
     // incorporate the factors
     this.dif_o2_step = this.dif_o2 
@@ -91,11 +92,16 @@ export class GasExchanger extends BaseModelClass {
     let new_cco2_gas = (cco2_gas * this._gas.vol + this.flux_co2) / this._gas.vol;
     if (new_cco2_gas < 0) new_cco2_gas = 0.0;
 
-    // transfer the new concentrations
-    this._blood.to2 = new_to2_blood;
-    this._blood.tco2 = new_tco2_blood;
-    this._gas.co2 = new_co2_gas;
-    this._gas.cco2 = new_cco2_gas;
+    // transfer the new concentrations, guarding each compartment by fixed_composition so a fixed
+    // (infinite-reservoir) compartment stays constant, mirroring BloodDiffusor/GasDiffusor
+    if (!this._blood.fixed_composition) {
+      this._blood.to2 = new_to2_blood;
+      this._blood.tco2 = new_tco2_blood;
+    }
+    if (!this._gas.fixed_composition) {
+      this._gas.co2 = new_co2_gas;
+      this._gas.cco2 = new_cco2_gas;
+    }
 
     // reset the non-persistent factors
     this.dif_o2_factor = 1.0;

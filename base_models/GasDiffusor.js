@@ -1,5 +1,4 @@
 import { BaseModelClass } from "./BaseModelClass";
-import { calc_gas_composition } from "../component_models/GasComposition"
 
 export class GasDiffusor extends BaseModelClass {
   // static properties
@@ -49,9 +48,12 @@ export class GasDiffusor extends BaseModelClass {
     this._comp_gas1 = this._model_engine.models[this.comp_gas1];
     this._comp_gas2 = this._model_engine.models[this.comp_gas2];
 
-    // calculate the gas composition of the gas components in this diffusor as we need the partial pressures for the gas diffusion
-    calc_gas_composition(this._comp_gas1);
-    calc_gas_composition(this._comp_gas2);
+    // refresh the partial pressures of both gas compartments from their current concentrations,
+    // as we need the partial pressures for the gas diffusion. Use the GasCapacitance method (which
+    // derives partials from the actual concentrations) — NOT the standalone calc_gas_composition
+    // initializer, which would reset both compartments to a fixed (room-air) composition.
+    this._comp_gas1.calc_gas_composition();
+    this._comp_gas2.calc_gas_composition();
 
     // incorporate the factors
     this.dif_o2_step = this.dif_o2
@@ -74,27 +76,40 @@ export class GasDiffusor extends BaseModelClass {
         + (this.dif_other_factor_ps - 1) * this.dif_other
         + (this.dif_other_factor_scaling - 1) * this.dif_other;
 
-    // diffuse the gases, where diffusion is partial pressure-driven
+    // diffuse the gases, where diffusion is partial pressure-driven. Each concentration write is
+    // guarded by fixed_composition so a fixed (infinite-reservoir) compartment stays constant,
+    // mirroring BloodDiffusor.
     let do2 = (this._comp_gas1.po2 - this._comp_gas2.po2) * this.dif_o2_step * this._t;
-
-    // update the concentrations
-    this._comp_gas1.co2 = (this._comp_gas1.co2 * this._comp_gas1.vol - do2) / this._comp_gas1.vol;
-    this._comp_gas2.co2 = (this._comp_gas2.co2 * this._comp_gas2.vol + do2) / this._comp_gas2.vol;
+    if (!this._comp_gas1.fixed_composition && this._comp_gas1.vol > 0.0) {
+      this._comp_gas1.co2 = (this._comp_gas1.co2 * this._comp_gas1.vol - do2) / this._comp_gas1.vol;
+    }
+    if (!this._comp_gas2.fixed_composition && this._comp_gas2.vol > 0.0) {
+      this._comp_gas2.co2 = (this._comp_gas2.co2 * this._comp_gas2.vol + do2) / this._comp_gas2.vol;
+    }
 
     let dco2 = (this._comp_gas1.pco2 - this._comp_gas2.pco2) * this.dif_co2_step * this._t;
-    // update the concentrations
-    this._comp_gas1.cco2 = (this._comp_gas1.cco2 * this._comp_gas1.vol - dco2) / this._comp_gas1.vol;
-    this._comp_gas2.cco2 = (this._comp_gas2.cco2 * this._comp_gas2.vol + dco2) / this._comp_gas2.vol;
+    if (!this._comp_gas1.fixed_composition && this._comp_gas1.vol > 0.0) {
+      this._comp_gas1.cco2 = (this._comp_gas1.cco2 * this._comp_gas1.vol - dco2) / this._comp_gas1.vol;
+    }
+    if (!this._comp_gas2.fixed_composition && this._comp_gas2.vol > 0.0) {
+      this._comp_gas2.cco2 = (this._comp_gas2.cco2 * this._comp_gas2.vol + dco2) / this._comp_gas2.vol;
+    }
 
     let dn2 = (this._comp_gas1.pn2 - this._comp_gas2.pn2) * this.dif_n2_step * this._t;
-    // update the concentrations
-    this._comp_gas1.cn2 = (this._comp_gas1.cn2 * this._comp_gas1.vol - dn2) / this._comp_gas1.vol;
-    this._comp_gas2.cn2 = (this._comp_gas2.cn2 * this._comp_gas2.vol + dn2) / this._comp_gas2.vol;
+    if (!this._comp_gas1.fixed_composition && this._comp_gas1.vol > 0.0) {
+      this._comp_gas1.cn2 = (this._comp_gas1.cn2 * this._comp_gas1.vol - dn2) / this._comp_gas1.vol;
+    }
+    if (!this._comp_gas2.fixed_composition && this._comp_gas2.vol > 0.0) {
+      this._comp_gas2.cn2 = (this._comp_gas2.cn2 * this._comp_gas2.vol + dn2) / this._comp_gas2.vol;
+    }
 
     let dother = (this._comp_gas1.pother - this._comp_gas2.pother) * this.dif_other_step * this._t;
-    // update the concentrations
-    this._comp_gas1.cother = (this._comp_gas1.cother * this._comp_gas1.vol - dother) / this._comp_gas1.vol;
-    this._comp_gas2.cother = (this._comp_gas2.cother * this._comp_gas2.vol + dother) / this._comp_gas2.vol;
+    if (!this._comp_gas1.fixed_composition && this._comp_gas1.vol > 0.0) {
+      this._comp_gas1.cother = (this._comp_gas1.cother * this._comp_gas1.vol - dother) / this._comp_gas1.vol;
+    }
+    if (!this._comp_gas2.fixed_composition && this._comp_gas2.vol > 0.0) {
+      this._comp_gas2.cother = (this._comp_gas2.cother * this._comp_gas2.vol + dother) / this._comp_gas2.vol;
+    }
 
     // reset the non-persistent factors
     this.dif_o2_factor = 1.0;

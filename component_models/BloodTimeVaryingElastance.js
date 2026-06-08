@@ -33,6 +33,13 @@ export class BloodTimeVaryingElastance extends TimeVaryingElastance {
     // call the parent method from the TimeVaryingElastance class to update the volume
     super.volume_in(dvol, comp_from);
 
+    // a fixed-composition compartment is an infinite reservoir: hold its composition
+    // (and temperature/viscosity) constant
+    if (this.fixed_composition) return;
+
+    // guard against division by zero on an empty compartment (would produce NaN concentrations)
+    if (this.vol <= 0.0) return;
+
     // process the gases o2 and co2
     this.to2 += ((comp_from.to2 - this.to2) * dvol) / this.vol;
     this.tco2 += ((comp_from.tco2 - this.tco2) * dvol) / this.vol;

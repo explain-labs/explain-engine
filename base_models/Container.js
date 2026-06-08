@@ -73,9 +73,13 @@ export class Container extends BaseModelClass {
     // reset the starting volume to the additional volume of the container
     this.vol = this.vol_extra;
 
-    // get the cumulative volume from all contained models and add it to the volume of the container
+    // get the cumulative volume from all contained models and add it to the volume of the container.
+    // skip missing components (bad/typo'd name) and disabled ones (they don't participate)
     this.contained_components.forEach((c) => {
-      this.vol += this._model_engine.models[c].vol;
+      const m = this._model_engine.models[c];
+      if (m && m.is_enabled) {
+        this.vol += m.vol;
+      }
     });
     
     // calculate the unstressed volume incorporating the factors
@@ -98,9 +102,14 @@ export class Container extends BaseModelClass {
     // calculate the total pressure by incorporating the external pressures
     this.pres = this.pres_in + this.pres_ext;
 
-    // transfer the container pressure to the contained components
+    // transfer the container pressure to the contained components. Skip missing components and
+    // disabled ones — a disabled component never runs its calc_pressure to reset pres_ext, so
+    // adding to it here would accumulate unbounded until it is re-enabled.
     this.contained_components.forEach((c) => {
-      this._model_engine.models[c].pres_ext += this.pres;
+      const m = this._model_engine.models[c];
+      if (m && m.is_enabled) {
+        m.pres_ext += this.pres;
+      }
     });
 
     // reset the external pressure

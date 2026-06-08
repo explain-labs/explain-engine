@@ -68,20 +68,20 @@ export class BloodDiffusor extends BaseModelClass {
     // diffuse the gases, where diffusion is partial pressure-driven
     let do2 = (this._comp_blood1.po2 - this._comp_blood2.po2) * this.dif_o2_step * this._t;
 
-    // update the concentrations
-    if (!this._comp_blood1.fixed_composition) {
+    // update the concentrations (skip a fixed-composition or empty compartment)
+    if (!this._comp_blood1.fixed_composition && this._comp_blood1.vol > 0.0) {
       this._comp_blood1.to2 = (this._comp_blood1.to2 * this._comp_blood1.vol - do2) / this._comp_blood1.vol;
     }
-    if (!this._comp_blood2.fixed_composition) {
+    if (!this._comp_blood2.fixed_composition && this._comp_blood2.vol > 0.0) {
       this._comp_blood2.to2 = (this._comp_blood2.to2 * this._comp_blood2.vol + do2) / this._comp_blood2.vol;
     }
 
     let dco2 = (this._comp_blood1.pco2 - this._comp_blood2.pco2) * this.dif_co2_step * this._t;
     // update the concentrations
-    if (!this._comp_blood1.fixed_composition) {
+    if (!this._comp_blood1.fixed_composition && this._comp_blood1.vol > 0.0) {
       this._comp_blood1.tco2 = (this._comp_blood1.tco2 * this._comp_blood1.vol - dco2) / this._comp_blood1.vol;
     }
-    if (!this._comp_blood2.fixed_composition) {
+    if (!this._comp_blood2.fixed_composition && this._comp_blood2.vol > 0.0) {
       this._comp_blood2.tco2 = (this._comp_blood2.tco2 * this._comp_blood2.vol + dco2) / this._comp_blood2.vol;
     }
 
@@ -90,10 +90,10 @@ export class BloodDiffusor extends BaseModelClass {
       let dif = this.dif_solutes[sol] * solutes_step;
       let dsol = (this._comp_blood1.solutes[sol] - this._comp_blood2.solutes[sol]) * dif * this._t;
       // update the concentration
-      if (!this._comp_blood1.fixed_composition) {
+      if (!this._comp_blood1.fixed_composition && this._comp_blood1.vol > 0.0) {
         this._comp_blood1.solutes[sol] = (this._comp_blood1.solutes[sol] * this._comp_blood1.vol - dsol) / this._comp_blood1.vol;
       }
-      if (!this._comp_blood2.fixed_composition) {
+      if (!this._comp_blood2.fixed_composition && this._comp_blood2.vol > 0.0) {
         this._comp_blood2.solutes[sol] = (this._comp_blood2.solutes[sol] * this._comp_blood2.vol + dsol) / this._comp_blood2.vol;
       }
     });

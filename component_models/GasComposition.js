@@ -23,11 +23,19 @@ export function calc_gas_composition(
   // get the gas capacitance pressure
   let pressure = gc.pres;
 
+  // persist the temperature and humidity used to compute the composition so the compartment's
+  // own per-step calculations stay consistent with the concentrations set below
+  gc.temp = temp;
+  gc.humidity = humidity;
+
+  // guard against a non-physical pressure (would otherwise produce Infinity/NaN fractions)
+  if (!(pressure > 0)) return;
+
   // calculate the concentration at this pressure and temperature in mmol/l using the gas law
   gc.ctotal = (pressure / (_gas_constant * (273.15 + temp))) * 1000.0;
 
   // calculate the water vapor pressure, concentration, and fraction for this temperature and humidity (0 - 1)
-  gc.ph2o = Math.exp(20.386 - 5132 / (temp + 273)) * humidity;
+  gc.ph2o = Math.exp(20.386 - 5132 / (temp + 273.15)) * humidity;
   gc.fh2o = gc.ph2o / pressure;
   gc.ch2o = gc.fh2o * gc.ctotal;
 

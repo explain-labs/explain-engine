@@ -25,6 +25,7 @@ export class GasCapacitance extends Capacitance {
     this.cn2 = 0.0; // nitrogen concentration (mmol/l)
     this.cother = 0.0; // other gases concentration (mmol/l)
     this.ch2o = 0.0; // water vapor concentration (mmol/l)
+    this.pres_rel = 0.0; // pressure relative to atmospheric (mmHg)
     this.po2 = 0.0; // partial pressure of oxygen (mmHg)
     this.pco2 = 0.0; // partial pressure of carbon dioxide (mmHg)
     this.pn2 = 0.0; // partial pressure of nitrogen (mmHg)
@@ -77,6 +78,13 @@ export class GasCapacitance extends Capacitance {
     // call the parent method from the Capacitance class to update the volume
     super.volume_in(dvol, comp_from);
 
+    // a fixed-composition compartment is an infinite reservoir: hold its composition
+    // (and temperature) constant, just as the parent already holds its volume constant
+    if (this.fixed_composition) return;
+
+    // guard against division by zero on an empty compartment (would produce NaN concentrations)
+    if (this.vol <= 0.0) return;
+
     // process the changes in gas composition
     this.co2 = (this.co2 * this.vol + (comp_from.co2 - this.co2) * dvol) / this.vol;
     this.cco2 = (this.cco2 * this.vol + (comp_from.cco2 - this.cco2) * dvol) / this.vol;
@@ -112,7 +120,8 @@ export class GasCapacitance extends Capacitance {
     let dH2O = 0.00001 * (pH2Ot - this.ph2o) * this._t;
 
     // calculate the change in water vapor concentration based on the temperature and pressure
-    if (this.vol > 0.0) {
+    // (skip for a fixed-composition compartment so its water vapor stays constant)
+    if (this.vol > 0.0 && !this.fixed_composition) {
       this.ch2o = (this.ch2o * this.vol + dH2O) / this.vol;
     }
 
@@ -124,7 +133,7 @@ export class GasCapacitance extends Capacitance {
 
   calc_watervapour_pressure() {
     // calculate the water vapor pressure based on the temperature
-    return Math.exp(20.386 - 5132 / (this.temp + 273));
+    return Math.exp(20.386 - 5132 / (this.temp + 273.15));
   }
 
   calc_gas_composition() {

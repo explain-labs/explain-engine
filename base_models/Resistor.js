@@ -102,8 +102,14 @@ export class Resistor extends BaseModelClass {
 
     // calculate the forward flow between two components
     if (_p1_t >= _p2_t) {
-      // calculate the forward flow
-      this.flow = (_p1_t - _p2_t - this.r_k_eff * Math.pow(this.flow, 2)) / this.r_for_eff;
+      // guard against a non-positive resistance (would produce Infinity/NaN flow)
+      if (this.r_for_eff <= 0.0) {
+        this._prev_flow = 0.0;
+        return;
+      }
+      // calculate the forward flow. The non-linear term uses the previous step's flow (explicit
+      // lagged scheme) — not this.flow, which was just reset to 0 above.
+      this.flow = (_p1_t - _p2_t - this.r_k_eff * Math.pow(this._prev_flow, 2)) / this.r_for_eff;
 
       // update the volumes of the connected components but do not remove the volume which could not be removed from the upstream component (to prevent volume loss)
       const vol_not_removed = this._comp_from.volume_out(this.flow * this._t);
@@ -118,8 +124,14 @@ export class Resistor extends BaseModelClass {
 
     // calculate the backward flow between two components
     if (_p1_t < _p2_t && !this.no_back_flow) {
-      // calculate the backward flow
-      this.flow = (_p1_t - _p2_t + this.r_k_eff * Math.pow(this.flow, 2)) / this.r_back_eff;
+      // guard against a non-positive resistance (would produce Infinity/NaN flow)
+      if (this.r_back_eff <= 0.0) {
+        this._prev_flow = 0.0;
+        return;
+      }
+      // calculate the backward flow. The non-linear term uses the previous step's flow (explicit
+      // lagged scheme) — not this.flow, which was just reset to 0 above.
+      this.flow = (_p1_t - _p2_t + this.r_k_eff * Math.pow(this._prev_flow, 2)) / this.r_back_eff;
 
       // update the volumes of the connected components but do not remove the volume which could not be removed from the upstream component (to prevent volume loss)
       let vol_not_removed = this._comp_to.volume_out(-this.flow * this._t);
@@ -131,5 +143,9 @@ export class Resistor extends BaseModelClass {
       // return from this function
       return;
     }
+
+    // reached only when p1 < p2 and backflow is blocked: no flow occurred this step,
+    // so clear the stored flow to keep the non-linear term consistent next step
+    this._prev_flow = 0.0;
   }
 }
