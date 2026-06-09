@@ -1,57 +1,133 @@
 # Monitor
 
 The `Monitor` device model is a **read-only patient monitor**. It does not change the physiology — it
-samples other models each step and derives the bedside-monitor numbers and waveforms: heart rate,
-blood pressures, saturations, cardiac output, regional flows, blood gases and the ECG/ABP/PAP/CVP/
-SpO₂/CO₂ traces.
+samples other models each step and publishes bedside read-outs. It is a pure observer: nothing in the
+engine reads from it, and it never writes to the models it samples, so it can be added or removed
+without affecting the simulation. The `DataCollector` relays its read-outs (via the normal watchlist)
+to the user.
 
-All its model references are resolved by name in `init_model` (each with a `?? null` fallback), and
-the read-outs are computed from whichever of those are present — a missing model just leaves the
-corresponding number at its previous value rather than crashing.
+The model is deliberately minimal. It computes a handful of bedside values itself — **heart rate**,
+**respiratory rate**, **end-tidal CO₂**, **temperature**, the **O₂ saturations** (pre-/post-ductal and
+venous) and the **post-ductal blood pressure** — and exposes everything else through three uniform,
+**JSON-configurable** read-out systems (`flow_targets`, `minmax_targets`, `signal_targets`) plus a few
+derived metrics.
 
-## What it measures
+> The arterial blood pressure (`abp_syst`/`abp_diast`/`abp_mean`) is a built-in 2-level read-out rather
+> than a `minmax_targets` entry on purpose: the bedside numerics stream on the slow channel, and a flat
+> 2-part path (`Monitor.abp_syst`) reads back reliably there. (`minmax_targets` still works for any
+> compartment, but its keys are 3-part paths — `Monitor.minmax.<name>_pres_max` — better suited to the
+> fast/diagram side.)
 
-| Group | Outputs |
+## Built-in read-outs
+
+| Output | How |
 |---|---|
-| Rate | `heart_rate` (averaged), `heart_rate_btb` (beat-to-beat), `resp_rate` |
-| Pressures | pre/post-ductal ABP (syst/diast/mean), PAP, CVP (IVC + SVC) |
-| Ventricular | EDV/ESV/EDP/ESP and stroke volume (LV, RV) |
-| Saturations | pre/post-ductal SaO₂, venous SvO₂ (IVC + SVC) |
-| Output & flows | LVO, RVO, coronary, brain, kidney, LS, intestinal, RLB, DA, FO, VSD, IPS, umbilical |
-| Gases | arterial pH/pO₂/pCO₂/HCO₃/BE, etCO₂, O₂ delivery (`do2_br`, `do2_lb`) |
-| Waveforms | ECG, ABP, PAP, CVP, SpO₂ (pre/post), respiration, CO₂ |
+| `heart_rate` | rolling average of the beat-to-beat rate over the last **`hr_avg_beats`** beats (bpm) |
+| `resp_rate` | rolling average of the breath-to-breath rate over the last **`rr_avg_time`** seconds (breaths/min) |
+| `etco2` | end-tidal CO₂, mirrored each step from `Ventilator.etco2` (last value kept if no ventilator) |
+| `temp` | blood temperature (°C), mirrored each step from `AA.temp` (last value kept if AA is absent) |
+| `sao2_pre`, `sao2_post` | pre-/post-ductal arterial O₂ saturation, from `AA.so2` / `AD.so2` |
+| `svo2` | venous O₂ saturation, from the right atrium / IVC (`RAIVCI.so2`) |
+| `abp_syst`, `abp_diast`, `abp_mean` | post-ductal arterial blood pressure (mmHg), latched each beat from the per-beat max/min of `AD.pres` (mean ≈ `(2·diast + syst)/3`) |
 
-## How it samples
+**Heart rate** — on each ventricular beat (`Heart.ncc_ventricular === 1`), the beat-to-beat rate is
+`60 / interval` (interval = time since the previous beat). A running window of the last `hr_avg_beats`
+rates is kept (with a running sum) and averaged into `heart_rate`, so it updates every beat.
 
-Per step (`calc_model`):
+**Respiratory rate** — `calc_resp_rate()` detects a breath when an **active** breathing source reaches
+the start of inspiration (`ncc_insp === 1`): the spontaneous `Breathing` model (when
+`breathing_enabled`) or the `Ventilator` (when `is_enabled`). It keeps a rolling window of
+breath-to-breath intervals spanning ~`rr_avg_time` seconds and reports `breaths / window-time × 60`,
+updated every breath. Both references are optional (`?? null`); a missing source is simply skipped.
 
-1. **`collect_pressures`** — track running min/max of each compartment's `pres_in` over the beat.
-2. **`collect_blood_flows`** — integrate each connector's `flow · Δt` into per-region counters.
-3. **`collect_signals`** — snapshot the instantaneous waveform values.
-4. **Beat detection** (`Heart.ncc_ventricular === 1`) latches the per-beat values: systolic/diastolic
-   from the tracked min/max (mean ≈ `(2·diast + syst)/3`), end-diastolic/-systolic volumes &
-   pressures, and resets the trackers.
-5. **Rate** — the R-R interval gives `heart_rate_btb`; `calc_avg_heartrate` keeps a rolling average
-   (`heart_rate`) over a beat window that adapts to rate (4 beats < 80 bpm, 12 beats ≥ 80, per the
-   Philips IntelliVue convention).
-6. **Outputs** — once every `flow_avg_beats` beats, convert the integrated flow counters to L/min
-   (`counter / beats_time · 60`) and reset them.
+## Configurable read-outs
 
-## Configuration (model-definition fields)
+All three take a JSON array of `{ name, model }` objects, resolve them in `init_model` (dropping any
+whose model does not resolve), and seed their output keys to `0` so the watch paths exist from the
+start. This is the intended way to add bedside numbers without touching engine code.
 
-The `*` name fields map the monitor onto the circulation/airway topology (`heart`, `lv`, `rv`,
-`ascending_aorta`, `descending_aorta`, `pulm_artery`, the venous and shunt connectors, `breathing`,
-`ventilator`, …). Averaging windows: `hr_avg_beats`, `flow_avg_beats`, `rr_avg_time`, `sat_avg_time`.
+### Flows (`flow_targets` → `Monitor.flows`)
+
+`model` is a `"ModelName.prop"` dot-path (the prop defaults to `flow`):
+
+```json
+"flow_targets": [
+  { "name": "kidney_flow", "model": "AD_KID_ART.flow" },
+  { "name": "brain_flow",  "model": "AA_BR_ART.flow" }
+]
+```
+
+Each connector's `flow · Δt` is integrated every step (`collect_flows`) and, once every
+`flow_avg_beats` beats, converted to a beat-averaged value (`counter / beats_time · 60`) and published
+under **`Monitor.flows.<name>`** in **L/min** — e.g. watch `Monitor.flows.kidney_flow`.
+
+### Min/max (`minmax_targets` → `Monitor.minmax`)
+
+`model` is a compartment name; the per-beat min/max of its `pres` and `vol` are tracked
+(`collect_pressures`) and latched on each beat:
+
+```json
+"minmax_targets": [
+  { "name": "left_ventricle", "model": "LV" },
+  { "name": "right_atrium",   "model": "RAIVCI" }
+]
+```
+
+Published as **flat** keys under `Monitor.minmax`, reset every beat:
+
+| Key | Unit | Source |
+|---|---|---|
+| `<name>_pres_min`, `<name>_pres_max` | mmHg | compartment `pres` (total pressure) |
+| `<name>_pres_mean` | mmHg | `(2·pres_min + pres_max) / 3` |
+| `<name>_vol_min`, `<name>_vol_max` | mL | compartment `vol` (× 1000) |
+
+Watch e.g. `Monitor.minmax.left_ventricle_pres_max`. The keys are **flat** (not a nested object)
+because the `DataCollector` watcher resolves at most two property levels (`model.prop1.prop2`) — i.e.
+a watch path of at most three dotted parts; `Monitor.minmax.left_ventricle.pres_max` (four parts)
+would not resolve. Targets without a numeric `pres`/`vol` (e.g. a resistor) are not tracked.
+
+### Raw signals (`signal_targets` → `Monitor.signals`)
+
+For waveforms / raw values (no averaging), `model` is a `"ModelName.prop"` dot-path:
+
+```json
+"signal_targets": [
+  { "name": "ecg",     "model": "Heart.ecg_signal" },
+  { "name": "lv_pres", "model": "LV.pres" }
+]
+```
+
+Each is read **unprocessed every step** (`collect_signals`) and published under
+**`Monitor.signals.<name>`** — e.g. watch `Monitor.signals.ecg`. A `prop` is required (entries without
+a `"."` are dropped).
+
+## Derived metrics
+
+Computed once every `flow_avg_beats` beats from the `flows` dict, so the scenario must define the
+matching `flow_targets`:
+
+| Output | Formula | Requires `flow_targets` |
+|---|---|---|
+| `fo_flow` | `flows.fo_ivci_flow + flows.fo_svc_flow` | `fo_ivci_flow`, `fo_svc_flow` |
+| `do2_br` | `flows.brain_flow · AA.to2 · 22.4` | `brain_flow` |
+| `do2_lb` | `flows.kid_flow · 4 · AD.to2 · 22.4` | `kid_flow` |
+
+## Configuration
+
+`hr_avg_beats` (12), `flow_avg_beats` (1), `rr_avg_time` (20 s), `sat_avg_time` (5 s), plus the three
+`*_targets` arrays. Model references are resolved by name: `Heart` (beats), `Breathing` + `Ventilator`
+(breaths). The `flow_targets`/`minmax_targets`/`signal_targets` entries name their own models.
 
 ## Notes & caveats
 
-- **`heart_rate` is the rolling average; `heart_rate_btb` is instantaneous.** A previous line
-  overwrote `heart_rate` with the beat-to-beat value right after the averager set it, discarding the
-  average — that overwrite was removed so `heart_rate` now reflects the adaptive moving average.
-- **Missing references are tolerated.** The few read-outs that previously dereferenced `AA`, `AD`,
-  `Heart`, `Ventilator` or `Breathing` without a guard now fall back to the last value, matching the
-  defensive style of the rest of the model.
-- **`right_atrium` is undefined** (only `right_atrium_ivci` / `right_atrium_svc` exist), so `_ra`
-  resolves to null — it is unused, so this is harmless.
-- **Pure observer.** The Monitor never writes to the models it samples, so it can be added or removed
-  without affecting the simulation.
+- **Pure observer.** The Monitor never writes to the models it samples; no model depends on it. The
+  `DataCollector` reads its outputs through the watchlist like any other model.
+- **Breath sourcing.** `resp_rate` counts breaths from the spontaneous `Breathing` source *and* the
+  `Ventilator` (each gated by its enable flag). In assisted ventilation, where both are active, both
+  breath types are counted, which can overcount the rate; in purely spontaneous or purely ventilated
+  states it is correct.
+- **Start-up transient.** The first heart-rate and respiratory-rate windows include the time before
+  the first beat/breath, so the very first read-out is slightly off; it settles after one window.
+- **`do2_br` / `do2_lb` need `AA` / `AD`.** The oxygen-delivery metrics read the aortic O₂ content
+  (`AA.to2` / `AD.to2`); both references are resolved with a `?? null` fallback, so they hold their
+  last value if those compartments are absent.

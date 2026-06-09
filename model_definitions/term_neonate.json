@@ -3678,8 +3678,8 @@
             "factor": 1,
             "rounding": 0,
             "props": [
-              "Monitor.abp_pre_syst",
-              "Monitor.abp_pre_diast"
+              "Monitor.minmax.abp_pre_pres_max",
+              "Monitor.minmax.abp_pre_pres_min"
             ],
             "weight_based": false,
             "value": "75/48"
@@ -3690,8 +3690,8 @@
             "factor": 1,
             "rounding": 0,
             "props": [
-              "Monitor.pap_syst",
-              "Monitor.pap_diast"
+              "Monitor.minmax.pap_pres_max",
+              "Monitor.minmax.pap_pres_min"
             ],
             "weight_based": false,
             "value": "43/19"
@@ -3702,7 +3702,7 @@
             "factor": 1,
             "rounding": 0,
             "props": [
-              "Monitor.cvp_ivci"
+              "Monitor.minmax.cvp_pres_mean"
             ],
             "weight_based": false,
             "value": "5"
@@ -3841,7 +3841,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.lvo"
+              "Monitor.flows.lvo"
             ],
             "weight_based": true,
             "value": "186.1"
@@ -3852,7 +3852,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.rvo"
+              "Monitor.flows.rvo"
             ],
             "weight_based": true,
             "value": "185.8"
@@ -3863,7 +3863,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.cor_flow"
+              "Monitor.flows.cor_flow"
             ],
             "weight_based": true,
             "value": "11.6"
@@ -3874,7 +3874,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.svc_flow"
+              "Monitor.flows.svc_flow"
             ],
             "weight_based": true,
             "value": "77.5"
@@ -3885,7 +3885,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.ivc_flow"
+              "Monitor.flows.ivc_flow"
             ],
             "weight_based": true,
             "value": "99.2"
@@ -3896,7 +3896,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.da_flow"
+              "Monitor.flows.da_flow"
             ],
             "weight_based": true,
             "value": "0.0"
@@ -3918,7 +3918,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.brain_flow"
+              "Monitor.flows.brain_flow"
             ],
             "weight_based": true,
             "value": "38.0"
@@ -3929,7 +3929,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.kid_flow"
+              "Monitor.flows.kid_flow"
             ],
             "weight_based": true,
             "value": "24.6"
@@ -3940,7 +3940,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.ua_flow"
+              "Monitor.flows.ua_flow"
             ],
             "weight_based": true,
             "value": "0.0"
@@ -3951,7 +3951,7 @@
             "factor": 1000,
             "rounding": 1,
             "props": [
-              "Monitor.uv_flow"
+              "Monitor.flows.uv_flow"
             ],
             "weight_based": true,
             "value": "0.0"
@@ -10551,112 +10551,40 @@
         "is_enabled": true,
         "model_type": "Monitor",
         "components": {},
+        "flow_targets": [
+          { "name": "lvo", "model": "LV_AA.flow" },
+          { "name": "rvo", "model": "RV_PA.flow" },
+          { "name": "cor_flow", "model": "AA_COR.flow" },
+          { "name": "svc_flow", "model": "SVC_RASVC.flow" },
+          { "name": "ivc_flow", "model": "IVCI_RAIVCI.flow" },
+          { "name": "da_flow", "model": "AAR_DA.flow" },
+          { "name": "brain_flow", "model": "AA_BR_ART.flow" },
+          { "name": "kid_flow", "model": "AD_KID_ART.flow" },
+          { "name": "ua_flow", "model": "AD_PL_UMB_ART.flow" },
+          { "name": "uv_flow", "model": "PL_FETAL_VEN_PL_UMB_VEN.flow" },
+          { "name": "fo_ivci_flow", "model": "LA_RAIVCI.flow" },
+          { "name": "fo_svc_flow", "model": "LA_RASVC.flow" }
+        ],
+        "minmax_targets": [
+          { "name": "lv", "model": "LV" },
+          { "name": "rv", "model": "RV" },
+          { "name": "abp_pre", "model": "AA" },
+          { "name": "abp", "model": "AD" },
+          { "name": "pap", "model": "PA" },
+          { "name": "cvp", "model": "RAIVCI" }
+        ],
+        "signal_targets": [
+          { "name": "ecg", "model": "Heart.ecg_signal" },
+          { "name": "sat_pre", "model": "AA.pres" },
+          { "name": "sat_post", "model": "AD.pres" },
+          { "name": "abp", "model": "AD.pres" },
+          { "name": "resp", "model": "THORAX.vol" },
+          { "name": "co2", "model": "Ventilator.co2" }
+        ],
         "hr_avg_beats": 12,
         "flow_avg_beats": 1,
         "rr_avg_time": 20,
-        "sat_avg_time": 5,
-        "sat_sampling_interval": 1,
-        "heart": "Heart",
-        "lv": "LV",
-        "rv": "RV",
-        "ascending_aorta": "AA",
-        "descending_aorta": "AD",
-        "pulm_artery": "PA",
-        "right_atrium_ivci": "RAIVCI",
-        "right_atrium_svc": "RASVC",
-        "breathing": "Breathing",
-        "ventilator": "Ventilator",
-        "aortic_valve": "LV_AA",
-        "pulm_valve": "RV_PA",
-        "aa_cor": "AA_COR",
-        "aa_brain": "AA_BR_ART",
-        "ad_kid": "AD_KID_ART",
-        "ad_ls": "AD_LS",
-        "ad_int": "AD_INT",
-        "ad_rlb": "AD_RLB",
-        "ivc_ra": "IVCI_RAIVCI",
-        "svc_ra": "SVC_RASVC",
-        "thorax": "THORAX",
-        "deadspace": "DS",
-        "fo_ivci": "LA_RAIVCI",
-        "fo_svc": "LA_RASVC",
-        "da": "AAR_DA",
-        "vsd": "VSD",
-        "ips": "IPS",
-        "ua": "AD_PL_UMB_ART",
-        "uv": "PL_FETAL_VEN_PL_UMB_VEN",
-        "heart_rate": 120.12012012012002,
-        "heart_rate_btb": 120.12012012012002,
-        "resp_rate": 42.31311706629355,
-        "resp_rate_btb": 0,
-        "abp_pre_syst": 72.83526882175649,
-        "abp_pre_diast": 46.69655273932648,
-        "abp_pre_mean": 55.409458100136476,
-        "abp_post_syst": 66.23705664582467,
-        "abp_post_diast": 41.26515606483116,
-        "abp_post_mean": 49.589122925162336,
-        "pap_syst": 42.70976811498341,
-        "pap_diast": 19.449043310378663,
-        "pap_mean": 27.202618245246914,
-        "edv_lv": 9.52659536209499,
-        "esv_lv": 3.3816272069939113,
-        "edp_lv": 3.202766440719752,
-        "esp_lv": 73.70458576839351,
-        "edv_rv": 11.679859748799707,
-        "esv_rv": 5.704512311226229,
-        "edp_rv": 2.5453699618623027,
-        "esp_rv": 44.18956954432279,
-        "cvp_ivci": 5.581600558660888,
-        "cvp_svc": 5.4518194062475756,
-        "sao2_pre": 96.56440354757912,
-        "sao2_post": 96.15996179909641,
-        "svo2_ivci": 68.05363964356305,
-        "svo2_svc": 68.05363964356305,
-        "etco2": 0,
-        "temp": 37,
-        "co": 0,
-        "ci": 0,
-        "lvo": 0.620049392928948,
-        "rvo": 0.6600401976755745,
-        "lv_sv": 6.144968155101079,
-        "rv_sv": 5.975347437573478,
-        "ivc_flow": 0.3619510427209156,
-        "svc_flow": 0.28354596552025463,
-        "cor_flow": 0.03793075410324096,
-        "brain_flow": 0.12600865421069382,
-        "kid_flow": 0.08226633894122505,
-        "da_flow": 0,
-        "fo": 0,
-        "fo_ivci_flow": 0,
-        "fo_svc_flow": 0,
-        "vsd_flow": 0,
-        "ips_flow": 0,
-        "fio2": 0,
-        "pip": 0,
-        "p_plat": 0,
-        "peep": 0,
-        "tidal_volume": 0,
-        "ph": 0,
-        "po2": 0,
-        "pco2": 0,
-        "hco3": 0,
-        "be": 0,
-        "dps": 0,
-        "do2_br": 19.01638938268239,
-        "do2_lb": 49.437224103826615,
-        "ecg_signal": 9.598485993824486,
-        "abp_signal": 52.4663300230383,
-        "pap_signal": 37.38212458221347,
-        "cvp_signal": 5.708247635272004,
-        "sao2_pre_signal": 58.28788153768791,
-        "sao2_post_signal": 52.4663300230383,
-        "sao2_signal": 0,
-        "resp_signal": 0.23227758326200132,
-        "co2_signal": 0,
-        "fo_flow": 0,
-        "ua_flow": 0,
-        "uv_flow": 0,
-        "rlb_flow": 0.08232075823984164
+        "sat_avg_time": 5
       },
       "PA_PAAL": {
         "name": "PA_PAAL",
