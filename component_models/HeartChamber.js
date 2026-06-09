@@ -15,7 +15,8 @@ export class HeartChamber extends TimeVaryingElastance {
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
     this.ans_sens = 1.0; // sensitivity of this blood time varying elastance for autonomic control. 0.0 is no effect, 1.0 is full effect
-    this.ans_activity = 1.0; // activiaty of the ans 
+    this.ans_activity = 1.0; // activiaty of the ans
+    this.el_max_mob_factor = 1.0; // contractility factor from the myocardial oxygen balance model (Mob); 1.0 = no effect
 
     // initialize dependent properties unique to a HeartChamber
     this.to2 = 0.0; // total oxygen concentration (mmol/l)
@@ -48,6 +49,7 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.el_max_factor - 1) * this.el_max
         + (this.el_max_factor_ps - 1) * this.el_max
         + (this.el_max_factor_scaling_ps - 1) * this.el_max
+        + (this.el_max_mob_factor - 1) * this.el_max
         + (this.ans_activity - 1) * this.el_max * this.ans_sens
 
     this.el_k_eff = this.el_k

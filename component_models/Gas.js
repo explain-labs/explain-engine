@@ -51,12 +51,14 @@ export class Gas extends BaseModelClass {
       this._model_engine.models[model_name].humidity = humidity;
     });
 
-    // calculate the gas composition of the gas containing model types
-    // only bootstrap composition for compartments that don't already have one
-    // (a restored/loaded definition already carries full composition; recomputing
-    //  it here from the global fio2 would wipe the restored per-compartment values)
+    // calculate the gas composition of the gas containing model types.
+    // only bootstrap composition for freshly-constructed compartments (no gas of any species). A
+    // restored/loaded state already carries the per-compartment concentrations, so guarding on the
+    // raw concentrations — rather than the derived ctotal, which may not be serialized — preserves
+    // the restored composition even when ctotal is missing/0.
     this._gas_components.forEach((model) => {
-      if (model.ctotal === 0) {
+      const total_gas = model.co2 + model.cco2 + model.cn2 + model.ch2o + model.cother;
+      if (total_gas === 0) {
         calc_gas_composition(model, this.fio2, model.temp, model.humidity);
       }
     });
@@ -113,7 +115,9 @@ export class Gas extends BaseModelClass {
   }
 
   set_fio2(new_fio2, sites = ["OUT", "MOUTH"]) {
-    this.fio2 = new_fio2;
+    // parse to a number (UI values may arrive as strings) to avoid string concatenation in the
+    // gas-fraction math (e.g. 1 - (fio2 + fico2)), which would otherwise produce NaN concentrations
+    this.fio2 = parseFloat(new_fio2);
 
     // make sure sites is an array
     sites = Array.isArray(sites) ? sites : [sites];

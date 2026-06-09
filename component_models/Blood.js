@@ -50,9 +50,13 @@ export class Blood extends BaseModelClass {
       const model = this._model_engine.models[model_name];
       if (this.blood_containing_modeltypes.includes(model.model_type)) {
         this._blood_components.push(model);
-        // propagate the Haldane coefficient to every blood component (outside the to2/tco2 guard)
+        // propagate the Haldane coefficient to every blood component (outside the bootstrap guard)
         model.haldane_coeff = this.haldane_coeff;
-        if (model.to2 == 0.0 && model.tco2 == 0.0) {
+        // only bootstrap composition for freshly-constructed compartments (empty solutes). A
+        // restored/loaded state already carries per-compartment composition, so guarding on
+        // empty solutes (rather than the to2/tco2==0 proxy) preserves it even when a restored
+        // compartment legitimately has to2==0 && tco2==0.
+        if (Object.keys(model.solutes).length === 0) {
           model.to2 = this.to2;
           model.tco2 = this.tco2;
           model.solutes = { ...this.solutes };
@@ -160,8 +164,10 @@ export class Blood extends BaseModelClass {
     if (bc_site) {
       this._model_engine.models[bc_site].solutes[solute] = solute_value;
     } else {
+      // update the reference value and propagate this specific solute to all blood components
+      this.solutes[solute] = solute_value;
       this._blood_components.forEach((model) => {
-        model.solutes = { ...this.solutes };
+        model.solutes[solute] = solute_value;
       });
     }
   }

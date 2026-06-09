@@ -162,10 +162,14 @@ export class Breathing extends BaseModelClass {
       this.resp_rate = 0.0;
       return
     }
-    this.resp_rate = Math.sqrt(this.target_minute_volume / (this.vt_rr_ratio * this.vt_rr_ratio_factor * this.vt_rr_ratio_scaling_factor * _weight));
-
-    if (this.resp_rate > 0) {
+    // guard the Mecklenburgh inversion against a non-positive denominator or target minute volume
+    // (would otherwise yield Infinity/NaN resp_rate and a zero breath interval)
+    const _denom = this.vt_rr_ratio * this.vt_rr_ratio_factor * this.vt_rr_ratio_scaling_factor * _weight;
+    if (_denom > 0 && this.target_minute_volume > 0) {
+      this.resp_rate = Math.sqrt(this.target_minute_volume / _denom);
       this.target_tidal_volume = this.target_minute_volume / this.resp_rate;
+    } else {
+      this.resp_rate = 0.0;
     }
   }
 

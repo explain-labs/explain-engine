@@ -4418,11 +4418,11 @@
           "AA"
         ]
       },
-      "Mob2": {
-        "name": "Mob2",
+      "Mob": {
+        "name": "Mob",
         "description": "myocardial oxygen balance v2 (basal + stroke-work, mmol O2/g)",
         "is_enabled": true,
-        "model_type": "Mob2",
+        "model_type": "Mob",
         "components": {
           "COR": {
             "name": "COR",
@@ -12261,7 +12261,7 @@
       [
         {
           "label": "MOB",
-          "value": "Mob2"
+          "value": "Mob"
         }
       ],
       [

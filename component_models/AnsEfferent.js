@@ -26,8 +26,8 @@ export class AnsEfferent extends BaseModelClass {
     // Initialize local parameters
     this._update_interval = 0.015; // update interval of the effector (s)
     this._update_counter = 0.0; // update counter (s)
-    this._cum_firing_rate = 0.0; // cumulative firing rate of the model step
-    this._cum_firing_rate_counter = 1.0; // counter for number of inputs
+    this._cum_firing_rate = 0.0; // cumulative weighted firing-rate deviation since the last update
+    this._cum_firing_rate_counter = 0.0; // number of afferent inputs accumulated since the last update
   }
 
 
@@ -37,10 +37,12 @@ export class AnsEfferent extends BaseModelClass {
     if (this._update_counter >= this._update_interval) {
       this._update_counter = 0.0;
 
-      // Determine the total average firing rate
+      // Determine the average firing rate. The accumulator holds the summed weighted deviations
+      // from the 0.5 setpoint; add 0.5 AFTER averaging so the resting firing rate stays 0.5
+      // regardless of how many afferents feed this efferent.
       this.firing_rate = 0.5;
       if (this._cum_firing_rate_counter > 0.0) {
-        this.firing_rate =  this._cum_firing_rate / this._cum_firing_rate_counter;
+        this.firing_rate = 0.5 + this._cum_firing_rate / this._cum_firing_rate_counter;
       }
 
       // Translate the average firing rate to the effect factor
@@ -67,8 +69,8 @@ export class AnsEfferent extends BaseModelClass {
       // Transfer the effect factor to the target model
       this._model_engine.models[this.target_model][this.target_prop] = this.effector
 
-      // Reset the effect factor and number of effectors
-      this._cum_firing_rate = 0.5;
+      // Reset the accumulator for the next averaging window
+      this._cum_firing_rate = 0.0;
       this._cum_firing_rate_counter = 0.0;
     }
   }

@@ -1,11 +1,11 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
 
-export class Mob2 extends BaseModelClass {
+export class Mob extends BaseModelClass {
   // static properties
-  static model_type = "Mob2";
+  static model_type = "Mob";
 
   /*
-  Mob2 — myocardial oxygen balance.
+  Mob — myocardial oxygen balance.
 
   Two physiologically explicit terms, both expressed natively in mmol O2 per
   gram of heart tissue:

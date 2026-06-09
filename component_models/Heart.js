@@ -25,6 +25,7 @@ export class Heart extends BaseModelClass {
     this.ans_sens = 1.0; // sensitivity of the heart for autonomic nervous system control
     this.ans_activity = 1.0; // ans activity simulating B-adrenergic effect on contractility and relaxation
     this.ans_activity_hr = 1.0; // heart rate factor of the autonomic nervous system
+    this.ans_activity_factor = 1.0; // ANS-activity scaler from the Mob myocardial-oxygen-balance hypoxia feedback (1.0 = no effect)
     this.hr_factor = 1.0; // heart rate factor
     this.hr_override = false; // when set to true the heart rate is fixed on the reference heart rate, ignoring the influence of the factors
     this.hr_mob_factor = 1.0; // heart rate factor of the myocardial oxygen balance model
@@ -441,39 +442,42 @@ export class Heart extends BaseModelClass {
       this.vaf = 0.0;
     }
 
-    // incorporate the ans factors ans sensitivity on the heart function
+    // incorporate the ans factors ans sensitivity on the heart function.
+    // ans_activity_factor (driven by the Mob myocardial-oxygen-balance hypoxia feedback) scales the
+    // sympathetic drive propagated to the chambers; 1.0 = no effect.
+    const _eff_ans_activity = this.ans_activity * this.ans_activity_factor;
     if (this._raivci) {
       this._raivci.ans_sens = this.ans_sens
-      this._raivci.ans_activity = this.ans_activity
+      this._raivci.ans_activity = _eff_ans_activity
       this._raivci.act_factor = this.aaf;
     }
     if (this._rasvc) {
       this._rasvc.ans_sens = this.ans_sens
-      this._rasvc.ans_activity = this.ans_activity
+      this._rasvc.ans_activity = _eff_ans_activity
       this._rasvc.act_factor = this.aaf;
     }
 
     if (this._rv) {
       this._rv.ans_sens = this.ans_sens
-      this._rv.ans_activity = this.ans_activity
+      this._rv.ans_activity = _eff_ans_activity
       this._rv.act_factor = this.vaf;
     }
 
     if (this._la) {
       this._la.ans_sens = this.ans_sens
-      this._la.ans_activity = this.ans_activity
+      this._la.ans_activity = _eff_ans_activity
       this._la.act_factor = this.aaf;
     }
 
      if (this._ra) {
       this._ra.ans_sens = this.ans_sens
-      this._ra.ans_activity = this.ans_activity
+      this._ra.ans_activity = _eff_ans_activity
       this._ra.act_factor = this.aaf;
     } 
 
     if (this._lv) {
       this._lv.ans_sens = this.ans_sens
-      this._lv.ans_activity = this.ans_activity
+      this._lv.ans_activity = _eff_ans_activity
       this._lv.act_factor = this.vaf;
     }
 

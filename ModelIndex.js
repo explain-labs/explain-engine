@@ -22,7 +22,7 @@ export { Shunts } from "./component_models/Shunts";
 export { Pda } from "./component_models/Pda";
 
 export { Heart } from "./component_models/Heart";
-export { Mob2 } from "./component_models/Mob2";
+export { Mob } from "./component_models/Mob";
 export { Circulation } from "./component_models/Circulation";
 export { HeartChamber } from "./component_models/HeartChamber";
 
@@ -33,12 +33,8 @@ export { Respiration } from "./component_models/Respiration";
 export { Ans } from "./component_models/Ans";
 export { AnsAfferent } from "./component_models/AnsAfferent";
 export { AnsEfferent } from "./component_models/AnsEfferent";
-
 export { Metabolism } from "./component_models/Metabolism";
 
-export { Kidneys } from "./component_models/Kidneys";
-
-export { HeadUpTilt } from "./component_models/HeadUpTilt";
 
 // import the device models
 export { Ecls } from "./device_models/Ecls";
