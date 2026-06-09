@@ -4095,28 +4095,6 @@
           "BR_CAP": 0.3
         }
       },
-      "Kidneys": {
-        "name": "Kidneys",
-        "description": "Kidneys model",
-        "is_enabled": true,
-        "model_type": "Kidneys",
-        "components": {}
-      },
-      "HeadUpTilt": {
-        "name": "HeadUpTilt",
-        "description": "Head-up tilt test (gravity model)",
-        "is_enabled": true,
-        "model_type": "HeadUpTilt",
-        "components": {},
-        "is_active": false,
-        "tilt_angle": 0,
-        "body_density": 1.06,
-        "g": 980,
-        "upper_column_cm": 25,
-        "lower_column_cm": 50,
-        "upper_body_container": "UPPER_BODY",
-        "lower_body_container": "LOWER_BODY"
-      },
       "UPPER_BODY": {
         "name": "UPPER_BODY",
         "description": "passive container grouping cephalic vessels for tilt",
