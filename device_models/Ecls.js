@@ -204,6 +204,14 @@ export class Ecls extends BaseModelClass {
       this._p_int_avg_calculator.reset();
       this._p_art_avg_calculator.reset();
       this._blood_comp_counter = 0.0;
+
+      // disable the circuit sub-models so a stopped ECLS no longer conducts (refs are cached once the
+      // circuit has run; they are null before the first run, when the sub-models are already disabled)
+      [this._ecls_drainage, this._ecls_tubing_in, this._ecls_pump, this._ecls_oxy,
+       this._ecls_tubing_out, this._ecls_return, this._ecls_gas_source, this._ecls_gas_oxy,
+       this._ecls_gas_out, this._ecls_gas_insp_valve, this._ecls_gasex].forEach((m) => {
+        if (m) m.is_enabled = false;
+      });
       return;
     }
 
@@ -236,6 +244,15 @@ export class Ecls extends BaseModelClass {
         this._ecls_gas_out = this._model_engine.models["ECLS_GAS_OUT"];
         this._ecls_gas_insp_valve = this._model_engine.models["ECLS_GAS_INSP_VALVE"];
         this._ecls_gasex = this._model_engine.models["ECLS_GASEX"];
+
+        // skip this tick if the circuit wiring is incomplete (any sub-model missing) rather than
+        // dereferencing undefined below
+        if (!this._ecls_drainage || !this._ecls_tubing_in || !this._ecls_pump || !this._ecls_oxy ||
+            !this._ecls_tubing_out || !this._ecls_return || !this._ecls_gas_source ||
+            !this._ecls_gas_oxy || !this._ecls_gas_out || !this._ecls_gas_insp_valve ||
+            !this._ecls_gasex) {
+          return;
+        }
 
         // set the drainage and return sites
         this._ecls_drainage.comp_from = this.drainage_site;

@@ -135,9 +135,11 @@ export class Ventilator extends BaseModelClass {
     this.pres = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
     this.flow = this._vent_ettube.flow * 60.0;
     this.vol += this._vent_ettube.flow * 1000 * this._t;
-    this.co2 = this._model_engine.models["DS"].pco2;
+    this.co2 = this._model_engine.models["DS"]?.pco2 ?? this.co2;
     this.minute_volume = this.exp_tidal_volume * this.vent_rate;
-    this.compliance = 1 / ((this._pip - this._peep) / this.exp_tidal_volume);
+    // compliance is measured per breath at end-expiration in time_cycling (mL/cmH2O); it is not
+    // recomputed here — the previous every-step formula used inconsistent units (L/mmHg) and
+    // overwrote that per-breath value
     this.resistance = null;
     this._et_tube_resistance = this.calc_ettube_resistance(this.flow);
   }
@@ -146,7 +148,7 @@ export class Ventilator extends BaseModelClass {
     this.trigger_volume =
       (this.tidal_volume / 100.0) * this.trigger_volume_perc;
 
-    if (this._breathing_model.ncc_insp === 1 && !this._trigger_blocked) {
+    if (this._breathing_model?.ncc_insp === 1 && !this._trigger_blocked) {
       this._trigger_start = true;
     }
 
@@ -224,7 +226,7 @@ export class Ventilator extends BaseModelClass {
       this.ncc_insp = -1;
       this.vol = 0.0;
       this.exp_tidal_volume = -this._exp_tidal_volume_counter;
-      this.etco2 = this._model_engine.models["DS"].pco2;
+      this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
       this.tv_kg = (this.exp_tidal_volume * 1000.0) / this._model_engine.weight;
 
       if (this.exp_tidal_volume > 0) {
@@ -337,7 +339,8 @@ export class Ventilator extends BaseModelClass {
       }
     }
 
-    this._model_engine.models["MOUTH_DS"].no_flow = state;
+    const mouth_ds = this._model_engine.models["MOUTH_DS"];
+    if (mouth_ds) mouth_ds.no_flow = state;
   }
 
   calc_ettube_resistance(flow) {
@@ -413,8 +416,6 @@ export class Ventilator extends BaseModelClass {
     this.insp_time = t_in;
     this.insp_flow = insp_flow;
     this.vent_mode = "PC";
-
-    console.log('setting PC', this.vent_rate)
   }
 
   set_prvc(

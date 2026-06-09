@@ -280,13 +280,13 @@ export class Monitor extends BaseModelClass {
     this.collect_signals();
 
     // collect temperature
-    this.temp = this._aa.temp;
+    this.temp = this._aa ? this._aa.temp : this.temp;
 
     // collect end tidal pco2
-    this.etco2 = this._ventilator.etco2;
+    this.etco2 = this._ventilator ? this._ventilator.etco2 : this.etco2;
 
     // measure the R-R interval of the heartrate
-    if (this._heart.ncc_ventricular == 1) {
+    if (this._heart && this._heart.ncc_ventricular == 1) {
       this.heart_rate_btb = 60.0 / this._qrs_interval_counter;
       this._qrs_interval_counter = 0.0;
       this._qrs_interval_counter_factor = 1.0;
@@ -299,19 +299,20 @@ export class Monitor extends BaseModelClass {
       this._qrs_interval_counter_factor += 1;
       this.calc_avg_heartrate(this.heart_rate_btb)
     }
-    this.heart_rate = this.heart_rate_btb;
-    
+    // (heart_rate is the rolling average maintained by calc_avg_heartrate; it is intentionally not
+    // overwritten here with the beat-to-beat value, which is published separately as heart_rate_btb)
+
     // measure the interval between breaths
     if (this._rr_update_counter > 0.015) {
       this._rr_update_counter = 0.0;
       // get the spontaneous respiratory rate from the breathing model
-      this.resp_rate = this._breathing.resp_rate_measured
+      this.resp_rate = this._breathing ? this._breathing.resp_rate_measured : this.resp_rate;
     }
     this._rr_update_counter += this._t
 
 
     // determine the begin of the cardiac cycle
-    if (this._heart.ncc_ventricular === 1) {
+    if (this._heart && this._heart.ncc_ventricular === 1) {
       // add 1 beat
       this._beats_counter += 1;
       // blood pressures
@@ -428,12 +429,12 @@ export class Monitor extends BaseModelClass {
       if (this._aa_br) {
         this.brain_flow = (this._brain_flow_counter / this._beats_time) * 60.0;
         this._brain_flow_counter = 0.0;
-        this.do2_br = this.brain_flow * this._aa.to2 * 22.4;
+        this.do2_br = this._aa ? this.brain_flow * this._aa.to2 * 22.4 : this.do2_br;
       }
       if (this._ad_kid) {
         this.kid_flow = (this._kid_flow_counter / this._beats_time) * 60.0;
         this._kid_flow_counter = 0.0;
-        this.do2_lb = this.kid_flow * 4 * this._ad.to2 * 22.4;
+        this.do2_lb = this._ad ? this.kid_flow * 4 * this._ad.to2 * 22.4 : this.do2_lb;
       }
 
       if (this._ad_ls) {
@@ -494,9 +495,9 @@ export class Monitor extends BaseModelClass {
     this._qrs_interval_counter += this._t;
     this._beats_time += this._t;
 
-    // get the pre- and postdutcal arterial o2-saturation levels from the ascending and descending aorta
-    this.sao2_pre = this._aa.so2
-    this.sao2_post = this._ad.so2
+    // get the pre- and postductal arterial o2-saturation levels from the ascending and descending aorta
+    this.sao2_pre = this._aa ? this._aa.so2 : this.sao2_pre;
+    this.sao2_post = this._ad ? this._ad.so2 : this.sao2_post;
 
     // get the venous o2 saturation from the right atrium
     this.svo2_ivci = this._ra_ivci ? this._ra_ivci.so2 : 0.0;

@@ -52,11 +52,11 @@ export class Resuscitation extends BaseModelClass {
     });
 
     // get references to the model on which this model depends
-    this._ventilator = this._model_engine.models["Ventilator"];
-    this._breathing = this._model_engine.models["Breathing"];
+    this._ventilator = this._model_engine.models["Ventilator"] || null;
+    this._breathing = this._model_engine.models["Breathing"] || null;
 
-    // set the fio2 on the ventilator
-    this.set_fio2(this.vent_fio2);
+    // set the fio2 on the ventilator (if present)
+    if (this._ventilator) this.set_fio2(this.vent_fio2);
 
     // flag that the model is initialized
     this._is_initialized = true;
@@ -70,12 +70,10 @@ export class Resuscitation extends BaseModelClass {
     this._comp_pause_interval = (60.0 / this.vent_freq) * this.vent_no;
     this._vent_interval = this._comp_pause_interval / this.vent_no + this._t;
 
-    // if the compressions are continuous set the ventilator frequency on the ventilator model
-    if (this.chest_comp_cont) {
-      this._ventilator.vent_rate = this.vent_freq;
-    } else {
-      // if the compressions are not continuous, set an extremely low ventilator rate
-      this._ventilator.vent_rate = 1.0;
+    // if the compressions are continuous set the ventilator frequency on the ventilator model;
+    // otherwise set an extremely low ventilator rate (breaths are triggered manually during pauses)
+    if (this._ventilator) {
+      this._ventilator.vent_rate = this.chest_comp_cont ? this.vent_freq : 1.0;
     }
 
     // handle the pause in compressions
@@ -93,7 +91,7 @@ export class Resuscitation extends BaseModelClass {
 
       if (this._vent_counter > this._vent_interval) {
         this._vent_counter = 0.0;
-        this._ventilator.trigger_breath();
+        this._ventilator?.trigger_breath();
       }
     } else {
       // calculate the compression force using y(t) = A sin(2PIft+o)
@@ -115,26 +113,30 @@ export class Resuscitation extends BaseModelClass {
       this._comp_pause = true;
       this._comp_pause_counter = 0.0;
       this._comp_counter = 0;
-      this._ventilator.trigger_breath();
+      this._ventilator?.trigger_breath();
     }
 
-    // apply the compression force to the target
+    // apply the compression force to the targets as an external pressure. Every compartment reads
+    // pres_ext (Capacitance / TimeVaryingElastance / Container / GasCapacitance) — unlike pres_cc,
+    // which only GasCapacitance and BloodPump read. Use += so it composes with other external
+    // pressures (e.g. the thorax container) and is reset by each compartment's calc_pressure per step.
     for (const [key, value] of Object.entries(this.chest_comp_targets)) {
-      this._model_engine.models[key].pres_cc = this.chest_comp_pres * value;
+      const m = this._model_engine.models[key];
+      if (m) m.pres_ext += this.chest_comp_pres * value;
     }
   }
 
   switch_cpr(state) {
     if (state) {
-      this._ventilator.switch_ventilator(true);
-      this._ventilator.set_pc(
+      this._ventilator?.switch_ventilator(true);
+      this._ventilator?.set_pc(
         this.vent_pres_pip,
         this.vent_pres_peep,
         1.0,
         this.vent_insp_time,
         5.0
       );
-      this._breathing.switch_breathing(false);
+      this._breathing?.switch_breathing(false);
       this.cpr_enabled = true;
     } else {
       this.cpr_enabled = false;
@@ -142,6 +144,6 @@ export class Resuscitation extends BaseModelClass {
   }
 
   set_fio2(new_fio2) {
-    this._ventilator.set_fio2(new_fio2);
+    this._ventilator?.set_fio2(new_fio2);
   }
 }
