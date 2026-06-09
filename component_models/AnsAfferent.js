@@ -37,8 +37,10 @@ export class AnsAfferent extends BaseModelClass {
     if (this._update_counter >= this._update_interval) {
       this._update_counter = 0.0;
 
-      // Get the input value
-      this.input_value = this._model_engine.models[this.input_model][this.input_prop];
+      // Get the input value (skip this update if the input model is not present)
+      const _input = this._model_engine.models[this.input_model];
+      if (!_input) return;
+      this.input_value = _input[this.input_prop];
 
       // Calculate the activation value
       let _activation = 0;
@@ -73,10 +75,13 @@ export class AnsAfferent extends BaseModelClass {
         this.firing_rate = _new_firing_rate;
       }
 
-      // apply the firing rate to the effector
+      // apply the firing rate to each effector that resolves to a model with an update_effector hook
       this.efferents.forEach((effector) => {
-        // Update the effector with the firing rate and effect weight
-        this._model_engine.models[effector].update_effector(this.firing_rate, this.effect_weight);
+        const _eff = this._model_engine.models[effector];
+        if (_eff && typeof _eff.update_effector === "function") {
+          // Update the effector with the firing rate and effect weight
+          _eff.update_effector(this.firing_rate, this.effect_weight);
+        }
       });
       
       

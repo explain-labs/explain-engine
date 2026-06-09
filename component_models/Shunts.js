@@ -30,8 +30,8 @@ export class Shunts extends BaseModelClass {
     // -----------------------------------------------
     // initialize dependent properties
     // -----------------------------------------------
-    this.flow_fo = 0.0; // flow through the foramen ovale in mL/s
-    this.flow_vsd = 0.0; // flow through the muscular ventricular septal defect in mL/s
+    this.flow_fo = 0.0; // flow through the foramen ovale in L/s
+    this.flow_vsd = 0.0; // flow through the muscular ventricular septal defect in L/s
 
     this.velocity_fo = 0.0; // velocity of flow through the foramen ovale in m/s
     this.velocity_vsd = 0.0; // velocity of flow through the perimembranous ventricular septal defect in m/s
@@ -113,7 +113,7 @@ export class Shunts extends BaseModelClass {
     this._vsd.r_for = this.res_vsd;
     this._vsd.r_back = this.res_vsd;
 
-    // intrapulmonary shunts are not affected by the diameter, but we can set them to a high value to represent no flow if the diameter is zero
+    // intrapulmonary shunts are not diameter-driven: they carry a fixed resistance (ips_res)
     this._ipsl.r_for = this.ips_res;
     this._ipsl.r_back = this.ips_res;
 

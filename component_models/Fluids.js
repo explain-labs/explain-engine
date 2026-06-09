@@ -58,14 +58,16 @@ export class Fluids extends BaseModelClass {
       this._running_fluid_list = [...filtered_list]
 
       this._running_fluid_list.forEach(f => {
+        // administer this step's increment first (skip silently if the target site is missing),
+        // then advance the timer — so the final increment is not zeroed before it is delivered
+        this._model_engine.models[f.site]?.volume_in(f.delta, f)
+
         f.vol -= f.delta
         f.time_left -= this._update_interval
         if (f.time_left <= 0) {
           f.delta = 0.0;
           f.time_left = 0.0
         }
-
-        this._model_engine.models[f.site].volume_in(f.delta, f)
       })
     }
   }

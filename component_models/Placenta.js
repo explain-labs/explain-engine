@@ -35,8 +35,8 @@ export class Placenta extends BaseModelClass {
     this.umb_ven_res_factor = 1.0; // factor for the resistance of the umbilical vein
     this.plf_res = 2000; // resistance of the fetal placenta (mmHg*s/L)
     this.plf_res_factor = 1.0; // factor for the resistance of the fetal placenta
-    this.mat_to2 = 6.85; // maternal placenta oxygen partial pressure (mmHg)
-    this.mat_tco2 = 23; // maternal placenta carbon dioxide partial pressure (mmHg)
+    this.mat_to2 = 6.85; // maternal placenta total oxygen content (mmol/L)
+    this.mat_tco2 = 23; // maternal placenta total carbon dioxide content (mmol/L)
     this.dif_o2 = 0.0005; // diffusion constant for oxygen (mmol/mmHg * s)
     this.dif_co2 = 0.001; // diffusion constant for carbon dioxide (mmol/mmHg * s)
 
@@ -75,10 +75,15 @@ export class Placenta extends BaseModelClass {
 
   calc_model() {
     this._update_counter += this._t;
-    if (this._update_counter > this._update_interval && this.placenta_running) {
+    if (this._update_counter > this._update_interval) {
       this._update_counter = 0.0;
 
-      // make sure all the associated models are in the same enabled/disabled state as the placenta model
+      // all sub-models are required; skip if the wiring is incomplete
+      if (!this._umb_art || !this._umb_ven || !this._plf_art || !this._plf_cap ||
+          !this._plf_ven || !this._plm || !this._gas_exchanger) return;
+
+      // keep all associated models in the same enabled/disabled state as the placenta — done every
+      // tick (not only while running) so STOPPING the placenta actually disables flow and gas exchange
       this._umb_art.is_enabled = this.placenta_running;
       this._umb_ven.is_enabled = this.placenta_running;
       this._plf_art.is_enabled = this.placenta_running;
@@ -86,6 +91,9 @@ export class Placenta extends BaseModelClass {
       this._plf_ven.is_enabled = this.placenta_running;
       this._plm.is_enabled = this.placenta_running;
       this._gas_exchanger.is_enabled = this.placenta_running;
+
+      // the settings below are only meaningful while the placenta is running
+      if (!this.placenta_running) return;
 
       // clamp umbilical vessels if set to clamped
       this._umb_art.no_flow = this.umb_clamped;

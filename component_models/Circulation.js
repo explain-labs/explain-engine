@@ -156,97 +156,55 @@ export class Circulation extends BaseModelClass {
   }
 
   set_svr_factor_art(new_svr_factor) {
+    // r_factor_ps is a persistent factor that accumulates effects from several models, so apply the
+    // delta (not the absolute value). Compute it once so every vessel gets the same change.
+    const delta_svr = new_svr_factor - this.prev_svr_factor_art;
     this.systemic_arterioles.forEach(syst_model_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[syst_model_name]
-      // get the current r_factor from the model
-      let f_ps = m.r_factor_ps;
-      // as this is a presistent resistance factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta_svr = new_svr_factor - this.prev_svr_factor_art
-      // add the increase/decrease in factor
-      f_ps += delta_svr;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_svr_factor = -f_ps
-        f_ps = 0;
-      }
-      // transfer the factor
-      m.r_factor_ps = f_ps
-      // store the new svr factor
-      this.svr_factor_art = new_svr_factor
-    })
+      const m = this._model_engine.models[syst_model_name];
+      if (!m) return;
+      // clamp the persistent factor at 0 (a negative resistance factor is non-physical)
+      let f_ps = m.r_factor_ps + delta_svr;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    // store the requested target once, after the loop
+    this.svr_factor_art = new_svr_factor;
   }
 
   set_svr_factor_ven(new_svr_factor) {
+    const delta_svr = new_svr_factor - this.prev_svr_factor_ven;
     this.systemic_venules.forEach(syst_model_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[syst_model_name]
-      // get the current r_factor from the model
-      let f_ps = m.r_factor_ps;
-      // as this is a presistent resistance factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta_svr = new_svr_factor - this.prev_svr_factor_ven
-      // add the increase/decrease in factor
-      f_ps += delta_svr;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_svr_factor = -f_ps
-        f_ps = 0;
-      }
-      // transfer the factor
-      m.r_factor_ps = f_ps
-      // store the new svr factor
-      this.svr_factor_ven = new_svr_factor
-    })
+      const m = this._model_engine.models[syst_model_name];
+      if (!m) return;
+      let f_ps = m.r_factor_ps + delta_svr;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    this.svr_factor_ven = new_svr_factor;
   }
 
   set_pvr_factor_art(new_pvr_factor) {
+    const delta_pvr = new_pvr_factor - this.prev_pvr_factor_art;
     this.pulmonary_arterioles.forEach(pulm_model_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[pulm_model_name]
-      // get the current r_factor from the model
-      let f_ps = m.r_factor_ps;
-      // as this is a presistent resistance factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta_pvr = new_pvr_factor - this.prev_pvr_factor_art
-      // add the increase/decrease in factor
-      f_ps += delta_pvr;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_pvr_factor = -f_ps
-        f_ps = 0;
-      }
-      //console.log(`Setting PVR factor for model ${pulm_model_name} to ${f_ps} (delta: ${delta_pvr})`)
-      // transfer the factor
-      m.r_factor_ps = f_ps
-      // store the new pvr factor for arterioles
-      this.pvr_factor_art = new_pvr_factor
-    })
+      const m = this._model_engine.models[pulm_model_name];
+      if (!m) return;
+      let f_ps = m.r_factor_ps + delta_pvr;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    this.pvr_factor_art = new_pvr_factor;
   }
 
   set_pvr_factor_ven(new_pvr_factor) {
+    const delta_pvr = new_pvr_factor - this.prev_pvr_factor_ven;
     this.pulmonary_venules.forEach(pulm_model_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[pulm_model_name]
-      // get the current r_factor from the model
-      let f_ps = m.r_factor_ps;
-      // as this is a presistent resistance factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta_pvr = new_pvr_factor - this.prev_pvr_factor_ven
-      // add the increase/decrease in factor
-      f_ps += delta_pvr;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_pvr_factor = -f_ps
-        f_ps = 0;
-      }
-      //console.log(`Setting PVR factor for model ${pulm_model_name} to ${f_ps} (delta: ${delta_pvr})`)
-      // transfer the factor
-      m.r_factor_ps = f_ps
-      // store the new pvr factor for venules
-      this.pvr_factor_ven = new_pvr_factor
-    })
+      const m = this._model_engine.models[pulm_model_name];
+      if (!m) return;
+      let f_ps = m.r_factor_ps + delta_pvr;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    this.pvr_factor_ven = new_pvr_factor;
   }
 
   calc_blood_volumes() {
@@ -258,28 +216,35 @@ export class Circulation extends BaseModelClass {
 
     this._systemic_bloodvessel_list.forEach(name => {
       const m = this._model_engine.models[name];
-      if (m.vol && m.is_enabled) this.syst_blood_volume += m.vol;
+      if (m && m.vol && m.is_enabled) this.syst_blood_volume += m.vol;
     })
 
     this.heart_chambers.forEach(name => {
       const m = this._model_engine.models[name];
-      if (m.vol && m.is_enabled) this.heart_blood_volume += m.vol;
+      if (m && m.vol && m.is_enabled) this.heart_blood_volume += m.vol;
     })
 
     this.coronaries.forEach(name => {
       const m = this._model_engine.models[name];
-      if (m.vol && m.is_enabled) this.syst_blood_volume += m.vol;
+      if (m && m.vol && m.is_enabled) this.syst_blood_volume += m.vol;
     })
 
     this._pulmonary_bloodvessel_list.forEach(name => {
       const m = this._model_engine.models[name];
-      if (m.vol && m.is_enabled) this.pulm_blood_volume += m.vol;
+      if (m && m.vol && m.is_enabled) this.pulm_blood_volume += m.vol;
     })
 
     this.total_blood_volume = this.syst_blood_volume + this.pulm_blood_volume + this.heart_blood_volume
-    this.syst_blood_volume_perc = this.syst_blood_volume / this.total_blood_volume * 100.0
-    this.pulm_blood_volume_perc = this.pulm_blood_volume / this.total_blood_volume * 100.0
-    this.heart_blood_volume_perc = this.heart_blood_volume / this.total_blood_volume * 100.0
+    // guard against a zero total (e.g. before the circulation has filled) to avoid NaN percentages
+    if (this.total_blood_volume > 0) {
+      this.syst_blood_volume_perc = this.syst_blood_volume / this.total_blood_volume * 100.0
+      this.pulm_blood_volume_perc = this.pulm_blood_volume / this.total_blood_volume * 100.0
+      this.heart_blood_volume_perc = this.heart_blood_volume / this.total_blood_volume * 100.0
+    } else {
+      this.syst_blood_volume_perc = 0.0
+      this.pulm_blood_volume_perc = 0.0
+      this.heart_blood_volume_perc = 0.0
+    }
 
   }
 }

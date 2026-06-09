@@ -151,6 +151,10 @@ export class Pda extends BaseModelClass {
     const da_pa = this._da_pa;
     const da = this._da;
 
+    // the duct coordinates all three sub-models; skip if any is missing (e.g. a configuration
+    // without a DA capacitance or its connecting resistors) rather than dereferencing null
+    if (!da || !aar_da || !da_pa) return;
+
     // ----- closed-duct fast path -----
     // diameter_relative === 0 is the postnatal steady state. The cone math, the
     // Bernoulli sqrt, and the continuity divisions all degenerate; set sentinel

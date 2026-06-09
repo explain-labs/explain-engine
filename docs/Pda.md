@@ -28,7 +28,14 @@ AA ──[AAR_DA: Resistor]── DA ──[DA_PA: Resistor]── PA
 
 ## Calculation cycle (`calc_model`)
 
-Each step executes in this order:
+**Closed-duct fast path.** When `diameter_relative === 0` (the postnatal steady state) the cone math,
+the Bernoulli √, and the continuity divisions all degenerate, so `calc_model` short-circuits: it
+forces `no_flow = true` and `r_for/r_back = 1e8` on both resistors, zeroes the velocities, sets the
+DA elastance to `el_base × CLOSED_EL_SCALE` (a deterministic `5000×` sentinel — see the coupling
+section), and returns early. The full path below runs only while the duct is patent
+(`diameter_relative > 0`).
+
+Each open-duct step executes in this order:
 
 1. **Diameters** — `diameter_ao` and `diameter_pa` from `diameter_relative` × their respective maxima.
 2. **Pull state from sub-models** — `flow_ao`, `flow_pa`, `viscosity`, `vol`.
@@ -89,7 +96,9 @@ This mirrors the BloodVessel α-pattern. As the duct narrows:
 - Resistance rises as ~`1/d⁴` (Hagen-Poiseuille over a cone).
 - The wall stiffness rises with resistance via `el = el_base · (R/R_open)^alpha`.
 
-`R_open` is computed each step from `diameter_ao_max`, `diameter_pa_max`, `length`, and `viscosity` (same conical formula). When `diameter_relative → 0`, `R → ∞` and `el → ∞` — the duct effectively seals. This reproduces the literature-described order-of-magnitude jump in total elastance during functional closure.
+`R_open` is computed each step from `diameter_ao_max`, `diameter_pa_max`, `length`, and `viscosity` (same conical formula). As `diameter_relative → 0`, `R → ∞` and `el → ∞` — the duct effectively seals. This reproduces the literature-described order-of-magnitude jump in total elastance during functional closure.
+
+At exactly `diameter_relative === 0` the open-path computation is not run (the geometry degenerates); the closed-duct fast path instead sets `el = el_base × CLOSED_EL_SCALE` with `CLOSED_EL_SCALE = 5000`. The exact closed elastance does not affect DA pressure once the capacitance holds its unstressed volume, so a deterministic constant is used in place of the divergent `(R/R_open)^alpha` limit.
 
 ## Resistance formulas
 

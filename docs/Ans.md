@@ -120,8 +120,10 @@ firing → factor < 1 → lower heart rate; the baroreflex).
   afferent→efferent hand-off depends on step order, so the loop carries up to one interval of lag.
   This is intended (receptors and effectors are not instantaneous) and stable at the default
   intervals.
-- **Missing references are not guarded.** `input_model`, `target_model`, listed `efferents`,
-  `components` and `blood_composition_models` are dereferenced directly; a name that does not resolve
-  to a built model throws. Valid scenarios wire these correctly, but a typo will crash the step loop.
+- **Reference guarding is partial.** `AnsAfferent` skips its update when `input_model` is missing and
+  only calls `update_effector` on efferents that resolve to a model with that hook, so a broken
+  afferent wiring degrades gracefully. `Ans` (`components`, `blood_composition_models`) and
+  `AnsEfferent` (`target_model`) still dereference their names directly — a name that does not resolve
+  to a built model there will throw.
 - **Setpoint = 0.5** everywhere — both the receptor output and the effector's neutral point. Keep new
   afferents/efferents on that convention so resting tone composes to "no effect".

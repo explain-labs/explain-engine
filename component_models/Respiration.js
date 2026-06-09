@@ -98,123 +98,69 @@ export class Respiration extends BaseModelClass {
   }
 
   set_el_lung_factor(new_factor) {
+    // el_base_factor_ps is a persistent factor accumulating effects from several models, so apply the
+    // delta (not the absolute value). Compute it once so every lung gets the same change.
+    const delta = new_factor - this._prev_el_lungs_factor;
     this.lungs.forEach(lung_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[lung_name]
-      // get the current persistent el_base factor from the model
-      let f_ps = m.el_base_factor_ps;
-      // as this is a presistent factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta = new_factor - this._prev_el_lungs_factor;
-      // add the increase/decrease in factor
-      f_ps += delta;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_factor = -f_ps
-        f_ps = 0;
-      }
-      // transfer the factor
-      m.el_base_factor_ps = f_ps
-      // store the new factor
-      this.el_lungs_factor = new_factor
-    })
+      const m = this._model_engine.models[lung_name];
+      if (!m) return;
+      let f_ps = m.el_base_factor_ps + delta;
+      if (f_ps < 0) f_ps = 0;
+      m.el_base_factor_ps = f_ps;
+    });
+    this.el_lungs_factor = new_factor;
   }
 
-    set_el_thorax_factor(new_factor) {
-      this.thorax.forEach(thorax_name => {
-        // get a reference to the model
-        let m = this._model_engine.models[thorax_name]
-        // get the current persistent el_base factor from the model
-        let f_ps = m.el_base_factor_ps;
-        // as this is a presistent factor which cumulates all effects from different models we can't just add the new factor
-        // we have to add the difference 
-        let delta = new_factor - this._prev_el_thorax_factor;
-        // add the increase/decrease in factor
-        f_ps += delta;
-        // guard against negative values
-        if (f_ps < 0) {
-          new_factor = -f_ps
-          f_ps = 0;
-        }
-        // transfer the factor
-        m.el_base_factor_ps = f_ps
-        // store the new factor
-        this.el_thorax_factor = new_factor
-      })
+  set_el_thorax_factor(new_factor) {
+    const delta = new_factor - this._prev_el_thorax_factor;
+    this.thorax.forEach(thorax_name => {
+      const m = this._model_engine.models[thorax_name];
+      if (!m) return;
+      let f_ps = m.el_base_factor_ps + delta;
+      if (f_ps < 0) f_ps = 0;
+      m.el_base_factor_ps = f_ps;
+    });
+    this.el_thorax_factor = new_factor;
   }
 
   set_upper_airway_resistance(new_factor) {
+    const delta = new_factor - this._prev_res_upper_airways_factor;
     this.upper_airways.forEach(uaw_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[uaw_name]
-      // get the current persistent el_base factor from the model
-      let f_ps = m.r_factor_ps;
-      // as this is a presistent factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta = new_factor - this._prev_res_upper_airways_factor;
-      // add the increase/decrease in factor
-      f_ps += delta;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_factor = -f_ps
-        f_ps = 0;
-      }
-      // transfer the factor
-      m.r_factor_ps = f_ps
-      // store the new factor
-      this.res_upper_airways_factor = new_factor
-    })
+      const m = this._model_engine.models[uaw_name];
+      if (!m) return;
+      let f_ps = m.r_factor_ps + delta;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    this.res_upper_airways_factor = new_factor;
   }
 
   set_lower_airway_resistance(new_factor) {
+    const delta = new_factor - this._prev_res_lower_airways_factor;
     this.lower_airways.forEach(law_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[law_name]
-      // get the current persistent el_base factor from the model
-      let f_ps = m.r_factor_ps;
-      // as this is a presistent factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta = new_factor - this._prev_res_lower_airways_factor;
-      // add the increase/decrease in factor
-      f_ps += delta;
-      // guard against negative values
-      if (f_ps < 0) {
-        new_factor = -f_ps
-        f_ps = 0;
-      }
-      // transfer the factor
-      m.r_factor_ps = f_ps
-      // store the new factor
-      this.res_lower_airways_factor = new_factor
-    })
-
+      const m = this._model_engine.models[law_name];
+      if (!m) return;
+      let f_ps = m.r_factor_ps + delta;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    this.res_lower_airways_factor = new_factor;
   }
 
   set_gasexchange(new_factor) {
+    const delta = new_factor - this._prev_gex_factor;
     this.gas_echangers.forEach(gex_name => {
-      // get a reference to the model
-      let m = this._model_engine.models[gex_name]
-      // get the current persistent el_base factor from the model
-      let f_ps_o2 = m.dif_o2_factor_ps;
-      let f_ps_co2 = m.dif_co2_factor_ps;
-      // as this is a presistent factor which cumulates all effects from different models we can't just add the new factor
-      // we have to add the difference 
-      let delta = new_factor - this._prev_gex_factor;
-      // add the increase/decrease in factor
-      f_ps_o2 += delta;
-      f_ps_co2 += delta;
-      // guard against negative values
-      if (f_ps_o2 < 0) {
-        new_factor = -f_ps_o2
-        f_ps_o2 = 0;
-        f_ps_co2 = 0;
-      }
-      // transfer the factor
+      const m = this._model_engine.models[gex_name];
+      if (!m) return;
+      // the O2 and CO2 diffusion factors track the same target; clamp each at 0 independently
+      let f_ps_o2 = m.dif_o2_factor_ps + delta;
+      let f_ps_co2 = m.dif_co2_factor_ps + delta;
+      if (f_ps_o2 < 0) f_ps_o2 = 0;
+      if (f_ps_co2 < 0) f_ps_co2 = 0;
       m.dif_o2_factor_ps = f_ps_o2;
       m.dif_co2_factor_ps = f_ps_co2;
-      // store the new factor
-      this.gex_factor = new_factor
-    })
+    });
+    this.gex_factor = new_factor;
   }
 
 }
