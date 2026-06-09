@@ -66,8 +66,11 @@ export class AnsEfferent extends BaseModelClass {
         this.effector = effector;
       }
       
-      // Transfer the effect factor to the target model
-      this._model_engine.models[this.target_model][this.target_prop] = this.effector
+      // Transfer the effect factor to the target model (skip if the target is not present)
+      const _target = this._model_engine.models[this.target_model];
+      if (_target) {
+        _target[this.target_prop] = this.effector;
+      }
 
       // Reset the accumulator for the next averaging window
       this._cum_firing_rate = 0.0;
