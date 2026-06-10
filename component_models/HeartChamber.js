@@ -18,6 +18,12 @@ export class HeartChamber extends TimeVaryingElastance {
     this.ans_activity = 1.0; // activiaty of the ans
     this.el_max_mob_factor = 1.0; // contractility factor from the myocardial oxygen balance model (Mob); 1.0 = no effect
 
+    // load-induced contractility factors written by the HeartFunction model (1.0 = no effect, NOT reset each step)
+    this.el_max_load_factor = 1.0; // acute, reversible contractility depression from high wall stress (afterload mismatch / over-dilation)
+    this.el_max_remodel_factor = 1.0; // chronic remodeling change in contractility (maladaptive decline)
+    this.el_k_remodel_factor = 1.0; // chronic remodeling change in diastolic stiffness (concentric stiffening)
+    this.u_vol_remodel_factor = 1.0; // chronic remodeling change in unstressed volume (eccentric cavity dilation)
+
     // initialize dependent properties unique to a HeartChamber
     this.to2 = 0.0; // total oxygen concentration (mmol/l)
     this.tco2 = 0.0; // total carbon dioxide concentration (mmol/l)
@@ -50,12 +56,15 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.el_max_factor_ps - 1) * this.el_max
         + (this.el_max_factor_scaling_ps - 1) * this.el_max
         + (this.el_max_mob_factor - 1) * this.el_max
+        + (this.el_max_load_factor - 1) * this.el_max    // acute load-induced contractility depression (HeartFunction)
+        + (this.el_max_remodel_factor - 1) * this.el_max // chronic remodeling contractility change (HeartFunction)
         + (this.ans_activity - 1) * this.el_max * this.ans_sens
 
     this.el_k_eff = this.el_k
         + (this.el_k_factor - 1) * this.el_k
         + (this.el_k_factor_ps - 1) * this.el_k
         + (this.el_k_factor_scaling_ps - 1) * this.el_k
+        + (this.el_k_remodel_factor - 1) * this.el_k     // chronic remodeling diastolic stiffening (HeartFunction)
 
     // make sure that el_max is not smaller than el_min
     if (this.el_max_eff < this.el_min_eff) {
@@ -66,6 +75,18 @@ export class HeartChamber extends TimeVaryingElastance {
     this.el_min_factor = 1.0;
     this.el_max_factor = 1.0;
     this.el_k_factor = 1.0;
+  }
+
+  // override calc_volumes to incorporate the chronic eccentric-dilation remodeling factor (HeartFunction)
+  calc_volumes() {
+    this.u_vol_eff = this.u_vol
+        + (this.u_vol_factor - 1) * this.u_vol
+        + (this.u_vol_factor_ps - 1) * this.u_vol
+        + (this.u_vol_factor_scaling_ps - 1) * this.u_vol
+        + (this.u_vol_remodel_factor - 1) * this.u_vol; // chronic eccentric cavity dilation (HeartFunction)
+
+    // reset the non persistent factors
+    this.u_vol_factor = 1.0;
   }
 
   // the method overrides the 'volume_in' method of the TimeVaryingElastance class and 

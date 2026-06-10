@@ -23,6 +23,7 @@ export { Pda } from "./component_models/Pda";
 
 export { Heart } from "./component_models/Heart";
 export { Mob } from "./component_models/Mob";
+export { HeartFunction } from "./component_models/HeartFunction";
 export { Circulation } from "./component_models/Circulation";
 export { HeartChamber } from "./component_models/HeartChamber";
 
