@@ -482,9 +482,7 @@ const calculate = function (time_to_calculate) {
 
     _send({
       type: "status",
-      message: `calculation ready in ${(end - start).toFixed(
-        1
-      )} ms with a model step time of ${step_time.toFixed(4)} ms)`,
+      message: `calculated in ${(end - start).toFixed(0)} ms (${step_time.toFixed(3)} ms/step)`,
       payload: [],
     });
     // get model data
