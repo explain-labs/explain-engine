@@ -39,6 +39,7 @@ export class Circulation extends BaseModelClass {
     this.ans_activity = 1.0;            // ans influence on circulation (1.0 = no effect)
     this.svr_factor_art = 1.0;          // factor influencing the systemic arteriolar vascular resistance
     this.svr_factor_ven = 1.0;          // factor influencing the systemic venular vascular resistance
+    this.svr_factor_drug = 1.0;         // independent systemic arteriolar factor owned by the Drugs PK/PD model (composes with svr_factor_art)
     this.pvr_factor_art = 1.0;          // factor influencing the pulmonary arteriolar vascular resistance
     this.pvr_factor_ven = 1.0;          // factor influencing the pulmonary venular vascular resistance
 
@@ -62,6 +63,7 @@ export class Circulation extends BaseModelClass {
     this.prev_ans_activity = 0.0;
     this.prev_svr_factor_art = 1.0;
     this.prev_svr_factor_ven = 1.0;
+    this.prev_svr_factor_drug = 1.0;
     this.prev_pvr_factor_art = 1.0;
     this.prev_pvr_factor_ven = 1.0;
     this._update_interval = 0.015;      // update interval (s)
@@ -134,6 +136,11 @@ export class Circulation extends BaseModelClass {
         this.prev_svr_factor_ven = this.svr_factor_ven
       }
 
+      if (this.prev_svr_factor_drug !== this.svr_factor_drug) {
+        this.set_svr_factor_drug(this.svr_factor_drug)
+        this.prev_svr_factor_drug = this.svr_factor_drug
+      }
+
       if (this.prev_pvr_factor_art !== this.pvr_factor_art) {
         this.set_pvr_factor_art(this.pvr_factor_art)
         this.prev_pvr_factor_art = this.pvr_factor_art
@@ -169,6 +176,20 @@ export class Circulation extends BaseModelClass {
     });
     // store the requested target once, after the loop
     this.svr_factor_art = new_svr_factor;
+  }
+
+  set_svr_factor_drug(new_svr_factor) {
+    // independent drug channel; applies its delta to the SAME systemic arterioles' r_factor_ps so it
+    // composes additively with svr_factor_art (Hormones) and the ANS reactivity rather than colliding
+    const delta_svr = new_svr_factor - this.prev_svr_factor_drug;
+    this.systemic_arterioles.forEach(syst_model_name => {
+      const m = this._model_engine.models[syst_model_name];
+      if (!m) return;
+      let f_ps = m.r_factor_ps + delta_svr;
+      if (f_ps < 0) f_ps = 0;
+      m.r_factor_ps = f_ps;
+    });
+    this.svr_factor_drug = new_svr_factor;
   }
 
   set_svr_factor_ven(new_svr_factor) {

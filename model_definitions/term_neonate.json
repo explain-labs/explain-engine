@@ -3835,6 +3835,17 @@
     "enabled": true,
     "collapsed": true,
     "parameters": [
+    {
+      "label": "Diurese",
+      "unit": "ml/kg/h",
+      "factor": 60,
+      "rounding": 1,
+      "props": [
+       "Kidneys.urine_flow"
+      ],
+      "weight_based": true,
+      "value": "0.0"
+     },
      {
       "label": "LVO",
       "unit": "ml/kg/min",
@@ -4466,6 +4477,17 @@
  },
  "model_definition": {
   "models": {
+   "Drugs": {
+    "name": "Drugs",
+    "description": "pharmacology (PK/PD) controller — Milestone 1: adrenaline → heart rate",
+    "is_enabled": true,
+    "model_type": "Drugs",
+    "components": {},
+    "drugs_running": true,
+    "injection_site": "IVCI",
+    "effect_site": "AA",
+    "heart_name": "Heart"
+   },
    "Heart": {
     "name": "Heart",
     "description": "heart contraction model",

@@ -3398,6 +3398,17 @@
  },
  "model_definition": {
   "models": {
+   "Drugs": {
+    "name": "Drugs",
+    "description": "pharmacology (PK/PD) controller — adrenaline + noradrenaline",
+    "is_enabled": true,
+    "model_type": "Drugs",
+    "components": {},
+    "drugs_running": true,
+    "injection_site": "IVCI",
+    "effect_site": "AA",
+    "heart_name": "Heart"
+   },
    "Heart": {
     "name": "Heart",
     "description": "heart contraction model",
@@ -11529,6 +11540,17 @@
     "enabled": true,
     "collapsed": true,
     "parameters": [
+    {
+      "label": "Diurese",
+      "unit": "ml/h",
+      "factor": 60,
+      "rounding": 1,
+      "props": [
+       "Kidneys.urine_flow"
+      ],
+      "weight_based": false,
+      "value": "0.0"
+     },
      {
       "label": "LVO",
       "unit": "L/min",

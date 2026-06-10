@@ -37,6 +37,7 @@ export { AnsEfferent } from "./component_models/AnsEfferent";
 export { Metabolism } from "./component_models/Metabolism";
 export { Kidneys } from "./component_models/Kidneys";
 export { Hormones } from "./component_models/Hormones";
+export { Drugs } from "./component_models/Drugs";
 
 
 // import the device models
