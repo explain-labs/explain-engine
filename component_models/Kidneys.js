@@ -97,6 +97,17 @@ export class Kidneys extends BaseModelClass {
     this.reabs_factor_ps = 1.0;
     this.reabs_factor_scaling_ps = 1.0;
 
+    // hormonal (ADH) water-reabsorption channel — a DEDICATED factor on the water fraction so the
+    // Hormones model can drive antidiuresis without colliding with the user/scenario reabs_factor_ps
+    // layer. Default 1.0 -> neutral (scenarios without a Hormones model are byte-identical).
+    this.reabs_factor_adh = 1.0;
+
+    // hormonal (aldosterone / drug) PER-SOLUTE reabsorption factors. Multiplicative on each solute's
+    // reabsorption fraction in _solute_reabs (e.g. aldosterone: na > 1 retain, k < 1 waste). Absent
+    // key -> 1.0 (neutral). Empty by default so existing scenarios are unchanged. Distinct from the
+    // absolute per-solute reabsorption_fractions dict (this is a modulating factor on top of it).
+    this.reabsorption_factors = {}; // e.g. { na: 1.01, k: 0.95 }
+
     // -----------------------------------------------
     // dependent parameters (read-outs, clinical units)
     this.nfp = 0.0; // net filtration pressure (mmHg)
@@ -174,7 +185,8 @@ export class Kidneys extends BaseModelClass {
       this.reabsorption_fraction *
       this.reabs_factor *
       this.reabs_factor_ps *
-      this.reabs_factor_scaling_ps;
+      this.reabs_factor_scaling_ps *
+      this.reabs_factor_adh; // hormonal (ADH) antidiuretic channel; 1.0 = neutral
     this.reabs_factor = 1.0;
     if (this._reabs_eff < 0.0) this._reabs_eff = 0.0;
     if (this._reabs_eff > 0.9999) this._reabs_eff = 0.9999;
@@ -373,6 +385,9 @@ export class Kidneys extends BaseModelClass {
   _solute_reabs(s) {
     let fr = this.reabsorption_fractions?.[s];
     if (fr === undefined || fr === null) fr = this._reabs_eff;
+    // hormonal (aldosterone / drug) modulation: multiply this solute's reabsorption fraction by its
+    // factor (absent -> 1.0). Lets the Hormones model retain Na (na > 1) and waste K (k < 1).
+    fr *= this.reabsorption_factors?.[s] ?? 1.0;
     if (fr < 0.0) fr = 0.0;
     if (fr > 0.9999) fr = 0.9999;
     return fr;

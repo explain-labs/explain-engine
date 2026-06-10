@@ -50,13 +50,23 @@ Net effect: diuresis slowly lowers circulating blood volume; `URINE.vol` accumul
 diuresis; the kidney now handles water and each solute independently (e.g. Na/Cl avidly
 reabsorbed, phosphate/urate spilled).
 
-> **Modulation hook (RAAS-ready).** `reabsorption_fractions` is a dict, so the `TaskScheduler`
-> can tween an individual key via a nested `prop2` write (`setPropValue("Kidneys.reabsorption_fractions.na", …)`)
-> — the substrate a future RAAS/ADH layer will drive. It is **not** UI-editable yet (the
-> registry has no dict `InterfaceField` type); the scalar `reabsorption_fraction` (water) and
-> `fe_na` read-out are. The water fraction keeps its `reabs_factor`/`_ps`/`_scaling_ps` stack;
-> explicit per-solute overrides are independent of that stack (solutes with no override track
-> it via the `wr` fallback).
+> **Hormonal modulation hooks (driven by the [`Hormones`](./Hormones.md) RAAS/ADH model).** Two
+> dedicated, neutral-by-default factor channels let a hormonal controller modulate reabsorption
+> without colliding with the user/scenario `reabs_factor_ps` layer or the absolute
+> `reabsorption_fractions` dict:
+> - **`reabs_factor_adh`** (water) — a 4th multiplier folded into `_reabs_eff`
+>   (`reabsorption_fraction · reabs_factor · reabs_factor_ps · reabs_factor_scaling_ps · reabs_factor_adh`).
+>   ADH drives antidiuresis through it. Default `1.0`.
+> - **`reabsorption_factors`** (per-solute dict) — multiplies each solute's fraction in `_solute_reabs`
+>   (`fr ·= reabsorption_factors[s] ?? 1`), so aldosterone can retain Na (`na > 1`) and waste K
+>   (`k < 1`); also reusable for diuretics. Default `{}` (every solute → 1.0). Distinct from the
+>   absolute `reabsorption_fractions` dict (this modulates on top of it).
+>
+> Both default to neutral, so a scenario without a `Hormones` model is byte-identical. The absolute
+> `reabsorption_fractions` is also still scheduler-tweakable per key
+> (`setPropValue("Kidneys.reabsorption_fractions.na", …)`). The water fraction keeps its
+> `reabs_factor`/`_ps`/`_scaling_ps` stack; explicit per-solute overrides track the `wr` fallback
+> when absent.
 
 ## Read-outs
 | Property | Unit | Meaning |
@@ -81,11 +91,26 @@ Per-solute urine concentrations live in `URINE.solutes`.
 | `filterable_solutes` | small solutes filtered into urine (albumin/Hb excluded) |
 
 `kf` carries the additive 3-layer factor stack (`kf_factor` / `_ps` / `_scaling_ps`),
-`reabsorption_fraction` a multiplicative one (clamped to [0, 0.9999]). Shipped first-pass
-per-solute fractions (both scenarios, **need clinical tuning**): `na 0.995, cl 0.995, lact 0.99,
-ca 0.98, mg 0.95, k 0.92, uma 0.90, phosphates 0.85` — vs water (0.985 neonate / 0.99 adult), so
-urine is dilute in Na/Cl and concentrated in phosphate/urate. Neonatal FENa is physiologically
-higher (lower Na reabsorption) — revisit in tuning.
+`reabsorption_fraction` a multiplicative one (clamped to [0, 0.9999]). The two scenarios now ship
+**distinct, headless-calibrated** per-solute fractions reflecting neonatal tubular immaturity (the
+neonate excretes a larger fraction of every solute → higher FE across the board):
+
+| reabsorption fraction | neonate | adult | → FE neonate / adult |
+|---|---|---|---|
+| water (`reabsorption_fraction`) | 0.980 | 0.990 | — |
+| na | 0.990 | 0.993 | **1.0% / 0.7%** |
+| cl | 0.988 | 0.991 | 1.2% / 0.9% |
+| lact | 0.99 | 0.99 | 1.0% / 1.0% |
+| ca | 0.975 | 0.985 | 2.5% / 1.5% |
+| mg | 0.95 | 0.96 | 5.0% / 4.0% |
+| k | 0.88 | 0.90 | 12% / 10% |
+| phosphates | 0.82 | 0.88 | 18% / 12% |
+| uma | 0.70 | 0.92 | 30% / 8% |
+
+FENa is now **distinct** between scenarios (neonate ~1%, adult ~0.7%) — neonatal Na handling is
+immature, so its FENa is correctly higher. Each Na/Cl fraction stays above its scenario's water
+fraction (net-reabsorbed → dilute in urine); K/Mg/Ca/phosphate/urate fall below it (net-excreted →
+concentrated in urine).
 
 The `URINE` compartment is a `BloodCapacitance` declared in the Kidneys
 `components` block (auto-instantiated by the base `init_model`), a pure sink with
@@ -96,11 +121,29 @@ no resistor connections (it never feeds back into the circulation).
 > on the first `calc_model` step (the `URINE` own-component is resolved in `init_model`).
 
 ## Calibration
-`kf` differs ~5× between scenarios because baseline `KID_CAP.pres` differs
-(neonate ≈ 35, adult ≈ 79 mmHg). Back-solve `kf ≈ target_GFR(L/s) / NFP_baseline`.
-Targets: neonate GFR ~1.5–3 mL/min & urine ~1–3 mL/kg/hr; adult GFR ~90–120 mL/min
+`kf` differs ~6× between scenarios because baseline `KID_CAP.pres` differs
+(neonate ≈ 37, adult ≈ 79 mmHg). Back-solve `kf ≈ target_GFR(L/s) / NFP_baseline`.
+Targets: neonate GFR ~2–4 mL/min & urine ~1–3 mL/kg/hr; adult GFR ~90–110 mL/min
 & urine ~0.5–1.5 mL/kg/hr. Keep `p_bowman + oncotic_base` well below `KID_CAP.pres`
-(the neonate NFP margin is thin, ~5 mmHg) or filtration stops.
+(the neonate NFP margin is thin, ~11 mmHg) or filtration stops.
+
+**Headless calibration.** Reproduce/re-tune with the in-repo runner
+`node scripts/headless.mjs <term_neonate|adult_female>` (builds the scenario, freezes `Ans`,
+steps to steady state, cycle-averages the renal panel: GFR, urine mL/kg/hr, NFP, the full FE
+panel, urine concentrations, and `afferent_factor`). Override knobs without editing the scenario
+JSON via `--kf`, `--water`, `--frac na=…,k=…`; add `--no-autoreg` to isolate raw filtration. The
+shipped values were calibrated this way (autoregulation enabled, `Ans` disabled):
+
+| measured (cycle-avg, steady state) | neonate | adult |
+|---|---|---|
+| GFR | 3.9 mL/min | 100 mL/min |
+| urine output | 1.3 mL/kg/hr | 1.0 mL/kg/hr |
+| FENa | 1.0% | 0.7% |
+| NFP / `KID_CAP.pres` | 10.9 / 37.0 mmHg | 44.0 / 79.0 mmHg |
+| `afferent_factor` (autoreg neutrality) | 1.02 | 0.88 |
+
+Stable across 60–150 s warm-ups (no drift/oscillation); `afferent_factor` ≈ 1 confirms
+autoregulation sits near-neutral at baseline (no railing).
 
 ## GFR autoregulation (myogenic + TGF)
 
