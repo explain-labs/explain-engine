@@ -211,6 +211,16 @@ if (TIER === "full") {
 if (TIER === "full") {
   parts.push("\n## 5. UI / integration layer\n");
   for (const f of uiFiles) addFileSection(f);
+
+  // The bot can also PROPOSE actions on the running model. Embed the protocol
+  // (how to emit a command block) + the generated catalog (what's allowed) so a
+  // fallback (system-prompt) bot has them too. The Agent-SDK bot reads these
+  // from its workdir via command-protocol.md / command-catalog.md directly.
+  parts.push("\n### Acting on the simulation (command protocol)\n");
+  for (const f of ["knowledge-pack/command-protocol.md", "knowledge-pack/command-catalog.md"]) {
+    if (exists(f)) addFileSection(f);
+    else console.warn(`  ! command file missing (run build_command_catalog.mjs): ${f}`);
+  }
 }
 
 // --- Scenario format ---
@@ -260,9 +270,12 @@ Guidelines:
   monitor values for the patient being simulated in the app). Treat that as "the current
   simulated patient" — distinct from the static engine knowledge in the pack. Use it to
   interpret what the numbers mean, but do not confuse it with the model definition.
-- Be concise and technical/clinical. Replies are currently rendered as **plain text** in
-  the app (no markdown renderer yet), so avoid heavy markdown; short paragraphs and simple
-  lists read best.
+- Be concise and technical/clinical. Replies are rendered as markdown in the app; keep
+  formatting light — short paragraphs and simple lists read best.
+- You can also **propose actions** on the running simulation. When the user asks you to
+  change something (turn on the ventilator, raise FiO2, start/stop the sim), emit a fenced
+  \`explain-command\` JSON block per the **command protocol** section embedded below, using
+  only the commands in the **command catalog**. For questions, just answer — no command.
 
 When explaining a model, prefer: what it represents physiologically → the governing
 equations (from its doc) → how it's wired/parameterized in code → relevant scenario knobs.
