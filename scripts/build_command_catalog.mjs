@@ -1,20 +1,25 @@
-// Build the "command catalog" the Explain bot uses to know which actions it may
-// propose. It is generated from the SAME two sources the webapp validates
-// against, so the bot can never be told it can do something the app would reject:
+// Build the "command catalog" the Explain bot uses to know which model actions
+// it may propose. Generated from the SAME sources the webapp validates against,
+// so the bot is never told it can do something the app would reject:
 //
-//   src/services/botCommandAllowlist.ts   — the executable allowlist (the gate)
-//   src/model-interface/registry.ts       — per-field bounds / choices / args / units
+//   src/services/botCommandAllowlist.ts   — the curated "Guided" allowlist
+//   src/model-interface/registry.ts       — MODEL_INTERFACES: every editable
+//                                            field, its bounds / choices / args / units
 //
-// Output: knowledge-pack/command-catalog.md — a compact, bot-facing reference of
-// every currently-enabled command with its envelope and constraints.
+// Output: knowledge-pack/command-catalog.md — two parts:
+//   1. Guided mode — the small curated set (active when the user picks "Guided").
+//   2. Full mode   — every runtime-settable field on every model_type (the default).
 //
-// This is a SNAPSHOT, like build_knowledge_pack.mjs: re-run after changing the
-// allowlist (or a Ventilator-style model's interface) and redeploy to the bot.
+// "Settable at runtime" = a non-readonly number/factor/boolean/list parameter, or
+// a function. The structural wiring types (multiple-list/prop-list/reference/dict)
+// are rebuild-only and excluded; readonly measured-outputs/descriptions too. This
+// mirrors isSettableField() in src/services/botCommands.ts.
+//
+// SNAPSHOT — re-run after the registry or allowlist changes and redeploy to the
+// bot. We bundle the .ts sources to a temp ESM module with esbuild (a vite dep)
+// since Node can't import TS directly.
 //
 //   Usage:  node scripts/build_command_catalog.mjs
-//
-// We can't `import` the .ts sources directly in Node, so we bundle them to a temp
-// ESM module with esbuild (already a dependency via vite) and introspect that.
 
 import fs from "node:fs";
 import path from "node:path";
@@ -26,11 +31,11 @@ const ROOT = path.resolve(fileURLToPath(import.meta.url), "../..");
 const OUT = path.resolve(ROOT, "knowledge-pack/command-catalog.md");
 
 // ---------------------------------------------------------------------------
-// 1. Bundle the allowlist + registry accessor to an importable module
+// 1. Bundle the allowlist + registry to an importable module
 // ---------------------------------------------------------------------------
 const ENTRY = `
 export { COMMAND_ALLOWLIST } from "@/services/botCommandAllowlist";
-export { getInterfaceForType } from "@/model-interface/registry";
+export { MODEL_INTERFACES, getInterfaceForType } from "@/model-interface/registry";
 `;
 
 const tmp = path.join(os.tmpdir(), `explain-cmd-catalog-${process.pid}.mjs`);
@@ -43,150 +48,136 @@ await esbuild.build({
   alias: { "@": path.resolve(ROOT, "src") },
   logLevel: "warning",
 });
-const { COMMAND_ALLOWLIST, getInterfaceForType } = await import(`file://${tmp}`);
+const { COMMAND_ALLOWLIST, MODEL_INTERFACES, getInterfaceForType } = await import(`file://${tmp}`);
 fs.rmSync(tmp, { force: true });
 
 // ---------------------------------------------------------------------------
-// 2. Render each allowlist entry from the registry schema
+// 2. Field helpers (kept in sync with src/services/botCommands.ts)
 // ---------------------------------------------------------------------------
-// NOTE: for catalog lookup we treat an entry's `model` as its model_type. That
-// holds for the v1 singletons (the "Ventilator" instance has model_type
-// "Ventilator"). If a future entry names an instance whose name differs from its
-// type, add a `type` field to the allowlist entry and use it here.
 const unit = (caption) => caption?.match(/\(([^)]+)\)/)?.[1] ?? "";
 const bounds = (f) => {
   const b = [];
-  if (typeof f.ll === "number") b.push(`min ${f.ll}`);
-  if (typeof f.ul === "number") b.push(`max ${f.ul}`);
-  return b.join(", ");
+  if (typeof f.ll === "number") b.push(`${f.ll}`);
+  if (typeof f.ul === "number") b.push(`${f.ul}`);
+  return b.length === 2 ? `${b[0]}–${b[1]}` : b.length ? (typeof f.ll === "number" ? `≥${f.ll}` : `≤${f.ul}`) : "";
 };
-// mirror resolveChoices() in src/services/botCommands.ts — registry mixes
-// options/choices and doesn't always set custom_options, so an empty options[]
-// must fall through to choices.
+// mirror resolveChoices() — registry mixes options/choices and doesn't always set
+// custom_options, so an empty options[] must fall through to choices.
 const choicesOf = (f) =>
   [f.custom_options ? f.choices : f.options, f.choices, f.options].find(
     (c) => Array.isArray(c) && c.length > 0,
   ) ?? [];
 
-const lines = [];
-const warn = [];
+const SETTABLE_PROP_TYPES = new Set(["number", "factor", "boolean", "list"]);
+const isSettableProp = (f) => !f.readonly && SETTABLE_PROP_TYPES.has(f.type);
+const isFunction = (f) => f.type === "function";
 
-const exampleFor = (entry, field) => {
-  const env = { op: entry.op };
-  if (entry.op === "setProp") {
-    env.model = entry.model;
-    env.target = entry.target;
-    env.value =
-      field?.type === "boolean"
-        ? true
-        : field?.type === "list"
-          ? (choicesOf(field)[0] ?? "")
-          : typeof field?.ll === "number"
-            ? field.ll
-            : 0;
-  } else if (entry.op === "call") {
-    env.model = entry.model;
-    env.target = entry.target;
-    env.args = (field?.args ?? []).map((a) =>
-      a.type === "boolean" ? true : a.type === "number" ? (a.ll ?? 0) : (choicesOf(a)[0] ?? ""),
-    );
-  }
-  env.reason = entry.note ?? "";
-  return JSON.stringify(env);
+// compact "[type, unit, range, choices]" tail for a param or arg
+const metaTail = (f) =>
+  [
+    f.type,
+    unit(f.caption),
+    bounds(f) && `range ${bounds(f)}`,
+    f.type === "list" && choicesOf(f).length && `one of ${choicesOf(f).join("/")}`,
+  ]
+    .filter(Boolean)
+    .join(", ");
+
+const MODE_ORDER = { basic: 0, extra: 1, factors: 2, advanced: 3 };
+const modeRank = (f) => MODE_ORDER[f.edit_mode] ?? 4;
+const modeTag = (f) => (f.edit_mode && f.edit_mode !== "basic" ? ` _(${f.edit_mode})_` : "");
+
+const paramLine = (f) =>
+  `- \`${f.target}\`${f.caption ? ` — ${f.caption}` : ""} (${metaTail(f)})${modeTag(f)}`;
+
+const funcLine = (f) => {
+  // args joined by ";" so an arg's own comma-separated meta stays unambiguous
+  const args = (f.args ?? [])
+    .map((a) => `${a.target} (${metaTail(a)})`)
+    .join("; ");
+  return `- \`${f.target}(${args})\`${f.caption ? ` — ${f.caption}` : ""}`;
 };
 
-for (const entry of COMMAND_ALLOWLIST) {
-  if (entry.op === "start" || entry.op === "stop") {
-    lines.push(`### \`${entry.op}\` — ${entry.note ?? ""}`);
-    lines.push("");
-    lines.push("```json");
-    lines.push(JSON.stringify({ op: entry.op, reason: entry.note ?? "" }));
-    lines.push("```");
-    lines.push("");
-    continue;
-  }
+// ---------------------------------------------------------------------------
+// 3. Guided section (the curated allowlist)
+// ---------------------------------------------------------------------------
+const guided = ["## Guided mode — curated safe set", ""];
+guided.push(
+  "Active when the user selects **Guided** scope in the chat panel. Only these commands apply;",
+  "anything else is rejected (the app suggests switching to Full). Full mode (below) is the default.",
+  "",
+);
+for (const e of COMMAND_ALLOWLIST) {
+  const where = e.model ? `\`${e.model}.${e.target}\`` : "";
+  guided.push(`- \`${e.op}\` ${where}${e.note ? ` — ${e.note}` : ""}`);
+}
+guided.push("");
 
-  const iface = getInterfaceForType(entry.model);
-  const field = iface.find((f) => f.target === entry.target);
-  if (!field) {
-    warn.push(`${entry.op} ${entry.model}.${entry.target} — no registry field found`);
-  }
+// ---------------------------------------------------------------------------
+// 4. Full section (every settable field, by model_type)
+// ---------------------------------------------------------------------------
+const full = ["## Full mode — all settable fields by model_type", ""];
+let typeCount = 0;
+let propCount = 0;
+let fnCount = 0;
 
-  const title =
-    entry.op === "call"
-      ? `### \`call\` ${entry.model}.${entry.target}() — ${field?.caption ?? entry.note ?? ""}`
-      : `### \`setProp\` ${entry.model}.${entry.target} — ${field?.caption ?? entry.note ?? ""}`;
-  lines.push(title);
-  lines.push("");
+for (const type of Object.keys(MODEL_INTERFACES).sort()) {
+  const fields = getInterfaceForType(type);
+  const props = fields.filter(isSettableProp).sort((a, b) => modeRank(a) - modeRank(b));
+  const fns = fields.filter(isFunction);
+  if (!props.length && !fns.length) continue;
 
-  if (entry.op === "setProp" && field) {
-    const u = unit(field.caption);
-    const detail = [
-      `type: ${field.type}`,
-      u && `unit: ${u}`,
-      bounds(field) && `range: ${bounds(field)}`,
-      field.type === "list" && `choices: ${choicesOf(field).join(", ")}`,
-    ]
-      .filter(Boolean)
-      .join(" · ");
-    lines.push(`- ${detail}`);
-    lines.push("- `value` is in the unit shown above (the same number a clinician reads in the UI).");
-  } else if (entry.op === "call" && field) {
-    const args = field.args ?? [];
-    if (!args.length) {
-      lines.push("- no arguments");
-    } else {
-      lines.push(`- arguments (in order):`);
-      for (const a of args) {
-        const u = unit(a.caption);
-        const detail = [
-          `type ${a.type}`,
-          u && `unit ${u}`,
-          bounds(a) && `range ${bounds(a)}`,
-          choicesOf(a).length && `choices ${choicesOf(a).join(", ")}`,
-        ]
-          .filter(Boolean)
-          .join(", ");
-        lines.push(`  - \`${a.target}\` — ${a.caption ?? a.target} (${detail})`);
-      }
-    }
+  typeCount++;
+  propCount += props.length;
+  fnCount += fns.length;
+
+  full.push(`### ${type}`);
+  if (props.length) {
+    full.push("", "_setProp_:");
+    for (const f of props) full.push(paramLine(f));
   }
-  lines.push("");
-  lines.push("```json");
-  lines.push(exampleFor(entry, field));
-  lines.push("```");
-  lines.push("");
+  if (fns.length) {
+    full.push("", "_call_:");
+    for (const f of fns) full.push(funcLine(f));
+  }
+  full.push("");
 }
 
 // ---------------------------------------------------------------------------
-// 3. Assemble + write
+// 5. Header + assemble + write
 // ---------------------------------------------------------------------------
 const header = [
   "# Explain — command catalog (bot-facing)",
   "",
-  "This is the **exhaustive** list of model actions you may currently propose. It is",
-  "generated from the webapp's allowlist + parameter schema, so anything NOT listed here",
-  "will be **rejected** by the app — do not invent commands, models, properties, or",
-  "arguments outside this catalog.",
+  "What you may propose as `explain-command` actions. See `command-protocol.md` for HOW to",
+  "emit them and the rules. Resolve a target like this: read the **`Models in scenario:`**",
+  "map in the live context to pick the right *instance name*, find that instance's",
+  "*model_type* in the map, then use the fields listed under that model_type here.",
   "",
-  "See `command-protocol.md` for HOW to emit a command (the fenced-block format and the",
-  "rules on when to do so). This file is just the vocabulary.",
+  "**Envelope** (one JSON object per fenced block):",
   "",
-  "Values are in the **clinical/display unit shown** for each field (the app converts to",
-  "engine-internal units itself). Stay within the stated range.",
+  "```json",
+  '{"op":"setProp","model":"<instance name>","target":"<field>","value":<value>,"reason":"<short label>"}',
+  '{"op":"call","model":"<instance name>","target":"<function>","args":[...],"reason":"<short label>"}',
+  '{"op":"start"}   {"op":"stop"}',
+  "```",
   "",
-  `**Enabled commands: ${COMMAND_ALLOWLIST.length}.** Snapshot — regenerate with`,
-  "`node scripts/build_command_catalog.mjs` after the allowlist changes.",
+  "Rules of thumb:",
+  "- **Values are in the displayed unit** shown per field; stay within the stated range.",
+  "- **To tune a physiological property, prefer its `*_factor_ps` knob** (a `factor` field,",
+  "  1.0 = baseline, >1 increases, <1 decreases) over editing the raw base value — factors",
+  "  compose with interventions and weight-scaling. E.g. stiffer LV → `LV.el_max_factor_ps` 1.3.",
+  "- Only fields listed here are accepted; readonly measured-outputs and structural wiring are omitted.",
+  "",
+  `Snapshot: **${typeCount} model_types**, **${propCount} settable params**, **${fnCount} functions**`,
+  `(+ ${COMMAND_ALLOWLIST.length} Guided commands). Regenerate with \`node scripts/build_command_catalog.mjs\`.`,
   "",
   "---",
   "",
 ].join("\n");
 
-fs.writeFileSync(OUT, header + lines.join("\n"), "utf8");
+fs.writeFileSync(OUT, header + guided.join("\n") + "\n---\n\n" + full.join("\n"), "utf8");
 
 console.log(`command catalog written: ${path.relative(ROOT, OUT)}`);
-console.log(`  enabled commands: ${COMMAND_ALLOWLIST.length}`);
-if (warn.length) {
-  console.log(`  warnings:`);
-  for (const w of warn) console.log(`    ! ${w}`);
-}
+console.log(`  Guided commands : ${COMMAND_ALLOWLIST.length}`);
+console.log(`  Full mode       : ${typeCount} model_types, ${propCount} params, ${fnCount} functions`);
