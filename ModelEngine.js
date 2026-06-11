@@ -470,7 +470,7 @@ const calculate = function (time_to_calculate) {
     let noOfSteps = time_to_calculate / model.modeling_stepsize;
     _send({
       type: "status",
-      message: `calculating ${time_to_calculate} sec. in ${noOfSteps} steps.`,
+      message: `calculating ${time_to_calculate} s (${noOfSteps} steps)`,
       payload: [],
     });
     const start = performance.now();
