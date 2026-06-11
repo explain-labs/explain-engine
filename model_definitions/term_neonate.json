@@ -3667,6 +3667,81 @@
    }
   },
   "monitors": {
+   "vitals": {
+    "title": "Vitals",
+    "enabled": true,
+    "collapsed": false,
+    "parameters": [
+      {
+      "label": "HR",
+      "unit": "bpm",
+      "factor": 1,
+      "rounding": 0,
+      "props": [
+       "Monitor.heart_rate"
+      ],
+      "weight_based": false,
+      "value": "115"
+     },
+          {
+      "label": "SaO2(pre)",
+      "unit": "%",
+      "factor": 1,
+      "rounding": 0,
+      "props": [
+       "Monitor.sao2_pre"
+      ],
+      "weight_based": false,
+      "value": "95"
+     },
+     {
+      "label": "SaO2(post)",
+      "unit": "%",
+      "factor": 1,
+      "rounding": 0,
+      "props": [
+       "Monitor.sao2_post"
+      ],
+      "weight_based": false,
+      "value": "95"
+     },
+     {
+      "label": "Abp",
+      "unit": "mmHg",
+      "factor": 1,
+      "rounding": 0,
+      "props": [
+       "Monitor.minmax.abp_pres_max",
+       "Monitor.minmax.abp_pres_min"
+      ],
+      "weight_based": false,
+      "value": "75/48"
+     },
+     {
+      "label": "RR",
+      "unit": "bpm",
+      "factor": 1,
+      "rounding": 0,
+      "props": [
+       "Monitor.resp_rate"
+      ],
+      "weight_based": false,
+      "value": "45"
+     },
+     {
+      "label": "EtCO2",
+      "unit": "mmHg",
+      "factor": 1,
+      "rounding": 0,
+      "props": [
+       "Monitor.etco2"
+      ],
+      "weight_based": false,
+      "value": "0"
+     }
+
+    ]
+   },
    "add_vitals": {
     "title": "Additional Vitals",
     "enabled": true,
