@@ -191,6 +191,22 @@ export default class Model extends ModelEmitter {
   }
 
   /**
+   * Re-bind the sprite diagram's animation to an edited diagram definition
+   * WITHOUT rebuilding the model — the running simulation (model objects,
+   * volumes, time) is preserved. Pass the diagram_definition object (the
+   * `{ settings, components }` shape). The worker rebuilds its AnimationPacker
+   * and re-posts the realtime channel registry so renderers rebind live.
+   * @param {Object} diagram_definition
+   */
+  updateDiagram(diagram_definition) {
+    this.send({
+      type: "PUT",
+      message: "diagram_definition",
+      payload: JSON.stringify(diagram_definition),
+    });
+  }
+
+  /**
    * Rebuild the engine using the last loaded definition snapshot.
    */
   restart() {

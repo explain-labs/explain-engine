@@ -118,6 +118,9 @@ self.onmessage = (e) => {
             console.log("ModelEngine: task scheduler request: ", e.data.payload )
             set_property(_normalize_payload(e.data.payload));
             break;
+          case "diagram_definition":
+            update_diagram(_normalize_payload(e.data.payload));
+            break;
         }
         break;
       case "POST": // create a new resource
@@ -199,6 +202,31 @@ const _post_rt_channels = function () {
       anim: animation_packer ? animation_packer.registry() : null,
     },
   });
+};
+
+// Re-bind the sprite-diagram animation to an EDITED diagram definition without
+// rebuilding the model — the live simulation (model objects, volumes, time)
+// is left running. Swaps model.diagram_definition, rebuilds the AnimationPacker
+// (component -> slot registry + direct model refs), re-acquires the anim
+// snapshot at the new stride/version, and re-posts the rt_channels handshake so
+// the main-thread reader and renderers rebind. Returns true on success.
+const update_diagram = function (diagram_definition) {
+  if (!model) return false;
+  if (diagram_definition) model.diagram_definition = diagram_definition;
+  if (!channel_writer) return false;
+  try {
+    build_counter += 1;
+    animation_packer = new AnimationPacker(model, build_counter);
+    channel_writer.acquireAnimSnapshot(
+      animation_packer.stride || 0,
+      animation_packer.version
+    );
+    _post_rt_channels();
+    return true;
+  } catch (e) {
+    console.error("ModelEngine: diagram animation rebind failed:", e);
+    return false;
+  }
 };
 
 // define the model functions
