@@ -34,8 +34,9 @@ const OUT = path.resolve(ROOT, "knowledge-pack/command-catalog.md");
 // 1. Bundle the allowlist + registry to an importable module
 // ---------------------------------------------------------------------------
 const ENTRY = `
-export { COMMAND_ALLOWLIST } from "@/services/botCommandAllowlist";
+export { COMMAND_ALLOWLIST, DIAGRAM_ACTIONS } from "@/services/botCommandAllowlist";
 export { MODEL_INTERFACES, getInterfaceForType } from "@/model-interface/registry";
+export { PICTOS, PATH_TYPES, LAYOUT_PATCH_WHITELIST } from "@/render/diagramConstants";
 `;
 
 const tmp = path.join(os.tmpdir(), `explain-cmd-catalog-${process.pid}.mjs`);
@@ -48,7 +49,15 @@ await esbuild.build({
   alias: { "@": path.resolve(ROOT, "src") },
   logLevel: "warning",
 });
-const { COMMAND_ALLOWLIST, MODEL_INTERFACES, getInterfaceForType } = await import(`file://${tmp}`);
+const {
+  COMMAND_ALLOWLIST,
+  DIAGRAM_ACTIONS,
+  MODEL_INTERFACES,
+  getInterfaceForType,
+  PICTOS,
+  PATH_TYPES,
+  LAYOUT_PATCH_WHITELIST,
+} = await import(`file://${tmp}`);
 fs.rmSync(tmp, { force: true });
 
 // ---------------------------------------------------------------------------
@@ -144,6 +153,66 @@ for (const type of Object.keys(MODEL_INTERFACES).sort()) {
 }
 
 // ---------------------------------------------------------------------------
+// 4b. Diagram section (op: "diagram" — edits the live diagram)
+// ---------------------------------------------------------------------------
+const diagram = ["## Diagram editing — `op:\"diagram\"`", ""];
+diagram.push(
+  "Edit the diagram the user sees (compartments = sprites bound to engine models,",
+  "connectors = paths between them). Requires the **Diagram tab** to be open; each",
+  "turn's context lists the **Current diagram** (component ids + their model bindings),",
+  "and the **`Models in scenario:`** map gives the engine instance names you bind to.",
+  "Use existing component ids verbatim; give every new component a unique `name`.",
+  "",
+  "Envelope: `{\"op\":\"diagram\",\"action\":\"<action>\", ...fields, \"reason\":\"<label>\"}`",
+  "",
+  "Actions:",
+);
+for (const d of DIAGRAM_ACTIONS) {
+  diagram.push(`- \`${d.action}\` — fields: ${d.fields}. ${d.note}`);
+}
+diagram.push(
+  "",
+  `- **picto** must be one of: ${PICTOS.join(", ")}`,
+  `- **path.type** must be one of: ${PATH_TYPES.join(", ")}`,
+  `- **setLayout patch** keys (cosmetic only): ${LAYOUT_PATCH_WHITELIST.join(", ")}`,
+  "- **pos**: `{\"type\":\"arc\",\"dgs\":<0-360>}` to sit on the layout ring, or",
+  "  `{\"type\":\"rel\",\"x\":<-1..1>,\"y\":<-1..1>}` relative to centre.",
+  "",
+  "Example — add a kidney compartment and connect it to the aorta:",
+  "```json",
+  '{"op":"diagram","action":"addComponent","name":"Kidney","models":["Kidneys"],"picto":"general.png","label":"Kidney","pos":{"type":"arc","dgs":210},"reason":"add kidney"}',
+  '{"op":"diagram","action":"connect","from":"AA","to":"Kidney","models":["AA_Kidney"],"path":{"type":"arc"},"reason":"renal artery"}',
+  "```",
+  "",
+);
+
+// ---------------------------------------------------------------------------
+// 4c. Events & scheduling (op: "event" — a named, saved bundle of timed changes)
+// ---------------------------------------------------------------------------
+const events = ["## Events & scheduling — `op:\"event\"`", ""];
+events.push(
+  "Bundle several property changes into one **named event** the user can replay. Each entry",
+  "in `changes[]` is a `setProp`-style `{model, target, value}` with two optional timing",
+  "fields (simulated seconds, only advancing while the sim runs):",
+  "",
+  "- `it` — ramp the numeric value to the target over N seconds (numbers only; booleans/lists swap instantly).",
+  "- `at` — delay the change N seconds before it starts.",
+  "",
+  "Each change is validated against the same fields/bounds/units as a `setProp` (Full vs Guided",
+  "scope applies per change). Applying the card **saves the event into the Event Scheduler",
+  "panel** — it does not fire it; the user applies or arms it there. Optional `fire_at` (absolute",
+  "sim-clock auto-fire) is a panel feature; omit unless asked.",
+  "",
+  "Envelope: `{\"op\":\"event\",\"name\":\"<name>\",\"changes\":[{\"model\",\"target\",\"value\",\"it\"?,\"at\"?}, …],\"fire_at\":<s?>,\"reason\":\"<label>\"}`",
+  "",
+  "Example — drive a tachycardia then drop spontaneous breathing 30 s later:",
+  "```json",
+  '{"op":"event","name":"induce tachy","changes":[{"model":"Heart","target":"heart_rate_ref","value":200,"it":15},{"model":"Breathing","target":"breathing_enabled","value":false,"at":30}],"reason":"ramp HR to 200 over 15s, apnea at +30s"}',
+  "```",
+  "",
+);
+
+// ---------------------------------------------------------------------------
 // 5. Header + assemble + write
 // ---------------------------------------------------------------------------
 const header = [
@@ -157,27 +226,43 @@ const header = [
   "**Envelope** (one JSON object per fenced block):",
   "",
   "```json",
-  '{"op":"setProp","model":"<instance name>","target":"<field>","value":<value>,"reason":"<short label>"}',
+  '{"op":"setProp","model":"<instance name>","target":"<field>","value":<value>,"it":<ramp s?>,"at":<delay s?>,"reason":"<short label>"}',
   '{"op":"call","model":"<instance name>","target":"<function>","args":[...],"reason":"<short label>"}',
+  '{"op":"event","name":"<event name>","changes":[{"model":"..","target":"..","value":..,"it":<s?>,"at":<s?>}],"reason":"<short label>"}',
   '{"op":"start"}   {"op":"stop"}',
   "```",
   "",
   "Rules of thumb:",
   "- **Values are in the displayed unit** shown per field; stay within the stated range.",
+  "- **Timing (optional):** `it` ramps a numeric value to the target over N simulated seconds;",
+  "  `at` delays the change N seconds. `op:\"event\"` bundles several timed `changes[]` into a",
+  "  named event saved to the Event Scheduler panel — see `command-protocol.md` (Scheduling).",
   "- **To tune a physiological property, prefer its `*_factor_ps` knob** (a `factor` field,",
   "  1.0 = baseline, >1 increases, <1 decreases) over editing the raw base value — factors",
   "  compose with interventions and weight-scaling. E.g. stiffer LV → `LV.el_max_factor_ps` 1.3.",
   "- Only fields listed here are accepted; readonly measured-outputs and structural wiring are omitted.",
   "",
   `Snapshot: **${typeCount} model_types**, **${propCount} settable params**, **${fnCount} functions**`,
-  `(+ ${COMMAND_ALLOWLIST.length} Guided commands). Regenerate with \`node scripts/build_command_catalog.mjs\`.`,
+  `(+ ${COMMAND_ALLOWLIST.length} Guided commands, ${DIAGRAM_ACTIONS.length} diagram actions). Regenerate with \`node scripts/build_command_catalog.mjs\`.`,
   "",
   "---",
   "",
 ].join("\n");
 
-fs.writeFileSync(OUT, header + guided.join("\n") + "\n---\n\n" + full.join("\n"), "utf8");
+fs.writeFileSync(
+  OUT,
+  header +
+    guided.join("\n") +
+    "\n---\n\n" +
+    full.join("\n") +
+    "\n---\n\n" +
+    events.join("\n") +
+    "\n---\n\n" +
+    diagram.join("\n"),
+  "utf8",
+);
 
 console.log(`command catalog written: ${path.relative(ROOT, OUT)}`);
 console.log(`  Guided commands : ${COMMAND_ALLOWLIST.length}`);
 console.log(`  Full mode       : ${typeCount} model_types, ${propCount} params, ${fnCount} functions`);
+console.log(`  Diagram actions : ${DIAGRAM_ACTIONS.length}`);

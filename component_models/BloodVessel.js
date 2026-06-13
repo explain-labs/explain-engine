@@ -86,6 +86,7 @@ export class BloodVessel extends BloodCapacitance {
         { key: "name", value: inputName + "_" + this.name},
         { key: "description", value: "input connector for " + this.name },
         { key: "is_enabled", value: this.is_enabled },
+        { key: "is_externally_managed", value: true },
         { key: "model_type", value: "Resistor" },
         { key: "r_for", value: this.r_for },
         { key: "r_back", value: this.r_back },
