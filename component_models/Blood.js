@@ -108,6 +108,9 @@ export class Blood extends BaseModelClass {
       // venous bloodgas
       calc_blood_composition(this._model_engine.models["IVCI"])
       calc_blood_composition(this._model_engine.models["SVC"])
+      // right-atrial (mixed-venous) bloodgas — the Monitor reads SvO2 from RAIVCI, so its
+      // composition must be solved here too (otherwise so2 stays at the -1 sentinel)
+      if (this._model_engine.models["RAIVCI"]) calc_blood_composition(this._model_engine.models["RAIVCI"])
 
       // arterial solute concentrations
       this.art_solutes = { ...this._descending_aorta.solutes };

@@ -48,6 +48,8 @@ export class Monitor extends BaseModelClass {
     this.flow_avg_beats = 1;
     this.rr_avg_time = 20;
     this.sat_avg_time = 5;
+    this.etco2_source = "DS"; // airway (dead-space) gas compartment whose end-expiratory pCO2 is the
+                              // spontaneous end-tidal CO2; mirrored from the ventilator instead when ventilated
 
     // local properties
     this._heart = null; // reference to the heart model, for tracking the cardiac cycle
@@ -56,6 +58,8 @@ export class Monitor extends BaseModelClass {
     this._ra_ivci = null; // reference to the right atrium / IVC (venous O2 saturation)
     this._breathing = null; // reference to the spontaneous breathing model (breath events)
     this._ventilator = null; // reference to the mechanical ventilator model (breath events)
+    this._ds = null; // reference to the airway gas compartment for spontaneous end-tidal CO2
+    this._etco2_peak = 0.0; // running peak airway pCO2 over the current breath (latched as etco2 at breath onset)
     this._rr_intervals = []; // rolling window of breath-to-breath intervals spanning ~rr_avg_time s
     this._rr_window_sum = 0.0; // running sum of _rr_intervals (s)
     this._resp_interval_counter = 0.0; // time since the previous breath; reset on each breath
@@ -96,6 +100,7 @@ export class Monitor extends BaseModelClass {
         name: t.name,
         _model: this._model_engine.models[String(t.model ?? "").split(".")[0]] ?? null,
         pres_min: 1000.0, pres_max: -1000.0, vol_min: 1000.0, vol_max: -1000.0,
+        pres_sum: 0.0, pres_n: 0, // running accumulators for a true time-averaged mean over the beat
       }))
       .filter((t) => t.name && t._model);
     // flat keys (name_field) so the watch paths stay 3 levels deep — Monitor.minmax.<name>_<field>
@@ -135,6 +140,9 @@ export class Monitor extends BaseModelClass {
     this._breathing = this._model_engine.models["Breathing"] ?? null;
     this._ventilator = this._model_engine.models["Ventilator"] ?? null;
 
+    // airway gas compartment for the spontaneous end-tidal CO2 read-out (may be absent)
+    this._ds = this._model_engine.models[this.etco2_source] ?? null;
+
     // flag that the model is initialized
     this._is_initialized = true;
   }
@@ -152,8 +160,9 @@ export class Monitor extends BaseModelClass {
     // average respiratory rate
     this.calc_resp_rate();
 
-    // mirror the end-tidal CO2 from the ventilator (last value kept if no ventilator is present)
-    this.etco2 = this._ventilator ? this._ventilator.etco2 : this.etco2;
+    // end-tidal CO2: mirror the ventilator while it is actively ventilating, otherwise derive it
+    // from the spontaneous breath (peak end-expiratory airway pCO2, latched in calc_resp_rate)
+    if (this._ventilator && this._ventilator.is_enabled) this.etco2 = this._ventilator.etco2;
 
     // mirror the blood temperature from the ascending aorta (last value kept if AA is absent)
     this.temp = this._aa ? this._aa.temp : this.temp;
@@ -186,10 +195,14 @@ export class Monitor extends BaseModelClass {
       this._minmax_targets.forEach((t) => {
         this.minmax[t.name + "_pres_min"] = t.pres_min;
         this.minmax[t.name + "_pres_max"] = t.pres_max;
-        this.minmax[t.name + "_pres_mean"] = (2 * t.pres_min + t.pres_max) / 3.0;
+        // true time-averaged mean over the beat. The arterial estimate (2·min+max)/3 is only
+        // valid for arterial waveforms; it badly underestimates atrial/venous means (CVP), whose
+        // a/c/v waves dip well below the diastolic value. A real integral mean is correct for all.
+        this.minmax[t.name + "_pres_mean"] = t.pres_n > 0 ? t.pres_sum / t.pres_n : 0.0;
         this.minmax[t.name + "_vol_min"] = t.vol_min * 1000.0;
         this.minmax[t.name + "_vol_max"] = t.vol_max * 1000.0;
         t.pres_min = 1000.0; t.pres_max = -1000.0;
+        t.pres_sum = 0.0; t.pres_n = 0;
         t.vol_min = 1000.0; t.vol_max = -1000.0;
       });
     }
@@ -238,6 +251,18 @@ export class Monitor extends BaseModelClass {
         // average respiratory rate = breaths in window / window time × 60
         this.resp_rate = this._rr_window_sum > 0 ? (this._rr_intervals.length / this._rr_window_sum) * 60.0 : 0.0;
       }
+      // spontaneous end-tidal CO2: at the onset of a spontaneous breath, the airway gas just
+      // expired holds the end-expiratory peak pCO2 — latch it and reset the per-breath peak.
+      // (Skipped while the ventilator is actively ventilating; that path mirrors the ventilator.)
+      if (spont && this._ds && !(this._ventilator && this._ventilator.is_enabled)) {
+        this.etco2 = this._etco2_peak;
+        this._etco2_peak = 0.0;
+      }
+    }
+
+    // accumulate the per-breath peak airway pCO2 for the spontaneous end-tidal read-out
+    if (this._ds && typeof this._ds.pco2 === "number" && this._ds.pco2 > this._etco2_peak) {
+      this._etco2_peak = this._ds.pco2;
     }
 
     this._resp_interval_counter += this._t;
@@ -256,7 +281,7 @@ export class Monitor extends BaseModelClass {
     this._minmax_targets.forEach((t) => {
       const p = t._model.pres;
       const v = t._model.vol;
-      if (typeof p === "number") { t.pres_max = Math.max(t.pres_max, p); t.pres_min = Math.min(t.pres_min, p); }
+      if (typeof p === "number") { t.pres_max = Math.max(t.pres_max, p); t.pres_min = Math.min(t.pres_min, p); t.pres_sum += p; t.pres_n += 1; }
       if (typeof v === "number") { t.vol_max = Math.max(t.vol_max, v); t.vol_min = Math.min(t.vol_min, v); }
     });
   }
