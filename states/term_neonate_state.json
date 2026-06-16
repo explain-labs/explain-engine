@@ -6469,8 +6469,7 @@
       "hco3": 24.49655103406416,
       "be": -2.401905345772632,
       "inputs": [
-       "VLB",
-       "PL_UMB_VEN"
+       "VLB"
       ],
       "r_for": 50,
       "r_back": 50,
@@ -9155,6 +9154,34 @@
     "fo_flow": 0,
     "ua_flow": 0,
     "uv_flow": 0
+   },
+   "PL_UMB_VEN_IVCI": {
+    "name": "PL_UMB_VEN_IVCI",
+    "description": "autonomous umbilical-vein → IVCI return resistor (placenta-controlled)",
+    "is_enabled": false,
+    "model_type": "Resistor",
+    "components": {},
+    "r_for": 49.0,
+    "r_back": 49.0,
+    "r_k": 0,
+    "comp_from": "PL_UMB_VEN",
+    "comp_to": "IVCI",
+    "no_flow": false,
+    "no_back_flow": true,
+    "p1_ext": 0,
+    "p2_ext": 0,
+    "fixed_composition": false,
+    "is_externally_managed": false,
+    "r_factor": 1,
+    "r_k_factor": 1,
+    "r_factor_ps": 1,
+    "r_k_factor_ps": 1,
+    "r_factor_scaling_ps": 1,
+    "r_k_factor_scaling_ps": 1,
+    "flow": 0,
+    "r_for_eff": 49.0,
+    "r_back_eff": 49.0,
+    "r_k_eff": 0
    }
   },
   "scaler_config": {

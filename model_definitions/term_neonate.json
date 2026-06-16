@@ -3672,7 +3672,7 @@
     "enabled": true,
     "collapsed": false,
     "parameters": [
-      {
+     {
       "label": "HR",
       "unit": "bpm",
       "factor": 1,
@@ -3683,7 +3683,7 @@
       "weight_based": false,
       "value": "115"
      },
-          {
+     {
       "label": "SaO2(pre)",
       "unit": "%",
       "factor": 1,
@@ -3739,7 +3739,6 @@
       "weight_based": false,
       "value": "0"
      }
-
     ]
    },
    "add_vitals": {
@@ -3910,7 +3909,7 @@
     "enabled": true,
     "collapsed": true,
     "parameters": [
-    {
+     {
       "label": "Diurese",
       "unit": "ml/kg/h",
       "factor": 60,
@@ -8052,8 +8051,7 @@
       "hco3": 24.79053908153325,
       "be": -3.85367897763685,
       "inputs": [
-       "VLB",
-       "PL_UMB_VEN"
+       "VLB"
       ],
       "r_for": 50,
       "r_back": 50,

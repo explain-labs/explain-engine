@@ -59,6 +59,7 @@ export class Placenta extends BaseModelClass {
     this._plf_ven = null;
     this._plm = null;
     this._gas_exchanger = null;
+    this._umb_ven_ret = null; // umbilical-vein → body return resistor (PL_UMB_VEN → IVCI)
   }
 
   init_model(args) {
@@ -71,6 +72,12 @@ export class Placenta extends BaseModelClass {
     this._plf_ven = this._model_engine.models["PL_FETAL_VEN"];
     this._plm = this._model_engine.models["PL_MAT"];
     this._gas_exchanger = this._model_engine.models["PL_GASEX"];
+
+    // The umbilical-vein → body return is an autonomous Resistor (PL_UMB_VEN → IVCI): it is NOT
+    // listed in IVCI's `inputs`, so no BloodVessel co-manages it. The Placenta owns its enable/clamp
+    // state so that stopping or clamping the unit halts the venous return too — otherwise it would
+    // leak placental blood into the fetal IVC. Its resistance is left at the scenario value.
+    this._umb_ven_ret = this._model_engine.models["PL_UMB_VEN_IVCI"] || null;
   }
 
   calc_model() {
@@ -91,6 +98,8 @@ export class Placenta extends BaseModelClass {
       this._plf_ven.is_enabled = this.placenta_running;
       this._plm.is_enabled = this.placenta_running;
       this._gas_exchanger.is_enabled = this.placenta_running;
+      // the return resistor we took over from IVCI follows the same enable state
+      if (this._umb_ven_ret) this._umb_ven_ret.is_enabled = this.placenta_running;
 
       // the settings below are only meaningful while the placenta is running
       if (!this.placenta_running) return;
@@ -101,6 +110,8 @@ export class Placenta extends BaseModelClass {
       this._plf_art.no_flow = this.umb_clamped;
       this._plf_cap.no_flow = this.umb_clamped;
       this._plf_ven.no_flow = this.umb_clamped;
+      // also clamp the umbilical-vein → body return so a clamp stops flow on BOTH sides
+      if (this._umb_ven_ret) this._umb_ven_ret.no_flow = this.umb_clamped;
 
       // set the resistances of the associated models
       const umb_art_r = this.umb_art_res * this.umb_art_res_factor;

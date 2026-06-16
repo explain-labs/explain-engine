@@ -6898,8 +6898,7 @@
       "hco3": 21.618776441279945,
       "be": -5.340500225815312,
       "inputs": [
-       "VLB",
-       "PL_UMB_VEN"
+       "VLB"
       ],
       "r_for": 10.214285714285714,
       "r_back": 10.214285714285714,
@@ -11540,7 +11539,7 @@
     "enabled": true,
     "collapsed": true,
     "parameters": [
-    {
+     {
       "label": "Diurese",
       "unit": "ml/h",
       "factor": 60,

@@ -66,3 +66,14 @@ the default volumes/resistances.)
   itself is partial-pressure driven inside `PL_GASEX`, which derives pCO₂/pO₂ from these contents.
 - **Sub-model references are required.** They are the Placenta's own `components`; `calc_model` skips
   the tick if any is missing rather than dereferencing null.
+- **The umbilical-vein → body return is an autonomous resistor under Placenta control.** The return
+  segment `PL_UMB_VEN → IVCI` is the resistor `PL_UMB_VEN_IVCI`, declared as a standalone `Resistor`
+  in the model definition — deliberately **not** an entry in `IVCI.inputs`. If it were an IVCI input,
+  `IVCI` (a `BloodVessel`) would auto-create and co-manage it, re-asserting its `is_enabled`/`no_flow`
+  every step and leaving it outside the placenta's two off-switches (a one-way leak of placental blood
+  into the fetal IVC whenever the unit was stopped or clamped). As a free resistor, nothing else owns
+  it: the `Placenta` resolves it by name in `init_model` (`_umb_ven_ret`) and drives its `is_enabled`
+  (= `placenta_running`) and `no_flow` (= `umb_clamped`) alongside the rest of the unit. Its
+  resistance is left at the scenario value, so running-unclamped hemodynamics are unchanged.
+  **When wiring a new placenta scenario, connect the umbilical vein to the IVC with a standalone
+  `PL_UMB_VEN_IVCI` resistor — do not add `PL_UMB_VEN` to `IVCI.inputs`,** or the off-switches break.
