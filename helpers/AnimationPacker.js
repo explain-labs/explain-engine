@@ -84,15 +84,25 @@ export default class AnimationPacker {
   /**
    * Pick the model whose `to2` should colour this component. Compartments tint
    * from the first of their own models carrying a `to2`; connectors tint from
-   * the upstream (dbcFrom) compartment the blood flows out of.
+   * the upstream blood they draw from.
    */
   _resolveTintRef(comp, magRefs) {
-    // Connector: source colour from the upstream compartment.
+    // Connector: a connector's model is a resistor whose `comp_from` names the
+    // true upstream blood compartment model (e.g. LL_VEN_PV draws from LL_VEN).
+    // Prefer that — the diagram's `dbcFrom` is a diagram component name (e.g.
+    // "LL"), which for grouped multi-model compartments is not itself an engine
+    // model and so can't be resolved to a `to2` directly.
+    for (const ref of magRefs) {
+      const up = ref?.comp_from && this._model.models[ref.comp_from];
+      if (up && "to2" in up) return up;
+    }
+    // Fallback: a connector endpoint that maps straight to a model (single-model
+    // compartments whose diagram name equals the model name).
     const up = comp.dbcFrom || comp.dbcTo;
     if (up && this._model.models[up] && "to2" in this._model.models[up]) {
       return this._model.models[up];
     }
-    // Compartment (or connector fallback): first own model exposing to2.
+    // Compartment (or last-resort connector fallback): first own model with to2.
     for (const ref of magRefs) {
       if (ref && "to2" in ref) return ref;
     }
