@@ -18,6 +18,7 @@ export { Fluids } from "./component_models/Fluids";
 
 export { HeartValve } from "./component_models/HeartValve";
 export { Placenta } from "./component_models/Placenta";
+export { MaternalPlacenta } from "./component_models/MaternalPlacenta";
 export { Shunts } from "./component_models/Shunts";
 export { Pda } from "./component_models/Pda";
 

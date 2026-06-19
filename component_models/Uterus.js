@@ -77,7 +77,11 @@ export class Uterus extends BaseModelClass {
     // NOTE: distinct from model.gestational_age (the mother's own birth GA = 40).
     this.preg_ga_threshold = 4.0; // below this GA the bed is treated as non-pregnant (no scaling)
     this.preg_ga_term = 40.0; // GA anchor at which the term target multipliers below are reached
-    this.preg_res_term_factor = 0.083; // bed-resistance multiplier at term (~1/12 -> ~12x flow)
+    this.preg_res_term_factor = 0.083; // conduit (UT_ART/UT_VEN) resistance multiplier at term
+    // UT_CAP (non-placental myometrium) dilates SEPARATELY from the conduits: when a maternal
+    // placenta carries the dominant share of uterine flow, the myometrial capillary should stay a
+    // modest minority. Defaults to the conduit factor (= old uniform behavior) unless overridden.
+    this.preg_cap_res_term_factor = 0.083;
     this.preg_vol_term_factor = 3.0; // bed unstressed-volume multiplier at term (engorgement)
     this.preg_vo2_term_factor = 8.0; // uterine/conceptus VO2 multiplier at term
 
@@ -155,11 +159,12 @@ export class Uterus extends BaseModelClass {
     // BloodVessel composes them multiplicatively, so they stack cleanly. When non-pregnant frac=0
     // and all factors are 1.0, so this is a true no-op that also auto-resets when GA drops.
     const frac = this._preg_frac();
-    const res_factor = 1.0 + frac * (this.preg_res_term_factor - 1.0);
+    const res_factor = 1.0 + frac * (this.preg_res_term_factor - 1.0); // conduits (UT_ART/UT_VEN)
+    const cap_res_factor = 1.0 + frac * (this.preg_cap_res_term_factor - 1.0); // UT_CAP (myometrium)
     const vol_factor = 1.0 + frac * (this.preg_vol_term_factor - 1.0);
 
     this._ut_art.r_factor_scaling_ps = res_factor;
-    this._ut_cap.r_factor_scaling_ps = res_factor;
+    this._ut_cap.r_factor_scaling_ps = cap_res_factor;
     this._ut_ven.r_factor_scaling_ps = res_factor;
     this._ut_art.u_vol_factor_scaling_ps = vol_factor;
     this._ut_cap.u_vol_factor_scaling_ps = vol_factor;
@@ -175,8 +180,8 @@ export class Uterus extends BaseModelClass {
     // (flow ~ 1/R, R linear in GA) so a GA-linear VO2 would outpace perfusion at mid-gestation and
     // drive O2ER unphysiologically high. Tying VO2 to the flow factor keeps O2ER physiologic across
     // gestation, reaching preg_vo2_term_factor exactly when flow reaches its term expansion.
-    const flow_factor = 1.0 / res_factor; // uterine flow expansion vs non-pregnant baseline
-    const flow_factor_term = 1.0 / this.preg_res_term_factor;
+    const flow_factor = 1.0 / cap_res_factor; // myometrial (UT_CAP) flow expansion vs baseline
+    const flow_factor_term = 1.0 / this.preg_cap_res_term_factor;
     const preg_vo2 = flow_factor_term > 1.0
       ? 1.0 + ((flow_factor - 1.0) / (flow_factor_term - 1.0)) * (this.preg_vo2_term_factor - 1.0)
       : 1.0;
@@ -254,8 +259,11 @@ export class Uterus extends BaseModelClass {
     // oxygen delivery / extraction read-outs. O2 content (mL O2/L) = to2 (mmol/L) / O2_MMOL_PER_ML.
     const flow_l_min = this._flow_ema * 60.0; // L/s -> L/min
     this.ut_do2 = (flow_l_min * this._ut_art.to2) / O2_MMOL_PER_ML; // mL O2/min
-    this.ut_avo2 = this._ut_art.to2 - this._ut_ven.to2; // mmol/L
-    this.ut_o2er = this.ut_do2 > 0.0 ? (this.ut_vo2_ml / this.ut_do2) * 100.0 : 0.0; // %
+    this.ut_avo2 = this._ut_art.to2 - this._ut_ven.to2; // mmol/L (whole-uterus a-v difference)
+    // whole-uterus O2 extraction ratio from the actual content difference (Ca-Cv)/Ca — flow- and
+    // VO2-source-independent, so it stays correct now that UT_VEN is the COMMON outflow of both the
+    // myometrial (UT_CAP) and placental (PL_IVS) beds. At baseline this equals the old VO2/DO2 form.
+    this.ut_o2er = this._ut_art.to2 > 0.0 ? (this.ut_avo2 / this._ut_art.to2) * 100.0 : 0.0; // %
 
     // --- maternal-placental coupling ---
     // Drive the maternal placenta pool (PL_MAT) gas content from uterine arterial blood so the

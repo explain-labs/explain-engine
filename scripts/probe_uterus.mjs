@@ -53,7 +53,7 @@ if (ut && CONTRACT) { ut.contractions_running = true; console.log(`[override] co
 send("POST", "calc", SECONDS);
 const SLICE = 0.02;
 const N = Math.round(WINDOW / SLICE);
-const resistors = ["AD_UT_ART", "UT_ART_UT_CAP", "UT_CAP_UT_VEN", "UT_VEN_VLB", "AD_KID_ART"];
+const resistors = ["AD_UT_ART", "UT_ART_UT_CAP", "UT_CAP_UT_VEN", "UT_VEN_VLB", "AD_KID_ART", "UT_ART_PL_IVS", "PL_IVS_UT_VEN"];
 const nodes = ["AD", "UT_ART", "UT_CAP", "UT_VEN", "VLB"];
 const comps = ["UT_ART", "UT_CAP", "UT_VEN"];
 const o2nodes = ["UT_ART", "UT_CAP", "UT_VEN", "KID_ART", "KID_VEN"];
@@ -78,7 +78,20 @@ console.log(`  AD -> UT_ART      ${mlmin(fAcc.AD_UT_ART)}`);
 console.log(`  UT_ART -> UT_CAP  ${mlmin(fAcc.UT_ART_UT_CAP)}`);
 console.log(`  UT_CAP -> UT_VEN  ${mlmin(fAcc.UT_CAP_UT_VEN)}`);
 console.log(`  UT_VEN -> VLB     ${mlmin(fAcc.UT_VEN_VLB)}`);
+console.log(`  UT_ART -> PL_IVS  ${mlmin(fAcc.UT_ART_PL_IVS)}  (spiral arteries -> placenta)`);
+console.log(`  PL_IVS -> UT_VEN  ${mlmin(fAcc.PL_IVS_UT_VEN)}  (placental drainage)`);
 console.log(`  (ref) AD->KID_ART ${mlmin(fAcc.AD_KID_ART)}`);
+if (model.models.MaternalPlacenta) {
+  const mp = model.models.MaternalPlacenta;
+  console.log("\n-- MaternalPlacenta read-outs --");
+  console.log(`  mp_blood_flow    ${mp.mp_blood_flow.toFixed(1)} mL/min`);
+  console.log(`  mp_flow_fraction ${mp.mp_flow_fraction.toFixed(1)} % of uterine flow`);
+  console.log(`  mp_do2           ${mp.mp_do2.toFixed(2)} mL O2/min`);
+  console.log(`  mp_vo2_ml        ${mp.mp_vo2_ml.toFixed(2)} mL O2/min`);
+  console.log(`  mp_o2er          ${mp.mp_o2er.toFixed(1)} %`);
+  console.log(`  mp_active        ${mp.mp_active}`);
+  console.log(`  PL_IVS pres/vol  ${(model.models.PL_IVS?.pres ?? 0).toFixed(2)} mmHg / ${(model.models.PL_IVS?.vol ?? 0).toFixed(4)} L`);
+}
 console.log("\n-- mean node pressures (mmHg) --");
 for (const p of nodes) console.log(`  ${p.padEnd(8)} ${(pAcc[p] / N).toFixed(2).padStart(8)}`);
 console.log("\n-- settled compartment seeds (mean) --");
@@ -106,20 +119,20 @@ if (CONTRACT && model.models.Uterus) {
   const period = model.models.Uterus.contraction_period;
   const M = Math.round(period / SLICE);
   let fMin = Infinity, fMax = -Infinity, fSum = 0, iupMax = -Infinity, iupMin = Infinity;
+  let pMin = Infinity, pMax = -Infinity, pSum = 0; // placental (spiral-artery) flow
   for (let i = 0; i < M; i++) {
     send("POST", "calc", SLICE);
-    const f = (model.models.UT_ART_UT_CAP?.flow ?? 0) * 60000; // mL/min instantaneous
+    const f = (model.models.UT_ART_UT_CAP?.flow ?? 0) * 60000; // mL/min instantaneous (myometrial)
+    const p = (model.models.UT_ART_PL_IVS?.flow ?? 0) * 60000; // mL/min instantaneous (placental)
     const iup = model.models.Uterus.iup;
     fMin = Math.min(fMin, f); fMax = Math.max(fMax, f); fSum += f;
+    pMin = Math.min(pMin, p); pMax = Math.max(pMax, p); pSum += p;
     iupMax = Math.max(iupMax, iup); iupMin = Math.min(iupMin, iup);
   }
-  const fMean = fSum / M;
   console.log("\n-- contraction waveform (over one full period) --");
   console.log(`  IUP range        ${iupMin.toFixed(1)} .. ${iupMax.toFixed(1)} mmHg (resting tone .. peak)`);
-  console.log(`  inflow mean      ${fMean.toFixed(1)} mL/min`);
-  console.log(`  inflow max (rest)${fMax.toFixed(1).padStart(8)} mL/min`);
-  console.log(`  inflow min (peak)${fMin.toFixed(1).padStart(8)} mL/min`);
-  console.log(`  peak flow dip    ${(100 * (1 - fMin / fMax)).toFixed(0)} % below resting`);
+  console.log(`  myometrial flow  mean ${(fSum / M).toFixed(0)}  rest ${fMax.toFixed(0)}  peak ${fMin.toFixed(0)}  dip ${(100 * (1 - fMin / fMax)).toFixed(0)}%`);
+  console.log(`  placental flow   mean ${(pSum / M).toFixed(0)}  rest ${pMax.toFixed(0)}  peak ${pMin.toFixed(0)}  dip ${pMax > 0 ? (100 * (1 - pMin / pMax)).toFixed(0) : "-"}%`);
   console.log(`  Montevideo units ${model.models.Uterus.montevideo_units.toFixed(0)}`);
 }
 
