@@ -27,8 +27,16 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
   (r_factor). A maternal-placental coupling hook drives the (otherwise constant) maternal placenta
   pool PL_MAT from uterine arterial blood when enabled.
 
-  NOT in this version: contractility / intra-uterine pressure, a running/calibrated placental
-  circuit (the coupling plumbing ships but the placenta stays disabled by default).
+  Part 4 (uterine contractions / labor): a periodic intrauterine-pressure (IUP) waveform — a resting
+  tone plus a smooth half-sine contraction recurring every contraction_period seconds — throttles the
+  uterine bed by BOTH (1) physical compression, applying the IUP as external pressure (pres_ext) to
+  UT_ART/CAP/VEN, which impedes arterial inflow and squeezes venous blood out (the "uterine pump"),
+  and (2) a transient resistance rise on the bed (r_factor), giving controllable flow reduction. The
+  read-outs (iup, contraction_active, montevideo_units) make the cycle clinically legible. Default
+  off so the calibrated bed is untouched until labor is enabled.
+
+  NOT in this version: a running/calibrated placental circuit (the coupling plumbing ships but the
+  placenta stays disabled by default).
 */
 
 // O2 molar density at 37 C, 1 atm (mmol O2 per mL) — same constant the Metabolism model uses, so
@@ -78,6 +86,15 @@ export class Uterus extends BaseModelClass {
     this.couple_placenta = false;
     this.pl_mat_name = "PL_MAT";
 
+    // --- uterine contractions (labor) ---
+    this.contractions_running = false; // master gate for contractions (default off -> bed untouched)
+    this.contraction_period = 180.0; // s between contraction onsets (active labor ~ every 3 min)
+    this.contraction_duration = 60.0; // s duration of each contraction (rise + fall)
+    this.resting_tone = 8.0; // baseline IUP between contractions (mmHg)
+    this.contraction_amplitude = 50.0; // peak IUP above resting tone (mmHg)
+    this.contraction_pres_gain = 0.6; // fraction of IUP applied as pres_ext to the bed (0..1)
+    this.contraction_r_peak = 2.0; // bed resistance multiplier at peak contraction (>= 1)
+
     // -----------------------------------------------
     // dependent parameters (read-outs)
     this.ut_blood_flow = 0.0; // uterine blood flow (mL/min)
@@ -85,6 +102,9 @@ export class Uterus extends BaseModelClass {
     this.ut_vo2_ml = 0.0; // oxygen uptake (mL O2/min)
     this.ut_o2er = 0.0; // oxygen extraction ratio (%)
     this.ut_avo2 = 0.0; // arterio-venous O2 content difference (mmol/L)
+    this.iup = 0.0; // current intrauterine pressure (mmHg)
+    this.contraction_active = false; // currently within a contraction
+    this.montevideo_units = 0.0; // MVU = peak amplitude x contractions per 10 min (labor adequacy)
 
     // -----------------------------------------------
     // local references / state
@@ -96,6 +116,7 @@ export class Uterus extends BaseModelClass {
     this._pl_mat = null; // lazily-resolved maternal placental pool (for coupling)
     this._flow_ema = 0.0; // smoothed inflow (L/s) — tames the pulsatile resistor flow for the read-out
     this._flow_tc = 5.0; // smoothing time constant (s) — long enough to average several cardiac cycles
+    this._contraction_timer = 0.0; // s elapsed within the current contraction cycle
   }
 
   init_model(args) {
@@ -160,9 +181,48 @@ export class Uterus extends BaseModelClass {
       ? 1.0 + ((flow_factor - 1.0) / (flow_factor_term - 1.0)) * (this.preg_vo2_term_factor - 1.0)
       : 1.0;
 
-    // transient perfusion knob -> UT_ART non-persistent resistance layer (the vessel resets
-    // r_factor to 1.0 each step, so we re-assert it every step)
-    this._ut_art.r_factor = this.perfusion_factor;
+    // --- uterine contractions ---
+    // Advance the cycle timer and derive the current IUP from a smooth half-sine contraction
+    // (intensity 0..1 over the contraction window, flat between contractions). The IUP is applied
+    // both as external pressure on the bed (pres_ext, re-asserted each step since the compartment
+    // resets it) and as a transient resistance rise (contraction_r_factor on r_factor).
+    let contraction_r_factor = 1.0;
+    if (this.contractions_running) {
+      this._contraction_timer += this._t;
+      if (this._contraction_timer >= this.contraction_period) {
+        this._contraction_timer -= this.contraction_period;
+      }
+      let intensity = 0.0; // 0..1
+      if (this._contraction_timer < this.contraction_duration) {
+        intensity = Math.sin(Math.PI * this._contraction_timer / this.contraction_duration);
+      }
+      this.contraction_active = intensity > 0.0;
+      this.iup = this.resting_tone + this.contraction_amplitude * intensity;
+
+      // physical compression: IUP as external pressure on each uterine compartment
+      const pe = this.iup * this.contraction_pres_gain;
+      this._ut_art.pres_ext += pe;
+      this._ut_cap.pres_ext += pe;
+      this._ut_ven.pres_ext += pe;
+
+      // controllable flow reduction: bed resistance rises with contraction intensity
+      contraction_r_factor = 1.0 + intensity * (this.contraction_r_peak - 1.0);
+
+      // labor adequacy: Montevideo units = peak amplitude x contractions per 10 min
+      this.montevideo_units = this.contraction_amplitude * (600.0 / this.contraction_period);
+    } else {
+      this._contraction_timer = 0.0;
+      this.contraction_active = false;
+      this.iup = 0.0;
+      this.montevideo_units = 0.0;
+    }
+
+    // transient perfusion knob + contraction resistance -> non-persistent r_factor layer (the
+    // vessels reset r_factor to 1.0 each step, so we re-assert it every step). perfusion_factor is
+    // the user/scenario vaso-tone knob (UT_ART); the contraction factor compresses the whole bed.
+    this._ut_art.r_factor = this.perfusion_factor * contraction_r_factor;
+    this._ut_cap.r_factor = contraction_r_factor;
+    this._ut_ven.r_factor = contraction_r_factor;
 
     // uterine O2 consumption / CO2 production on UT_CAP (same molar conversion as Metabolism)
     if (this.met_active) {
@@ -233,5 +293,8 @@ export class Uterus extends BaseModelClass {
     this.ut_vo2_ml = 0.0;
     this.ut_o2er = 0.0;
     this.ut_avo2 = 0.0;
+    this.iup = 0.0;
+    this.contraction_active = false;
+    this.montevideo_units = 0.0;
   }
 }

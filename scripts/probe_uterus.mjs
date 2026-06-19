@@ -17,6 +17,7 @@ const flag = (n) => argv.includes(n);
 const GA = argv.indexOf("--ga") >= 0 ? Number(argv[argv.indexOf("--ga") + 1]) : null; // pregnancy GA (weeks)
 const PREGNANT = flag("--pregnant") || GA !== null; // --ga implies pregnant
 const COUPLE = flag("--couple"); // exercise maternal-placental coupling (also enables placenta)
+const CONTRACT = flag("--contract"); // enable uterine contractions and characterize the flow waveform
 
 let liveModel = null;
 globalThis.self = globalThis;
@@ -47,6 +48,7 @@ if (ut && (PREGNANT || COUPLE)) {
   }
   console.log(`[override] pregnant=${ut.pregnant} preg_ga=${ut.preg_ga} couple_placenta=${ut.couple_placenta}`);
 }
+if (ut && CONTRACT) { ut.contractions_running = true; console.log(`[override] contractions_running=true period=${ut.contraction_period}s amp=${ut.contraction_amplitude}mmHg`); }
 
 send("POST", "calc", SECONDS);
 const SLICE = 0.02;
@@ -97,6 +99,28 @@ if (model.models.Uterus) {
   console.log(`  ut_avo2        ${(uAcc.ut_avo2 / N).toFixed(3)} mmol/L`);
 } else {
   console.log("\n  (no Uterus model in this scenario)");
+}
+
+if (CONTRACT && model.models.Uterus) {
+  // sample the instantaneous uterine inflow and IUP over one full contraction period
+  const period = model.models.Uterus.contraction_period;
+  const M = Math.round(period / SLICE);
+  let fMin = Infinity, fMax = -Infinity, fSum = 0, iupMax = -Infinity, iupMin = Infinity;
+  for (let i = 0; i < M; i++) {
+    send("POST", "calc", SLICE);
+    const f = (model.models.UT_ART_UT_CAP?.flow ?? 0) * 60000; // mL/min instantaneous
+    const iup = model.models.Uterus.iup;
+    fMin = Math.min(fMin, f); fMax = Math.max(fMax, f); fSum += f;
+    iupMax = Math.max(iupMax, iup); iupMin = Math.min(iupMin, iup);
+  }
+  const fMean = fSum / M;
+  console.log("\n-- contraction waveform (over one full period) --");
+  console.log(`  IUP range        ${iupMin.toFixed(1)} .. ${iupMax.toFixed(1)} mmHg (resting tone .. peak)`);
+  console.log(`  inflow mean      ${fMean.toFixed(1)} mL/min`);
+  console.log(`  inflow max (rest)${fMax.toFixed(1).padStart(8)} mL/min`);
+  console.log(`  inflow min (peak)${fMin.toFixed(1).padStart(8)} mL/min`);
+  console.log(`  peak flow dip    ${(100 * (1 - fMin / fMax)).toFixed(0)} % below resting`);
+  console.log(`  Montevideo units ${model.models.Uterus.montevideo_units.toFixed(0)}`);
 }
 
 if (COUPLE && model.models.PL_MAT) {
