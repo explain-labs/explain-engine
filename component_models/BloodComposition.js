@@ -122,6 +122,7 @@ function _calc_blood_composition_js(bc) {
     uma = sol["uma"];
     hemoglobin = sol["hemoglobin"];
     temp = bc.temp;
+    P50_0 = bc.P50_0 ?? 20.0; // per-compartment O2-Hb affinity baseline (HbF≈18.8, neonatal 20.0, adult 26.7); falls back to the historical 20.0
     prev_ph = bc.prev_ph || 7.37; // previous pH value, used to set the limits for H⁺ concentration
     prev_po2 = bc.prev_po2 || 18.7; // previous pO2 value, used to set the limits for pO2
 

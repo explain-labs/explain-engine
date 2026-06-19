@@ -50,8 +50,12 @@ export class Blood extends BaseModelClass {
       const model = this._model_engine.models[model_name];
       if (this.blood_containing_modeltypes.includes(model.model_type)) {
         this._blood_components.push(model);
-        // propagate the Haldane coefficient to every blood component (outside the bootstrap guard)
+        // propagate the Haldane coefficient and O2-Hb affinity baseline to every blood component
+        // (outside the bootstrap guard). P50_0 lets a scenario pick the dissociation curve —
+        // e.g. fetal HbF (18.8) vs neonatal (20.0) vs adult (26.7). A per-compartment P50_0 already
+        // present in the loaded state is respected (e.g. a maternal pool kept at adult affinity).
         model.haldane_coeff = this.haldane_coeff;
+        if (model.P50_0 === undefined) model.P50_0 = this.P50_0;
         // only bootstrap composition for freshly-constructed compartments (empty solutes). A
         // restored/loaded state already carries per-compartment composition, so guarding on
         // empty solutes (rather than the to2/tco2==0 proxy) preserves it even when a restored
@@ -140,6 +144,15 @@ export class Blood extends BaseModelClass {
     this.haldane_coeff = new_coeff;
     this._blood_components.forEach((model) => {
       model.haldane_coeff = new_coeff;
+    });
+  }
+
+  // set the O2-Hb affinity baseline (P50 at standard conditions) on every blood compartment —
+  // e.g. fetal HbF (18.8), neonatal (20.0), adult (26.7). Lower P50 = higher affinity = higher SaO2 at a given pO2.
+  set_P50(new_p50) {
+    this.P50_0 = new_p50;
+    this._blood_components.forEach((model) => {
+      model.P50_0 = new_p50;
     });
   }
 
