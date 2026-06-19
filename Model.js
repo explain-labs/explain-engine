@@ -542,6 +542,13 @@ export default class Model extends ModelEmitter {
     delete model_state["DataCollector"];
     delete model_state["TaskScheduler"];
     delete model_state["ModelScaler"];
+    // diagram_definition / animation_definition are copied onto the live model at build (so the
+    // worker AnimationPacker can read them) but they have a top-level home in the scenario file —
+    // the save path re-adds them from loadedFileData. Strip them here so they are not baked into
+    // model_definition as a stale duplicate that Model.load would then prefer over the top-level
+    // copy (an edit to the top-level diagram would otherwise be silently ignored by the engine).
+    delete model_state["diagram_definition"];
+    delete model_state["animation_definition"];
     // remove the ncc counters
     for (const key in model_state) {
       if (key.startsWith("ncc")) {

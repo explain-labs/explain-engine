@@ -43,6 +43,11 @@ delete model["DataCollector"];
 delete model["TaskScheduler"];
 delete model["ModelScaler"];
 delete model["_baseline_weight"];
+// diagram_definition / animation_definition get copied onto the live model at build but belong at
+// the top level of the scenario file; strip them so they are not baked into model_definition as a
+// stale duplicate (Model.load prefers a nested copy over the top-level one — see _processModelState)
+delete model["diagram_definition"];
+delete model["animation_definition"];
 for (const key in model) if (key.startsWith("ncc")) delete model[key];
 Object.values(model.models).forEach((m) => {
   for (const key in m) {

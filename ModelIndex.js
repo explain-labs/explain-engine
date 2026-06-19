@@ -36,6 +36,7 @@ export { AnsAfferent } from "./component_models/AnsAfferent";
 export { AnsEfferent } from "./component_models/AnsEfferent";
 export { Metabolism } from "./component_models/Metabolism";
 export { Kidneys } from "./component_models/Kidneys";
+export { Uterus } from "./component_models/Uterus";
 export { Hormones } from "./component_models/Hormones";
 export { Drugs } from "./component_models/Drugs";
 
