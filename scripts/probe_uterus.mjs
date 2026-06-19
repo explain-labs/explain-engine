@@ -13,6 +13,10 @@ const scenario = argv.find((a) => !a.startsWith("-")) || "adult_female_uterus";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? Number(argv[i + 1]) : d; };
 const SECONDS = opt("--seconds", 120);
 const WINDOW = opt("--window", 20);
+const flag = (n) => argv.includes(n);
+const GA = argv.indexOf("--ga") >= 0 ? Number(argv[argv.indexOf("--ga") + 1]) : null; // pregnancy GA (weeks)
+const PREGNANT = flag("--pregnant") || GA !== null; // --ga implies pregnant
+const COUPLE = flag("--couple"); // exercise maternal-placental coupling (also enables placenta)
 
 let liveModel = null;
 globalThis.self = globalThis;
@@ -30,6 +34,19 @@ send("GET", "state", []);
 const model = liveModel;
 console.log = _log;
 if (!model || !model.models) { console.error("build failed for", scenario); process.exit(1); }
+
+// optional pregnancy overrides (applied before warm-up so the bed settles at the scaled state)
+const ut = model.models.Uterus;
+if (ut && (PREGNANT || COUPLE)) {
+  if (PREGNANT) ut.pregnant = true;
+  if (GA !== null) ut.preg_ga = GA;
+  if (COUPLE) {
+    ut.couple_placenta = true;
+    const pl = model.models.Placenta;
+    if (pl) { pl.skip_mat_gas_write = true; pl.placenta_running = true; pl.umb_clamped = false; }
+  }
+  console.log(`[override] pregnant=${ut.pregnant} preg_ga=${ut.preg_ga} couple_placenta=${ut.couple_placenta}`);
+}
 
 send("POST", "calc", SECONDS);
 const SLICE = 0.02;
@@ -80,4 +97,10 @@ if (model.models.Uterus) {
   console.log(`  ut_avo2        ${(uAcc.ut_avo2 / N).toFixed(3)} mmol/L`);
 } else {
   console.log("\n  (no Uterus model in this scenario)");
+}
+
+if (COUPLE && model.models.PL_MAT) {
+  console.log("\n-- maternal-placental coupling check --");
+  console.log(`  PL_MAT.to2  ${model.models.PL_MAT.to2.toFixed(3)} mmol/L  (should track UT_ART.to2=${o2("UT_ART").toFixed(3)}, not the constant 6.85)`);
+  console.log(`  PL_MAT.tco2 ${model.models.PL_MAT.tco2.toFixed(3)} mmol/L`);
 }

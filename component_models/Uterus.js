@@ -17,8 +17,18 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
       extraction ratio (O2ER) and the arterio-venous O2 content difference.
     - A transient PERFUSION knob (perfusion_factor) modulates uterine inflow resistance.
 
-  NOT in this version: contractility / intra-uterine pressure, pregnancy / placental
-  coupling, gestational scaling. perfusion_factor and ut_vo2 are the hooks for those.
+  Part 3 (pregnancy adaptation): a pregnancy gestational age (preg_ga, weeks; distinct from the
+  engine-level model.gestational_age which is the mother's OWN birth GA) scales the uterine bed and
+  its O2 demand. As GA rises from a threshold to term, the bed resistance drops and its unstressed
+  volume + VO2 rise (linear ramp between non-pregnant baseline and term anchors), expanding uterine
+  blood flow from ~50 mL/min toward ~500-700 mL/min at term. Scaling is written to the persistent
+  *_scaling_ps layers every step (idempotent — never mutate vol/r_for directly), which compose
+  multiplicatively with the ANS, the SVR layer (r_factor_ps) and the transient perfusion_factor
+  (r_factor). A maternal-placental coupling hook drives the (otherwise constant) maternal placenta
+  pool PL_MAT from uterine arterial blood when enabled.
+
+  NOT in this version: contractility / intra-uterine pressure, a running/calibrated placental
+  circuit (the coupling plumbing ships but the placenta stays disabled by default).
 */
 
 // O2 molar density at 37 C, 1 atm (mmol O2 per mL) — same constant the Metabolism model uses, so
@@ -39,6 +49,7 @@ export class Uterus extends BaseModelClass {
     this.ut_cap_name = "UT_CAP"; // capillary (metabolism / gas-exchange site)
     this.ut_ven_name = "UT_VEN"; // venular outflow vessel
     this.ut_in_res_name = "AD_UT_ART"; // inflow resistor (uterine blood-flow source)
+    this.ut_out_res_name = "UT_VEN_VLB"; // venular drainage resistor (owned by VLB; we scale it in pregnancy)
 
     // uterine metabolism — dedicated rate applied to UT_CAP (mirrors Metabolism.calc_model)
     this.met_active = true; // uterine O2 consumption on/off
@@ -51,6 +62,21 @@ export class Uterus extends BaseModelClass {
     // so it composes multiplicatively with Circulation's r_factor_ps without colliding with it.
     // <1 = vasodilation (more flow), >1 = vasoconstriction. The hook for contractions later.
     this.perfusion_factor = 1.0;
+
+    // --- pregnancy adaptation ---
+    this.pregnant = false; // master pregnancy gate (default off -> preserves the non-pregnant calibration)
+    this.preg_ga = 0.0; // pregnancy gestational age, weeks (0 = non-pregnant ... 40 = term).
+    // NOTE: distinct from model.gestational_age (the mother's own birth GA = 40).
+    this.preg_ga_threshold = 4.0; // below this GA the bed is treated as non-pregnant (no scaling)
+    this.preg_ga_term = 40.0; // GA anchor at which the term target multipliers below are reached
+    this.preg_res_term_factor = 0.083; // bed-resistance multiplier at term (~1/12 -> ~12x flow)
+    this.preg_vol_term_factor = 3.0; // bed unstressed-volume multiplier at term (engorgement)
+    this.preg_vo2_term_factor = 8.0; // uterine/conceptus VO2 multiplier at term
+
+    // maternal-placental coupling: when pregnant && couple_placenta, drive the maternal placenta
+    // pool (PL_MAT) O2/CO2 content from uterine arterial blood instead of the Placenta's constant.
+    this.couple_placenta = false;
+    this.pl_mat_name = "PL_MAT";
 
     // -----------------------------------------------
     // dependent parameters (read-outs)
@@ -66,6 +92,8 @@ export class Uterus extends BaseModelClass {
     this._ut_cap = null;
     this._ut_ven = null;
     this._ut_in_res = null;
+    this._ut_out_res = null; // venular drainage resistor (UT_VEN -> VLB)
+    this._pl_mat = null; // lazily-resolved maternal placental pool (for coupling)
     this._flow_ema = 0.0; // smoothed inflow (L/s) — tames the pulsatile resistor flow for the read-out
     this._flow_tc = 5.0; // smoothing time constant (s) — long enough to average several cardiac cycles
   }
@@ -83,9 +111,12 @@ export class Uterus extends BaseModelClass {
     if (!this._ut_cap) this._ut_cap = this._model_engine.models[this.ut_cap_name] ?? null;
     if (!this._ut_ven) this._ut_ven = this._model_engine.models[this.ut_ven_name] ?? null;
     if (!this._ut_in_res) this._ut_in_res = this._model_engine.models[this.ut_in_res_name] ?? null;
+    if (!this._ut_out_res) this._ut_out_res = this._model_engine.models[this.ut_out_res_name] ?? null;
 
     // gating + wiring guards
     if (!this.uterus_running) {
+      // restore the pregnancy scaling layers we own so disabling the organ doesn't strand them
+      this._reset_preg_scaling();
       this._zero_outputs();
       return;
     }
@@ -95,13 +126,47 @@ export class Uterus extends BaseModelClass {
       return;
     }
 
+    // --- pregnancy bed scaling ---
+    // Linear ramp of GA -> term multipliers. Written to the persistent *_scaling_ps layers every
+    // step: that is IDEMPOTENT (the engine recomputes *_eff from the base each step), whereas
+    // mutating vol/u_vol/r_for directly would compound. These layers are disjoint from the ANS
+    // (ans_*), the SVR layer (r_factor_ps) and the transient perfusion_factor (r_factor), and
+    // BloodVessel composes them multiplicatively, so they stack cleanly. When non-pregnant frac=0
+    // and all factors are 1.0, so this is a true no-op that also auto-resets when GA drops.
+    const frac = this._preg_frac();
+    const res_factor = 1.0 + frac * (this.preg_res_term_factor - 1.0);
+    const vol_factor = 1.0 + frac * (this.preg_vol_term_factor - 1.0);
+
+    this._ut_art.r_factor_scaling_ps = res_factor;
+    this._ut_cap.r_factor_scaling_ps = res_factor;
+    this._ut_ven.r_factor_scaling_ps = res_factor;
+    this._ut_art.u_vol_factor_scaling_ps = vol_factor;
+    this._ut_cap.u_vol_factor_scaling_ps = vol_factor;
+    this._ut_ven.u_vol_factor_scaling_ps = vol_factor;
+    // The UT_VEN -> VLB drainage resistor is owned by VLB (it re-asserts its base r_for each step),
+    // but its r_factor_scaling_ps layer is free, so we scale it here too. Without this the unscaled
+    // drainage resistance becomes the dominant series resistor at term and caps flow at ~385 mL/min
+    // (and pins UT_VEN pressure high). It is a separate resistor per organ, so only uterine drainage
+    // is affected. Reads the value VLB set last step; idempotent at steady state regardless of order.
+    if (this._ut_out_res) this._ut_out_res.r_factor_scaling_ps = res_factor;
+
+    // VO2 expansion tracks the FLOW expansion (~1/res_factor), not GA linearly. Flow is convex in GA
+    // (flow ~ 1/R, R linear in GA) so a GA-linear VO2 would outpace perfusion at mid-gestation and
+    // drive O2ER unphysiologically high. Tying VO2 to the flow factor keeps O2ER physiologic across
+    // gestation, reaching preg_vo2_term_factor exactly when flow reaches its term expansion.
+    const flow_factor = 1.0 / res_factor; // uterine flow expansion vs non-pregnant baseline
+    const flow_factor_term = 1.0 / this.preg_res_term_factor;
+    const preg_vo2 = flow_factor_term > 1.0
+      ? 1.0 + ((flow_factor - 1.0) / (flow_factor_term - 1.0)) * (this.preg_vo2_term_factor - 1.0)
+      : 1.0;
+
     // transient perfusion knob -> UT_ART non-persistent resistance layer (the vessel resets
     // r_factor to 1.0 each step, so we re-assert it every step)
     this._ut_art.r_factor = this.perfusion_factor;
 
     // uterine O2 consumption / CO2 production on UT_CAP (same molar conversion as Metabolism)
     if (this.met_active) {
-      const vo2_eff = this.ut_vo2 * this.vo2_factor * this.vo2_factor_ps; // mL O2/kg/min
+      const vo2_eff = this.ut_vo2 * this.vo2_factor * this.vo2_factor_ps * preg_vo2; // mL O2/kg/min
       const vo2_step = ((O2_MMOL_PER_ML * vo2_eff * this._model_engine.weight) / 60.0) * this._t; // mmol/step
       const vol = this._ut_cap.vol;
 
@@ -131,6 +196,35 @@ export class Uterus extends BaseModelClass {
     this.ut_do2 = (flow_l_min * this._ut_art.to2) / O2_MMOL_PER_ML; // mL O2/min
     this.ut_avo2 = this._ut_art.to2 - this._ut_ven.to2; // mmol/L
     this.ut_o2er = this.ut_do2 > 0.0 ? (this.ut_vo2_ml / this.ut_do2) * 100.0 : 0.0; // %
+
+    // --- maternal-placental coupling ---
+    // Drive the maternal placenta pool (PL_MAT) gas content from uterine arterial blood so the
+    // placental maternal supply tracks uterine perfusion. Placenta is the OTHER writer of PL_MAT;
+    // its skip_mat_gas_write flag must be set so exactly one model is authoritative per step.
+    if (this.pregnant && this.couple_placenta) {
+      if (!this._pl_mat) this._pl_mat = this._model_engine.models[this.pl_mat_name] ?? null;
+      if (this._pl_mat) {
+        this._pl_mat.to2 = this._ut_art.to2;
+        this._pl_mat.tco2 = this._ut_art.tco2;
+      }
+    }
+  }
+
+  // normalized pregnancy progress in [0, 1]: 0 at/below threshold, 1 at/above term
+  _preg_frac() {
+    if (!this.pregnant || this.preg_ga <= this.preg_ga_threshold) return 0.0;
+    const f = (this.preg_ga - this.preg_ga_threshold) / (this.preg_ga_term - this.preg_ga_threshold);
+    return f > 1.0 ? 1.0 : f;
+  }
+
+  // restore the pregnancy scaling layers this model owns back to 1.0 (used when the organ is gated off)
+  _reset_preg_scaling() {
+    for (const v of [this._ut_art, this._ut_cap, this._ut_ven]) {
+      if (!v) continue;
+      v.r_factor_scaling_ps = 1.0;
+      v.u_vol_factor_scaling_ps = 1.0;
+    }
+    if (this._ut_out_res) this._ut_out_res.r_factor_scaling_ps = 1.0;
   }
 
   _zero_outputs() {

@@ -29,6 +29,8 @@ export class Placenta extends BaseModelClass {
     // initialize independent parameters
     this.placenta_running = false
     this.umb_clamped = true; // flags whether the umbilical vessels are clamped or not
+    this.skip_mat_gas_write = false; // when true, do NOT write PL_MAT gas here — another model (Uterus
+    // coupling) is authoritative for the maternal pool. Prevents a double-write on PL_MAT.
     this.umb_art_res = 800; // resistance of the umbilical arteries (mmHg*s/L)
     this.umb_art_res_factor = 1.0; // factor for the resistance of the umbilical arteries
     this.umb_ven_res = 100; // resistance of the umbilical vein (mmHg*s/L)
@@ -128,9 +130,13 @@ export class Placenta extends BaseModelClass {
       this._plf_ven.r_for = plf_r;
       this._plf_ven.r_back = plf_r;
 
-      // set the maternal placenta oxygen and carbon dioxide partial pressures in the gas exchanger
-      this._plm.to2 = this.mat_to2;
-      this._plm.tco2 = this.mat_tco2;
+      // set the maternal placenta oxygen and carbon dioxide partial pressures in the gas exchanger.
+      // Skipped when another model (the Uterus, via couple_placenta) drives PL_MAT instead, so the
+      // maternal pool has exactly one authoritative writer per step.
+      if (!this.skip_mat_gas_write) {
+        this._plm.to2 = this.mat_to2;
+        this._plm.tco2 = this.mat_tco2;
+      }
 
       // set the diffusion constants in the gas exchanger
       this._gas_exchanger.dif_o2 = this.dif_o2;
