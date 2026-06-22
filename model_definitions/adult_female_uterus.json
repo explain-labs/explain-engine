@@ -3654,6 +3654,16 @@
           "fill": false,
           "yMin": 0,
           "yMax": 100
+        },
+        "Uterus IUP & flow": {
+          "paths": [
+            "Uterus.iup",
+            "Uterus.ut_blood_flow"
+          ],
+          "autoscale": true,
+          "fill": false,
+          "yMin": 0,
+          "yMax": 100
         }
       },
       "LoopCharts": {
@@ -3669,6 +3679,131 @@
       }
     },
     "monitors": {
+      "vitals": {
+        "title": "VITALS",
+        "enabled": true,
+        "collapsed": false,
+        "parameters": [
+          {
+            "label": "HR",
+            "unit": "/min",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Monitor.heart_rate"
+            ],
+            "weight_based": false,
+            "value": "71"
+          },
+          {
+            "label": "Abp",
+            "unit": "mmHg",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Monitor.minmax.abp_pres_max",
+              "Monitor.minmax.abp_pres_min"
+            ],
+            "weight_based": false,
+            "value": "120/80"
+          },
+          {
+            "label": "SpO2",
+            "unit": "%",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Monitor.sao2_pre"
+            ],
+            "weight_based": false,
+            "value": "98"
+          },
+          {
+            "label": "RR",
+            "unit": "/min",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Monitor.resp_rate"
+            ],
+            "weight_based": false,
+            "value": "12"
+          }
+        ]
+      },
+      "uterus": {
+        "title": "UTERUS / PLACENTA",
+        "enabled": true,
+        "collapsed": true,
+        "parameters": [
+          {
+            "label": "Ut flow",
+            "unit": "mL/min",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Uterus.ut_blood_flow"
+            ],
+            "weight_based": false,
+            "value": "0"
+          },
+          {
+            "label": "Pl flow",
+            "unit": "mL/min",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "MaternalPlacenta.mp_blood_flow"
+            ],
+            "weight_based": false,
+            "value": "0"
+          },
+          {
+            "label": "Pl share",
+            "unit": "%",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "MaternalPlacenta.mp_flow_fraction"
+            ],
+            "weight_based": false,
+            "value": "0"
+          },
+          {
+            "label": "Ut O2ER",
+            "unit": "%",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Uterus.ut_o2er"
+            ],
+            "weight_based": false,
+            "value": "0"
+          },
+          {
+            "label": "IUP",
+            "unit": "mmHg",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Uterus.iup"
+            ],
+            "weight_based": false,
+            "value": "0"
+          },
+          {
+            "label": "MVU",
+            "unit": "",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "Uterus.montevideo_units"
+            ],
+            "weight_based": false,
+            "value": "0"
+          }
+        ]
+      },
       "add_vitals": {
         "title": "ADDITIONAL VITALS",
         "enabled": true,
