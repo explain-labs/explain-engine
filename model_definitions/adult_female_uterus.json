@@ -3680,7 +3680,7 @@
     },
     "monitors": {
       "vitals": {
-        "title": "VITALS",
+        "title": "Vitals",
         "enabled": true,
         "collapsed": false,
         "parameters": [
@@ -3732,7 +3732,7 @@
         ]
       },
       "uterus": {
-        "title": "UTERUS / PLACENTA",
+        "title": "Uterus / placenta",
         "enabled": true,
         "collapsed": true,
         "parameters": [
@@ -3805,7 +3805,7 @@
         ]
       },
       "add_vitals": {
-        "title": "ADDITIONAL VITALS",
+        "title": "Additional vitals",
         "enabled": true,
         "collapsed": true,
         "parameters": [
@@ -3880,7 +3880,7 @@
         ]
       },
       "heart": {
-        "title": "HEART",
+        "title": "Heart",
         "enabled": true,
         "collapsed": true,
         "parameters": [
@@ -3968,7 +3968,7 @@
         ]
       },
       "circulation": {
-        "title": "CIRCULATION",
+        "title": "Circulation",
         "enabled": true,
         "collapsed": true,
         "parameters": [
@@ -4184,7 +4184,7 @@
         ]
       },
       "lab": {
-        "title": "LABS",
+        "title": "Labs",
         "enabled": true,
         "collapsed": true,
         "parameters": [
@@ -4279,7 +4279,7 @@
         ]
       },
       "respiration": {
-        "title": "RESPIRATION",
+        "title": "Respiration",
         "enabled": true,
         "collapsed": true,
         "parameters": [
