@@ -2,5 +2,6 @@
   "adult_female",
   "adult_female_uterus",
   "term_neonate",
-  "term_fetus"
+  "term_fetus",
+  "term_neonate_cdh"
 ]
