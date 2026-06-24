@@ -1,5 +1,27 @@
 # Pda — Velocity Outputs
 
+> **Update (quadratic stenosis element).** The trade-off this document analyses has since been
+> resolved at the source. The duct resistance is now the standard quadratic stenosis element
+> `ΔP = R·Q + B·Q²`, where `R·Q` is the viscous (Poiseuille) loss and `B·Q²` is the Bernoulli orifice
+> loss with `B = ρ/(2·A_eff²)`. Because `B·Q²` *is* the modified-Bernoulli relation, the single output
+> `velocity_doppler = sign(Q)·√(B·Q²/4)` is now identical to continuity `Q/A_eff` through the effective
+> orifice — the two formulas that used to disagree are the same number. The element separates viscous
+> loss (which does not accelerate fluid) from kinetic energy (the jet), so `velocity_doppler` is honest
+> across the whole closure trajectory, and the empirical jet-correction outputs (`velocity_*_jet`) and
+> `jet_exponent` were removed. The continuity bulk means `velocity_ao`/`velocity_pa` remain as anatomic
+> reference values. The historical analysis below is retained for background.
+>
+> One caveat the new element makes explicit: a restrictive jet only forms in an **orifice-like (short)
+> throat**. A long, narrow duct is viscous-limited — low flow *and* low velocity even at a large
+> gradient — which is correct (the old `√(full gradient/4)` over-reported there). See `Pda.md` usage
+> notes; restrictive scenarios set a short `length` (~1–2 mm).
+>
+> The duct is now a **single resistor** `AAR → PA` (the intermediate `DA` blood-capacitance, shown in
+> the figures below, was numerically vestigial and was removed). The "noisy Bernoulli" discussion
+> below — which was rooted in the `DA` node's pressure transients feeding the velocity calc — is moot:
+> `velocity_doppler` is now derived from the resistive flow (`sign(Q)·√(B·Q²/4)`), not from any node
+> pressure. The historical analysis is retained only for background.
+
 The `Pda` model exposes several velocity properties at the pulmonary end of the duct. Two of them are computed by fundamentally different physics and behave in complementary ways: a modified-Bernoulli formulation, and a continuity (flow ÷ area) formulation. This document explains *why* each method behaves the way it does, when each one is right, and where they disagree.
 
 ## The properties

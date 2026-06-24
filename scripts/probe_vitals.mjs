@@ -104,6 +104,7 @@ for (let i = 0; i < N; i++) {
   add("pap_s", M.minmax?.pap_pres_max); add("pap_d", M.minmax?.pap_pres_min); add("pap_m", M.minmax?.pap_pres_mean);
   add("cvp", M.minmax?.cvp_pres_mean);
   add("spo2_pre", M.sao2_pre); add("spo2_post", M.sao2_post); add("svo2", IVCI?.so2); // so2 already in %
+  add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
   add("temp", M.temp); add("etco2", M.etco2);
   add("lvo", M.flows?.lvo); add("rvo", M.flows?.rvo);
   add("ph", AA?.ph); add("pco2", AA?.pco2); add("po2", AA?.po2); add("hco3", AA?.hco3); add("be", AA?.be); add("so2_aa", AA?.so2);
@@ -125,6 +126,43 @@ const RANGES = {
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
     spo2_pre: [93, 100], svo2: [60, 80], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.30, 7.42], pco2: [35, 45], po2: [50, 85], hco3: [18, 24], be: [-6, 2],
+  },
+  // preterm neonates with RDS, first days of life. MAP target ~ GA in mmHg; faster HR/RR, lower
+  // SpO2/PO2 and mild respiratory acidosis are expected with surfactant deficiency. Ranges loosen
+  // (and oxygenation/ventilation targets drop) with decreasing gestational age.
+  // etCO2 sits below arterial pCO2 (a-ET gap from RDS V/Q mismatch + dead space); SvO2 runs ~80 in this
+  // engine's neonate; spontaneous preterm CVP is low. pap_* left untuned (PVR deferred this pass).
+  preterm_34: {
+    hr: [120, 175], rr: [40, 65], sys: [45, 75], dia: [25, 50], map: [35, 50],
+    pap_s: [22, 45], pap_d: [6, 22], pap_m: [14, 32], cvp: [1, 8],
+    spo2_pre: [88, 97], svo2: [55, 82], temp: [36.5, 37.5], etco2: [34, 52],
+    ph: [7.25, 7.40], pco2: [40, 55], po2: [45, 75], hco3: [18, 24], be: [-7, 2],
+  },
+  preterm_32: {
+    hr: [125, 180], rr: [40, 70], sys: [40, 70], dia: [22, 48], map: [30, 45],
+    pap_s: [20, 48], pap_d: [6, 24], pap_m: [15, 35], cvp: [1, 8],
+    spo2_pre: [86, 96], svo2: [52, 82], temp: [36.5, 37.5], etco2: [33, 52],
+    ph: [7.22, 7.38], pco2: [42, 58], po2: [42, 70], hco3: [17, 24], be: [-8, 2],
+  },
+  preterm_28: {
+    hr: [130, 190], rr: [40, 75], sys: [30, 65], dia: [18, 45], map: [26, 42],
+    pap_s: [20, 50], pap_d: [8, 26], pap_m: [16, 38], cvp: [0, 7],
+    spo2_pre: [85, 95], svo2: [50, 82], temp: [36.5, 37.5], etco2: [32, 52],
+    ph: [7.20, 7.36], pco2: [45, 62], po2: [40, 65], hco3: [16, 24], be: [-9, 2],
+  },
+  // extreme prematurity: still lower MAP (~ GA in mmHg), faster HR, more profound RDS hypoxemia and
+  // permissive hypercapnia/acidosis. Borderline-viability physiology.
+  preterm_26: {
+    hr: [135, 198], rr: [40, 80], sys: [28, 60], dia: [18, 42], map: [22, 38],
+    pap_s: [18, 55], pap_d: [8, 26], pap_m: [15, 38], cvp: [0, 7],
+    spo2_pre: [83, 94], svo2: [48, 82], temp: [36.5, 37.5], etco2: [30, 52],
+    ph: [7.18, 7.34], pco2: [46, 66], po2: [38, 62], hco3: [16, 24], be: [-10, 2],
+  },
+  preterm_24: {
+    hr: [135, 200], rr: [40, 85], sys: [24, 58], dia: [16, 40], map: [20, 35],
+    pap_s: [16, 55], pap_d: [6, 26], pap_m: [14, 38], cvp: [0, 6],
+    spo2_pre: [80, 93], svo2: [46, 82], temp: [36.5, 37.5], etco2: [30, 52],
+    ph: [7.15, 7.32], pco2: [48, 70], po2: [35, 60], hco3: [15, 24], be: [-11, 2],
   },
 };
 const profileArg = (() => { const i = argv.indexOf("--profile"); return i >= 0 ? argv[i + 1] : null; })();
@@ -151,6 +189,9 @@ console.log(`${"RV output".padEnd(22)} ${String(round(acc.rvo)).padStart(8)} L/m
 if (ci) console.log(`${"Cardiac index ~".padEnd(22)} ${String(round(ci)).padStart(8)} L/min/m2`);
 console.log("\n-- Oxygenation / Resp --");
 console.log(line("SpO2 pre-ductal", "spo2_pre", "%"));
+console.log(`${"SpO2 post-ductal".padEnd(22)} ${String(round(acc.spo2_post)).padStart(8)} %`);
+const qDaMlMin = (acc.q_da || 0) * 60 * 1000;
+console.log(`${"PDA shunt (PA end)".padEnd(22)} ${String(round(qDaMlMin, 0)).padStart(8)} mL/min  ${qDaMlMin > 1 ? "L->R" : qDaMlMin < -1 ? "R->L" : "~nil"}  (${round(qDaMlMin / weight, 0)} mL/kg/min)`);
 console.log(line("SvO2", "svo2", "%"));
 console.log(line("Resp rate", "rr", "/min"));
 console.log(line("etCO2", "etco2", "mmHg"));
