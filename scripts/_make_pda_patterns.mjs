@@ -1,7 +1,7 @@
 // Build the PDA Doppler-pattern demonstration scenarios from the calibrated term_neonate baseline,
-// reproducing the panels in public/pda/BidirectionalPDA.pdf (two bidirectional) and
-// public/pda/UnrestrictiveLtRPDA.pdf (continuous L->R) using the single-resistor quadratic-stenosis
-// Pda model (ΔP = R·Q + B·Q²):
+// reproducing the panels in public/pda/BidirectionalPDA.pdf, UnrestrictiveLtRPDA.pdf,
+// "PDA restrictive vs unrestrictive.pdf" and "Right to Left PDA.pdf" using the single-resistor
+// quadratic-stenosis Pda model (ΔP = R·Q + B·Q²):
 //
 //   pda_bidirectional                (A)  restrictive bidirectional (PHT): tight short duct holds a
 //                                         large systolic PA-Ao gradient -> high-velocity systolic R->L
@@ -14,6 +14,12 @@
 //   pda_restrictive_ltr              (B2) restrictive left-to-right: narrow short duct holds a large
 //                                         non-equalizing gradient -> CONTINUOUS high-velocity 'sawtooth'
 //                                         L->R (~3.5 m/s, ~49 mmHg), low pulsatility (high sys AND dia)
+//   pda_restrictive_rtl              (C)  restrictive RIGHT-TO-LEFT (PPHN): suprasystemic PA + narrow
+//                                         short duct -> high-velocity systolic R->L jet (~3.4 m/s, PA
+//                                         ~46 mmHg above Ao) tapering in diastole; tiny shunt volume
+//   pda_unrestrictive_rtl            (C2) unrestrictive RIGHT-TO-LEFT (PPHN): wide duct equalizes
+//                                         suprasystemic PA~Ao -> LOW-velocity R->L (~0.7 m/s) all cycle;
+//                                         large shunt -> differential cyanosis (post-ductal desat)
 //
 // Levers (all supported by the current model): Pda.diameter_relative / length / discharge_coeff for
 // duct geometry + orifice, pulmonary_resistances scaling for the mean systemic->pulmonary gradient
@@ -68,6 +74,23 @@ const PATTERNS = {
       "aorta and pulmonary artery, giving a CONTINUOUS high-velocity 'sawtooth' LEFT-TO-RIGHT jet " +
       "(~3.5 m/s, peak gradient ~49 mmHg) with low pulsatility (high velocity in both systole and " +
       "diastole) on Doppler",
+  },
+  pda_restrictive_rtl: {
+    panel: "C",
+    diameter_relative: 0.13, length: 1.5, discharge_coeff: 0.45, pvr_scale: 3.6, cont_right: 5.2,
+    desc: "term neonate with a restrictive RIGHT-TO-LEFT patent ductus arteriosus in severe pulmonary " +
+      "hypertension (PPHN): suprasystemic pulmonary pressure drives flow from the pulmonary artery to " +
+      "the aorta across a narrow, short restrictive duct, giving a high-velocity systolic RIGHT-TO-LEFT " +
+      "jet (~3.4 m/s, PA ~46 mmHg above Ao at peak systole) that tapers toward baseline in diastole on " +
+      "Doppler (post-ductal desaturation / differential cyanosis)",
+  },
+  pda_unrestrictive_rtl: {
+    panel: "C2",
+    diameter_relative: 0.7, length: 14, discharge_coeff: 1.0, pvr_scale: 3.2, el_pa: 0.5,
+    desc: "term neonate with an unrestrictive RIGHT-TO-LEFT patent ductus arteriosus in severe " +
+      "pulmonary hypertension (PPHN): a wide duct equalizes suprasystemic pulmonary and aortic " +
+      "pressures, so flow runs RIGHT-TO-LEFT throughout the cycle at LOW velocity (~0.6-0.8 m/s), " +
+      "pulsatile, on Doppler (post-ductal desaturation / differential cyanosis)",
   },
 };
 

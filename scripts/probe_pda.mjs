@@ -185,6 +185,10 @@ const dir = qMeanMean >= 0 ? "L->R" : "R->L";
 let pattern, note;
 if (Math.abs(vMaxMean) < 0.2 && Math.abs(shuntMlMin) < 5) {
   pattern = "closed"; note = "negligible flow / velocity";
+} else if (fwdMean < 0.05) {
+  // essentially no forward (L->R) flow → suprasystemic PA the whole cycle (severe PPHN)
+  pattern = "RIGHT-TO-LEFT (suprasystemic PA / PPHN)";
+  note = `flow is R->L for ${round((1 - fwdMean) * 100, 0)}% of the cycle (PA above Ao all cycle)`;
 } else if (fwdMean < 0.95) {
   pattern = "bidirectional / PHT"; note = `flow reverses (R->L) for ${round((1 - fwdMean) * 100, 0)}% of the cycle`;
 } else if (isFinite(pulsatility) && pulsatility <= 2.0 && vMaxMean >= 2.0) {

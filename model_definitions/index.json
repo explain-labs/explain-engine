@@ -6,5 +6,7 @@
   "pda_bidirectional",
   "pda_bidirectional_unrestrictive",
   "pda_unrestrictive_ltr",
-  "pda_restrictive_ltr"
+  "pda_restrictive_ltr",
+  "pda_restrictive_rtl",
+  "pda_unrestrictive_rtl"
 ]
