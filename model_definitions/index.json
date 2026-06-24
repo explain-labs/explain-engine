@@ -4,8 +4,5 @@
   "term_neonate",
   "term_fetus",
   "pda_pht_bidirectional",
-  "pda_bidirectional_unrestrictive",
-  "pda_pulsatile_hspda",
-  "pda_restrictive_growing",
-  "pda_restrictive_closing"
+  "pda_bidirectional_unrestrictive"
 ]

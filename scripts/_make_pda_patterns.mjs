@@ -1,7 +1,5 @@
-// Build the PDA Doppler-pattern demonstration scenarios from the calibrated term_neonate baseline.
-//
-// Reproduces the trans-ductal Doppler shunt patterns in public/flow_patterns/PDA_flow_patterns.png
-// (continuous patterns) and public/pda/BidirectionalPDA.pdf (the two bidirectional panels) using the
+// Build the bidirectional-PDA Doppler-pattern demonstration scenarios from the calibrated term_neonate
+// baseline, reproducing the two bidirectional panels in public/pda/BidirectionalPDA.pdf using the
 // single-resistor quadratic-stenosis Pda model (ΔP = R·Q + B·Q²):
 //
 //   pda_pht_bidirectional            (A)  restrictive bidirectional (PHT): tight short duct holds a
@@ -9,9 +7,6 @@
 //                                         (~2 m/s, suprasystemic PA) + lower-velocity diastolic L->R
 //   pda_bidirectional_unrestrictive  (A2) unrestrictive bidirectional: wide duct equalizes pressures,
 //                                         LOW velocities, systolic R->L (~0.5 m/s) + diastolic L->R
-//   pda_pulsatile_hspda              (B)  pulsatile, unrestrictive haemodynamically significant duct
-//   pda_restrictive_growing          (C)  "growing"  — restrictive continuous L->R, milder velocity
-//   pda_restrictive_closing          (D)  "closing"  — restrictive continuous L->R, higher velocity
 //
 // Levers (all supported by the current model): Pda.diameter_relative / length / discharge_coeff for
 // duct geometry + orifice, pulmonary_resistances scaling for the mean systemic->pulmonary gradient
@@ -49,25 +44,6 @@ const PATTERNS = {
       "rapidly equalizes aortic and pulmonary pressures, so velocities stay LOW and the small " +
       "residual gradient flips with the cardiac cycle — systolic RIGHT-TO-LEFT (~0.5 m/s) and " +
       "diastolic LEFT-TO-RIGHT (~0.6-0.75 m/s) on Doppler",
-  },
-  pda_pulsatile_hspda: {
-    panel: "B",
-    diameter_relative: 0.9, length: 14, discharge_coeff: 1.0, pvr_scale: 1.8,
-    desc: "term neonate with an unrestrictive, haemodynamically significant patent ductus arteriosus: " +
-      "wide low-velocity duct with a large left-to-right shunt and a PULSATILE Doppler pattern (tall " +
-      "systolic peaks, low end-diastolic velocity, wide pulse pressure)",
-  },
-  pda_restrictive_growing: {
-    panel: "C",
-    diameter_relative: 0.15, length: 2.5, discharge_coeff: 0.6, pvr_scale: 1.0,
-    desc: "term neonate with a restricting patent ductus arteriosus ('growing'/transitional pattern): " +
-      "narrowing duct with continuous left-to-right flow and low pulsatility at moderate velocity",
-  },
-  pda_restrictive_closing: {
-    panel: "D",
-    diameter_relative: 0.13, length: 1.5, discharge_coeff: 0.5, pvr_scale: 0.5,
-    desc: "term neonate with a closing (constricting) patent ductus arteriosus: small near-closed duct " +
-      "with continuous high-velocity left-to-right flow and low pulsatility (restrictive Doppler pattern)",
   },
 };
 
