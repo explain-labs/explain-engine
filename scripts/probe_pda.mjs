@@ -201,6 +201,10 @@ console.log(`${"Peak velocity (systolic)".padEnd(28)} ${String(round(vMaxMean, 2
 console.log(`${"End-diastolic velocity".padEnd(28)} ${String(round(vMinMean, 2)).padStart(9)} m/s   (${round(vMinMean * 100, 0)} cm/s)`);
 console.log(`${"Mean velocity".padEnd(28)} ${String(round(mean(used.map((b) => (b.vMax + b.vMin) / 2)), 2)).padStart(9)} m/s`);
 console.log(`${"Pulsatility (Vmax/Vmin)".padEnd(28)} ${String(round(pulsatility, 2)).padStart(9)}`);
+// EDV/PSV ratio (end-diastolic / peak-systolic velocity) — the headline metric for a
+// continuous L->R (unrestrictive) duct; low ratio = rapid diastolic pressure equalization.
+const edvPsv = vMaxMean !== 0 ? vMinMean / vMaxMean : NaN;
+console.log(`${"EDV/PSV ratio".padEnd(28)} ${String(round(edvPsv, 2)).padStart(9)}`);
 console.log(`${"Peak gradient".padEnd(28)} ${String(round(gMaxMean, 1)).padStart(9)} mmHg`);
 console.log(`${"Forward (L->R) flow".padEnd(28)} ${String(round(fwdMean * 100, 0)).padStart(9)} % of cycle`);
 console.log(`${"Mean shunt".padEnd(28)} ${String(round(shuntMlMin, 0)).padStart(9)} mL/min  ${dir}  (${round(shuntMlMin / weight, 0)} mL/kg/min)`);
