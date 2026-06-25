@@ -3628,8 +3628,8 @@
       "Pda.velocity_doppler"
      ],
      "autoscale": false,
-     "yMin": -0.5,
-     "yMax": 4,
+     "yMin": -3,
+     "yMax": 3,
      "fill": true
     },
     "AV valve flows": {
