@@ -282,23 +282,34 @@ export class Heart extends BaseModelClass {
     // store the previous state
     this.prev_cardiac_cycle_state = this.cardiac_cycle_state
 
-    // when then mitral valve closes the systole starts
-    if (this.prev_la_lv_flow > 0.0 && this._la_lv.flow <= 0.0) {
+    // The cardiac cycle (systole/diastole) is normally detected from left-heart valve events: systole
+    // starts when the mitral valve closes and ends when the LV outflow valve closes. In TGA the LV ejects
+    // through the pulmonary valve (LV_PA) rather than the aortic valve, so we use whichever LV outflow
+    // valve is active. In hypoplastic-left-heart / single-(right)-ventricle physiology the LV has NO
+    // outflow (aortic atresia) and usually no inflow (mitral atresia), so neither valve event can fire —
+    // there we derive the cycle from the ventricular activation window instead. This branch is identity for
+    // any heart with a working LV outflow (normal anatomy, TGA, tricuspid atresia, PA-IVS, ...).
+    const lv_out = this._lv_aa && this._lv_aa.is_enabled ? this._lv_aa : this._lv_pa;
+    if (lv_out && lv_out.is_enabled) {
       // mitral valve closes so the systole starts
-      this._systole_running = true
-    }
-    // store the previous flow
-    this.prev_la_lv_flow = this._la_lv.flow
-
-    if (this._systole_running) {
-      // check whether the aortic valve closes
-      if (this.prev_lv_aa_flow > 0.0 && this._lv_aa.flow <= 0.0) {
-        // aortic valve closes so the systole ends
-        this._systole_running = false
+      if (this.prev_la_lv_flow > 0.0 && this._la_lv.flow <= 0.0) {
+        this._systole_running = true
       }
+      this.prev_la_lv_flow = this._la_lv.flow
+
+      // LV outflow valve closes so the systole ends
+      if (this._systole_running) {
+        if (this.prev_lv_aa_flow > 0.0 && lv_out.flow <= 0.0) {
+          this._systole_running = false
+        }
+      }
+      this.prev_lv_aa_flow = lv_out.flow
+    } else {
+      // single working right ventricle (HLHS / aortic atresia): the ventricle is in systole during its
+      // activation window (ncc_ventricular sweeps [0, ventricular_duration) each beat)
+      const ventricular_duration = (this.qrs_time + this.cqt_time) / this._t;
+      this._systole_running = this.ncc_ventricular >= 0 && this.ncc_ventricular < ventricular_duration;
     }
-    // store the previous flow
-    this.prev_lv_aa_flow = this._lv_aa.flow
 
     // set the cardiac cycle
     if (this._systole_running) {
