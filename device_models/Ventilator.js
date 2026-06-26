@@ -117,7 +117,7 @@ export class Ventilator extends BaseModelClass {
     this._pip_max = this.pip_cmh2o_max / 1.35951;
     this._peep = this.peep_cmh2o / 1.35951;
 
-    if (this.synchronized) {
+    if (this.synchronized && this.vent_mode !== "CPAP") {
       this.triggering();
     }
 
@@ -132,11 +132,19 @@ export class Ventilator extends BaseModelClass {
       this.pressure_control();
     }
 
+    if (this.vent_mode === "CPAP") {
+      this.cpap_control();
+    }
+
     this.pres = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
     this.flow = this._vent_ettube.flow * 60.0;
     this.vol += this._vent_ettube.flow * 1000 * this._t;
     this.co2 = this._model_engine.models["DS"]?.pco2 ?? this.co2;
-    this.minute_volume = this.exp_tidal_volume * this.vent_rate;
+    // CPAP reports a spontaneous minute volume from cpap_control (patient's own rate), so don't
+    // overwrite it here with the mechanical vent_rate
+    if (this.vent_mode !== "CPAP") {
+      this.minute_volume = this.exp_tidal_volume * this.vent_rate;
+    }
     // compliance is measured per breath at end-expiration in time_cycling (mL/cmH2O); it is not
     // recomputed here — the previous every-step formula used inconsistent units (L/mmHg) and
     // overwrote that per-breath value
@@ -287,6 +295,45 @@ export class Ventilator extends BaseModelClass {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
       }
     }
+  }
+
+  cpap_control() {
+    // Continuous positive airway pressure: hold the circuit at the CPAP level (= peep_cmh2o)
+    // and let the patient breathe spontaneously through the ET tube. Both valves stay open.
+    // NOTE: CPAP only ventilates a spontaneously breathing patient (Breathing.breathing_enabled);
+    // with breathing off it holds pressure but delivers no tidal volume (as in reality).
+
+    // inspiratory valve: feed fresh gas toward the CPAP target, shut off once at/above it
+    this._vent_insp_valve.no_flow = false;
+    this._vent_insp_valve.no_back_flow = true;
+    this._vent_insp_valve.r_for =
+      (this._vent_gasin.pres - this.pres_atm - this._peep) / (this.insp_flow / 60.0);
+    if (this._vent_gascircuit.pres > this._peep + this.pres_atm) {
+      this._vent_insp_valve.no_flow = true;
+    }
+
+    // expiratory valve: open, reservoir pinned at CPAP so the circuit floats at CPAP
+    this._vent_exp_valve.no_flow = false;
+    this._vent_exp_valve.no_back_flow = true;
+    this._vent_exp_valve.r_for = 10;
+    this._vent_gasout.vol =
+      this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+
+    // spontaneous-breath monitoring: close out a breath at each spontaneous inspiration start
+    // (Breathing.ncc_insp === 1 marks the first step of a new spontaneous inspiration)
+    if (this._breathing_model?.ncc_insp === 1) {
+      this.exp_tidal_volume = -this._exp_tidal_volume_counter;
+      this.insp_tidal_volume = this._insp_tidal_volume_counter;
+      this._exp_tidal_volume_counter = 0.0;
+      this._insp_tidal_volume_counter = 0.0;
+      this.vol = 0.0;
+    }
+    if (this._vent_ettube.flow > 0) {
+      this._insp_tidal_volume_counter += this._vent_ettube.flow * this._t;
+    } else {
+      this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
+    }
+    this.minute_volume = this.exp_tidal_volume * (this._breathing_model?.resp_rate ?? 0);
   }
 
   pressure_regulated_volume_control() {
@@ -443,6 +490,12 @@ export class Ventilator extends BaseModelClass {
     this.insp_time = t_in;
     this.insp_flow = insp_flow;
     this.vent_mode = "PS";
+  }
+
+  set_cpap(cpap = 5.0, insp_flow = 8.0) {
+    this.peep_cmh2o = cpap;
+    this.insp_flow = insp_flow;
+    this.vent_mode = "CPAP";
   }
 
   trigger_breath(

@@ -19,7 +19,7 @@ const argv = process.argv.slice(2);
 const fileIdx = argv.indexOf("--file");
 const scenario = fileIdx >= 0 ? argv[fileIdx + 1] : null;
 const ga = Number(argv.find((a) => !a.startsWith("-")));
-if (!scenario && ![24, 26, 28, 32, 34].includes(ga)) { console.error(`unknown GA "${argv[0]}"; use 24, 26, 28, 32 or 34, or pass --file <scenario>`); process.exit(1); }
+if (!scenario && ![24, 26, 28, 30, 32, 34, 36].includes(ga)) { console.error(`unknown GA "${argv[0]}"; use 24, 26, 28, 30, 32, 34 or 36, or pass --file <scenario>`); process.exit(1); }
 const name = scenario || `preterm_${ga}wk`;
 const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 250; })();
 const WRITE = argv.includes("--write");

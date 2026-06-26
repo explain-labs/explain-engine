@@ -132,6 +132,13 @@ const RANGES = {
   // (and oxygenation/ventilation targets drop) with decreasing gestational age.
   // etCO2 sits below arterial pCO2 (a-ET gap from RDS V/Q mismatch + dead space); SvO2 runs ~80 in this
   // engine's neonate; spontaneous preterm CVP is low. pap_* left untuned (PVR deferred this pass).
+  // late preterm — approaching term physiology; mildest RDS, MAP into the high-30s/40s.
+  preterm_36: {
+    hr: [115, 170], rr: [38, 62], sys: [48, 80], dia: [27, 52], map: [38, 54],
+    pap_s: [20, 43], pap_d: [6, 21], pap_m: [13, 31], cvp: [1, 8],
+    spo2_pre: [90, 98], svo2: [57, 82], temp: [36.5, 37.5], etco2: [34, 50],
+    ph: [7.27, 7.41], pco2: [38, 52], po2: [48, 80], hco3: [18, 24], be: [-6, 2],
+  },
   preterm_34: {
     hr: [120, 175], rr: [40, 65], sys: [45, 75], dia: [25, 50], map: [35, 50],
     pap_s: [22, 45], pap_d: [6, 22], pap_m: [14, 32], cvp: [1, 8],
@@ -143,6 +150,12 @@ const RANGES = {
     pap_s: [20, 48], pap_d: [6, 24], pap_m: [15, 35], cvp: [1, 8],
     spo2_pre: [86, 96], svo2: [52, 82], temp: [36.5, 37.5], etco2: [33, 52],
     ph: [7.22, 7.38], pco2: [42, 58], po2: [42, 70], hco3: [17, 24], be: [-8, 2],
+  },
+  preterm_30: {
+    hr: [128, 185], rr: [40, 72], sys: [35, 68], dia: [20, 46], map: [28, 44],
+    pap_s: [20, 49], pap_d: [7, 25], pap_m: [15, 36], cvp: [0, 8],
+    spo2_pre: [86, 95], svo2: [51, 82], temp: [36.5, 37.5], etco2: [32, 52],
+    ph: [7.21, 7.37], pco2: [44, 60], po2: [41, 68], hco3: [16, 24], be: [-8, 2],
   },
   preterm_28: {
     hr: [130, 190], rr: [40, 75], sys: [30, 65], dia: [18, 45], map: [26, 42],
