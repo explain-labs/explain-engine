@@ -30,5 +30,6 @@
   "pda_unrestrictive_ltr",
   "pda_restrictive_ltr",
   "pda_restrictive_rtl",
-  "pda_unrestrictive_rtl"
+  "pda_unrestrictive_rtl",
+  "bischoff_cohort"
 ]
