@@ -110,21 +110,31 @@ export class Breathing extends BaseModelClass {
 
     this._breath_timer += this._t;
 
+    // flow at the airway opening, route-agnostic: the natural airway when it is open, the ET tube
+    // when the patient is intubated. Both resistors feed DS with the same sign (positive =
+    // inspiration), so a disabled/blocked inlet contributes 0 and the sum collapses to the single
+    // active route. When the ventilator is off, VENT_ETTUBE is disabled → this is exactly MOUTH_DS,
+    // preserving the spontaneous-breathing baseline. When the vent is on (e.g. CPAP) MOUTH_DS is
+    // blocked → this becomes VENT_ETTUBE, so the tidal-volume feedback loop keeps working.
+    const mouth_ds = this._model_engine.models["MOUTH_DS"];
+    const ettube = this._model_engine.models["VENT_ETTUBE"];
+    let _aw_flow = 0.0;
+    if (mouth_ds && !mouth_ds.no_flow) _aw_flow += mouth_ds.flow;
+    if (ettube && ettube.is_enabled && !ettube.no_flow) _aw_flow += ettube.flow;
+
     if (this._insp_running) {
       this._insp_timer += this._t;
       this.ncc_insp += 1;
-      if (this._model_engine.models["MOUTH_DS"].flow > 0) {
-        this._temp_insp_volume +=
-          this._model_engine.models["MOUTH_DS"].flow * this._t;
+      if (_aw_flow > 0) {
+        this._temp_insp_volume += _aw_flow * this._t;
       }
     }
 
     if (this._exp_running) {
       this._exp_timer += this._t;
       this.ncc_exp += 1;
-      if (this._model_engine.models["MOUTH_DS"].flow < 0) {
-        this._temp_exp_volume +=
-          this._model_engine.models["MOUTH_DS"].flow * this._t;
+      if (_aw_flow < 0) {
+        this._temp_exp_volume += _aw_flow * this._t;
       }
     }
 
