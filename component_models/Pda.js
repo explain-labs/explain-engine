@@ -107,9 +107,18 @@ export class Pda extends BaseModelClass {
     // velocity). Cd ≈ 0.8 is typical for a smooth converging duct.
     this.discharge_coeff = 0.8;
 
+    // diameter_drug_factor: patency multiplier owned by the Drugs model (1.0 = neutral). Prostaglandin
+    // E1 (alprostadil) drives this above 1.0 to hold the duct open in duct-dependent CHD; it multiplies
+    // diameter_relative (capped at the anatomic max). NOTE: it does NOT reopen a fully-closed duct — the
+    // diameter_relative === 0 fast path below stays keyed on the raw value (clinically the duct is
+    // maintained patent from birth on PGE1, never allowed to reach 0). Reopening from 0 would need an
+    // additive term instead of a multiplicative factor (future).
+    this.diameter_drug_factor = 1.0;
+
     // -----------------------------------------------
     // dependent properties (recomputed each step)
     // -----------------------------------------------
+    this.diameter_relative_eff = 0.0; // effective relative diameter after the drug factor (read-out)
     this.diameter_ao = 0.0;       // current diameter at aortic origin (mm)
     this.diameter_pa = 0.0;       // current diameter at pulmonary end (mm)
     this.viscosity = 6;           // blood viscosity (cP), pulled from the upstream (AAR) compartment
@@ -152,6 +161,7 @@ export class Pda extends BaseModelClass {
     // diameter_relative === 0 is the postnatal steady state. The cone math, the Bernoulli sqrt, and
     // the continuity divisions all degenerate; seal the resistor and zero the outputs.
     if (this.diameter_relative === 0) {
+      this.diameter_relative_eff = 0;
       this.diameter_ao = 0;
       this.diameter_pa = 0;
       aar_da.no_flow = true;
@@ -167,9 +177,13 @@ export class Pda extends BaseModelClass {
       return;
     }
 
-    // ----- geometry: diameters scale together along diameter_relative -----
-    const d_ao = Math.min(this.diameter_relative * this.diameter_ao_max, this.diameter_ao_max);
-    const d_pa = Math.min(this.diameter_relative * this.diameter_pa_max, this.diameter_pa_max);
+    // ----- geometry: diameters scale together along the effective relative diameter -----
+    // PGE1 (via Drugs → diameter_drug_factor) widens a constricting duct; clamp the factor's effect to
+    // the anatomic max so the duct can never exceed full patency.
+    const eff_rel = this.diameter_relative * this.diameter_drug_factor;
+    this.diameter_relative_eff = eff_rel;
+    const d_ao = Math.min(eff_rel * this.diameter_ao_max, this.diameter_ao_max);
+    const d_pa = Math.min(eff_rel * this.diameter_pa_max, this.diameter_pa_max);
     this.diameter_ao = d_ao;
     this.diameter_pa = d_pa;
 

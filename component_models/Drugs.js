@@ -83,6 +83,20 @@ export class Drugs extends BaseModelClass {
         cont_ec50: 30.0, cont_emax: 0.35, cont_hill: 1.5,
         svr_ec50: 25.0, svr_emax: 0.9, svr_hill: 2.0,
       },
+      pge1: {
+        // Prostaglandin E1 (alprostadil) — keeps the ductus arteriosus patent in duct-dependent CHD.
+        enabled: true,
+        // PK — extensive pulmonary first-pass metabolism (~80% in one lung pass) → brisk whole-body
+        // clearance, hence the short clinical half-life and need for continuous infusion.
+        clearance: { global: 0.08, sites: {} },
+        ke0: 0.0,
+        // PD — ductal patency only (→ Pda.diameter_drug_factor). PGE1 is potent and heavily cleared, so
+        // a clinical infusion (~0.01–0.05 mcg/kg/min) yields a low effect-site conc (~0.01–0.05 ng/mL);
+        // EC50 is set in that range so the clinical dose band sits on the sigmoid's rising limb. emax 1.5
+        // → up to a 2.5× patency factor at saturation (capped at the anatomic max in Pda). No
+        // HR/inotropy/SVR effect in this version; the known systemic vasodilation + apnea are future.
+        pda_ec50: 0.02, pda_emax: 1.5, pda_hill: 1.0,
+      },
     };
 
     // -----------------------------------------------
@@ -94,6 +108,7 @@ export class Drugs extends BaseModelClass {
     this.hr_drug_factor = 1.0; // applied (summed) → Heart.hr_drug_factor (1.0 = no effect)
     this.cont_drug_factor = 1.0; // applied (summed) → each chamber's el_max_drug_factor (1.0 = no effect)
     this.svr_drug_factor = 1.0; // applied (summed) → Circulation.svr_factor_drug (1.0 = no effect)
+    this.pda_drug_factor = 1.0; // applied (summed) → Pda.diameter_drug_factor (1.0 = no effect)
 
     // active continuous infusions: { drugName: rate_mcg_kg_min }
     this.infusions = {};
@@ -109,6 +124,7 @@ export class Drugs extends BaseModelClass {
     this._effect = null;
     this._heart = null;
     this._circ = null;
+    this._pda = null;
 
     // blood-carrying model types whose drugs{} dict participates in transport (mirrors Blood.js)
     this._blood_modeltypes = [
@@ -124,7 +140,12 @@ export class Drugs extends BaseModelClass {
   init_model(args) {
     // base applies args (no components on this model). Refs/seeding are resolved lazily on first step
     // because Circulation builds the blood compartments during ITS init, possibly after this model.
-    super.init_model(args);
+    const default_defs = this.drug_defs; // full built-in set from the constructor
+    super.init_model(args); // a scenario may overwrite drug_defs with an older/partial baked set
+    // Merge the built-in defaults UNDER the scenario-provided defs: scenario tuning wins for drugs it
+    // defines, but any built-in drug the baked state predates (e.g. pge1 added after those scenarios
+    // were serialized) is still present — so we don't have to re-bake every scenario JSON.
+    this.drug_defs = { ...default_defs, ...this.drug_defs };
   }
 
   calc_model() {
@@ -164,7 +185,7 @@ export class Drugs extends BaseModelClass {
     });
 
     // 3. EFFECT — biophase lag (optional) then sum each effect across all enabled drugs
-    let hr_sum = 0.0, cont_sum = 0.0, svr_sum = 0.0;
+    let hr_sum = 0.0, cont_sum = 0.0, svr_sum = 0.0, pda_sum = 0.0;
     Object.keys(this.drug_defs).forEach((drug) => {
       const def = this.drug_defs[drug];
       const c_site = this._effect?.drugs?.[drug] ?? 0.0;
@@ -178,13 +199,17 @@ export class Drugs extends BaseModelClass {
       }
       this.biophase[drug] = c_drive;
       if (!def.enabled) return;
+      // _emax returns 0 for any effect a drug doesn't define (undefined emax), so drugs compose without
+      // every drug needing every channel (e.g. pge1 has only pda_*, the catecholamines only hr/cont/svr)
       hr_sum   += this._emax(c_drive, def.hr_emax,   def.hr_ec50,   def.hr_hill);
       cont_sum += this._emax(c_drive, def.cont_emax, def.cont_ec50, def.cont_hill);
       svr_sum  += this._emax(c_drive, def.svr_emax,  def.svr_ec50,  def.svr_hill);
+      pda_sum  += this._emax(c_drive, def.pda_emax,  def.pda_ec50,  def.pda_hill);
     });
     this.hr_drug_factor = 1.0 + hr_sum;
     this.cont_drug_factor = 1.0 + cont_sum;
     this.svr_drug_factor = 1.0 + svr_sum;
+    this.pda_drug_factor = 1.0 + pda_sum;
     this.conc_eff = this.concentrations.adrenaline ?? 0.0;
     this.conc_inj = this._injection?.drugs?.adrenaline ?? 0.0;
 
@@ -192,6 +217,7 @@ export class Drugs extends BaseModelClass {
     if (this._heart) this._heart.hr_drug_factor = this.hr_drug_factor; // already wired into HR calc
     this._write_chamber_inotropy(this.cont_drug_factor); // mirrors the Mob inotropy path
     if (this._circ) this._circ.svr_factor_drug = this.svr_drug_factor; // independent SVR channel
+    if (this._pda) this._pda.diameter_drug_factor = this.pda_drug_factor; // ductal patency (PGE1)
 
     this._was_active = true;
   }
@@ -235,6 +261,7 @@ export class Drugs extends BaseModelClass {
     if (!this._circ) this._circ = this._model_engine.models[this.circulation_name] ?? null;
     if (!this._injection) this._injection = this._model_engine.models[this.injection_site] ?? null;
     if (!this._effect) this._effect = this._model_engine.models[this.effect_site] ?? null;
+    if (!this._pda) this._pda = this._model_engine.models["Pda"] ?? null;
     if (!this._seeded) this._seed_drugs();
   }
 
@@ -285,9 +312,11 @@ export class Drugs extends BaseModelClass {
     if (this._heart) this._heart.hr_drug_factor = 1.0;
     this._write_chamber_inotropy(1.0);
     if (this._circ) this._circ.svr_factor_drug = 1.0;
+    if (this._pda) this._pda.diameter_drug_factor = 1.0;
     this.hr_drug_factor = 1.0;
     this.cont_drug_factor = 1.0;
     this.svr_drug_factor = 1.0;
+    this.pda_drug_factor = 1.0;
   }
 
   // sigmoid Emax / Hill: effect = emax · c^n / (ec50^n + c^n)
