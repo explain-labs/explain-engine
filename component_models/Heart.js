@@ -29,8 +29,8 @@ export class Heart extends BaseModelClass {
     this.hr_factor = 1.0; // heart rate factor
     this.hr_override = false; // when set to true the heart rate is fixed on the reference heart rate, ignoring the influence of the factors
     this.hr_mob_factor = 1.0; // heart rate factor of the myocardial oxygen balance model
-    this.hr_temp_factor = 1.0; // heart rate factor of the temperature (not implemented yet)
-    this.hr_drug_factor = 1.0; // heart rate factor of the drug model (not implemented yet)
+    this.hr_temp_factor = 1.0; // heart rate factor of the temperature (driven by the Thermoregulation model)
+    this.hr_drug_factor = 1.0; // heart rate factor of the drug model (driven by the Drugs model)
 
     this.cont_factor = 1.0; // contractility factor
     this.cont_factor_left = 1.0; // left heart contractility factor

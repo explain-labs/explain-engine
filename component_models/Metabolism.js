@@ -15,6 +15,7 @@ export class Metabolism extends BaseModelClass {
     this.met_active = true; // flag indicating if metabolism is active
     this.vo2 = 8.1; // oxygen use in ml/kg/min
     this.vo2_factor = 1.0; // factor modulating oxygen use by outside models
+    this.vo2_temp_factor = 1.0; // temperature (Q10) factor on oxygen use, owned by Thermoregulation (1.0 = 37 degC)
     this.resp_q = 0.8; // respiratory quotient for CO2 production
     this.metabolic_active_models = {}; // dictionary of models with fractional oxygen use
   }
@@ -26,8 +27,9 @@ export class Metabolism extends BaseModelClass {
       // If metabolism is not active, do nothing
       return;
     }
-    // Translate the VO2 in ml/kg/min to VO2 in mmol for this step size (assuming 37 degrees temperature and atmospheric pressure)
-    const vo2_step =((0.039 * this.vo2 * this.vo2_factor * this._model_engine.weight) / 60.0) * this._t;
+    // Translate the VO2 in ml/kg/min to VO2 in mmol for this step size (assuming 37 degrees temperature and atmospheric pressure).
+    // vo2_temp_factor (Q10) is a persistent channel written by Thermoregulation; it is 1.0 at 37 degC / when that model is absent or disabled.
+    const vo2_step =((0.039 * this.vo2 * this.vo2_factor * this.vo2_temp_factor * this._model_engine.weight) / 60.0) * this._t;
 
     // Iterate over each metabolic active model
     for (const [model, fvo2] of Object.entries(this.metabolic_active_models)) {
