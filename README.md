@@ -8,7 +8,7 @@ The model runs in a dedicated Web Worker (`ModelEngine.js`) and is controlled fr
 
 ## Runtime lifecycle
 
-1. UI constructs `new Model()` (see `src/boot/explain.js`).
+1. UI constructs `new Model()` (see `src/composables/useExplain.ts`).
 2. `Model` creates a worker from `ModelEngine.js`.
 3. UI calls `build()` or `load(<definition_name>)`.
 4. Worker `build()`:
@@ -93,7 +93,9 @@ Example: `MicroVascularUnit` creates and configures internal `BloodVessel` compo
 ## Minimal usage example
 
 ```js
-import { explain } from "src/boot/explain";
+// In Vue components, get the engine wrapper from the composable:
+import { useExplain } from "src/composables/useExplain";
+const explain = useExplain().model; // the singleton Model instance
 
 // Build from object (or call explain.load("definition_name"))
 explain.build(modelDefinition);
@@ -118,9 +120,9 @@ explain.stop();
 
 ### 1. Running the model
 
-1. Start the Quasar dev server (`pnpm dev` from repo root) or the Electron target.
-2. The explain engine bootstraps via `src/boot/explain.js`, which instantiates `Model` and loads the default definition.
-3. Use UI buttons or the console (`window.explain`) to call `build`, `load`, `start`, `stop`, or `calculate(seconds)`.
+1. Start the Vite dev server (`npm run dev`) from this directory (Vue 3 + Vite + TypeScript app; production build via `npm run build`).
+2. The explain engine bootstraps via `src/composables/useExplain.ts`, a singleton that instantiates `Model` (imported as `@explain/Model`) and loads the default definition.
+3. Use UI buttons or call the engine wrapper returned by `useExplain()` (`model`) to `build`, `load`, `start`, `stop`, or `calculate(seconds)`.
 4. Place custom definitions under `public/model_definitions` and run `explain.load("definition_name")` (omit `.json`).
 
 ### 2. Observing & tweaking data
