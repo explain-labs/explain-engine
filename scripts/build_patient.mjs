@@ -23,7 +23,9 @@
 //     "description": "...",                // output description (auto-generated if absent)
 //     "targets": {                          // only listed vitals are calibrated
 //       "weight": 1.2, "gestational_age": 28, "height": 0.355, "age": 0,  // structural
-//       "hb": 9.5, "temp": 36.8, "pda": 0.4,                              // structural
+//       "hb": 9.5,            // hemoglobin in mmol/L (the model's unit)
+//       "hb_gdl": 15.3,       // OR hemoglobin in g/dL — builder converts to mmol/L
+//       "temp": 36.8, "pda": 0.4,                                         // structural
 //       "hr": 160, "map": 33, "cvp": 4, "pap_m": 28,                      // iterated
 //       "spo2": 90, "po2": 55, "pco2": 52, "ph": 7.28, "be": -5, "co": 0.3 // iterated
 //     },
@@ -34,8 +36,8 @@
 //   }
 //
 // Units mirror the monitor/ABG the app shows: pressures mmHg, SpO2/SvO2 %, temp °C,
-// pH unitless, pCO2/pO2 mmHg, BE mmol/L, weight kg, height m, Hb in engine units
-// (mmol/L), CO L/min.
+// pH unitless, pCO2/pO2 mmHg, BE mmol/L, weight kg, height m, CO L/min. Hb is
+// mmol/L (the model's unit) — pass `hb` in mmol/L, or `hb_gdl` in g/dL to convert.
 
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
@@ -178,8 +180,14 @@ if (seed) {
 const pda = has("pda") ? targets.pda : seed ? seed.pda : null;
 if (pda != null && model.models.Pda) { model.models.Pda.diameter_relative = pda; trace(`structural: PDA diameter_relative ${pda}`); }
 
-// hemoglobin (engine units, mmol/L)
-if (has("hb") && model.models.Blood) { model.models.Blood.set_solute("hemoglobin", targets.hb); trace(`structural: Hb ${targets.hb}`); }
+// hemoglobin — the model's unit is mmol/L. Accept `hb` (mmol/L) directly, or
+// `hb_gdl` (g/dL) which is converted (1 g/dL = 0.6206 mmol/L). The model NEVER
+// sees g/dL — always feed set_solute("hemoglobin", …) a mmol/L value.
+if (model.models.Blood && (has("hb") || has("hb_gdl"))) {
+  const hbMmol = has("hb") ? targets.hb : targets.hb_gdl * 0.6206;
+  model.models.Blood.set_solute("hemoglobin", hbMmol);
+  trace(`structural: Hb ${round(hbMmol, 2)} mmol/L${!has("hb") && has("hb_gdl") ? ` (converted from ${targets.hb_gdl} g/dL)` : ""}`);
+}
 
 // thermoregulation set-point -> target core/blood temperature
 if (has("temp") && model.models.Thermoregulation) { model.models.Thermoregulation.setpoint_temp = targets.temp; trace(`structural: temp setpoint ${targets.temp}`); }
