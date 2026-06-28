@@ -5629,6 +5629,18 @@
     "sensed_pressure": 30.16095297881967,
     "tgf_signal": 137.7588820432786
    },
+   "Brain": {
+    "name": "Brain",
+    "description": "cerebral autoregulation + intracranial pressure",
+    "is_enabled": true,
+    "model_type": "Brain",
+    "components": {},
+    "brain_running": true,
+    "autoregulation_enabled": true,
+    "icp_enabled": true,
+    "autoregulation_gain": 0.6,
+    "edema_volume": 0
+   },
    "Hormones": {
     "name": "Hormones",
     "description": "RAAS / ADH neuro-hormonal volume & osmolality control",

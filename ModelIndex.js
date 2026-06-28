@@ -37,6 +37,7 @@ export { Ans } from "./component_models/Ans";
 export { AnsAfferent } from "./component_models/AnsAfferent";
 export { AnsEfferent } from "./component_models/AnsEfferent";
 export { Metabolism } from "./component_models/Metabolism";
+export { Brain } from "./component_models/Brain";
 export { Thermoregulation } from "./component_models/Thermoregulation";
 export { Glucose } from "./component_models/Glucose";
 export { Lactate } from "./component_models/Lactate";
