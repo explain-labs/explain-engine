@@ -16,6 +16,19 @@ export class Heart extends BaseModelClass {
     this.qt_time = 0.25; // qt time (s)
     this.av_delay = 0.0005; // delay in the AV-node (s)
 
+    // -----------------------------------------------
+    // conduction / rhythm (default = normal sinus rhythm; all of this is identity at the defaults)
+    // -----------------------------------------------
+    this.sa_node_enabled = true; // false = sinus arrest → the ventricular escape pacemaker takes over
+    this.av_block_mode = "none"; // none | first_degree | second_degree | complete
+    this.av_block_ratio = 2; // second_degree: conduct (ratio-1):ratio, i.e. drop every ratio-th P (2 → 2:1)
+    this.first_degree_pq_factor = 2.5; // first_degree: multiplier on pq_time (prolonged PR interval)
+    this.vent_pacemaker_mode = "escape"; // escape | vt  (vt = fast ventricular focus → ventricular tachycardia)
+    this.vent_escape_enabled = true; // ventricular escape pacemaker (the safety / complete-block rhythm)
+    this.vent_escape_rate = 50.0; // bpm — intrinsic ventricular/junctional escape rate
+    this.vt_rate = 200.0; // bpm — ventricular-tachycardia (fast ventricular focus) rate
+    this.pvc_coupling = 0.3; // s — coupling interval of a triggered premature ventricular contraction
+
     // ECG wave amplitudes (mV) — morphology of the synthesized ecg_signal
     this.p_amp = 0.15; // P wave amplitude (mV)
     this.q_amp = -0.1; // Q wave amplitude (mV)
@@ -106,6 +119,12 @@ export class Heart extends BaseModelClass {
     this._ventricle_is_refractory = false;
     this._qt_timer = 0.0;
     this._qt_running = false;
+    // conduction / rhythm local state
+    this._effective_pq = this.pq_time; // per-beat PQ (prolonged in first-degree block)
+    this._atrial_beat_count = 0; // counts SA-node firings (for the second-degree conduction ratio)
+    this._vent_activation_timer = 0.0; // s since the last ventricular activation (escape/VT pacemaker)
+    this._pvc_timer = 0.0; // countdown to a triggered premature ventricular contraction
+    this._pvc_pending = false; // a PVC has been requested
     this._la = null;
     this._lv = null;
     this._ra = null;
@@ -337,30 +356,35 @@ export class Heart extends BaseModelClass {
     // calculate the sinus node interval (in seconds) based on heart rate
     this._sa_node_interval = 60.0 / this.heart_rate;
 
-    // sinus node period check
-    if (this._sa_node_timer > this._sa_node_interval) {
+    // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over)
+    if (this.sa_node_enabled && this._sa_node_timer > this._sa_node_interval) {
       this._sa_node_timer = 0.0; // reset the timer
       this._pq_running = true; // start the pq-time
       this.ncc_atrial = -1; // reset atrial activation counter
       this.cardiac_cycle_running = 1; // cardiac cycle starts
       this._temp_cardiac_cycle_time = 0.0; // reset cardiac cycle time
+      this._atrial_beat_count += 1; // count P waves (for the second-degree AV conduction ratio)
+      // per-beat PQ interval: prolonged in first-degree AV block, otherwise the configured pq_time
+      this._effective_pq = this.av_block_mode === "first_degree" ? this.pq_time * this.first_degree_pq_factor : this.pq_time;
     }
 
     // pq time period check
-    if (this._pq_timer > this.pq_time) {
+    if (this._pq_timer > this._effective_pq) {
       this._pq_timer = 0.0;
       this._pq_running = false;
       this._av_delay_running = true; // start av-delay
     }
 
-    // av delay period check
+    // av delay period check — the AV-node conduction gate. The atrial impulse activates the ventricles
+    // only if it conducts (av_block_mode) AND the ventricles are not refractory. A blocked impulse leaves
+    // the P wave on the ECG with no following QRS; sustained block lets the escape pacemaker (below) drive
+    // the ventricles independently → AV dissociation.
     if (this._av_delay_timer > this.av_delay) {
       this._av_delay_timer = 0.0;
       this._av_delay_running = false;
 
-      if (!this._ventricle_is_refractory) {
-        this._qrs_running = true; // start qrs
-        this.ncc_ventricular = -1; // reset ventricular activation
+      if (!this._ventricle_is_refractory && this._av_conducts()) {
+        this._activate_ventricle(); // conducted ventricular beat
       }
     }
 
@@ -402,6 +426,26 @@ export class Heart extends BaseModelClass {
 
     if (this._qt_running) {
       this._qt_timer += this._t;
+    }
+
+    // --- independent ventricular pacemaker (escape rhythm / ventricular tachycardia) + ectopy ---
+    // The ventricle fires on its own if it has been quiet for the pacemaker interval and is not
+    // refractory. In "escape" mode (slow, default) this NEVER fires during normal/conducted rhythm
+    // because conducted beats arrive first and keep resetting the timer — it only emerges when conducted
+    // beats fail (complete AV block, sinus arrest). In "vt" mode it runs fast (a ventricular focus).
+    this._vent_activation_timer += this._t;
+    const _vp_rate = this.vent_pacemaker_mode === "vt" ? this.vt_rate : this.vent_escape_rate;
+    const _vp_active = this.vent_pacemaker_mode === "vt" ? true : this.vent_escape_enabled;
+    if (_vp_active && _vp_rate > 0.0 && this._vent_activation_timer > 60.0 / _vp_rate && !this._ventricle_is_refractory) {
+      this._activate_ventricle(); // escape / ectopic ventricular beat
+    }
+    // triggered premature ventricular contraction (PVC): fire after the coupling interval, if able
+    if (this._pvc_pending) {
+      this._pvc_timer += this._t;
+      if (this._pvc_timer >= this.pvc_coupling && !this._ventricle_is_refractory) {
+        this._activate_ventricle();
+        this._pvc_pending = false;
+      }
     }
 
     // synthesize the ecg signal from the active conduction phase(s)
@@ -507,6 +551,36 @@ export class Heart extends BaseModelClass {
     } else {
       return this.qt_time * 2.449;
     }
+  }
+
+  // start a ventricular activation (QRS): conducted beat, escape beat, VT focus or PVC all route here
+  _activate_ventricle() {
+    this._qrs_running = true;
+    this.ncc_ventricular = -1;
+    this._vent_activation_timer = 0.0;
+  }
+
+  // AV-node conduction gate: does the current atrial impulse reach the ventricles?
+  _av_conducts() {
+    switch (this.av_block_mode) {
+      case "complete":
+        return false; // third-degree block — no atrial impulse conducts
+      case "second_degree": {
+        // drop every `av_block_ratio`-th P wave (ratio 2 → 2:1, 3 → 3:1, ...)
+        const r = Math.max(2, Math.round(this.av_block_ratio));
+        return (this._atrial_beat_count % r) !== 0;
+      }
+      case "first_degree": // conducts 1:1 with a prolonged PR (applied via _effective_pq)
+      case "none":
+      default:
+        return true;
+    }
+  }
+
+  // intervention API: schedule a single premature ventricular contraction (fires after pvc_coupling)
+  trigger_pvc() {
+    this._pvc_pending = true;
+    this._pvc_timer = 0.0;
   }
 
   set_pericardium(new_el_factor, new_volume) {
