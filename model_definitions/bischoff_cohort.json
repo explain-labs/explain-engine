@@ -5391,6 +5391,7 @@
     "met_active": true,
     "vo2": 8.1,
     "vo2_factor": 1,
+    "vo2_temp_factor": 1,
     "resp_q": 0.8,
     "metabolic_active_models": {
      "RLB": 0.15,
@@ -5402,6 +5403,41 @@
      "AD": 0.01,
      "BR_CAP": 0.453
     }
+   },
+   "Thermoregulation": {
+    "name": "Thermoregulation",
+    "description": "body temperature controller",
+    "is_enabled": true,
+    "model_type": "Thermoregulation",
+    "components": {},
+    "thermoregulation_running": true,
+    "env_temp": 32,
+    "radiant_temp": null,
+    "rel_humidity": 0.5,
+    "setpoint_temp": 37
+   },
+   "Glucose": {
+    "name": "Glucose",
+    "description": "blood glucose / insulin controller",
+    "is_enabled": true,
+    "model_type": "Glucose",
+    "components": {},
+    "glucose_running": true,
+    "glu_use_rate": 0.03,
+    "hgp_rate": 0.03,
+    "glucose_setpoint": 4
+   },
+   "Lactate": {
+    "name": "Lactate",
+    "description": "hypoxia-driven lactate production",
+    "is_enabled": true,
+    "model_type": "Lactate",
+    "components": {},
+    "lactate_running": true,
+    "lact_baseline": 1,
+    "threshold_frac": 0.5,
+    "lact_per_o2_deficit": 0.33,
+    "lact_clearance": 0.002
    },
    "Kidneys": {
     "name": "Kidneys",
@@ -6315,6 +6351,12 @@
      },
      "albumin_20%": {
       "albumin": 20
+     },
+     "d5": {
+      "glucose": 278
+     },
+     "d10": {
+      "glucose": 555
      }
     },
     "default_volume": 10
@@ -11019,7 +11061,8 @@
      "albumin": 25,
      "phosphates": 1.64,
      "uma": 3,
-     "hemoglobin": 10
+     "hemoglobin": 10,
+     "glucose": 4
     },
     "P50_0": 20,
     "haldane_coeff": 1,
