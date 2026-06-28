@@ -10923,6 +10923,27 @@
      "GASEX_RL"
     ]
    },
+   "Surfactant": {
+    "name": "Surfactant",
+    "description": "dynamic surfactant / alveolar recruitment (RDS)",
+    "is_enabled": true,
+    "model_type": "Surfactant",
+    "components": {},
+    "surfactant_running": true,
+    "surfactant": 0.25,
+    "lung_models": [
+     "ALL",
+     "ALR"
+    ],
+    "gasex_models": [
+     "GASEX_LL",
+     "GASEX_RL"
+    ],
+    "shunt_models": [
+     "IPSL",
+     "IPSR"
+    ]
+   },
    "Pda": {
     "name": "Pda",
     "description": "ductus arteriosus model",

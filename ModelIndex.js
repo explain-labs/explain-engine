@@ -31,6 +31,7 @@ export { HeartChamber } from "./component_models/HeartChamber";
 export { Gas } from "./component_models/Gas";
 export { Breathing } from "./component_models/Breathing";
 export { Respiration } from "./component_models/Respiration";
+export { Surfactant } from "./component_models/Surfactant";
 
 export { Ans } from "./component_models/Ans";
 export { AnsAfferent } from "./component_models/AnsAfferent";
