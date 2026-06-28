@@ -20,6 +20,39 @@ SA node fires ─► PQ (atrial) ─► AV delay ─► QRS (ventricular) ─►
 - The **sinus interval** `60 / heart_rate` drives the SA node; `pq_time`, `av_delay`, `qrs_time` and
   the rate-corrected `qt_time` (Bazett) set the phase durations.
 
+## Conduction-driven arrhythmias
+
+The atrial and ventricular activations are **decoupled** so the two chambers can beat independently —
+real conduction disorders rather than a fixed SA→QRS sequence. This is gated behind **default-neutral**
+properties (at the defaults the logic is identity, so every scenario's normal rhythm is unchanged), and
+because the ECG and chamber activation already key off `ncc_atrial` (P) and `ncc_ventricular` (QRS)
+*independently*, dissociated rhythms render correctly with no ECG changes.
+
+Two intervention points:
+
+- **AV-node conduction gate** at the av-delay → ventricle step. The atrial impulse activates the
+  ventricles only if `!ventricle_is_refractory && _av_conducts()`. `av_block_mode` selects:
+  `none` (1:1), `first_degree` (1:1 with a prolonged PR — `pq_time · first_degree_pq_factor`),
+  `second_degree` (drop every `av_block_ratio`-th P → 2:1, 3:1, …), `complete` (no impulse conducts).
+  A blocked impulse leaves a P wave with no following QRS.
+- **Independent ventricular pacemaker** (`_vent_activation_timer`): fires a ventricular activation when
+  the ventricle has been quiet for `60 / rate` and is not refractory. `vent_pacemaker_mode = "escape"`
+  (slow, `vent_escape_rate` ≈ 50 bpm — only fires when conducted beats fail, i.e. complete block or
+  sinus arrest) or `"vt"` (fast ventricular focus, `vt_rate` → ventricular tachycardia). All ventricular
+  activations route through `_activate_ventricle()` (starts QRS, resets `ncc_ventricular` and the escape
+  timer).
+
+This yields the canonical conduction rhythms: **complete heart block** (atria at the sinus rate,
+ventricles at the escape rate — AV dissociation), **2nd-degree / 2:1 block** (ventricular rate ≈ ½
+atrial), **sinus arrest** (`sa_node_enabled = false` → SA silent → escape rhythm), **ventricular
+tachycardia**, and a triggered **PVC** (`trigger_pvc()` → one premature beat after `pvc_coupling`).
+
+> **Neutrality.** At the defaults (`av_block_mode = "none"`, `sa_node_enabled = true`, escape mode at
+> 50 bpm) the changes are identity — `_av_conducts()` returns `true`, and the escape pacemaker never
+> fires because every conducted beat (all scenario rates > 50 bpm) resets its timer first. The feature
+> lives entirely on the existing `Heart`, so it is available in every scenario with no model-definition
+> edits. PVCs are deterministic (`trigger_pvc()`), not random — the engine forbids `Math.random()`.
+
 ## Activation → chamber contraction (`calc_varying_elastance`)
 
 Two activation functions are computed each step and pushed onto the chambers as `act_factor`:
@@ -58,7 +91,9 @@ isoelectric at 0 mV.
 
 `heart_rate_ref`, `pq_time`, `qrs_time`, `qt_time`, `av_delay`; ECG amplitudes `p_amp`…`t_amp`;
 `ans_sens`, `ans_activity`, `ans_activity_hr`; the `*_factor` modulators; `pc_el_factor`,
-`pc_extra_volume`.
+`pc_extra_volume`. Rhythm/conduction: `sa_node_enabled`, `av_block_mode`, `av_block_ratio`,
+`first_degree_pq_factor`, `vent_pacemaker_mode`, `vent_escape_rate`, `vt_rate`, `pvc_coupling`
+(+ the `trigger_pvc()` method).
 
 ## Notes & caveats
 
