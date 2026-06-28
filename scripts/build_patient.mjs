@@ -43,6 +43,7 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { measureVitals, selectProfile, RANGES, flagOf } from "./_probe.mjs";
+import { makeController, runCalibration } from "../explain/helpers/Calibrator.js";
 
 // ---------------------------------------------------------------------------
 // 0. read the SPEC (from --spec <file> or stdin)
@@ -201,30 +202,12 @@ if (seed && model.models.Heart && !has("hr")) model.models.Heart.heart_rate_ref 
 // ---------------------------------------------------------------------------
 // 3. controllers (one lever per off-target vital) — applied iteratively
 // ---------------------------------------------------------------------------
-// Each controller drives one measured vital toward its target via one lever. The
-// first step uses a signed proportional seed (sign = does ↑lever ↑vital?); once two
-// samples exist it switches to the secant method (sign-agnostic, self-correcting).
-function makeController({ key, lo, hi, sign, gain, value, set }) {
-  return {
-    key, lo, hi, sign, gain, value, set, prevL: null, prevM: null,
-    target: targets[key === "spo2" ? "spo2" : key],
-    tol: tolOf(key),
-    step(measured) {
-      const target = this.target;
-      if (Math.abs(target - measured) <= this.tol) { this.prevL = this.value; this.prevM = measured; return false; }
-      let nl;
-      if (this.prevL != null && this.prevM != null && Math.abs(measured - this.prevM) > 1e-9 && Math.abs(this.value - this.prevL) > 1e-12) {
-        const slope = (measured - this.prevM) / (this.value - this.prevL);
-        nl = this.value + (target - measured) / slope;
-      } else {
-        nl = this.value + this.sign * this.gain * (target - measured);
-      }
-      nl = clamp(nl, this.lo, this.hi);
-      this.prevL = this.value; this.prevM = measured; this.value = nl; this.set(nl);
-      return true;
-    },
-  };
-}
+// Each controller drives one measured vital toward its target via one lever (the
+// secant loop lives in explain/helpers/Calibrator.js, shared with the live tuner).
+// `mkc` injects this build's target + tolerance + the measure-dict key (co reads
+// "lvo", spo2 reads "spo2_pre" from measureVitals).
+const READKEY = { co: "lvo", spo2: "spo2_pre" };
+const mkc = (spec) => makeController({ ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
 
 const controllers = [];
 
@@ -232,13 +215,13 @@ const controllers = [];
 if (has("map")) {
   let f = seed && seed.svr ? seed.svr : 1.0;
   eng.scale("systemic_resistances", f);
-  controllers.push(makeController({ key: "map", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) }));
+  controllers.push(mkc({ key: "map", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) }));
 }
 // PAP mean <- pulmonary vascular resistance scaling (↑PVR ↑PAP)
 if (has("pap_m")) {
   let f = patho.pvr_scale || (seed && seed.pvr) || 1.0;
   eng.scale("pulmonary_resistances", f);
-  controllers.push(makeController({ key: "pap_m", lo: 0.3, hi: 12, sign: +1, gain: 0.05, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
+  controllers.push(mkc({ key: "pap_m", lo: 0.3, hi: 12, sign: +1, gain: 0.05, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
 } else if (patho.pvr_scale || (seed && seed.pvr)) {
   eng.scale("pulmonary_resistances", patho.pvr_scale || seed.pvr); // structural-only PVR
 }
@@ -247,23 +230,23 @@ if (has("cvp")) {
   const base = {};
   for (const n of ["VLB", "VUB"]) { const c = model.models[n]; if (c) base[n] = c.u_vol; }
   const apply = (mult) => { for (const n in base) model.models[n].u_vol = base[n] * mult; };
-  controllers.push(makeController({ key: "cvp", lo: 0.5, hi: 1.3, sign: -1, gain: 0.05, value: 1.0, set: apply }));
+  controllers.push(mkc({ key: "cvp", lo: 0.5, hi: 1.3, sign: -1, gain: 0.05, value: 1.0, set: apply }));
 }
 // HR <- heart-rate reference setpoint (direct)
 if (has("hr")) {
   const start = model.models.Heart?.heart_rate_ref ?? targets.hr;
-  controllers.push(makeController({ key: "hr", lo: 60, hi: 240, sign: +1, gain: 0.8, value: start, set: (v) => { if (model.models.Heart) model.models.Heart.heart_rate_ref = v; } }));
+  controllers.push(mkc({ key: "hr", lo: 60, hi: 240, sign: +1, gain: 0.8, value: start, set: (v) => { if (model.models.Heart) model.models.Heart.heart_rate_ref = v; } }));
 }
 // CO (LV output) <- ventricular contractility (el_max persistent factor)
 if (has("co")) {
   const apply = (f) => { for (const n of ["LV", "RV"]) { const m = model.models[n]; if (m) m.el_max_factor_ps = f; } };
-  controllers.push({ ...makeController({ key: "co", lo: 0.3, hi: 3, sign: +1, gain: 0.8, value: 1.0, set: apply }), key: "co", target: targets.co });
+  controllers.push(mkc({ key: "co", lo: 0.3, hi: 3, sign: +1, gain: 0.8, value: 1.0, set: apply }));
 }
 // PO2 / SpO2 <- alveolar O2 diffusion persistent factor (↑dif ↑PO2)
 if (has("po2") || has("spo2")) {
   const key = has("po2") ? "po2" : "spo2";
   const apply = (f) => { for (const n of ["GASEX_LL", "GASEX_RL"]) { const m = model.models[n]; if (m) m.dif_o2_factor_ps = f; } };
-  controllers.push(makeController({ key, lo: 0.1, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: 1.0, set: apply }));
+  controllers.push(mkc({ key, lo: 0.1, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: 1.0, set: apply }));
 }
 // pCO2 <- spontaneous ventilatory drive (Breathing.minute_volume_ref multiplier).
 // ↓drive ↑pCO2 -> sign -1. This is the lever that actually shifts the *regulated*
@@ -275,14 +258,14 @@ if (has("pco2") && model.models.Breathing) {
   const B = model.models.Breathing;
   const baseMv = B.minute_volume_ref;
   const apply = (mult) => { B.minute_volume_ref = baseMv * mult; };
-  controllers.push(makeController({ key: "pco2", lo: 0.2, hi: 2.5, sign: -1, gain: 0.03, value: 1.0, set: apply }));
+  controllers.push(mkc({ key: "pco2", lo: 0.2, hi: 2.5, sign: -1, gain: 0.03, value: 1.0, set: apply }));
 }
 // BE / pH (metabolic) <- Stewart unmeasured anions uma (↑uma ↓BE/pH -> sign -1)
 if (has("be") || has("ph")) {
   const key = has("be") ? "be" : "ph";
   const startUma = model.models.AA?.solutes?.uma ?? 0;
   const apply = (v) => { if (model.models.Blood) model.models.Blood.set_solute("uma", Math.max(0, v)); };
-  controllers.push(makeController({ key, lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, value: startUma, set: apply }));
+  controllers.push(mkc({ key, lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, value: startUma, set: apply }));
 }
 
 // ---------------------------------------------------------------------------
@@ -292,27 +275,20 @@ const profile = selectProfile({ weight: model.weight, gestational_age: model.ges
 const ranges = RANGES[profile] || RANGES.adult;
 trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile ${profile}) — ${controllers.length} target(s)`);
 
-eng.calc(SETTLE); // settle after the structural pass
-let v = {};
-let it = 0;
-for (; it < MAX_ITERS; it++) {
-  v = measureVitals(model, eng.send, { window: WINDOW });
-  const line = controllers
-    .map((c) => `${c.key}=${round(v[c.key === "spo2" ? "spo2_pre" : c.key])}/${c.target}${Math.abs(c.target - (c.key === "spo2" ? v.spo2_pre : v[c.key])) <= c.tol ? "✓" : ""}`)
-    .join("  ");
-  trace(`  iter ${it}: ${line}`);
-  let any = false;
-  for (const c of controllers) {
-    const meas = c.key === "spo2" ? v.spo2_pre : v[c.key];
-    if (c.step(meas)) any = true;
-  }
-  if (!any) { trace(`  converged at iter ${it}`); break; }
-  eng.calc(WARM);
-}
-
-// equilibrium bake (kills startup transients, seeds the steady gas/volume state)
-eng.calc(FINAL);
-const vf = measureVitals(model, eng.send, { window: WINDOW });
+// run the shared secant calibration (settle → measure → nudge → warm → repeat),
+// then an equilibrium bake (final) — eng.calc is the model stepper, measureVitals
+// the windowed reader. Returns the final measured vitals + per-target residuals.
+const result = runCalibration(controllers, {
+  measureAll: () => measureVitals(model, eng.send, { window: WINDOW }),
+  step: (s) => eng.calc(s),
+  settle: SETTLE,
+  warm: WARM,
+  maxIters: MAX_ITERS,
+  final: FINAL,
+  log: (line) => trace(`  ${line}`),
+});
+const vf = result.measured;
+const it = result.iters;
 
 // ---------------------------------------------------------------------------
 // 5. residual report (stderr)
@@ -325,12 +301,8 @@ for (const k of REPORT) {
   const flag = flagOf(ranges, k, vf[k]);
   trace(`  ${k.padEnd(10)} ${String(round(vf[k])).padStart(8)}${tgt != null ? `  (target ${tgt}, Δ ${round(vf[k] - tgt)})` : ""}  [${flag}]`);
 }
-const residuals = controllers.map((c) => {
-  const meas = c.key === "spo2" ? vf.spo2_pre : vf[c.key];
-  return { key: c.key, target: c.target, value: round(meas), within: Math.abs(c.target - meas) <= c.tol };
-});
-const allWithin = residuals.every((r) => r.within);
-trace(`  calibration ${allWithin ? "CONVERGED" : "INCOMPLETE"} after ${it} iter — ${residuals.filter((r) => !r.within).map((r) => r.key).join(", ") || "all targets met"}`);
+const allWithin = result.converged;
+trace(`  calibration ${allWithin ? "CONVERGED" : "INCOMPLETE"} after ${it} iter — ${result.residuals.filter((r) => !r.within).map((r) => r.key).join(", ") || "all targets met"}`);
 
 // ---------------------------------------------------------------------------
 // 6. serialize and emit the runnable scenario JSON (stdout)

@@ -21,6 +21,7 @@ import * as models from "./ModelIndex";
 import DataCollector from "./helpers/DataCollector";
 import TaskScheduler from "./helpers/TaskScheduler";
 import ModelScaler from "./helpers/ModelScaler";
+import { buildLiveControllers, runCalibration, measureWindow } from "./helpers/Calibrator";
 import ChannelWriter from "./helpers/ChannelWriter";
 import AnimationPacker from "./helpers/AnimationPacker";
 import { RT_MSG } from "./helpers/RealtimeChannels";
@@ -153,6 +154,9 @@ self.onmessage = (e) => {
             break;
           case "scale":
             scale_model(e.data.payload);
+            break;
+          case "calibrate":
+            tune_model(_normalize_payload(e.data.payload));
             break;
           case "watch":
             watch_props(e.data.payload);
@@ -528,6 +532,66 @@ const calculate = function (time_to_calculate) {
   // clean up the datacollector
   _get_data_collector()?.clean_up();
   _get_data_collector()?.clean_up_slow();
+};
+
+// Live closed-loop tune of the running model: drive measured quantities (CO, MAP,
+// blood volume, …) to target values IN PLACE using the shared Calibrator. Pauses
+// the realtime loop, runs the secant calibration synchronously against the live
+// `model` (stepFn advances it), resumes, then emits the new state + a report.
+// Levers compose with the patient's baked scaling (no reload, no ModelScaler reset).
+const tune_model = function (payload) {
+  if (!model_initialized) {
+    _send({ type: "status", message: `ERROR: model not initialized.`, payload: [] });
+    return;
+  }
+  const targets = (payload && payload.targets) || {};
+  const opts = (payload && payload.opts) || {};
+
+  // advance the model by `seconds` without emitting per-step state
+  const stepFn = (seconds) => {
+    const n = Math.round(seconds / model.modeling_stepsize);
+    for (let i = 0; i < n; i++) _model_step();
+  };
+
+  // pause the realtime loop during the (synchronous) calibration
+  const wasRunning = rtClock != null;
+  if (wasRunning) {
+    if (model.DataCollector) model.DataCollector.rt_active = false;
+    clearInterval(rtClock);
+    rtClock = null;
+  }
+
+  _send({ type: "status", message: `tuning ${Object.keys(targets).join(", ")}…`, payload: [] });
+
+  let result = { converged: false, residuals: [], iters: 0 };
+  try {
+    const { controllers, keys } = buildLiveControllers(model, targets, opts.tol || {});
+    if (!controllers.length) {
+      _send({ type: "tuned", message: "no tunable targets", payload: { converged: false, residuals: [], iters: 0 } });
+    } else {
+      result = runCalibration(controllers, {
+        measureAll: () => measureWindow(model, stepFn, keys, opts.window ?? 10),
+        step: stepFn,
+        settle: opts.settle ?? 20,
+        warm: opts.warm ?? 15,
+        maxIters: opts.maxIters ?? 12,
+        final: 0,
+        log: () => {},
+      });
+      get_model_data();
+      get_model_data_slow();
+      get_model_state();
+      _send({
+        type: "tuned",
+        message: result.converged ? "converged" : "incomplete",
+        payload: result,
+      });
+    }
+  } catch (err) {
+    _send_error(`tune failed: ${err.message}`, err);
+  } finally {
+    if (wasRunning) start(); // resume realtime from the new operating point
+  }
 };
 
 const set_property = function (new_prop_value) {

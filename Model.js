@@ -157,6 +157,11 @@ export default class Model extends ModelEmitter {
           this.savedState = this._processModelState({...e.data.payload});
           this.emit("state_saved");
           break;
+        case "tuned":
+          // live-tune finished; payload = { converged, residuals, iters }
+          this.tuneResult = { ...e.data.payload, message: e.data.message };
+          this.emit("tuned", this.tuneResult);
+          break;
         case "error":
           this.error_message = e.data.message;
           console.error("Model engine error:", e.data.message, e.data.payload);
@@ -528,6 +533,22 @@ export default class Model extends ModelEmitter {
       type: "POST",
       message: "scale",
       payload: { group, factor },
+    });
+  }
+
+  /**
+   * Live closed-loop tune: drive measured quantities of the RUNNING model toward
+   * target values in place (no reload). Emits a "tuned" event with the result
+   * ({ converged, residuals, iters }).
+   * @param {Object} targets e.g. { co: 0.25, blood_volume: 0.26, map: 45 }
+   *   (keys: map, co, hr, po2, spo2, pco2, be, ph, blood_volume)
+   * @param {Object} [opts] { tol, settle, warm, maxIters, window }
+   */
+  tune(targets, opts = {}) {
+    this.send({
+      type: "POST",
+      message: "calibrate",
+      payload: JSON.stringify({ targets, opts }),
     });
   }
 
