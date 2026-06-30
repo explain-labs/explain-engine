@@ -239,5 +239,4 @@ Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows un
 - **Pump logic is duplicated.** The `pump_pressure = −pump_rpm/25` computation mirrors
   `BloodPump.calc_pressure`; `ECLS_PUMP` is a [`BloodVessel`](./BloodVessel.md) driven externally
   rather than a `BloodPump`.
-- **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s; the
-  `_ecls_gasexchanger` field is declared but unused (the code uses `_ecls_gasex`).
+- **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.

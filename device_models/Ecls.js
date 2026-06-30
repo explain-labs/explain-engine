@@ -189,7 +189,7 @@ export class Ecls extends BaseModelClass {
     this._ecls_gas_oxy = null; // reference to the gas oxygenator model instance
     this._ecls_gas_out = null; // reference to the gas out model instance
     this._ecls_gas_insp_valve = null; // reference to the gas inspiration valve model instance
-    this._ecls_gasexchanger = null; // reference to the gas exchanger model instance
+    this._ecls_gasex = null; // reference to the gas exchanger model instance (ECLS_GASEX)
   }
 
   calc_model() {

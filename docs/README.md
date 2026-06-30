@@ -27,6 +27,13 @@ calculation/math → factor system → example JSON → usage. The exemplar is
 | [ARCHITECTURE](./ARCHITECTURE.md) | Whole-model overview: threads, wire protocol, build/step loop, cross-cutting patterns, how to add a model, the doc template. |
 | [BaseModelClass](./BaseModelClass.md) | Abstract root of every model: lifecycle contract (construct → init_model → step_model → calc_model), shared fields. |
 
+## Formats & developer workflow
+
+| Doc | What it covers |
+|---|---|
+| [MODEL_DEFINITIONS](./MODEL_DEFINITIONS.md) | The scenario / model-definition JSON format a developer authors — top-level keys, the `model_definition.models` map, `scaler_config`, `configuration.events`, and how `build()` consumes it. |
+| [TESTING](./TESTING.md) | Running the engine headlessly in Node — the zero-edit shim harness, the `probe_*.mjs` verification pattern, and the reseed/scenario-generation tooling in `scripts/`. |
+
 ## Base elements (`base_models/`)
 
 The reusable physical primitives every component model is built from.
@@ -135,6 +142,15 @@ Infrastructure that the worker attaches to the live `model` object — not physi
 | [RealtimeChannels](./RealtimeChannels.md) | Shared constants/layout for the realtime channel protocol. |
 | [AnimationPacker](./AnimationPacker.md) | Packs per-component animation values (magnitude/tint) into the animation channel. |
 | [RealTimeMovingAverage](./RealTimeMovingAverage.md) | O(1) rolling-average smoother for realtime signals. |
+
+## Realtime read side (`explain/realtime/`, main thread)
+
+The main-thread mirror of the `ChannelWriter`/`RealtimeChannels`/`AnimationPacker` write side.
+
+| Doc | Component |
+|---|---|
+| [RealtimeBus](./RealtimeBus.md) | `requestAnimationFrame` loop that drains a `ChannelReader` and pushes frames to renderer adapters (`onRegistry`/`onFrame`). |
+| [ChannelReader](./ChannelReader.md) | Read side of the data plane; decodes the shared-memory (`Atomics`/seqlock) or transferable transport. |
 
 ## Clinical references
 

@@ -2,7 +2,9 @@
 
 This is the **architecture entry point** for the Explain physiological simulation engine. Read it first if you are extending the engine; the 50+ per-class docs in this directory (e.g. [`BloodCapacitance.md`](./BloodCapacitance.md), [`Heart.md`](./Heart.md), [`Resistor.md`](./Resistor.md)) describe individual models and assume the cross-cutting patterns documented here.
 
-The engine is a set of **framework-agnostic ES modules** that run inside a **Web Worker**. It has no dependency on Vue, the DOM, or the `window` object — the only thing crossing into it is the message protocol described below. The Vue app is just one possible host; the engine also runs headless in Node (see the headless harness). Per-model parameter-edit metadata is **not** in the engine — it lives in the UI layer (`src/model-interface/`).
+The engine is a set of **framework-agnostic ES modules** that run inside a **Web Worker**. It has no dependency on Vue, the DOM, or the `window` object — the only thing crossing into it is the message protocol described below. The Vue app is just one possible host; the engine also runs headless in Node (see [`TESTING.md`](./TESTING.md)). Per-model parameter-edit metadata is **not** in the engine — it lives in the UI layer (`src/model-interface/`).
+
+The scenario files the engine loads are documented separately in [`MODEL_DEFINITIONS.md`](./MODEL_DEFINITIONS.md); this doc covers how they are *consumed*.
 
 ---
 
@@ -88,9 +90,21 @@ The worker's outbound `type` strings are translated to `ModelEmitter` events you
 | `state_saved` | `state_saved` | stores sanitized `savedState` |
 | `tuned` | `tuned` | stores `tuneResult` (`{converged, residuals, iters}`) |
 | `error` | `error` | stores `error_message` |
-| `RT_MSG.CHANNELS` / `CHART` / `ANIM` | — | consumed by the realtime data plane (RealtimeBus), ignored by `receive()` |
+| `RT_MSG.CHANNELS` / `CHART` / `ANIM` | — | consumed by the realtime data plane ([RealtimeBus](./RealtimeBus.md)), ignored by `receive()` |
 
 **JSON boundary.** Payloads that are structured objects are JSON-stringified at the send site and re-parsed in the worker by `_normalize_payload` (a `JSON.parse` only when the payload is a string). This applies to `build`, `property_value` (PUT), `call`, `calibrate`, and `diagram_definition`. Simpler payloads (`scale`'s `{group, factor}`, `watch`'s string array, `calc`'s integer) are passed as plain structured-clone objects. State snapshots and sampled data flow back as plain objects via `postMessage` (structured clone), not stringified.
+
+### Event emitter (`ModelEmitter`)
+
+`Model` extends [`ModelEmitter`](../ModelEmitter.js) — a deliberately minimal pub/sub base class (no dependencies, **no `once`, no wildcards, no per-callback error guarding**):
+
+| Method | Behaviour |
+|---|---|
+| `on(event, callback)` | Lazily creates the listener `Set` for `event` and adds `callback`. No unsubscribe handle is returned. |
+| `off(event, callback)` | Removes `callback`; drops the map entry when its set empties. |
+| `emit(event, ...args)` | Calls every callback registered for `event` with the spread args. |
+
+Listeners are stored in an instance field `_listeners: Map<string, Set<Function>>`. `Model`'s worker `onmessage` handler maps each inbound worker `type` to an `emit(...)` (the table above), so host code subscribes purely with `explain.on(event, handler)`. The three `RT_MSG.*` data-plane types are **not** emitted here — they are consumed by [RealtimeBus](./RealtimeBus.md) on a second worker listener (see §10).
 
 ---
 
@@ -258,3 +272,16 @@ One line each; follow the link for detail.
 - **[RealtimeChannels](./RealtimeChannels.md)** — the `RT_MSG` message constants and channel/transport descriptors for the typed data plane.
 - **[AnimationPacker](./AnimationPacker.md)** — builds the component→slot registry and packs per-frame sprite animation data from the live model.
 - **[RealTimeMovingAverage](./RealTimeMovingAverage.md)** — moving-average helper used for smoothing realtime-derived signals.
+
+### Realtime read side (`explain/realtime/`, main thread)
+
+The mirror of the `ChannelWriter`/`AnimationPacker` write side, running on the **main thread** — separate from the control-plane `ModelEmitter` events:
+
+- **[RealtimeBus](./RealtimeBus.md)** — single `requestAnimationFrame` loop that drains a `ChannelReader` and pushes frames to renderer adapters (`onRegistry`/`onFrame`). Listens on a **second** worker `message` listener for the `RT_MSG.*` types that `Model.receive()` ignores.
+- **[ChannelReader](./ChannelReader.md)** — decodes the shared-memory (`Atomics`/seqlock) or transferable transport; `drainChart()` returns every new row in order, `readAnim()` returns the latest frame only.
+
+## 11. Other references
+
+- **[MODEL_DEFINITIONS](./MODEL_DEFINITIONS.md)** — the scenario / model-definition JSON format (the file `load()` consumes).
+- **[TESTING](./TESTING.md)** — running the engine headlessly in Node (the harness + `probe_*` scripts).
+- **[README](./README.md)** — the full per-class documentation index.
