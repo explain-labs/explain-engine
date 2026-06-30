@@ -15,7 +15,7 @@
 // Refs (PubMed): Connor & Thiagarajan Orphanet J Rare Dis 2007 PMID 17498282 (HLHS overview, duct-dependent
 // systemic flow, Qp:Qs); Schranz Pediatr Cardiol 2024 PMID 38664298 (duct stenting / systemic duct
 // dependence); Vlahos Circulation 2004 PMID 15136496 (restrictive/intact atrial septum is lethal). See
-// explain/docs/chd_duct_fo_dependent.md (lesion B1).
+// docs/engine/chd_duct_fo_dependent.md (lesion B1).
 //
 // Lever groups (see term_neonate baseline):
 //   A left heart  mitral atresia (LA_LV off) + aortic atresia (LV_AA off) -> LV excluded. Heart.calc_model

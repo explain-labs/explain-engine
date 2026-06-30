@@ -22,7 +22,7 @@
 // Refs (PubMed): coarctation — Ganigara Semin Cardiothorac Vasc Anesth 2019 PMID 31535945; Egan & Holzer
 // Expert Rev Cardiovasc Ther 2009 PMID 19900023. IAA — Jonas Semin Thorac Cardiovasc Surg 2015 PMID
 // 26686446; Burbano-Vera Semin Cardiothorac Vasc Anesth 2018 PMID 29742969. See
-// explain/docs/chd_duct_fo_dependent.md (lesions B3, B4).
+// docs/engine/chd_duct_fo_dependent.md (lesions B3, B4).
 //
 // Un-warmed output; warm to its operating point with:
 //   node scripts/reseed_coarc.mjs <key|--all> --write

@@ -15,7 +15,7 @@
 //
 // Refs (PubMed): Sumal J Card Surg 2020 PMID 32484582 (tricuspid atresia: obligate R->L atrial shunt,
 // cyanosis, single-ventricle palliation); Rychik AHA Fontan statement Circulation 2019 PMID 31256636. See
-// explain/docs/chd_duct_fo_dependent.md (lesion A4).
+// docs/engine/chd_duct_fo_dependent.md (lesion A4).
 //
 // Lever groups (see term_neonate baseline):
 //   A atresia   the (split) tricuspid valve RAIVCI_RV + RASVC_RV no_flow=true. The right ventricle is

@@ -67,7 +67,7 @@ Elastance
         NSAIDs: lower PGE2 → raise active EE → pharmacologic closure
         Largest active-EE jumps correlate with post-closure hypotension and low CO
 
-    See also: docs/Pda-velocity.md for the rationale behind the velocity outputs.
+    See also: docs/engine/Pda-velocity.md for the rationale behind the velocity outputs.
 */
 
 // Hagen-Poiseuille resistance unit conversion: Pa·s/m^3 → mmHg·s/L.

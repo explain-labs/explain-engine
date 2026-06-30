@@ -20,7 +20,7 @@
 //
 // Refs (PubMed): Soquet Ann Thorac Surg 2019 PMID 30831109; Presnell World J Pediatr Congenit Heart Surg
 // 2015 PMID 26467877 (PA/VSD: duct- and/or MAPCA-supplied pulmonary flow). See
-// explain/docs/chd_duct_fo_dependent.md (lesion A2). KNOWN LIMITATION: MAPCAs are not modelable.
+// docs/engine/chd_duct_fo_dependent.md (lesion A2). KNOWN LIMITATION: MAPCAs are not modelable.
 //
 // Un-warmed output; warm to its operating point with:
 //   node scripts/reseed_pavsd.mjs <key|--all> --write

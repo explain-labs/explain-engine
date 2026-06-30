@@ -15,7 +15,7 @@
 //
 // Refs (PubMed): Affolter & Ghanayem Cardiol Young 2014 PMID 25647388 (critical AS: cardiogenic shock, high
 // LV wall stress, PGE1 to maintain systemic perfusion, balloon valvuloplasty). See
-// explain/docs/chd_duct_fo_dependent.md (lesion B2).
+// docs/engine/chd_duct_fo_dependent.md (lesion B2).
 //
 // Lever groups (see term_neonate baseline):
 //   A stenosis  LV_AA.r_for raised to a critical value (valve kept patent — no_flow stays false).

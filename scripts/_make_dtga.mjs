@@ -10,7 +10,7 @@
 //
 // Refs (PubMed): Martins & Castela Orphanet J Rare Dis 2008 PMID 18851735 (parallel circulations, mixing);
 // Rashkind & Miller JAMA 1966 PMID 4160716 (balloon atrial septostomy); Cucerea Biomedicines 2024
-// PMID 39335532 (PGE1/BAS effects). See explain/docs/chd_duct_fo_dependent.md (lesion C1).
+// PMID 39335532 (PGE1/BAS effects). See docs/engine/chd_duct_fo_dependent.md (lesion C1).
 //
 // Lever groups (see term_neonate baseline):
 //   A outflow  swap the ventriculo-arterial connection — enable RV_AA (RV->aorta) + LV_PA (LV->PA),

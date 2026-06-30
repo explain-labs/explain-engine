@@ -4,15 +4,15 @@ This folder contains the in-browser physiological simulation engine used by the 
 The model runs in a dedicated Web Worker (`ModelEngine.js`) and is controlled from the main thread through the `Model` wrapper (`Model.js`).
 
 > **Where to read next**
-> - [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — the full engine architecture (two-thread design, build/step loop, wire protocol, scaling/tuning, realtime data plane). Start there for deep detail.
-> - [`./docs/`](./docs/) — per-class physiological reference (one Markdown file per model, e.g. `Heart.md`, `BloodCapacitance.md`, `Pda.md`), plus helper docs (`DataCollector.md`, `TaskScheduler.md`, `ModelScaler.md`, …).
-> - [`./docs/README.md`](./docs/README.md) — index of the per-class docs.
+> - [`../docs/engine/ARCHITECTURE.md`](../docs/engine/ARCHITECTURE.md) — the full engine architecture (two-thread design, build/step loop, wire protocol, scaling/tuning, realtime data plane). Start there for deep detail.
+> - [`../docs/engine/`](../docs/engine/) — per-class physiological reference (one Markdown file per model, e.g. `Heart.md`, `BloodCapacitance.md`, `Pda.md`), plus helper docs (`DataCollector.md`, `TaskScheduler.md`, `ModelScaler.md`, …).
+> - [`../docs/engine/README.md`](../docs/engine/README.md) — index of the per-class docs.
 >
 > This README is the **start-here / onboarding** guide. It keeps the lifecycle, a minimal usage example, and the student manual; the deep architecture lives in `ARCHITECTURE.md`.
 
 ## High-level architecture
 
-Two threads, one wire protocol. `Model.js` runs on the main thread: it spawns the worker, exposes the public API, and re-emits worker responses as events you subscribe to with `explain.on(event, handler)`. `ModelEngine.js` is the Web Worker: it owns the live `model` object, the build/step loop, and the GET/PUT/POST/DELETE message router. See [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the complete picture.
+Two threads, one wire protocol. `Model.js` runs on the main thread: it spawns the worker, exposes the public API, and re-emits worker responses as events you subscribe to with `explain.on(event, handler)`. `ModelEngine.js` is the Web Worker: it owns the live `model` object, the build/step loop, and the GET/PUT/POST/DELETE message router. See [`../docs/engine/ARCHITECTURE.md`](../docs/engine/ARCHITECTURE.md) for the complete picture.
 
 
 ## Runtime lifecycle
@@ -44,25 +44,25 @@ Two threads, one wire protocol. `Model.js` runs on the main thread: it spawns th
 
 ### Inbound commands to worker (`ModelEngine`)
 
-Commands are routed by the worker's `self.onmessage` switch on `type` then `message` — e.g. `POST build`/`start`/`stop`/`calc`/`call`/`scale`/`calibrate`/`watch`, `PUT property_value`/`diagram_definition`/`sample_interval`, `GET state`/`data`/`model_props`/`model_types`, `DELETE watchlist`. See the full command table in [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+Commands are routed by the worker's `self.onmessage` switch on `type` then `message` — e.g. `POST build`/`start`/`stop`/`calc`/`call`/`scale`/`calibrate`/`watch`, `PUT property_value`/`diagram_definition`/`sample_interval`, `GET state`/`data`/`model_props`/`model_types`, `DELETE watchlist`. See the full command table in [`../docs/engine/ARCHITECTURE.md`](../docs/engine/ARCHITECTURE.md).
 
 ### Outbound events from worker
 
-The worker posts back messages whose `type` is mapped to emitter events in `Model.receive()` — including `state`, `status`, `model_ready`, `rt_start`/`rt_stop`, `data`/`data_slow`, `rtf`/`rts` (realtime fast/slow), `prop_value`, `model_props`, `model_types`, `state_saved`, `tuned`, and `error`. Subscribe with `explain.on(event, handler)` (the `Model` is a `ModelEmitter`; these are **not** DOM `CustomEvent`s). The realtime data-plane messages (`RT_MSG.*`) bypass this and are consumed by `RealtimeBus`. See [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the full event reference.
+The worker posts back messages whose `type` is mapped to emitter events in `Model.receive()` — including `state`, `status`, `model_ready`, `rt_start`/`rt_stop`, `data`/`data_slow`, `rtf`/`rts` (realtime fast/slow), `prop_value`, `model_props`, `model_types`, `state_saved`, `tuned`, and `error`. Subscribe with `explain.on(event, handler)` (the `Model` is a `ModelEmitter`; these are **not** DOM `CustomEvent`s). The realtime data-plane messages (`RT_MSG.*`) bypass this and are consumed by `RealtimeBus`. See [`../docs/engine/ARCHITECTURE.md`](../docs/engine/ARCHITECTURE.md) for the full event reference.
 
 ## Public API (`Model.js`)
 
-The main-thread methods UI code calls — `load`/`build`/`restart`, `calculate(seconds)`, `start`/`stop`/`dispose`, `watchModelProps`/`watchModelPropsSlow` and their `clear*` counterparts, `getModelData`/`getModelDataSlow`/`getModelState`/`saveModelState`/`getModelTypes`/`getPropValue`, `setPropValue`/`callModelFunction`, `scaleModel(group, factor)`, `tune(targets, opts)`, and `updateDiagram`. Each is documented inline in `Model.js`; see [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) for the annotated public-API reference.
+The main-thread methods UI code calls — `load`/`build`/`restart`, `calculate(seconds)`, `start`/`stop`/`dispose`, `watchModelProps`/`watchModelPropsSlow` and their `clear*` counterparts, `getModelData`/`getModelDataSlow`/`getModelState`/`saveModelState`/`getModelTypes`/`getPropValue`, `setPropValue`/`callModelFunction`, `scaleModel(group, factor)`, `tune(targets, opts)`, and `updateDiagram`. Each is documented inline in `Model.js`; see [`../docs/engine/ARCHITECTURE.md`](../docs/engine/ARCHITECTURE.md) for the annotated public-API reference.
 
 ## Data collection and scheduling
 
 ### `DataCollector`
 
-Keeps two watchlists — `watch_list` (fast stream, ~0.005 s) and `watch_list_slow` (slow stream, 1.0 s) — of dot-path props resolved against `model.models`, drained each collect cycle. Full behavior in [`./docs/DataCollector.md`](./docs/DataCollector.md).
+Keeps two watchlists — `watch_list` (fast stream, ~0.005 s) and `watch_list_slow` (slow stream, 1.0 s) — of dot-path props resolved against `model.models`, drained each collect cycle. Full behavior in [`../docs/engine/DataCollector.md`](../docs/engine/DataCollector.md).
 
 ### `TaskScheduler`
 
-Runs deferred mutations on a fixed interval: `setPropValue(prop, value, it, at)` tweens numeric targets over `it` seconds after an `at`-second delay (booleans/strings swap instantly), and `callModelFunction` schedules a method call. See [`./docs/TaskScheduler.md`](./docs/TaskScheduler.md).
+Runs deferred mutations on a fixed interval: `setPropValue(prop, value, it, at)` tweens numeric targets over `it` seconds after an `at`-second delay (booleans/strings swap instantly), and `callModelFunction` schedules a method call. See [`../docs/engine/TaskScheduler.md`](../docs/engine/TaskScheduler.md).
 
 ## Model class contract
 
@@ -122,7 +122,7 @@ explain.stop();
 
 ## Notes and caveats
 
-A few things that bite newcomers: payloads crossing the worker boundary are JSON-stringified for `build`/`property_value`/`call`; UI metadata is **not** on the model classes (it lives in `src/model-interface/registry.ts`); cardiac/breathing timing counters live on the engine `model` object (`ncc_*`), not on the components; and the factor / `*_factor_ps` / `*_factor_scaling_ps` effective-value pattern means core physics params are never used raw. These and other gotchas are covered in [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+A few things that bite newcomers: payloads crossing the worker boundary are JSON-stringified for `build`/`property_value`/`call`; UI metadata is **not** on the model classes (it lives in `src/model-interface/registry.ts`); cardiac/breathing timing counters live on the engine `model` object (`ncc_*`), not on the components; and the factor / `*_factor_ps` / `*_factor_scaling_ps` effective-value pattern means core physics params are never used raw. These and other gotchas are covered in [`../docs/engine/ARCHITECTURE.md`](../docs/engine/ARCHITECTURE.md).
 
 ## Student onboarding manual
 

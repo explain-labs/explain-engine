@@ -17,7 +17,7 @@
 //
 // Refs (PubMed): Chikkabyrappa Semin Cardiothorac Vasc Anesth 2018 PMID 29411679 (PA-IVS physiology: no RV
 // outflow, obligate R->L atrial shunt, duct-dependent pulmonary flow, RV-dependent coronaries); Jaggers
-// AATS consensus J Thorac Cardiovasc Surg 2025 PMID 40320005. See explain/docs/chd_duct_fo_dependent.md (A1).
+// AATS consensus J Thorac Cardiovasc Surg 2025 PMID 40320005. See docs/engine/chd_duct_fo_dependent.md (A1).
 //
 // Lever groups (see term_neonate baseline):
 //   A atresia   RV_PA.no_flow=true (pulmonary valve atretic — no antegrade flow). diameter_vsd 0 (intact

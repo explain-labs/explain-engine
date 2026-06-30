@@ -13,7 +13,7 @@
 //
 // Refs (PubMed): Latson J Interv Cardiol 2001 PMID 12053395 (critical PS: cyanosis, PGE1 to maintain the
 // duct, balloon valvuloplasty); Aggarwal Am J Cardiol 2018 PMID 29681368 (neonatal balloon valvuloplasty
-// outcomes). See explain/docs/chd_duct_fo_dependent.md (lesion A3).
+// outcomes). See docs/engine/chd_duct_fo_dependent.md (lesion A3).
 //
 // Lever groups (see term_neonate baseline):
 //   A stenosis  RV_PA.r_for raised to a critical value (valve kept patent — no_flow stays false — so a

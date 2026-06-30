@@ -20,7 +20,7 @@
 //
 // Refs (PubMed): Ross Semin Cardiothorac Vasc Anesth 2017 PMID 27694572 (obligate R->L shunt; obstructed =
 // PGE1-unresponsive emergency); Vanderlaan 2018 PMID 29425529; Campbell J Am Soc Echocardiogr 2022 PMID
-// 35863543. See explain/docs/chd_duct_fo_dependent.md (lesion D1).
+// 35863543. See docs/engine/chd_duct_fo_dependent.md (lesion D1).
 //
 // Un-warmed output; warm to its operating point with:
 //   node scripts/reseed_tapvc.mjs <key|--all> --write

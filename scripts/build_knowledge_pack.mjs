@@ -74,7 +74,7 @@ const ENGINE_DIRS_FULL = [
 const coreEngineFiles = listDir("explain", isJs);
 const baseModelFiles = listDir("explain/base_models", isJs);
 
-const docFiles = listDir("explain/docs", (f) => f.endsWith(".md"));
+const docFiles = listDir("docs/engine", (f) => f.endsWith(".md"));
 
 const uiFiles = ["src/model-interface/registry.ts", "src/model-interface/types.ts", "src/stores/chat.ts"];
 
@@ -173,7 +173,7 @@ parts.push(
     "",
     "1. **Architecture** — the repo's CLAUDE.md (build flow, message envelope, model contract, the factor/effective-value pattern).",
     "2. **Engine onboarding** — explain/README.md.",
-    "3. **Physiology docs** — explain/docs/*.md, the per-model derivations and math.",
+    "3. **Physiology docs** — docs/engine/*.md, the per-model derivations and math.",
     "4. **Engine source** — the live ES-module classes that run in the Web Worker.",
     ...(TIER === "full"
       ? ["5. **UI / integration layer** — the parameter-edit schema and the chat store.", "6. **Scenario format** — the model-definition JSON the engine consumes."]
@@ -262,7 +262,7 @@ UI/integration layer. Use it as your primary source of truth.
 
 Guidelines:
 - Ground every answer in the embedded source and docs. Cite exact paths (e.g.
-  \`explain/base_models/Resistor.js\`, \`explain/docs/Heart.md\`) and quote the relevant
+  \`explain/base_models/Resistor.js\`, \`docs/engine/Heart.md\`) and quote the relevant
   formula or contract rather than recalling generic physiology.
 - The pack is a **snapshot** taken at build time. If asked about behavior you cannot find
   in it, say so plainly instead of guessing.
