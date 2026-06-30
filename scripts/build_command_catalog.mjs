@@ -37,6 +37,7 @@ const ENTRY = `
 export { COMMAND_ALLOWLIST, DIAGRAM_ACTIONS } from "@/services/botCommandAllowlist";
 export { MODEL_INTERFACES, getInterfaceForType } from "@/model-interface/registry";
 export { PICTOS, PATH_TYPES, LAYOUT_PATCH_WHITELIST } from "@/render/diagramConstants";
+export { COMMON_TASKS, TASK_CATEGORY_LABELS } from "@/services/commonTasks";
 `;
 
 const tmp = path.join(os.tmpdir(), `explain-cmd-catalog-${process.pid}.mjs`);
@@ -57,6 +58,8 @@ const {
   PICTOS,
   PATH_TYPES,
   LAYOUT_PATCH_WHITELIST,
+  COMMON_TASKS,
+  TASK_CATEGORY_LABELS,
 } = await import(`file://${tmp}`);
 fs.rmSync(tmp, { force: true });
 
@@ -150,6 +153,86 @@ for (const type of Object.keys(MODEL_INTERFACES).sort()) {
     for (const f of fns) full.push(funcLine(f));
   }
   full.push("");
+}
+
+// ---------------------------------------------------------------------------
+// 4a2. Common tasks — directional nudges (map onto existing setProp / scale)
+// ---------------------------------------------------------------------------
+const pct = (s) => `${Math.round(s * 100)}%`;
+// Registry field behind a setProp lever (singleton instance name === model_type for
+// these levers; resolveByType levers pass the model_type directly). Used to convert
+// the catalog's raw steps/bounds into the DISPLAY units the bot must emit (setProp
+// values are divided by field.factor by the webapp).
+const fieldOf = (t) =>
+  t.lever.kind === "setProp"
+    ? (getInterfaceForType(t.lever.model) || []).find((f) => f.target === t.lever.target)
+    : null;
+const facOf = (t) => fieldOf(t)?.factor ?? 1;
+const dispUnit = (t) => (fieldOf(t) ? unit(fieldOf(t).caption) : t.unit) || "";
+const num = (x) => Number(x.toFixed(6)).toString(); // trim float noise
+const leverDesc = (t) => {
+  if (t.lever.kind === "scale") {
+    const groups = Array.isArray(t.lever.group) ? t.lever.group : [t.lever.group];
+    return `scale ${groups.map((g) => `\`${g}\``).join(" + ")}`;
+  }
+  return t.lever.resolveByType
+    ? `setProp \`${t.lever.target}\` on each \`${t.lever.model}\` instance`
+    : `setProp \`${t.lever.model}.${t.lever.target}\``;
+};
+const taskExample = (t) => {
+  if (t.lever.kind === "scale") {
+    const g = (Array.isArray(t.lever.group) ? t.lever.group : [t.lever.group])[0];
+    return `{"op":"scale","group":"${g}","factor":<absolute, 1.0=baseline>,"reason":"${t.short} nudge"}`;
+  }
+  const m = t.lever.resolveByType ? "<instance>" : t.lever.model;
+  const u = dispUnit(t) ? ` ${dispUnit(t)}` : "";
+  if (t.mode === "absolute") {
+    // bot emits an ABSOLUTE value in DISPLAY units (it can't read most current props
+    // from context, and setProp divides by the field factor). Range is display units.
+    const lo = num((t.min ?? 0) * facOf(t));
+    const hi = num((t.max ?? 0) * facOf(t));
+    return `{"op":"setProp","model":"${m}","target":"${t.lever.target}","value":<${lo}–${hi}${u}; 0=closed/none>,"reason":"set ${t.short}"}`;
+  }
+  return `{"op":"setProp","model":"${m}","target":"${t.lever.target}","value":<target in display units, or current×(1±${pct(t.step)}) if shown>,"reason":"adjust ${t.short}"}`;
+};
+const stepDesc = (t) => {
+  if (t.mode !== "absolute") return `default ±${pct(t.step)}`;
+  const dispStep = num(t.step * facOf(t));
+  const lo = num((t.min ?? 0) * facOf(t));
+  const hi = num((t.max ?? 0) * facOf(t));
+  return `step ±${dispStep}${dispUnit(t) ? ` ${dispUnit(t)}` : ""}, range ${lo}–${hi}`;
+};
+
+const tasks = ["## Common tasks — directional nudges", ""];
+tasks.push(
+  'Curated relative adjustments ("raise PVR 30%", "halve contractility"). Each maps onto an EXISTING',
+  "`setProp` or `scale` op — there is no special nudge op. Two resolution rules:",
+  "",
+  "- **setProp levers** (a `*_factor_ps` factor or a plain number): if the field's value is shown in the",
+  "  live monitor context, multiply by (1+step) to raise / 1/(1+step) to lower; otherwise set an ABSOLUTE",
+  "  target in DISPLAY units within the field's range. Values are display units (divided by the field",
+  "  factor on apply), like any setProp.",
+  "- **scale levers** (a ModelScaler group): `factor` is ABSOLUTE from baseline 1.0 (the current factor",
+  "  is NOT visible in state) — reason about prior nudges this conversation. Apply the SAME factor to",
+  "  every listed group; >1 raises, <1 lowers.",
+  "- **absolute setProp levers** (shunt sizes — PDA/foramen ovale/VSD): set an ABSOLUTE value in DISPLAY",
+  "  units within the stated range; 0 = closed/none. The engine treats diameter 0 as a hard-closed fast",
+  "  path, so open a closed shunt by setting a positive diameter (e.g. PDA 50 = ~half-open).",
+  "",
+  "For inverse quantities (lung compliance ↔ elastance; preload ↔ unstressed volume) raising the",
+  "physiological quantity LOWERS the lever — noted per task.",
+  "",
+);
+const byCat = {};
+for (const t of COMMON_TASKS) (byCat[t.category] ??= []).push(t);
+for (const cat of Object.keys(byCat)) {
+  tasks.push(`### ${TASK_CATEGORY_LABELS[cat] ?? cat}`, "");
+  for (const t of byCat[cat]) {
+    const inv = t.invert ? " _(inverse: raising the quantity lowers the lever)_" : "";
+    tasks.push(`- **${t.label}** — ${leverDesc(t)}, ${stepDesc(t)}.${inv}${t.help ? ` ${t.help}` : ""}`);
+    tasks.push(`  - e.g. \`${taskExample(t)}\``);
+  }
+  tasks.push("");
 }
 
 // ---------------------------------------------------------------------------
@@ -256,6 +339,8 @@ fs.writeFileSync(
     "\n---\n\n" +
     full.join("\n") +
     "\n---\n\n" +
+    tasks.join("\n") +
+    "\n---\n\n" +
     events.join("\n") +
     "\n---\n\n" +
     diagram.join("\n"),
@@ -265,4 +350,5 @@ fs.writeFileSync(
 console.log(`command catalog written: ${path.relative(ROOT, OUT)}`);
 console.log(`  Guided commands : ${COMMAND_ALLOWLIST.length}`);
 console.log(`  Full mode       : ${typeCount} model_types, ${propCount} params, ${fnCount} functions`);
+console.log(`  Common tasks    : ${COMMON_TASKS.length}`);
 console.log(`  Diagram actions : ${DIAGRAM_ACTIONS.length}`);
