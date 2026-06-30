@@ -94,7 +94,7 @@ BloodCapacitance inherits the full three-tier factor system from Capacitance:
 |---|---|---|
 | Non-persistent | `u_vol_factor`, `el_base_factor`, `el_k_factor` | Transient effects, reset each step |
 | Persistent (`_ps`) | `u_vol_factor_ps`, `el_base_factor_ps`, `el_k_factor_ps` | Ongoing physiological modulation |
-| Scaling (`_scaling`) | `u_vol_factor_scaling`, `el_base_factor_scaling`, `el_k_factor_scaling` | ModelScaler weight/manual scaling |
+| Scaling (`_scaling_ps`) | `u_vol_factor_scaling_ps`, `el_base_factor_scaling_ps`, `el_k_factor_scaling_ps` | ModelScaler weight/manual scaling |
 
 ## Calculation cycle
 

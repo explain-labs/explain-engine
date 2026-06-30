@@ -67,7 +67,7 @@ A compartment whose elastance varies over time between a minimum (`el_min`) and 
 |---|---|---|
 | Non-persistent | `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | Transient effects, reset each step |
 | Persistent (`_ps`) | `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | Ongoing physiological modulation |
-| Scaling (`_scaling`) | `u_vol_factor_scaling`, `el_min_factor_scaling`, `el_max_factor_scaling`, `el_k_factor_scaling` | ModelScaler weight/manual scaling |
+| Scaling (`_scaling_ps`) | `u_vol_factor_scaling_ps`, `el_min_factor_scaling_ps`, `el_max_factor_scaling_ps`, `el_k_factor_scaling_ps` | ModelScaler weight/manual scaling |
 
 Each effective value is computed additively:
 
@@ -75,7 +75,7 @@ Each effective value is computed additively:
 el_min_eff = el_min
   + (el_min_factor - 1) * el_min
   + (el_min_factor_ps - 1) * el_min
-  + (el_min_factor_scaling - 1) * el_min
+  + (el_min_factor_scaling_ps - 1) * el_min
 ```
 
 Note: `el_max_eff` is clamped to never fall below `el_min_eff`.

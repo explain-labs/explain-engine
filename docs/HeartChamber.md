@@ -85,7 +85,7 @@ ANS activation *decreases* el_min (better relaxation):
 el_min_eff = el_min
   + (el_min_factor - 1) * el_min
   + (el_min_factor_ps - 1) * el_min
-  + (el_min_factor_scaling - 1) * el_min
+  + (el_min_factor_scaling_ps - 1) * el_min
   - (ans_activity - 1) * el_min * ans_sens    // note: SUBTRACTED
 ```
 
@@ -97,11 +97,21 @@ ANS activation *increases* el_max (stronger contraction):
 el_max_eff = el_max
   + (el_max_factor - 1) * el_max
   + (el_max_factor_ps - 1) * el_max
-  + (el_max_factor_scaling - 1) * el_max
+  + (el_max_factor_scaling_ps - 1) * el_max
+  + (el_max_mob_factor - 1) * el_max          // myocardial-oxygen-balance (Mob)
+  + (el_max_drug_factor - 1) * el_max         // inotropy (Drugs PK/PD)
+  + (el_max_load_factor - 1) * el_max         // acute load-induced depression (HeartFunction)
+  + (el_max_remodel_factor - 1) * el_max      // chronic remodeling (HeartFunction)
   + (ans_activity - 1) * el_max * ans_sens    // note: ADDED
 ```
 
 A safety check ensures `el_max_eff` never falls below `el_min_eff`.
+
+`el_k_eff` likewise adds a chronic remodeling term (`el_k_remodel_factor`, diastolic stiffening from
+HeartFunction) alongside its three factor tiers, and `calc_volumes()` is overridden to add the
+eccentric-dilation term (`u_vol_remodel_factor`, HeartFunction) to `u_vol_eff`. All four of these
+extra factors default to `1.0` (no effect) and are *not* reset each step — see
+[HeartFunction.md](./HeartFunction.md) and the Mob/Drugs models.
 
 ## Three-tier factor system
 
@@ -109,7 +119,7 @@ A safety check ensures `el_max_eff` never falls below `el_min_eff`.
 |---|---|---|
 | Non-persistent | `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | Transient effects, reset each step |
 | Persistent (`_ps`) | `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | Heart model contractility/relaxation factors |
-| Scaling (`_scaling`) | `u_vol_factor_scaling`, `el_min_factor_scaling`, `el_max_factor_scaling`, `el_k_factor_scaling` | ModelScaler weight/manual scaling |
+| Scaling (`_scaling_ps`) | `u_vol_factor_scaling_ps`, `el_min_factor_scaling_ps`, `el_max_factor_scaling_ps`, `el_k_factor_scaling_ps` | ModelScaler weight/manual scaling |
 
 The persistent factors are the primary mechanism by which the `Heart` model controls chamber function:
 - `el_max_factor_ps` is adjusted by `Heart.set_contractillity()` via `cont_factor_left/right`
@@ -140,7 +150,7 @@ Applied to: `to2`, `tco2`, all `solutes`, all `drugs`, `temp`, `viscosity`.
 ## Calculation cycle
 
 1. `calc_elastances()` -- compute el_min_eff, el_max_eff, el_k_eff with ANS modulation (overridden)
-2. `calc_volumes()` -- compute u_vol_eff (inherited from TimeVaryingElastance)
+2. `calc_volumes()` -- compute u_vol_eff including the `u_vol_remodel_factor` term (overridden)
 3. `calc_pressure()` -- compute time-varying pressure (inherited from TimeVaryingElastance)
 
 ## Interaction with the Heart model

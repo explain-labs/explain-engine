@@ -43,7 +43,7 @@ velocities, and returns early. The full path below runs only while the duct is p
 Each open-duct step executes in this order:
 
 1. **Viscosity** — pulled from the upstream `AAR` compartment (tracks hematocrit).
-2. **Diameters** — `diameter_ao` and `diameter_pa` from `diameter_relative` × their respective maxima.
+2. **Diameters** — `diameter_ao` and `diameter_pa` from the effective relative diameter `diameter_relative_eff = diameter_relative · diameter_drug_factor` (PGE1 patency) × their respective maxima, each capped at the anatomic max.
 3. **Flow gating** — set `no_flow` when the pulmonary end is fully constricted (`diameter_pa === 0`).
 4. **Viscous resistance** — `res = calc_conical_resistance(d_ao, d_pa, length, viscosity)` over the full cone.
 5. **Bernoulli orifice term** — compute `B = K_BERNOULLI / A_eff²` from the pulmonary effective orifice area, then set `AAR_DA.r_for/r_back = res + B·|Q_prev|` (semi-implicit quadratic stenosis element).
@@ -65,13 +65,15 @@ Each open-duct step executes in this order:
 | Property | Unit | Description |
 |---|---|---|
 | `discharge_coeff` | 0.3..1 | Effective vena-contracta contraction `Cd` of the pulmonary orifice. The Bernoulli coefficient uses `A_eff = Cd · A_pa`, so `B ∝ 1/Cd²`. The single tuning knob for peak jet velocity (lower `Cd` → tighter jet → higher velocity). Default `0.8` |
+| `diameter_drug_factor` | multiplier | Patency multiplier owned by the `Drugs` model (`1.0` = neutral). Prostaglandin E1 (alprostadil / PGE1) drives this above `1.0` to hold a constricting duct open in duct-dependent CHD; it multiplies `diameter_relative` (the product is capped at the anatomic max). **It does not reopen a fully-closed duct** — the `diameter_relative === 0` fast path stays keyed on the raw value (clinically the duct is maintained patent from birth on PGE1, never allowed to reach 0). Default `1.0` |
 
 ### Dependent (recomputed each step)
 
 | Property | Unit | Description |
 |---|---|---|
-| `diameter_ao` | mm | Current diameter at aortic end (= `diameter_relative · diameter_ao_max`) |
-| `diameter_pa` | mm | Current diameter at pulmonary end (= `diameter_relative · diameter_pa_max`) |
+| `diameter_relative_eff` | 0..1 | Effective relative diameter after the drug factor (`diameter_relative · diameter_drug_factor`); the read-out that actually drives the geometry |
+| `diameter_ao` | mm | Current diameter at aortic end (= `min(diameter_relative_eff · diameter_ao_max, diameter_ao_max)`) |
+| `diameter_pa` | mm | Current diameter at pulmonary end (= `min(diameter_relative_eff · diameter_pa_max, diameter_pa_max)`) |
 | `viscosity` | cP | Blood viscosity pulled from the upstream `AAR` compartment |
 | `flow` | L/s | Shunt flow through the duct; +ve = L→R (aorta → pulmonary) |
 | `flow_ao`, `flow_pa` | L/s | Aliases of `flow` (single resistor now; kept for probe/back-compat) |

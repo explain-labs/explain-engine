@@ -242,9 +242,6 @@ const build = function (model_definition) {
   // set model initializer to false
   model_initialized = false;
 
-  // store the model definition
-  model_definition = model_definition;
-
   // erase all data
   model_data = {};
   model_data_slow = {};
@@ -617,22 +614,28 @@ const get_property = function (prop) {
 };
 
 const get_model_props = function (model_name) {
-  let modelStateCopy = { ...models };
-  delete modelStateCopy["DataCollector"];
-  delete modelStateCopy["TaskScheduler"];
-  Object.values(modelStateCopy).forEach((m) => {
-    for (const key in m) {
-      if (key.startsWith("_")) {
-        delete m[key];
-      }
+  // return the public (non-underscore) properties of one live model instance
+  const m = model.models[model_name];
+  if (!m) {
+    _send({
+      type: "status",
+      message: `ERROR: model not found (${model_name})`,
+      payload: [],
+    });
+    return;
+  }
+  // copy onto a fresh object so the live instance is never mutated
+  const props = {};
+  for (const key in m) {
+    if (!key.startsWith("_")) {
+      props[key] = m[key];
     }
-  });
+  }
   _send({
     type: "model_props",
     message: "",
-    payload: modelStateCopy,
+    payload: props,
   });
-
 }
 
 const get_model_types = function () {

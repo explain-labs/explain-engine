@@ -76,13 +76,23 @@ Each model step executes in this order:
 
 ## Three-tier factor system
 
-Each physical property can be modulated by three independent factor tiers. All factors default to 1.0 (no change). The effective value is computed additively:
+Each physical property can be modulated by three independent factor tiers. All factors default to 1.0 (no change).
+
+**Composition differs by property.** `BloodVessel` **overrides** `calc_resistances()` and `calc_elastances()`, so its resistance (`r_for`/`r_back`/`r_k`) and elastance (`el_base`/`el_k`) tiers compose **multiplicatively** (the product of the three factors, plus the ANS multiplier for `r`/`el`):
 
 ```
-value_eff = base
-  + (factor - 1) * base          # tier 1: non-persistent
-  + (factor_ps - 1) * base       # tier 2: persistent
-  + (factor_scaling - 1) * base  # tier 3: scaling
+value_eff = base * factor * factor_ps * factor_scaling_ps   # r_for, r_back, r_k, el_base, el_k
+```
+
+Multiplicative composition lets simultaneous factors compound correctly: `r_factor = 2` with `r_factor_ps = 2` gives a true 4× rise, not the linearised 3× the additive form produces.
+
+The unstressed volume `u_vol` is **not** overridden — it is computed by the inherited `Capacitance.calc_volumes()`, which is still **additive** (matching the base-class convention):
+
+```
+u_vol_eff = u_vol
+  + (u_vol_factor - 1) * u_vol             # tier 1: non-persistent
+  + (u_vol_factor_ps - 1) * u_vol          # tier 2: persistent
+  + (u_vol_factor_scaling_ps - 1) * u_vol  # tier 3: scaling
 ```
 
 ### Tier 1: Non-persistent factors (reset every step)
@@ -95,7 +105,7 @@ value_eff = base
 | `r_factor` | `r_for`, `r_back` |
 | `r_k_factor` | `r_k` |
 
-These are set by other models during a step (e.g., the breathing model applying intrathoracic pressure effects) and automatically reset to 1.0 after use.
+These are set by other models during a step (e.g., the breathing model applying intrathoracic pressure effects) and automatically reset to 1.0 after use (`r_factor`/`r_k_factor` in `calc_resistances`, `el_base_factor`/`el_k_factor` in `calc_elastances`, `u_vol_factor` in `calc_volumes`).
 
 ### Tier 2: Persistent factors (`_ps`)
 
@@ -109,17 +119,17 @@ These are set by other models during a step (e.g., the breathing model applying 
 
 These persist across steps and are used by controllers like the ANS or Heart model to apply ongoing physiological modulation.
 
-### Tier 3: Scaling factors (`_scaling`)
+### Tier 3: Scaling factors (`_scaling_ps`)
 
 | Factor | Affects |
 |---|---|
-| `el_base_factor_scaling` | `el_base` |
-| `el_k_factor_scaling` | `el_k` |
-| `u_vol_factor_scaling` | `u_vol` |
-| `r_factor_scaling` | `r_for`, `r_back` |
-| `r_k_factor_scaling` | `r_k` |
+| `el_base_factor_scaling_ps` | `el_base` |
+| `el_k_factor_scaling_ps` | `el_k` |
+| `u_vol_factor_scaling_ps` | `u_vol` |
+| `r_factor_scaling_ps` | `r_for`, `r_back` |
+| `r_k_factor_scaling_ps` | `r_k` |
 
-These are used exclusively by the `ModelScaler` for weight-based or manual scaling. Having a dedicated tier means scaling does not interfere with physiological factors in tier 2. The `ModelScaler.incorporate()` method can bake scaling factors into the base properties and reset them to 1.0.
+These are used exclusively by the `ModelScaler` for weight-based or manual scaling. Having a dedicated tier means scaling does not interfere with physiological factors in tier 2. (Note the `_scaling_ps` suffix — capacitance/resistor/elastance scaling factors all carry it; this differs from the diffusor/exchanger models, whose scaling factors are bare `*_factor_scaling`.)
 
 ## ANS and resistance-elastance coupling
 
@@ -127,32 +137,33 @@ The ANS influences both resistance and elastance, but through different pathways
 
 ### Resistance
 
-ANS modulates resistance directly, scaled by sensitivity:
+ANS modulates resistance directly, scaled by sensitivity. The ANS contribution is a sensitivity-weighted multiplier `ans_mult = 1 + (ans_activity - 1) * ans_sens`, composed multiplicatively with the three resistance-factor tiers:
 
 ```
-r_for_eff = r_for
-  + (r_factor - 1) * r_for
-  + (r_factor_ps - 1) * r_for
-  + (ans_activity - 1) * r_for * ans_sens
-  + (r_factor_scaling - 1) * r_for
+ans_mult       = 1 + (ans_activity - 1) * ans_sens
+r_total_factor = r_factor * r_factor_ps * r_factor_scaling_ps * ans_mult
+
+r_for_eff = r_for * r_total_factor
+r_back_eff = r_back * r_total_factor
 ```
+
+`r_k` carries its own factor stack with the same ANS coupling: `r_k_eff = r_k · r_k_factor · r_k_factor_ps · r_k_factor_scaling_ps · ans_mult`. The combined `r_total_factor` is cached and reused by the elastance step (single source of truth for the α-coupling).
 
 ### Elastance (alpha coupling)
 
-When a vessel constricts (resistance increases), its wall also becomes stiffer (elastance increases). The `alpha` parameter controls how strongly resistance changes translate into elastance changes using a power-law relationship:
+When a vessel constricts (resistance increases), its wall also becomes stiffer (elastance increases). The `alpha` parameter controls how strongly resistance changes translate into elastance changes via a power law applied **once** to the *combined* resistance multiplier `r_total_factor` (which already folds in the ANS contribution):
 
 ```
-_r_elas_factor     = r_factor    ^ alpha
-_r_ps_elas_factor  = r_factor_ps ^ alpha
-_ans_elas_factor   = ans_activity ^ alpha
+el_passive_mult = el_base_factor * el_base_factor_ps * el_base_factor_scaling_ps
+el_geom_mult    = r_total_factor ^ alpha            # α-coupling to resistance
 
-el_eff = el_base
-  + (el_base_factor - 1) * el_base
-  + (el_base_factor_ps - 1) * el_base
-  + (_r_elas_factor - 1) * el_base
-  + (_r_ps_elas_factor - 1) * el_base
-  + (_ans_elas_factor - 1) * el_base * ans_sens
-  + (el_base_factor_scaling - 1) * el_base
+el_eff = el_base * el_passive_mult * el_geom_mult
+```
+
+`el_k` is **not** α-coupled — the non-linear stiffening term is treated as a structural property of the wall, so it carries only its own passive multipliers:
+
+```
+el_k_eff = el_k * el_k_factor * el_k_factor_ps * el_k_factor_scaling_ps
 ```
 
 Typical alpha values:
@@ -164,7 +175,7 @@ An alpha of 0.0 means resistance changes have no effect on elastance.
 
 ## Externally managed mode
 
-When `is_externally_managed = true`, the BloodVessel is controlled by a parent model (typically a `MicroVascularUnit`). In this mode, all three tiers of factors are reset to 1.0 every step, and the parent sets the base properties (`el_base`, `r_for`, `r_back`, `u_vol`, etc.) directly. This prevents double-application of factors.
+`is_externally_managed` is a flag (default `false`) read by an owning model to indicate that it controls this object directly. A `BloodVessel` sets it to `true` on every input `Resistor` it creates, then overwrites that resistor's `r_for`/`r_back`/`r_k` from its own effective values each step (so the resistor never applies its own factor stack). The same pattern is used when a `BloodVessel` is itself a sub-component of a parent model (typically a `MicroVascularUnit`): the parent sets the base properties (`el_base`, `r_for`, `r_back`, `u_vol`, etc.) directly each step, and the non-persistent tier-1 factors reset to 1.0 automatically — the parent is expected to leave the persistent (`_ps`) and scaling (`_scaling_ps`) tiers at 1.0 so its directly-set values are not double-modulated.
 
 ## Pressure calculation
 

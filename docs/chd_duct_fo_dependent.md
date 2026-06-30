@@ -39,7 +39,7 @@ For each lesion: the **dependency**, the **mechanism**, and the **engine levers*
 - Ductus → `Pda` model, resistor `AAR_DA` wired `AAR → PA`, levers `diameter_relative` / `length` / `discharge_coeff` (bidirectional; see [`Pda.js`](../component_models/Pda.js) and [`docs/Pda.md`](./Pda.md) if present).
 - Foramen ovale → `Shunts.diameter_fo` (LA↔RA via the split resistors `LA_RAIVCI` / `LA_RASVC`, with flap-valve asymmetry `fo_lr_factor`); restrictive/intact = `diameter_fo → 0`.
 - VSD → `Shunts.diameter_vsd` (LV↔RV). Intrapulmonary shunt → `Shunts.ips_res`. See [`Shunts.js`](../component_models/Shunts.js).
-- Valves are `Resistor`s in `Heart.components`: `LA_LV` (mitral), `RA_RV` (tricuspid), `RV_PA` (pulmonary), `LV_AA` (aortic). **Atresia** = `no_flow: true`; **stenosis** = raise `r_for`.
+- Valves are `HeartValve`s (a `Resistor` subclass) in `Heart.components`: `LA_LV` (mitral), `RV_PA` (pulmonary), `LV_AA` (aortic). The **tricuspid is split** into two resistors `RAIVCI_RV` + `RASVC_RV` (there is no single `RA_RV` valve model — `RA_RV` is only a diagram connector grouping the two). **Atresia** = `no_flow: true`; **stenosis** = raise `r_for` (set on both halves of the tricuspid).
 - **TGA outflow tracts are pre-wired but disabled** in `term_neonate.json`: `RV_AA` (RV→AA, `is_enabled: false`) and `LV_PA` (LV→PA, `is_enabled: false`), alongside the normal `RV_PA` and `LV_AA`.
 
 ### A. Duct-dependent pulmonary blood flow
@@ -116,7 +116,7 @@ These lesions depend on an **obligatory atrial-level shunt**; a restrictive or i
 | Ductus arteriosus | `Pda.diameter_relative` / `length` / `discharge_coeff` (AAR↔PA, bidirectional) |
 | Foramen ovale | `Shunts.diameter_fo` (LA↔RA, flap-valve asymmetry via `fo_lr_factor`); restrictive/intact = `→0` |
 | VSD | `Shunts.diameter_vsd` (LV↔RV) |
-| Valve atresia | `RV_PA` / `LV_AA` / `LA_LV` / `RA_RV` → `no_flow: true` |
+| Valve atresia | `RV_PA` / `LV_AA` / `LA_LV` (and tricuspid `RAIVCI_RV` + `RASVC_RV`) → `no_flow: true` |
 | Valve stenosis | same valves → raise `r_for` |
 | Valve regurgitation | lower `r_back` (e.g. tricuspid for Ebstein) |
 | TGA outflow swap | enable `RV_AA` + `LV_PA`, disable `RV_PA` + `LV_AA` (pre-wired) |

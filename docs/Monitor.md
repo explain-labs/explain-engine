@@ -7,16 +7,14 @@ without affecting the simulation. The `DataCollector` relays its read-outs (via 
 to the user.
 
 The model is deliberately minimal. It computes a handful of bedside values itself — **heart rate**,
-**respiratory rate**, **end-tidal CO₂**, **temperature**, the **O₂ saturations** (pre-/post-ductal and
-venous) and the **post-ductal blood pressure** — and exposes everything else through three uniform,
-**JSON-configurable** read-out systems (`flow_targets`, `minmax_targets`, `signal_targets`) plus a few
-derived metrics.
+**respiratory rate**, **end-tidal CO₂**, **temperature** and the **O₂ saturations** (pre-/post-ductal
+and venous) — and exposes everything else through three uniform, **JSON-configurable** read-out systems
+(`flow_targets`, `minmax_targets`, `signal_targets`) plus a few derived metrics.
 
-> The arterial blood pressure (`abp_syst`/`abp_diast`/`abp_mean`) is a built-in 2-level read-out rather
-> than a `minmax_targets` entry on purpose: the bedside numerics stream on the slow channel, and a flat
-> 2-part path (`Monitor.abp_syst`) reads back reliably there. (`minmax_targets` still works for any
-> compartment, but its keys are 3-part paths — `Monitor.minmax.<name>_pres_max` — better suited to the
-> fast/diagram side.)
+> **Arterial blood pressure is not a built-in field.** There is no `abp_syst`/`abp_diast`/`abp_mean`
+> property on this model. To monitor a pressure waveform's per-beat extremes and mean, add the
+> compartment (e.g. `AD` for post-ductal ABP) to `minmax_targets`; the values then publish as the flat
+> keys `Monitor.minmax.<name>_pres_min` / `_pres_max` / `_pres_mean`.
 
 ## Built-in read-outs
 
@@ -24,11 +22,10 @@ derived metrics.
 |---|---|
 | `heart_rate` | rolling average of the beat-to-beat rate over the last **`hr_avg_beats`** beats (bpm) |
 | `resp_rate` | rolling average of the breath-to-breath rate over the last **`rr_avg_time`** seconds (breaths/min) |
-| `etco2` | end-tidal CO₂, mirrored each step from `Ventilator.etco2` (last value kept if no ventilator) |
+| `etco2` | end-tidal CO₂; mirrored from `Ventilator.etco2` while the ventilator is enabled, otherwise derived from the spontaneous breath (see below) |
 | `temp` | blood temperature (°C), mirrored each step from `AA.temp` (last value kept if AA is absent) |
 | `sao2_pre`, `sao2_post` | pre-/post-ductal arterial O₂ saturation, from `AA.so2` / `AD.so2` |
 | `svo2` | venous O₂ saturation, from the right atrium / IVC (`RAIVCI.so2`) |
-| `abp_syst`, `abp_diast`, `abp_mean` | post-ductal arterial blood pressure (mmHg), latched each beat from the per-beat max/min of `AD.pres` (mean ≈ `(2·diast + syst)/3`) |
 
 **Heart rate** — on each ventricular beat (`Heart.ncc_ventricular === 1`), the beat-to-beat rate is
 `60 / interval` (interval = time since the previous beat). A running window of the last `hr_avg_beats`
@@ -39,6 +36,13 @@ the start of inspiration (`ncc_insp === 1`): the spontaneous `Breathing` model (
 `breathing_enabled`) or the `Ventilator` (when `is_enabled`). It keeps a rolling window of
 breath-to-breath intervals spanning ~`rr_avg_time` seconds and reports `breaths / window-time × 60`,
 updated every breath. Both references are optional (`?? null`); a missing source is simply skipped.
+
+**End-tidal CO₂** — while the `Ventilator` is enabled, `etco2` is mirrored straight from
+`Ventilator.etco2`. Otherwise it is derived from the spontaneous breath: `calc_resp_rate` tracks the
+running peak airway pCO₂ over each breath on the airway gas compartment named by `etco2_source`
+(default `"DS"`, resolved to `_ds`), and latches that end-expiratory peak as `etco2` at the onset of the
+next spontaneous breath (resetting the per-breath peak). If neither source is present the last value is
+kept.
 
 ## Configurable read-outs
 
@@ -78,7 +82,7 @@ Published as **flat** keys under `Monitor.minmax`, reset every beat:
 | Key | Unit | Source |
 |---|---|---|
 | `<name>_pres_min`, `<name>_pres_max` | mmHg | compartment `pres` (total pressure) |
-| `<name>_pres_mean` | mmHg | `(2·pres_min + pres_max) / 3` |
+| `<name>_pres_mean` | mmHg | **true time-averaged mean** over the beat (`Σpres / n`), not the arterial `(2·min+max)/3` estimate — that approximation badly underestimates atrial/venous means (CVP) whose a/c/v waves dip well below diastole, so an integral mean is used and is correct for all waveforms |
 | `<name>_vol_min`, `<name>_vol_max` | mL | compartment `vol` (× 1000) |
 
 Watch e.g. `Monitor.minmax.left_ventricle_pres_max`. The keys are **flat** (not a nested object)

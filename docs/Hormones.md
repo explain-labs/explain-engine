@@ -105,4 +105,3 @@ optionally `--hset aldosterone_tc=…` to compress for a quick loop check):
 - Not modeled: ANP / natriuretic peptides, thirst / fluid intake, direct osmotic water-follows-Na
   coupling. Severe (>~15%) acute hemorrhage can drive the circulation model to non-physiologic
   (negative) pressures — a pre-existing circulation limitation, independent of this layer.
-```

@@ -42,7 +42,7 @@ interval, decoupled from the model step size.
 
 `Ans` holds no control logic itself — it is wiring and gating.
 
-## `AnsEfferent` — receptor curve
+## `AnsAfferent` — receptor curve
 
 Each afferent maps its input to a normalized firing rate in **[0, 1]**, with **0.5 as the setpoint**
 (no effect). Updated every `_update_interval` (0.015 s):
