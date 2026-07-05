@@ -169,13 +169,47 @@ export function buildLiveControllers(model, targets, tolOverrides = {}) {
       makeController({ key, readKey: READ_KEY[key] ?? key, target: targets[key], tol: tol(key), ...spec }),
     );
 
-  // MAP <- systemic arteriolar resistance factor (composes; ↑ raises MAP)
+  // MAP <- systemic arteriolar resistance. Nudge the arterioles' persistent r_factor_ps DIRECTLY
+  // (delta-accumulating), NOT Circulation.svr_factor_art: that master knob is owned and OVERWRITTEN
+  // every step by the Hormones model (RAAS, Hormones.js -> _circ.svr_factor_art = svr_factor), so a
+  // write to it does not stick and the live MAP tune cannot lower MAP. Circulation's own master knobs
+  // (svr_factor_art/_ven/_drug) all fan out DELTAS to these same arterioles' r_factor_ps, so applying
+  // our own delta composes additively with the Hormones/ANS/Drugs contributions instead of colliding,
+  // and is not clobbered. ↑ factor => ↑ resistance => ↑ MAP.
   if (targets.map != null && model.models.Circulation) {
-    mk("map", {
-      lo: -8, hi: 12, sign: +1, gain: 0.05,
-      value: model.models.Circulation.svr_factor_art ?? 1,
-      set: (v) => (model.models.Circulation.svr_factor_art = v),
-    });
+    // Align the baroreflex arterial-pressure set-point to the target so the ANS defends the NEW
+    // operating point instead of dragging MAP back toward the loaded baseline (mirrors the offline
+    // builder's BR_MAP.set_value = target.map). Without this the arteriolar lever below is opposed
+    // each step by the baroreflex and MAP only partly moves.
+    if (model.models.BR_MAP && typeof model.models.BR_MAP.set_value === "number") {
+      model.models.BR_MAP.set_value = targets.map;
+    }
+    // Use the SAME broad systemic-resistance vessel set the offline builder scales
+    // (scaler_config.blood_systemic.resistance: the whole systemic tree, not just the four organ
+    // arterioles). Nudging only Circulation.systemic_arterioles has weak MAP authority — halving
+    // those organ beds barely moves MAP because flow/CO compensates — whereas the full systemic set
+    // gives clean bidirectional authority. Fall back to the arterioles if no scaler config is present.
+    const sysRes =
+      model.scaler_config?.blood_systemic?.resistance ||
+      model.ModelScaler?._config?.blood_systemic?.resistance ||
+      model.models.Circulation.systemic_arterioles ||
+      [];
+    let applied = 1.0;
+    const set = (v) => {
+      const delta = v - applied;
+      for (const n of sysRes) {
+        const m = model.models[n];
+        if (m && typeof m.r_factor_ps === "number") {
+          let f = m.r_factor_ps + delta;
+          if (f < 0) f = 0;
+          m.r_factor_ps = f;
+        }
+      }
+      applied = v;
+    };
+    // Gentle seed gain: the broad systemic set is a strong lever (~30 mmHg per unit r_factor_ps), so
+    // a large first step overshoots; keep the seed small and let the secant refine.
+    mk("map", { lo: 0.2, hi: 8, sign: +1, gain: 0.02, value: 1.0, set });
   }
   // Cardiac output <- ventricular contractility (el_max persistent factor)
   if (targets.co != null) {
