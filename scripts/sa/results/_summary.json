@@ -9,82 +9,82 @@
         "designated": "systemic_R",
         "oatTop": "systemic_R",
         "sobol": {
-          "Si": 0.3129242691067766,
-          "STi": 0.4010590222251943,
-          "SiMaxParam": "weight",
-          "isMax": false,
-          "interaction": 0.08813475311841767,
+          "Si": 0.5622667687001047,
+          "STi": 0.713953855937557,
+          "SiMaxParam": "systemic_R",
+          "isMax": true,
+          "interaction": 0.15168708723745228,
           "CI": [
-            0.20372686745919455,
-            0.4250442532949953
+            0.4850531618454078,
+            0.6346525035829722
           ]
         },
         "prcc": 0.8946171377240903,
-        "verdict": "dominated by weight"
+        "verdict": "dominant, interacting"
       },
       "pap_m": {
         "designated": "pulmonary_R",
         "oatTop": "pulmonary_R",
         "sobol": {
-          "Si": 0.5104721190247152,
-          "STi": 0.5924608801620278,
+          "Si": 0.6674796335035276,
+          "STi": 0.8903016458269222,
           "SiMaxParam": "pulmonary_R",
           "isMax": true,
-          "interaction": 0.08198876113731257,
+          "interaction": 0.2228220123233946,
           "CI": [
-            0.4069326683520009,
-            0.5900496358495176
+            0.6015482544620633,
+            0.7247376377602394
           ]
         },
         "prcc": 0.912270990180614,
-        "verdict": "ONE-LEVER OK"
+        "verdict": "dominant, interacting"
       },
       "co": {
         "designated": "contractility",
-        "oatTop": "weight",
+        "oatTop": "systemic_R",
         "sobol": {
-          "Si": 0.06692051094243279,
-          "STi": 0.0735054595926324,
-          "SiMaxParam": "weight",
+          "Si": 0.17180062766086956,
+          "STi": 0.14278170567454057,
+          "SiMaxParam": "venous_uvol",
           "isMax": false,
-          "interaction": 0.00658494865019961,
+          "interaction": -0.029018921986328994,
           "CI": [
-            -0.020309860644000644,
-            0.1520938701869563
+            0.09648994480823181,
+            0.2502402479082084
           ]
         },
         "prcc": 0.48451255977367597,
-        "verdict": "dominated by weight"
+        "verdict": "dominated by venous_uvol"
       },
       "hr": {
         "designated": "heart_rate_ref",
         "oatTop": "systemic_R",
         "sobol": {
-          "Si": 0.9679524995069964,
-          "STi": 1.004757678278639,
-          "SiMaxParam": "heart_rate_ref",
-          "isMax": true,
-          "interaction": 0.03680517877164258,
+          "Si": 0.7559779330733114,
+          "STi": 1.122857969895281,
+          "SiMaxParam": "venous_uvol",
+          "isMax": false,
+          "interaction": 0.36688003682196957,
           "CI": [
-            -0.13398333529155293,
-            0.9919946766669502
+            -9.299546428738239,
+            0.9842350948964256
           ]
         },
         "prcc": 0.8355851735442235,
-        "verdict": "ONE-LEVER OK"
+        "verdict": "dominated by venous_uvol"
       },
       "spo2": {
         "designated": "O2_diffusion",
         "oatTop": "uma",
         "sobol": {
-          "Si": -0.0028344117906549116,
-          "STi": 0.0120845934646781,
+          "Si": -0.009669525833313486,
+          "STi": 0.027986777977787966,
           "SiMaxParam": "uma",
           "isMax": false,
-          "interaction": 0.01491900525533301,
+          "interaction": 0.03765630381110145,
           "CI": [
-            -0.09269917390854654,
-            0.07859504497887682
+            -0.10532666976459404,
+            0.07776536876741469
           ]
         },
         "prcc": 0.1698321190024231,
@@ -94,14 +94,14 @@
         "designated": "O2_diffusion",
         "oatTop": "uma",
         "sobol": {
-          "Si": 0.01640504631855333,
-          "STi": 0.037279865065247865,
+          "Si": 0.07537979384081073,
+          "STi": 0.071580189248743,
           "SiMaxParam": "uma",
           "isMax": false,
-          "interaction": 0.020874818746694536,
+          "interaction": -0.0037996045920677263,
           "CI": [
-            -0.07089978336146974,
-            0.10909820327298125
+            -0.017468427734015135,
+            0.16451967739825024
           ]
         },
         "prcc": 0.20099171724039422,
@@ -111,14 +111,14 @@
         "designated": "vent_drive",
         "oatTop": "vent_drive",
         "sobol": {
-          "Si": 0.026979734251037835,
-          "STi": 0.06716332247980175,
+          "Si": -0.03483813764130117,
+          "STi": 0.1260088094971593,
           "SiMaxParam": "uma",
           "isMax": false,
-          "interaction": 0.04018358822876392,
+          "interaction": 0.16084694713846048,
           "CI": [
-            -0.09154813501077186,
-            0.1442499218793969
+            -0.14494057926548543,
+            0.05986323576882713
           ]
         },
         "prcc": -0.1157909842500204,
@@ -128,31 +128,31 @@
         "designated": "uma",
         "oatTop": "uma",
         "sobol": {
-          "Si": 0.7894982406572052,
-          "STi": 0.8820786460994371,
+          "Si": 0.6671533511029074,
+          "STi": 1.0848050291306108,
           "SiMaxParam": "uma",
           "isMax": true,
-          "interaction": 0.0925804054422319,
+          "interaction": 0.4176516780277034,
           "CI": [
-            0.7081946475280853,
-            0.8513503839406271
+            0.5749400852078914,
+            0.7565893462053278
           ]
         },
         "prcc": 0.11339352382605564,
-        "verdict": "ONE-LEVER OK"
+        "verdict": "dominant, interacting"
       },
       "ph": {
         "designated": "uma",
         "oatTop": "uma",
         "sobol": {
-          "Si": 0.6699000615245889,
-          "STi": 0.8327123904284764,
+          "Si": 0.5485732761690204,
+          "STi": 1.0944001261214409,
           "SiMaxParam": "uma",
           "isMax": true,
-          "interaction": 0.16281232890388753,
+          "interaction": 0.5458268499524205,
           "CI": [
-            0.5819339770147276,
-            0.7390606782031127
+            0.4290269172808857,
+            0.6615247224211414
           ]
         },
         "prcc": 0.16962918283178552,
@@ -162,31 +162,31 @@
         "designated": "venous_uvol",
         "oatTop": "venous_uvol",
         "sobol": {
-          "Si": 0.3068096997008124,
-          "STi": 0.534423026602399,
+          "Si": 0.6669746439816642,
+          "STi": 0.7287004133460816,
           "SiMaxParam": "venous_uvol",
           "isMax": true,
-          "interaction": 0.22761332690158664,
+          "interaction": 0.06172576936441743,
           "CI": [
-            0.1822765441900539,
-            0.4209153557554527
+            0.6237561752924821,
+            0.7065305359871102
           ]
         },
         "prcc": -0.8008113719535744,
-        "verdict": "dominant, interacting"
+        "verdict": "ONE-LEVER OK"
       },
       "q_da": {
         "designated": "pda_diameter",
         "oatTop": "pda_diameter",
         "sobol": {
-          "Si": 0.10705004540043017,
-          "STi": 0.5186213536424136,
+          "Si": 0.031530857683900626,
+          "STi": 0.4299944159482786,
           "SiMaxParam": "pulmonary_R",
           "isMax": false,
-          "interaction": 0.4115713082419834,
+          "interaction": 0.39846355826437796,
           "CI": [
-            -0.0919722508608869,
-            0.28765921396605343
+            -0.16824012657819587,
+            0.18302852430135919
           ]
         },
         "prcc": 0.4908086203502043,
@@ -196,18 +196,18 @@
         "designated": "fo_diameter",
         "oatTop": "fo_diameter",
         "sobol": {
-          "Si": -0.21684064815969784,
-          "STi": 0.6496995398879408,
-          "SiMaxParam": "contractility",
+          "Si": 0.26472915193088564,
+          "STi": 0.5692670903390651,
+          "SiMaxParam": "systemic_R",
           "isMax": false,
-          "interaction": 0.8665401880476387,
+          "interaction": 0.30453793840817944,
           "CI": [
-            -0.5935859674729946,
-            0.08314725683025315
+            0.026516289621604794,
+            0.4678786262296921
           ]
         },
         "prcc": 0.33377753479261785,
-        "verdict": "dominated by contractility"
+        "verdict": "dominated by systemic_R"
       }
     },
     "identifiability": {
@@ -219,20 +219,18 @@
         "O2_diffusion",
         "vent_drive",
         "uma",
-        "venous_uvol",
-        "weight"
+        "venous_uvol"
       ],
-      "condition": 3590.356626167891,
+      "condition": 1407.1084920128246,
       "eigenvalues": [
-        77.59838405433902,
-        22.61587996075014,
-        16.140362442256205,
-        5.399589973115638,
-        1.4301138094517043,
-        0.8212332814762029,
-        0.6706180715447175,
-        0.11139406212183679,
-        0.021613001752742986
+        77.58062405732488,
+        16.949088261528992,
+        12.11470688807503,
+        3.6453866280608427,
+        1.3324239554426276,
+        0.7145282533908924,
+        0.3612242685332782,
+        0.05513478491366947
       ],
       "qrOrder": [
         {
@@ -244,32 +242,28 @@
           "residualNorm": 3.8510409519601754
         },
         {
-          "param": "weight",
-          "residualNorm": 3.319368788215093
-        },
-        {
           "param": "pulmonary_R",
-          "residualNorm": 2.8071008604031267
-        },
-        {
-          "param": "heart_rate_ref",
-          "residualNorm": 1.118936929096493
+          "residualNorm": 3.1939220218868396
         },
         {
           "param": "venous_uvol",
-          "residualNorm": 1.0150157311116794
+          "residualNorm": 2.192211780158141
+        },
+        {
+          "param": "heart_rate_ref",
+          "residualNorm": 1.1336116838759607
         },
         {
           "param": "vent_drive",
-          "residualNorm": 0.8355806755382279
+          "residualNorm": 0.8373573034880968
         },
         {
           "param": "contractility",
-          "residualNorm": 0.32681209822429685
+          "residualNorm": 0.627347109479035
         },
         {
           "param": "O2_diffusion",
-          "residualNorm": 0.174582603987513
+          "residualNorm": 0.23576804482649005
         }
       ]
     }

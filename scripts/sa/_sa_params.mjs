@@ -62,7 +62,13 @@ export const REDUCED = [
   { name: "fo_diameter", subsystem: "shunt", order: 20, scale: "linear", lo: 0, hi: 12,
     nominal: (m) => m.models.Shunts?.diameter_fo ?? 0,
     designatedOut: "q_fo", apply: (m, e, v) => { if (m.models.Shunts) m.models.Shunts.diameter_fo = v; } },
-  { name: "weight", subsystem: "body-size", order: 0, scale: "log", lo: 0.6, hi: 4,
+  // weight is a MEASURED input (birth weight), set directly and never tuned to hit a vital sign.
+  // context:true => held fixed (conditioned on), NOT sampled, in the calibration-oriented SA — otherwise
+  // its wide 0.6-4 kg range dominates the variance of size-dependent outputs and masks the conditional
+  // one-lever structure. Still reachable via run_sa --include-context for the population variance decomposition.
+  // (The same principle would apply to other measured inputs — haemoglobin, temperature — but only weight
+  // materially distorts the results, so only it is flagged context.)
+  { name: "weight", subsystem: "body-size", order: 0, scale: "log", lo: 0.6, hi: 4, context: true,
     nominal: (m) => m.weight,
     designatedOut: null, apply: (m, eng, v) => { eng.scale("weight_scale", v); m.weight = v; } },
 ];
@@ -139,6 +145,13 @@ export function getParamSet(name) {
   if (name === "reduced") return REDUCED;
   if (name === "expanded") return EXPANDED;
   throw new Error(`unknown param set "${name}" (use reduced|expanded)`);
+}
+
+// the TUNABLE lever set = the param set minus measured `context` inputs (weight). This is the default
+// input space for the calibration-oriented SA; pass includeContext=true for the population decomposition.
+export function getLeverSet(name, { includeContext = false } = {}) {
+  const set = getParamSet(name);
+  return includeContext ? set : set.filter((p) => !p.context);
 }
 
 // apply a full parameter vector to a freshly-built model, in the correct order

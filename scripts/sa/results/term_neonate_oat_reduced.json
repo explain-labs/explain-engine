@@ -5,7 +5,7 @@
   "warm": 60,
   "window": 12,
   "seed": 20260710,
-  "k": 11,
+  "k": 10,
   "params": [
     "systemic_R",
     "pulmonary_R",
@@ -16,8 +16,7 @@
     "uma",
     "venous_uvol",
     "pda_diameter",
-    "fo_diameter",
-    "weight"
+    "fo_diameter"
   ],
   "nominal": [
     1,
@@ -29,12 +28,11 @@
     5.8500907404043705,
     1,
     0,
-    0,
-    3.545
+    0
   ],
-  "nOk": 23,
-  "nTotal": 23,
-  "elapsed": 46.703575875,
+  "nOk": 21,
+  "nTotal": 21,
+  "elapsed": 44.629975458,
   "result": {
     "baseline": {
       "hr": 130.86150490730662,
@@ -116,12 +114,6 @@
           "dydx": 0,
           "elasticity": null,
           "normSens": 0
-        },
-        {
-          "param": "weight",
-          "dydx": -14.751230141586989,
-          "elasticity": -0.3996065220934663,
-          "normSens": -0.7631254282233948
         }
       ],
       "map": [
@@ -184,12 +176,6 @@
           "dydx": -0.007628189230774276,
           "elasticity": null,
           "normSens": -0.0018307654153858263
-        },
-        {
-          "param": "weight",
-          "dydx": 7.975919714476119,
-          "elasticity": 0.4791756079901371,
-          "normSens": 1.0728075171918159
         }
       ],
       "sys": [
@@ -252,12 +238,6 @@
           "dydx": -0.007488027828420247,
           "elasticity": null,
           "normSens": -0.001382405137554507
-        },
-        {
-          "param": "weight",
-          "dydx": 12.364908140216679,
-          "elasticity": 0.6056214341691916,
-          "normSens": 1.279347651534998
         }
       ],
       "dia": [
@@ -320,12 +300,6 @@
           "dydx": -0.007240067323053267,
           "elasticity": null,
           "normSens": -0.00217202019691598
-        },
-        {
-          "param": "weight",
-          "dydx": 4.790903931338007,
-          "elasticity": 0.36478420837300946,
-          "normSens": 0.8055054990013819
         }
       ],
       "cvp": [
@@ -388,12 +362,6 @@
           "dydx": -0.005790986000429783,
           "elasticity": null,
           "normSens": -0.013898366401031478
-        },
-        {
-          "param": "weight",
-          "dydx": 0.970878840465687,
-          "elasticity": 1.115923464705928,
-          "normSens": 1.3058884186655528
         }
       ],
       "pap_m": [
@@ -456,12 +424,6 @@
           "dydx": -0.004479116185969189,
           "elasticity": null,
           "normSens": -0.0021499757692652107
-        },
-        {
-          "param": "weight",
-          "dydx": 5.429352885659028,
-          "elasticity": 0.7088408820222473,
-          "normSens": 1.4605589819693066
         }
       ],
       "co": [
@@ -524,12 +486,6 @@
           "dydx": -0.000024294921800634597,
           "elasticity": null,
           "normSens": -0.0005830781232152303
-        },
-        {
-          "param": "weight",
-          "dydx": 0.15140336278547128,
-          "elasticity": 0.780656202664196,
-          "normSens": 2.0364631483134463
         }
       ],
       "spo2": [
@@ -592,12 +548,6 @@
           "dydx": -0.0013636750682148127,
           "elasticity": null,
           "normSens": -0.00017225369282713424
-        },
-        {
-          "param": "weight",
-          "dydx": -0.166142107648763,
-          "elasticity": -0.006075808421099799,
-          "normSens": -0.011761620133728133
         }
       ],
       "spo2_post": [
@@ -660,12 +610,6 @@
           "dydx": -0.001208534056355385,
           "elasticity": null,
           "normSens": -0.00015265693343436443
-        },
-        {
-          "param": "weight",
-          "dydx": -0.19104755801696077,
-          "elasticity": -0.00700988060330104,
-          "normSens": -0.013524739975143862
         }
       ],
       "svo2": [
@@ -728,12 +672,6 @@
           "dydx": -0.002807018603145176,
           "elasticity": null,
           "normSens": -0.0005182188190421863
-        },
-        {
-          "param": "weight",
-          "dydx": -1.5704475813662264,
-          "elasticity": -0.07040583043948784,
-          "normSens": -0.16248793782340962
         }
       ],
       "po2": [
@@ -796,12 +734,6 @@
           "dydx": -0.011646510206517744,
           "elasticity": null,
           "normSens": -0.0019965446068316134
-        },
-        {
-          "param": "weight",
-          "dydx": -1.4646371938582234,
-          "elasticity": -0.0693351219592271,
-          "normSens": -0.1407158625837578
         }
       ],
       "pco2": [
@@ -864,12 +796,6 @@
           "dydx": 0.0009638798709114362,
           "elasticity": null,
           "normSens": 0.00028916396127343086
-        },
-        {
-          "param": "weight",
-          "dydx": 0.06883818307721987,
-          "elasticity": 0.006136089334532618,
-          "normSens": 0.011573919202858756
         }
       ],
       "ph": [
@@ -932,12 +858,6 @@
           "dydx": -0.000009866997414675892,
           "elasticity": null,
           "normSens": -0.000016000536348123066
-        },
-        {
-          "param": "weight",
-          "dydx": -0.0007770607802301873,
-          "elasticity": -0.0003741464993969345,
-          "normSens": -0.0007062107248464893
         }
       ],
       "be": [
@@ -1000,12 +920,6 @@
           "dydx": -0.00020758574992285614,
           "elasticity": null,
           "normSens": -0.0004982057998148547
-        },
-        {
-          "param": "weight",
-          "dydx": -0.01942528446193741,
-          "elasticity": 0.022808995873676706,
-          "normSens": -0.026128135613667763
         }
       ],
       "etco2": [
@@ -1068,12 +982,6 @@
           "dydx": -0.00030593753375995897,
           "elasticity": null,
           "normSens": -0.00010489286871770022
-        },
-        {
-          "param": "weight",
-          "dydx": -0.33423681086635354,
-          "elasticity": -0.033111294597711595,
-          "normSens": -0.06422398850108128
         }
       ],
       "q_da": [
@@ -1133,12 +1041,6 @@
         },
         {
           "param": "fo_diameter",
-          "dydx": 0,
-          "elasticity": null,
-          "normSens": 0
-        },
-        {
-          "param": "weight",
           "dydx": 0,
           "elasticity": null,
           "normSens": 0
@@ -1204,12 +1106,6 @@
           "dydx": 0.33469841383282234,
           "elasticity": null,
           "normSens": 0.08032761931987736
-        },
-        {
-          "param": "weight",
-          "dydx": 0,
-          "elasticity": null,
-          "normSens": 0
         }
       ]
     },
@@ -1226,20 +1122,18 @@
         "O2_diffusion",
         "vent_drive",
         "uma",
-        "venous_uvol",
-        "weight"
+        "venous_uvol"
       ],
-      "condition": 3590.356626167891,
+      "condition": 1407.1084920128246,
       "eigenvalues": [
-        77.59838405433902,
-        22.61587996075014,
-        16.140362442256205,
-        5.399589973115638,
-        1.4301138094517043,
-        0.8212332814762029,
-        0.6706180715447175,
-        0.11139406212183679,
-        0.021613001752742986
+        77.58062405732488,
+        16.949088261528992,
+        12.11470688807503,
+        3.6453866280608427,
+        1.3324239554426276,
+        0.7145282533908924,
+        0.3612242685332782,
+        0.05513478491366947
       ],
       "qrOrder": [
         {
@@ -1251,32 +1145,28 @@
           "residualNorm": 3.8510409519601754
         },
         {
-          "param": "weight",
-          "residualNorm": 3.319368788215093
-        },
-        {
           "param": "pulmonary_R",
-          "residualNorm": 2.8071008604031267
-        },
-        {
-          "param": "heart_rate_ref",
-          "residualNorm": 1.118936929096493
+          "residualNorm": 3.1939220218868396
         },
         {
           "param": "venous_uvol",
-          "residualNorm": 1.0150157311116794
+          "residualNorm": 2.192211780158141
+        },
+        {
+          "param": "heart_rate_ref",
+          "residualNorm": 1.1336116838759607
         },
         {
           "param": "vent_drive",
-          "residualNorm": 0.8355806755382279
+          "residualNorm": 0.8373573034880968
         },
         {
           "param": "contractility",
-          "residualNorm": 0.32681209822429685
+          "residualNorm": 0.627347109479035
         },
         {
           "param": "O2_diffusion",
-          "residualNorm": 0.174582603987513
+          "residualNorm": 0.23576804482649005
         }
       ]
     }

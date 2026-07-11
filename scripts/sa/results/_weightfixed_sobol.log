@@ -1,0 +1,17 @@
+
+=== SA run: scenario=term_neonate tier=sobol set=reduced (k=10) ===
+workers=9  warm=60s  window=12s  seed=20260710  [calibration: context fixed]
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.85  venous_uvol=1  pda_diameter=0  fo_diameter=0
+design: 6144 evaluations
+  worker 4: 683 rows done (683/6144 total)
+  worker 2: 683 rows done (1366/6144 total)
+  worker 1: 683 rows done (2049/6144 total)
+  worker 5: 683 rows done (2732/6144 total)
+  worker 7: 683 rows done (3415/6144 total)
+  worker 3: 683 rows done (4098/6144 total)
+  worker 8: 680 rows done (4778/6144 total)
+  worker 0: 683 rows done (5461/6144 total)
+  worker 6: 683 rows done (6144/6144 total)
+evaluated 6144/6144 ok in 12414.3s (2.02s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/term_neonate_sobol_reduced.json

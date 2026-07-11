@@ -16,7 +16,7 @@ import os from "node:os";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createEvaluator } from "./_sa_eval.mjs";
-import { getParamSet, OUTPUTS, DESIGNATED } from "./_sa_params.mjs";
+import { getLeverSet, OUTPUTS, DESIGNATED } from "./_sa_params.mjs";
 import { problemFromParams, toParam, morris, saltelli, saltelliSlices, lhs, unitToValue, mulberry32 } from "./_sa_sampling.mjs";
 import { sobolJansen, sobolBootstrap, morrisEE, prcc, prccBootstrap, fimAnalysis } from "./_sa_analysis.mjs";
 
@@ -36,6 +36,9 @@ const N = Number(arg("--N", "512"));
 const r = Number(arg("--r", "30"));
 const seed = Number(arg("--seed", "20260710"));
 const nWorkers = Number(arg("--workers", String(Math.max(1, os.cpus().length - 2))));
+// by default the SA samples only the TUNABLE levers; measured `context` inputs (weight) are held fixed.
+// --include-context reproduces the population variance decomposition (weight sampled over its full range).
+const includeContext = argv.includes("--include-context");
 const log = (...a) => console.error(...a);
 
 // characteristic clinical scale per output — used to normalise the local sensitivity
@@ -46,7 +49,8 @@ const OUTSCALE = {
   svo2: 65, po2: 70, pco2: 40, ph: 7.4, be: 5, etco2: 35, q_da: 50, q_fo: 50,
 };
 
-const params = getParamSet(paramSet);
+const params = getLeverSet(paramSet, { includeContext });
+const paramNames = params.map((p) => p.name);   // the exact sampled subset, for worker-side alignment
 const problem = problemFromParams(params);
 const k = params.length;
 
@@ -54,7 +58,7 @@ if (!fs.existsSync(RESULTS)) fs.mkdirSync(RESULTS, { recursive: true });
 
 // ---------- nominal vector (one build in the parent) ----------
 log(`\n=== SA run: scenario=${scenario} tier=${tier} set=${paramSet} (k=${k}) ===`);
-log(`workers=${nWorkers}  warm=${warm}s  window=${window}s  seed=${seed}`);
+log(`workers=${nWorkers}  warm=${warm}s  window=${window}s  seed=${seed}  ${includeContext ? "[population: context INCLUDED]" : "[calibration: context fixed]"}`);
 const { nominals } = await createEvaluator({ scenario, warm, window });
 const nom = nominals(params);
 log("nominal vector:", params.map((p, i) => `${p.name}=${fmt(nom[i], 3)}`).join("  "));
@@ -234,7 +238,9 @@ async function evaluateParallel(rows) {
     if (!sh.rows.length) return resolve();
     const cfgPath = `${HERE}results/.cfg_${tier}_${w}.json`;
     const outFile = `${HERE}results/.out_${tier}_${w}.jsonl`;
-    fs.writeFileSync(cfgPath, JSON.stringify({ scenario, warm, window, paramSet, rows: sh.rows, offset: sh.offset, outFile }));
+    // paramNames pins the worker to the SAME sampled subset (context-excluded) and order as the parent,
+    // so each row's values line up with the worker's reconstructed param list.
+    fs.writeFileSync(cfgPath, JSON.stringify({ scenario, warm, window, paramSet, paramNames, rows: sh.rows, offset: sh.offset, outFile }));
     const child = spawn(process.execPath, [EVAL, cfgPath], { stdio: ["ignore", "ignore", "inherit"] });
     child.on("exit", (code) => {
       if (code !== 0) return reject(new Error(`worker ${w} exited ${code}`));
