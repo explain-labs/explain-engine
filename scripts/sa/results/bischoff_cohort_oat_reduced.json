@@ -1,0 +1,1293 @@
+{
+  "scenario": "bischoff_cohort",
+  "tier": "oat",
+  "paramSet": "reduced",
+  "warm": 60,
+  "window": 12,
+  "seed": 20260710,
+  "k": 11,
+  "params": [
+    "systemic_R",
+    "pulmonary_R",
+    "contractility",
+    "heart_rate_ref",
+    "O2_diffusion",
+    "vent_drive",
+    "uma",
+    "venous_uvol",
+    "pda_diameter",
+    "fo_diameter",
+    "weight"
+  ],
+  "nominal": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    2.999999449744664,
+    1,
+    0.33,
+    1.5,
+    0.72
+  ],
+  "nOk": 23,
+  "nTotal": 23,
+  "elapsed": 136.064120375,
+  "result": {
+    "baseline": {
+      "hr": 202.02020202020077,
+      "map": 25.767026577479115,
+      "sys": 28.680348254379194,
+      "dia": 22.541963894451076,
+      "cvp": 0.5333749260790605,
+      "pap_m": 10.08529210151306,
+      "co": 0.21328543147394455,
+      "spo2": 96.18072670500082,
+      "spo2_post": 95.91826923996342,
+      "svo2": 82.63872467148924,
+      "po2": 71.6231408671716,
+      "pco2": 46.501551696984734,
+      "ph": 7.347199684861388,
+      "be": -1.173128847666425,
+      "etco2": 40.66327874105792,
+      "q_da": 27.37714417465221,
+      "q_fo": 3.8950917484271588
+    },
+    "elasticities": {
+      "hr": [
+        {
+          "param": "systemic_R",
+          "dydx": -74.79888827872317,
+          "elasticity": -0.370254496979682,
+          "normSens": -1.889198021843405
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": 4.771896014840332,
+          "elasticity": 0.02362088527345979,
+          "normSens": 0.13540730127932826
+        },
+        {
+          "param": "contractility",
+          "dydx": -17.720922981737665,
+          "elasticity": -0.08771856875960199,
+          "normSens": -0.31387640839880576
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 191.27847848345607,
+          "elasticity": 0.9468284684931134,
+          "normSens": 1.6185102025523208
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0,
+          "elasticity": 0,
+          "normSens": 0
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0,
+          "elasticity": 0,
+          "normSens": 0
+        },
+        {
+          "param": "uma",
+          "dydx": 0.0005559624727808911,
+          "elasticity": 0.000008256041206485762,
+          "normSens": 0.00017106537624027415
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": 81.70546475839011,
+          "elasticity": 0.40444205055403354,
+          "normSens": 0.5028028600516314
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 44.12838910332909,
+          "elasticity": 0.07208372360028852,
+          "normSens": 0.33944914694868533
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 2.5105626183229406,
+          "elasticity": 0.01864092744104795,
+          "normSens": 0.23174424169134836
+        },
+        {
+          "param": "weight",
+          "dydx": -140.06602344001212,
+          "elasticity": -0.49919530754020625,
+          "normSens": -1.4716913664269977
+        }
+      ],
+      "map": [
+        {
+          "param": "systemic_R",
+          "dydx": 6.130845977755749,
+          "elasticity": 0.23793377785833575,
+          "normSens": 0.4026021527303002
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -0.4680391319253769,
+          "elasticity": -0.01816426627721385,
+          "normSens": -0.0345307987496169
+        },
+        {
+          "param": "contractility",
+          "dydx": 1.3802236772879481,
+          "elasticity": 0.053565500588037995,
+          "normSens": 0.06356164928641309
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 1.2299966055527474,
+          "elasticity": 0.04773529463534564,
+          "normSens": 0.027059925322160443
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.004136630791349684,
+          "elasticity": -0.00016053970289940946,
+          "normSens": -0.00036253652611012823
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.033712198047831474,
+          "elasticity": 0.0013083464615702533,
+          "normSens": 0.0017029572854400162
+        },
+        {
+          "param": "uma",
+          "dydx": -0.0011790574932870614,
+          "elasticity": -0.00013727512642727914,
+          "normSens": -0.0009432459946296491
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -6.7736362562548385,
+          "elasticity": -0.2628800120140804,
+          "normSens": -0.10837818010007742
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": -3.8627437020008424,
+          "elasticity": -0.04947041203327649,
+          "normSens": -0.07725487404001685
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.21352562736019817,
+          "elasticity": -0.012430166906422785,
+          "normSens": -0.05124615056644756
+        },
+        {
+          "param": "weight",
+          "dydx": 11.473421626979375,
+          "elasticity": 0.32059824778716633,
+          "normSens": 0.3134369874753281
+        }
+      ],
+      "sys": [
+        {
+          "param": "systemic_R",
+          "dydx": 8.115839494005968,
+          "elasticity": 0.282975625749829,
+          "normSens": 0.40996405883845266
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -0.7567008509174398,
+          "elasticity": -0.026383949183807397,
+          "normSens": -0.04294428033630579
+        },
+        {
+          "param": "contractility",
+          "dydx": 1.678307833616768,
+          "elasticity": 0.058517693674117355,
+          "normSens": 0.05945302460217079
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": -1.7503291639799106,
+          "elasticity": -0.0610288671690956,
+          "normSens": -0.02962095508273695
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.0034135029486655065,
+          "elasticity": -0.00011901888074682984,
+          "normSens": -0.00023012401290138583
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.03140517012678662,
+          "elasticity": 0.0010950065824947358,
+          "normSens": 0.0012203221195169062
+        },
+        {
+          "param": "uma",
+          "dydx": 0.0009225785250572828,
+          "elasticity": 0.00009650284030618379,
+          "normSens": 0.0005677406308044817
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -9.227867837710892,
+          "elasticity": -0.32174880708785997,
+          "normSens": -0.1135737580025956
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": -2.293848000706547,
+          "elasticity": -0.026393328055825786,
+          "normSens": -0.035289969241639185
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.3016854032555619,
+          "elasticity": -0.01577833368234106,
+          "normSens": -0.05569576675487297
+        },
+        {
+          "param": "weight",
+          "dydx": 16.03821813822519,
+          "elasticity": 0.40262820231825286,
+          "normSens": 0.33703115983738596
+        }
+      ],
+      "dia": [
+        {
+          "param": "systemic_R",
+          "dydx": 4.281357646966664,
+          "elasticity": 0.18992833397362338,
+          "normSens": 0.35143677796079653
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -0.11329597753952594,
+          "elasticity": -0.0050260029725012045,
+          "normSens": -0.010448380094482781
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.7567644922403668,
+          "elasticity": 0.033571364757027745,
+          "normSens": 0.04356286596849692
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 3.95696908137621,
+          "elasticity": 0.17553790343663253,
+          "normSens": 0.1088166497378458
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.007056851679951243,
+          "elasticity": -0.0003130539873541522,
+          "normSens": -0.0007730828004622368
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.01141522537813202,
+          "elasticity": 0.000506398884834608,
+          "normSens": 0.0007207940429695645
+        },
+        {
+          "param": "uma",
+          "dydx": -0.001201205125361149,
+          "elasticity": -0.00015986250053399216,
+          "normSens": -0.001201205125361149
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -4.328617550509724,
+          "elasticity": -0.19202486397271074,
+          "normSens": -0.08657235101019449
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": -6.002859914513474,
+          "elasticity": -0.08787804740815307,
+          "normSens": -0.15007149786283686
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.11878272218688163,
+          "elasticity": -0.007904106497312852,
+          "normSens": -0.03563481665606449
+        },
+        {
+          "param": "weight",
+          "dydx": 7.042110359407876,
+          "elasticity": 0.22492802679103654,
+          "normSens": 0.2404751093748824
+        }
+      ],
+      "cvp": [
+        {
+          "param": "systemic_R",
+          "dydx": -0.24598998825603866,
+          "elasticity": -0.46119526102278074,
+          "normSens": -0.16153741128273374
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": 0.11986047809727514,
+          "elasticity": 0.22472087126103227,
+          "normSens": 0.08843017100266234
+        },
+        {
+          "param": "contractility",
+          "dydx": -0.16342708744622692,
+          "elasticity": -0.306401893781566,
+          "normSens": -0.07526095506902329
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.5565155495485611,
+          "elasticity": 1.0433852855431576,
+          "normSens": 0.12243342090068346
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0.0002049299403414282,
+          "elasticity": 0.00038421367469953415,
+          "normSens": 0.00017960169136365357
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.004902127886864492,
+          "elasticity": 0.009190773032585085,
+          "normSens": 0.0024762889643831893
+        },
+        {
+          "param": "uma",
+          "dydx": -0.0006767147202670077,
+          "elasticity": -0.00380622276971118,
+          "normSens": -0.005413717762136062
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -1.8200624638660607,
+          "elasticity": -3.4123510027846318,
+          "normSens": -0.29120999421856975
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": -0.05725388473171168,
+          "elasticity": -0.03542307865942745,
+          "normSens": -0.011450776946342337
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.039460829059325214,
+          "elasticity": 0.1109749271944855,
+          "normSens": 0.09470598974238051
+        },
+        {
+          "param": "weight",
+          "dydx": 0.722763220683935,
+          "elasticity": 0.9756542601616363,
+          "normSens": 0.19744827124319675
+        }
+      ],
+      "pap_m": [
+        {
+          "param": "systemic_R",
+          "dydx": -3.004491326544999,
+          "elasticity": -0.2979082109177825,
+          "normSens": -0.39459959696111047
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": 7.653474458026897,
+          "elasticity": 0.7588748427899946,
+          "normSens": 1.1293097872320486
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.2968660993757624,
+          "elasticity": 0.02943554796308028,
+          "normSens": 0.027342378201516783
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.8265102748572386,
+          "elasticity": 0.08195204130312103,
+          "normSens": 0.0363664520937185
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.0009953930828365868,
+          "elasticity": -0.00009869749659380233,
+          "normSens": -0.00017447356003840272
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.048555518439791015,
+          "elasticity": 0.004814488063514433,
+          "normSens": 0.0049055225505047146
+        },
+        {
+          "param": "uma",
+          "dydx": -0.0032741379902718752,
+          "elasticity": -0.0009739343263771315,
+          "normSens": -0.005238620784435001
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -4.540624897475705,
+          "elasticity": -0.4502224478748108,
+          "normSens": -0.14529999671922256
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 10.525759552039064,
+          "elasticity": 0.34441249863767204,
+          "normSens": 0.42103038208156257
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.39116674494936565,
+          "elasticity": 0.05817879259402119,
+          "normSens": 0.1877600375756955
+        },
+        {
+          "param": "weight",
+          "dydx": 6.4713528265151155,
+          "elasticity": 0.46199693456492485,
+          "normSens": 0.3535756639611713
+        }
+      ],
+      "co": [
+        {
+          "param": "systemic_R",
+          "dydx": -0.024938059268863493,
+          "elasticity": -0.11692340680057177,
+          "normSens": -0.16376396312985722
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -0.021487541718183078,
+          "elasticity": -0.10074547318909612,
+          "normSens": -0.15852990232724326
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.032113560885392904,
+          "elasticity": 0.1505661247627969,
+          "normSens": 0.14788841315532475
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.02401039582320282,
+          "elasticity": 0.11257400778513081,
+          "normSens": 0.0528228708110462
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.0000147592995200764,
+          "elasticity": -0.00006919975461089771,
+          "normSens": -0.00012935128721220843
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.0003721502474480405,
+          "elasticity": 0.0017448460725903038,
+          "normSens": 0.0018799010799318424
+        },
+        {
+          "param": "uma",
+          "dydx": 0.000025059429671785153,
+          "elasticity": 0.00035247731036638815,
+          "normSens": 0.0020047543737428124
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -0.13102221466707506,
+          "elasticity": -0.6143045671784716,
+          "normSens": -0.2096355434673201
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 0.17319747076162853,
+          "elasticity": 0.267975008683702,
+          "normSens": 0.34639494152325706
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.005557022845473306,
+          "elasticity": -0.03908159226162734,
+          "normSens": -0.13336854829135936
+        },
+        {
+          "param": "weight",
+          "dydx": 0.24661116820353174,
+          "elasticity": 0.8324996221236703,
+          "normSens": 0.673705405000762
+        }
+      ],
+      "spo2": [
+        {
+          "param": "systemic_R",
+          "dydx": 0.7202105694511399,
+          "elasticity": 0.007488096566998524,
+          "normSens": 0.0248921022724301
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -4.17661430366857,
+          "elasticity": -0.04342464906174816,
+          "normSens": -0.1621792283427513
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.6201357344728913,
+          "elasticity": 0.006447609159524555,
+          "normSens": 0.015030687345580981
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.6812203073143958,
+          "elasticity": 0.007082711169398727,
+          "normSens": 0.007887814084693004
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0.13433043306152267,
+          "elasticity": 0.0013966460606347061,
+          "normSens": 0.006196205637082835
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.6407779178249957,
+          "elasticity": 0.006662227868067035,
+          "normSens": 0.017036117280955717
+        },
+        {
+          "param": "uma",
+          "dydx": 0.08705594993755385,
+          "elasticity": 0.0027153860326996405,
+          "normSens": 0.036655136815812145
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -3.2266145478144965,
+          "elasticity": -0.03354741285861725,
+          "normSens": -0.027171490928964186
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 2.843338123789039,
+          "elasticity": 0.0097556091848659,
+          "normSens": 0.029929874987253045
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.04832088272832398,
+          "elasticity": 0.000753595097225621,
+          "normSens": 0.006103690449893556
+        },
+        {
+          "param": "weight",
+          "dydx": 0.9718890599387808,
+          "elasticity": 0.007275471366547066,
+          "normSens": 0.013973988571213743
+        }
+      ],
+      "spo2_post": [
+        {
+          "param": "systemic_R",
+          "dydx": 0.6371775597766549,
+          "elasticity": 0.0066429217794015515,
+          "normSens": 0.0220222941128802
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -4.265450175220152,
+          "elasticity": -0.044469632417460186,
+          "normSens": -0.16562875277806638
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.6913236297843797,
+          "elasticity": 0.007207423937715781,
+          "normSens": 0.01675612088816892
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.6784423449741698,
+          "elasticity": 0.007073129554463472,
+          "normSens": 0.007855648204964072
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0.14719621180798348,
+          "elasticity": 0.0015346003735715406,
+          "normSens": 0.006789660217533491
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.6603196175203269,
+          "elasticity": 0.006884190287758144,
+          "normSens": 0.017555664972313274
+        },
+        {
+          "param": "uma",
+          "dydx": 0.12323148111549644,
+          "elasticity": 0.0038542644531338113,
+          "normSens": 0.05188693941705114
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -3.5562200606385344,
+          "elasticity": -0.03707552366006277,
+          "normSens": -0.029947116300113975
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 2.822598887761672,
+          "elasticity": 0.009710951212339733,
+          "normSens": 0.029711567239596545
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.04455089505140582,
+          "elasticity": 0.0006967008798910456,
+          "normSens": 0.0056274814801775775
+        },
+        {
+          "param": "weight",
+          "dydx": 0.9773429127095951,
+          "elasticity": 0.007336317708052681,
+          "normSens": 0.014052405007234989
+        }
+      ],
+      "svo2": [
+        {
+          "param": "systemic_R",
+          "dydx": -3.1347171743880065,
+          "elasticity": -0.03793278740504933,
+          "normSens": -0.15834731293932705
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -5.62219294056464,
+          "elasticity": -0.06803339430653536,
+          "normSens": -0.3190706465463587
+        },
+        {
+          "param": "contractility",
+          "dydx": 3.1875318339818453,
+          "elasticity": 0.0385718904382071,
+          "normSens": 0.11291635822108567
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 2.3898505698269905,
+          "elasticity": 0.02891925764013515,
+          "normSens": 0.040443625027841386
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0.17343766222984536,
+          "elasticity": 0.0020987456294770507,
+          "normSens": 0.011692437774565455
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.7758021324191365,
+          "elasticity": 0.009387876392129173,
+          "normSens": 0.03014562566409907
+        },
+        {
+          "param": "uma",
+          "dydx": 0.3756692089600691,
+          "elasticity": 0.01363776394960562,
+          "normSens": 0.23118105166773484
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -14.378025428311668,
+          "elasticity": -0.17398653579744988,
+          "normSens": -0.17696031296383594
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": -2.6351536902984667,
+          "elasticity": -0.010522920353083698,
+          "normSens": -0.040540826004591794
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.2870963376314724,
+          "elasticity": -0.005211170769625672,
+          "normSens": -0.0530024007935026
+        },
+        {
+          "param": "weight",
+          "dydx": 0.42390608637867505,
+          "elasticity": 0.0036933336448008586,
+          "normSens": 0.008908069382958406
+        }
+      ],
+      "po2": [
+        {
+          "param": "systemic_R",
+          "dydx": 4.988075640897156,
+          "elasticity": 0.06964335242080169,
+          "normSens": 0.23397027311833796
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -29.370712544533617,
+          "elasticity": -0.4100729483366689,
+          "normSens": -1.5477859722602358
+        },
+        {
+          "param": "contractility",
+          "dydx": 4.979697711414036,
+          "elasticity": 0.06952638003755118,
+          "normSens": 0.1638025388274075
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 3.81705221096912,
+          "elasticity": 0.05329356077874354,
+          "normSens": 0.059982249029514746
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 1.1000285848565003,
+          "elasticity": 0.015358563887843927,
+          "normSens": 0.06886220796776861
+        },
+        {
+          "param": "vent_drive",
+          "dydx": -4.128400855635283,
+          "elasticity": -0.05764060058873419,
+          "normSens": -0.1489602899466392
+        },
+        {
+          "param": "uma",
+          "dydx": 1.8884606284778018,
+          "elasticity": 0.07909986601683075,
+          "normSens": 1.0791203591301726
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -23.191283333285796,
+          "elasticity": -0.3237959555040332,
+          "normSens": -0.2650432380946948
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 20.04566747543763,
+          "elasticity": 0.09235939930590825,
+          "normSens": 0.2863666782205376
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.3325807037086647,
+          "elasticity": 0.006965221707997647,
+          "normSens": 0.05701383492148537
+        },
+        {
+          "param": "weight",
+          "dydx": 7.233260745431549,
+          "elasticity": 0.07271319958404356,
+          "normSens": 0.141144310450787
+        }
+      ],
+      "pco2": [
+        {
+          "param": "systemic_R",
+          "dydx": -0.15336969787571167,
+          "elasticity": -0.003298163013464699,
+          "normSens": -0.012589406656192067
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": 0.3146391407569403,
+          "elasticity": 0.006766207347384975,
+          "normSens": 0.029016646544958502
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.5316548687388047,
+          "elasticity": 0.011433056518268366,
+          "normSens": 0.03060451438439195
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": -1.1484365968849437,
+          "elasticity": -0.02469673709747219,
+          "normSens": -0.03158200641433596
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0.13893676073546948,
+          "elasticity": 0.002987787625686445,
+          "normSens": 0.01522061465195349
+        },
+        {
+          "param": "vent_drive",
+          "dydx": -9.290072160049833,
+          "elasticity": -0.19977983144704872,
+          "normSens": -0.5866050340582134
+        },
+        {
+          "param": "uma",
+          "dydx": 0.0385913481700726,
+          "elasticity": 0.002489680861179297,
+          "normSens": 0.0385913481700726
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": 0.1184398636452143,
+          "elasticity": 0.0025470088485863196,
+          "normSens": 0.002368797272904286
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": -0.5956199859884493,
+          "elasticity": -0.004226839496819057,
+          "normSens": -0.014890499649711234
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.01775715030274109,
+          "elasticity": -0.0005727921861119046,
+          "normSens": -0.005327145090822326
+        },
+        {
+          "param": "weight",
+          "dydx": 0.2566914383923061,
+          "elasticity": 0.003974444484063194,
+          "normSens": 0.008765540239016644
+        }
+      ],
+      "ph": [
+        {
+          "param": "systemic_R",
+          "dydx": 0.0013578139401491075,
+          "elasticity": 0.00018480700108734337,
+          "normSens": 0.000602468347336784
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -0.002766357158588324,
+          "elasticity": -0.0003765185754088449,
+          "normSens": -0.001379021362845605
+        },
+        {
+          "param": "contractility",
+          "dydx": -0.004679469891520284,
+          "elasticity": -0.0006369052281459214,
+          "normSens": -0.0014560645426120367
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.010094463408466033,
+          "elasticity": 0.0013739198390463339,
+          "normSens": 0.0015005283445017079
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.0012209174087343046,
+          "elasticity": -0.00016617452377808056,
+          "normSens": -0.0007229854870014513
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.08169121265632319,
+          "elasticity": 0.011118686868501025,
+          "normSens": 0.027882410242480078
+        },
+        {
+          "param": "uma",
+          "dydx": -0.0165234866794215,
+          "elasticity": -0.006746849557970463,
+          "normSens": -0.08931614421308917
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -0.00104027233323034,
+          "elasticity": -0.0001415875949817697,
+          "normSens": -0.00011246187386273947
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 0.005257998818057886,
+          "elasticity": 0.00023616339345373838,
+          "normSens": 0.0007105403808186332
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.00015544400106130374,
+          "elasticity": 0.00003173535654303569,
+          "normSens": 0.0002520713530723844
+        },
+        {
+          "param": "weight",
+          "dydx": -0.0022624803421546907,
+          "elasticity": -0.0002217151998342767,
+          "normSens": -0.00041761913570397826
+        }
+      ],
+      "be": [
+        {
+          "param": "systemic_R",
+          "dydx": 0.028230360558623265,
+          "elasticity": -0.0240641602282467,
+          "normSens": 0.01853839417021983
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -0.05751623333648574,
+          "elasticity": 0.04902806153893189,
+          "normSens": -0.04243409028659706
+        },
+        {
+          "param": "contractility",
+          "dydx": -0.09729033370685038,
+          "elasticity": 0.08293235129319276,
+          "normSens": -0.04480385441716196
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.2098845452223598,
+          "elasticity": -0.17891005377615582,
+          "normSens": 0.04617459994891916
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.02538374548193898,
+          "elasticity": 0.02163764494618988,
+          "normSens": -0.02224644975792788
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 1.6984900685447157,
+          "elasticity": -1.4478290870805313,
+          "normSens": 0.8579850036392962
+        },
+        {
+          "param": "uma",
+          "dydx": -1.1110432071770597,
+          "elasticity": 2.841230114495905,
+          "normSens": -8.888345657416478
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -0.021630389813542795,
+          "elasticity": 0.01843820468362851,
+          "normSens": -0.003460862370166847
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 0.10932493317584727,
+          "elasticity": -0.030752997012897628,
+          "normSens": 0.021864986635169455
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.0032320760609492547,
+          "elasticity": -0.004132635644471362,
+          "normSens": 0.007756982546278211
+        },
+        {
+          "param": "weight",
+          "dydx": -0.047038325448926124,
+          "elasticity": 0.028869458278684267,
+          "normSens": -0.012850178006120238
+        }
+      ],
+      "etco2": [
+        {
+          "param": "systemic_R",
+          "dydx": 0.45171786116805734,
+          "elasticity": 0.01110874172357271,
+          "normSens": 0.04237648302017838
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -2.899549955603607,
+          "elasticity": -0.07130634925107296,
+          "normSens": -0.30560257878294633
+        },
+        {
+          "param": "contractility",
+          "dydx": 0.8152817519137397,
+          "elasticity": 0.020049582255907604,
+          "normSens": 0.053635874529904204
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": -0.28107370671377074,
+          "elasticity": -0.006912224380715497,
+          "normSens": -0.00883374506814708
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": 0.06810544127706403,
+          "elasticity": 0.0016748634981147649,
+          "normSens": 0.008526853075494643
+        },
+        {
+          "param": "vent_drive",
+          "dydx": -7.910142697118431,
+          "elasticity": -0.19452791171833173,
+          "normSens": -0.5708249711622224
+        },
+        {
+          "param": "uma",
+          "dydx": -0.00679700251406068,
+          "elasticity": -0.0005014599027280659,
+          "normSens": -0.007768002873212207
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -2.5672120351922323,
+          "elasticity": -0.0631334244230558,
+          "normSens": -0.05867913223296531
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 1.8592563306726366,
+          "elasticity": 0.015088664960567011,
+          "normSens": 0.05312160944778962
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 0.020178980479859845,
+          "elasticity": 0.0007443686701344999,
+          "normSens": 0.006918507593094804
+        },
+        {
+          "param": "weight",
+          "dydx": 0.03759703463824841,
+          "elasticity": 0.0006657078764336402,
+          "normSens": 0.0014672794789988798
+        }
+      ],
+      "q_da": [
+        {
+          "param": "systemic_R",
+          "dydx": 13.083742513659777,
+          "elasticity": 0.4779074994160157,
+          "normSens": 0.8591869573759228
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": -11.716180872141011,
+          "elasticity": -0.4279548223656111,
+          "normSens": -0.8643915779984735
+        },
+        {
+          "param": "contractility",
+          "dydx": 1.4662156166123548,
+          "elasticity": 0.053556192978297786,
+          "normSens": 0.06752172443853363
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 0.686616091407899,
+          "elasticity": 0.02507990194403181,
+          "normSens": 0.015105554010973781
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.001972605388800455,
+          "elasticity": -0.00007205300071534998,
+          "normSens": -0.00017288018706849645
+        },
+        {
+          "param": "vent_drive",
+          "dydx": -0.041243867851505495,
+          "elasticity": -0.001506507310930266,
+          "normSens": -0.0020834163686922363
+        },
+        {
+          "param": "uma",
+          "dydx": -0.0006368248836006175,
+          "elasticity": -0.00006978354967186173,
+          "normSens": -0.000509459906880494
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -3.1385351353605957,
+          "elasticity": -0.11464070596035668,
+          "normSens": -0.050216562165769536
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 248.84920900825142,
+          "elasticity": 2.9995911351760345,
+          "normSens": 4.9769841801650285
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": -0.8854044409738292,
+          "elasticity": -0.04851151212077129,
+          "normSens": -0.212497065833719
+        },
+        {
+          "param": "weight",
+          "dydx": 7.302586041042192,
+          "elasticity": 0.19205297367789356,
+          "normSens": 0.19949589964526127
+        }
+      ],
+      "q_fo": [
+        {
+          "param": "systemic_R",
+          "dydx": -2.687517503947906,
+          "elasticity": -0.6899754043105988,
+          "normSens": -0.17648467055208358
+        },
+        {
+          "param": "pulmonary_R",
+          "dydx": 6.330902065101685,
+          "elasticity": 1.6253537718740794,
+          "normSens": 0.46707869107922195
+        },
+        {
+          "param": "contractility",
+          "dydx": -8.172232984025378,
+          "elasticity": -2.098084849304341,
+          "normSens": -0.3763452369098217
+        },
+        {
+          "param": "heart_rate_ref",
+          "dydx": 19.737489286988044,
+          "elasticity": 5.0672719827352095,
+          "normSens": 0.434224764313737
+        },
+        {
+          "param": "O2_diffusion",
+          "dydx": -0.2174090871860687,
+          "elasticity": -0.05581616588976592,
+          "normSens": -0.01905384821338978
+        },
+        {
+          "param": "vent_drive",
+          "dydx": 0.3241910404405677,
+          "elasticity": 0.08323065575322489,
+          "normSens": 0.01637637194137676
+        },
+        {
+          "param": "uma",
+          "dydx": -3.566862537581904,
+          "elasticity": -2.7471973296601995,
+          "normSens": -2.8534900300655233
+        },
+        {
+          "param": "venous_uvol",
+          "dydx": -72.14954058726696,
+          "elasticity": -18.523194124092456,
+          "normSens": -1.1543926493962713
+        },
+        {
+          "param": "pda_diameter",
+          "dydx": 59.54865857592251,
+          "elasticity": 5.045082015844566,
+          "normSens": 1.1909731715184502
+        },
+        {
+          "param": "fo_diameter",
+          "dydx": 4.0675859124792195,
+          "elasticity": 1.5664275100021894,
+          "normSens": 0.9762206189950127
+        },
+        {
+          "param": "weight",
+          "dydx": 60.28219126368732,
+          "elasticity": 11.143043736358997,
+          "normSens": 1.6468207168183815
+        }
+      ]
+    },
+    "boundaryInactive": [],
+    "identifiability": {
+      "params": [
+        "systemic_R",
+        "pulmonary_R",
+        "contractility",
+        "heart_rate_ref",
+        "O2_diffusion",
+        "vent_drive",
+        "uma",
+        "venous_uvol",
+        "pda_diameter",
+        "fo_diameter",
+        "weight"
+      ],
+      "condition": 228845.45145463975,
+      "eigenvalues": [
+        89.85625516852633,
+        28.272689619743165,
+        9.831558528694856,
+        6.321551409139901,
+        3.001993701859104,
+        0.658360498608708,
+        0.3308410493555995,
+        0.231246342767114,
+        0.039653873711238,
+        0.022944163718090323,
+        0.00039265038740058614
+      ],
+      "qrOrder": [
+        {
+          "param": "uma",
+          "residualNorm": 9.400886441234691
+        },
+        {
+          "param": "pda_diameter",
+          "residualNorm": 5.157249312443731
+        },
+        {
+          "param": "weight",
+          "residualNorm": 2.311295019529991
+        },
+        {
+          "param": "pulmonary_R",
+          "residualNorm": 2.053064885906973
+        },
+        {
+          "param": "systemic_R",
+          "residualNorm": 1.6864790716729887
+        },
+        {
+          "param": "vent_drive",
+          "residualNorm": 0.8238477986807532
+        },
+        {
+          "param": "heart_rate_ref",
+          "residualNorm": 0.6784936621646579
+        },
+        {
+          "param": "fo_diameter",
+          "residualNorm": 0.5070852961015223
+        },
+        {
+          "param": "venous_uvol",
+          "residualNorm": 0.22915711321586554
+        },
+        {
+          "param": "contractility",
+          "residualNorm": 0.1808587954143042
+        },
+        {
+          "param": "O2_diffusion",
+          "residualNorm": 0.020261605829146802
+        }
+      ]
+    }
+  }
+}

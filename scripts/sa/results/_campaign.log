@@ -1,0 +1,162 @@
+
+>>> oat/reduced @ term_neonate 
+
+=== SA run: scenario=term_neonate tier=oat set=reduced (k=11) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.85  venous_uvol=1  pda_diameter=0  fo_diameter=0  weight=3.545
+design: 23 evaluations
+  worker 7: 2 rows done (2/23 total)
+  worker 3: 3 rows done (5/23 total)
+  worker 2: 3 rows done (8/23 total)
+  worker 1: 3 rows done (11/23 total)
+  worker 6: 3 rows done (14/23 total)
+  worker 4: 3 rows done (17/23 total)
+  worker 0: 3 rows done (20/23 total)
+  worker 5: 3 rows done (23/23 total)
+evaluated 23/23 ok in 46.7s (2.03s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/term_neonate_oat_reduced.json
+<<< oat/reduced @ term_neonate done in 47s (exit 0)
+
+>>> oat/reduced @ pphn 
+
+=== SA run: scenario=pphn tier=oat set=reduced (k=11) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.755  venous_uvol=1  pda_diameter=1  fo_diameter=2.5  weight=3.545
+design: 23 evaluations
+  worker 7: 2 rows done (2/23 total)
+  worker 3: 3 rows done (5/23 total)
+  worker 4: 3 rows done (8/23 total)
+  worker 1: 3 rows done (11/23 total)
+  worker 2: 3 rows done (14/23 total)
+  worker 0: 3 rows done (17/23 total)
+  worker 5: 3 rows done (20/23 total)
+  worker 6: 3 rows done (23/23 total)
+evaluated 23/23 ok in 50.9s (2.21s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/pphn_oat_reduced.json
+<<< oat/reduced @ pphn done in 51s (exit 0)
+
+>>> oat/reduced @ cdh_severe 
+
+=== SA run: scenario=cdh_severe tier=oat set=reduced (k=11) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.763  venous_uvol=1  pda_diameter=1  fo_diameter=4  weight=3.545
+design: 23 evaluations
+  worker 7: 2 rows done (2/23 total)
+  worker 6: 3 rows done (5/23 total)
+  worker 5: 3 rows done (8/23 total)
+  worker 1: 3 rows done (11/23 total)
+  worker 3: 3 rows done (14/23 total)
+  worker 0: 3 rows done (17/23 total)
+  worker 2: 3 rows done (20/23 total)
+  worker 4: 3 rows done (23/23 total)
+evaluated 23/23 ok in 50.2s (2.18s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/cdh_severe_oat_reduced.json
+<<< oat/reduced @ cdh_severe done in 50s (exit 0)
+
+>>> oat/reduced @ dtga 
+
+=== SA run: scenario=dtga tier=oat set=reduced (k=11) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.747  venous_uvol=1  pda_diameter=1  fo_diameter=6  weight=3.545
+design: 23 evaluations
+  worker 7: 2 rows done (2/23 total)
+  worker 6: 3 rows done (5/23 total)
+  worker 0: 3 rows done (8/23 total)
+  worker 5: 3 rows done (11/23 total)
+  worker 4: 3 rows done (14/23 total)
+  worker 2: 3 rows done (17/23 total)
+  worker 3: 3 rows done (20/23 total)
+  worker 1: 3 rows done (23/23 total)
+evaluated 23/23 ok in 47.1s (2.05s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/dtga_oat_reduced.json
+<<< oat/reduced @ dtga done in 47s (exit 0)
+
+>>> oat/reduced @ hlhs 
+
+=== SA run: scenario=hlhs tier=oat set=reduced (k=11) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.753  venous_uvol=1  pda_diameter=1  fo_diameter=6  weight=3.545
+design: 23 evaluations
+  worker 7: 2 rows done (2/23 total)
+  worker 4: 3 rows done (5/23 total)
+  worker 6: 3 rows done (8/23 total)
+  worker 2: 3 rows done (11/23 total)
+  worker 3: 3 rows done (14/23 total)
+  worker 1: 3 rows done (17/23 total)
+  worker 0: 3 rows done (20/23 total)
+  worker 5: 3 rows done (23/23 total)
+evaluated 23/23 ok in 47.6s (2.07s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/hlhs_oat_reduced.json
+<<< oat/reduced @ hlhs done in 48s (exit 0)
+
+>>> morris/expanded @ term_neonate --r 20
+
+=== SA run: scenario=term_neonate tier=morris set=expanded (k=26) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.85  venous_uvol=1  pda_diameter=0  fo_diameter=0  weight=3.545  diastolic_stiffness=1  pericardium=1  baroreflex_setpoint=50  ans_hr_gain=1  ans_svr_gain=1  vt_rr_ratio=1  vo2=1  resp_q=0.8  hemoglobin=10.018  ips_res=5000  vsd_diameter=0  pda_length=14  pda_discharge=0.8  lung_stiffness=1  temp_setpoint=37
+design: 540 evaluations
+  worker 1: 60 rows done (60/540 total)
+  worker 0: 60 rows done (120/540 total)
+  worker 4: 60 rows done (180/540 total)
+  worker 7: 60 rows done (240/540 total)
+  worker 6: 60 rows done (300/540 total)
+  worker 3: 60 rows done (360/540 total)
+  worker 2: 60 rows done (420/540 total)
+  worker 8: 60 rows done (480/540 total)
+  worker 5: 60 rows done (540/540 total)
+evaluated 540/540 ok in 1066.0s (1.97s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/term_neonate_morris_expanded.json
+<<< morris/expanded @ term_neonate done in 1066s (exit 0)
+
+>>> morris/expanded @ pphn --r 20
+
+=== SA run: scenario=pphn tier=morris set=expanded (k=26) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.755  venous_uvol=1  pda_diameter=1  fo_diameter=2.5  weight=3.545  diastolic_stiffness=1  pericardium=1  baroreflex_setpoint=50  ans_hr_gain=1  ans_svr_gain=1  vt_rr_ratio=1  vo2=1  resp_q=0.8  hemoglobin=10.03  ips_res=6000  vsd_diameter=0  pda_length=14  pda_discharge=0.8  lung_stiffness=1  temp_setpoint=37
+design: 540 evaluations
+  worker 1: 60 rows done (60/540 total)
+  worker 4: 60 rows done (120/540 total)
+  worker 2: 60 rows done (180/540 total)
+  worker 5: 60 rows done (240/540 total)
+  worker 6: 60 rows done (300/540 total)
+  worker 8: 60 rows done (360/540 total)
+  worker 3: 60 rows done (420/540 total)
+  worker 7: 60 rows done (480/540 total)
+  worker 0: 60 rows done (540/540 total)
+evaluated 540/540 ok in 1230.1s (2.28s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/pphn_morris_expanded.json
+<<< morris/expanded @ pphn done in 1230s (exit 0)
+
+>>> morris/expanded @ cdh_severe --r 20
+
+=== SA run: scenario=cdh_severe tier=morris set=expanded (k=26) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.763  venous_uvol=1  pda_diameter=1  fo_diameter=4  weight=3.545  diastolic_stiffness=1  pericardium=1.2  baroreflex_setpoint=50  ans_hr_gain=1  ans_svr_gain=1  vt_rr_ratio=1  vo2=1  resp_q=0.8  hemoglobin=10.029  ips_res=2000  vsd_diameter=0  pda_length=14  pda_discharge=0.8  lung_stiffness=1  temp_setpoint=37
+design: 540 evaluations
+  worker 1: 60 rows done (60/540 total)
+  worker 4: 60 rows done (120/540 total)
+  worker 0: 60 rows done (180/540 total)
+  worker 5: 60 rows done (240/540 total)
+  worker 2: 60 rows done (300/540 total)
+  worker 7: 60 rows done (360/540 total)
+  worker 8: 60 rows done (420/540 total)
+  worker 6: 60 rows done (480/540 total)
+  worker 3: 60 rows done (540/540 total)
+evaluated 540/540 ok in 2946.6s (5.46s/eval effective)
+
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/cdh_severe_morris_expanded.json
+<<< morris/expanded @ cdh_severe done in 2947s (exit 0)
+
+>>> prcc/reduced @ term_neonate --N 768
+
+=== SA run: scenario=term_neonate tier=prcc set=reduced (k=11) ===
+workers=9  warm=60s  window=12s  seed=20260710
+nominal vector: systemic_R=1  pulmonary_R=1  contractility=1  heart_rate_ref=1  O2_diffusion=1  vent_drive=1  uma=5.85  venous_uvol=1  pda_diameter=0  fo_diameter=0  weight=3.545
+design: 768 evaluations

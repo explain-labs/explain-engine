@@ -1,0 +1,7 @@
+>>> PRCC reduced N=768 @ term_neonate
+evaluated 768/768 ok in 1413.2s (1.84s/eval effective)
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/term_neonate_prcc_reduced.json
+>>> Sobol reduced N=512 @ term_neonate
+evaluated 6656/6656 ok in 13853.8s (2.08s/eval effective)
+wrote /Users/timantonius/Projects/explain/explain-user/explain-user-js-new/scripts/sa/results/term_neonate_sobol_reduced.json
+=== baseline campaign complete ===
