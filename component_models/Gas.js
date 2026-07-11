@@ -68,7 +68,9 @@ export class Gas extends BaseModelClass {
   }
 
   calc_model() {
-    // empty for now
+    // no per-step work: Gas is an orchestrator. The gas physics run in the individual
+    // GasCapacitance elements (pressure/volume) and GasComposition (fractions/partial
+    // pressures) during their own step calls; Gas only owns build-time setup here.
   }
 
   set_atmospheric_pressure(new_pres_atm) {

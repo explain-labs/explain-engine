@@ -70,6 +70,8 @@ export class Drugs extends BaseModelClass {
         hr_ec50: 20.0, hr_emax: 0.6, hr_hill: 1.5,
         // PD — contractility / inotropy (β1)
         cont_ec50: 25.0, cont_emax: 0.8, cont_hill: 1.5,
+        // PD — lusitropy / diastolic relaxation (β1); negative emax lowers el_min = faster relaxation
+        lus_ec50: 25.0, lus_emax: -0.25, lus_hill: 1.5,
         // PD — systemic vascular resistance (α1); higher EC50 (α dominates at higher concentration)
         svr_ec50: 40.0, svr_emax: 0.5, svr_hill: 2.0,
       },
@@ -81,6 +83,8 @@ export class Drugs extends BaseModelClass {
         // PD — predominantly α1 vasoconstriction, modest β1 inotropy, minimal direct chronotropy
         hr_ec50: 30.0, hr_emax: 0.1, hr_hill: 1.5,
         cont_ec50: 30.0, cont_emax: 0.35, cont_hill: 1.5,
+        // PD — modest β1 lusitropy (negative emax → better relaxation)
+        lus_ec50: 30.0, lus_emax: -0.12, lus_hill: 1.5,
         svr_ec50: 25.0, svr_emax: 0.9, svr_hill: 2.0,
       },
       pge1: {
@@ -107,6 +111,7 @@ export class Drugs extends BaseModelClass {
     this.conc_eff = 0.0; // adrenaline effect-site conc (convenience read-out)
     this.hr_drug_factor = 1.0; // applied (summed) → Heart.hr_drug_factor (1.0 = no effect)
     this.cont_drug_factor = 1.0; // applied (summed) → each chamber's el_max_drug_factor (1.0 = no effect)
+    this.lus_drug_factor = 1.0; // applied (summed) → each chamber's el_min_drug_factor (1.0 = no effect, <1 = better relaxation)
     this.svr_drug_factor = 1.0; // applied (summed) → Circulation.svr_factor_drug (1.0 = no effect)
     this.pda_drug_factor = 1.0; // applied (summed) → Pda.diameter_drug_factor (1.0 = no effect)
 
@@ -144,8 +149,15 @@ export class Drugs extends BaseModelClass {
     super.init_model(args); // a scenario may overwrite drug_defs with an older/partial baked set
     // Merge the built-in defaults UNDER the scenario-provided defs: scenario tuning wins for drugs it
     // defines, but any built-in drug the baked state predates (e.g. pge1 added after those scenarios
-    // were serialized) is still present — so we don't have to re-bake every scenario JSON.
-    this.drug_defs = { ...default_defs, ...this.drug_defs };
+    // were serialized) is still present — so we don't have to re-bake every scenario JSON. The merge is
+    // per-drug so it also fills in *individual PD params* a baked def predates (e.g. the lus_* lusitropy
+    // channel added after those scenarios were serialized): baked values still win where present.
+    const baked = this.drug_defs;
+    const merged = { ...default_defs, ...baked };
+    for (const drug of Object.keys(merged)) {
+      if (default_defs[drug] && baked[drug]) merged[drug] = { ...default_defs[drug], ...baked[drug] };
+    }
+    this.drug_defs = merged;
   }
 
   calc_model() {
@@ -185,7 +197,7 @@ export class Drugs extends BaseModelClass {
     });
 
     // 3. EFFECT — biophase lag (optional) then sum each effect across all enabled drugs
-    let hr_sum = 0.0, cont_sum = 0.0, svr_sum = 0.0, pda_sum = 0.0;
+    let hr_sum = 0.0, cont_sum = 0.0, lus_sum = 0.0, svr_sum = 0.0, pda_sum = 0.0;
     Object.keys(this.drug_defs).forEach((drug) => {
       const def = this.drug_defs[drug];
       const c_site = this._effect?.drugs?.[drug] ?? 0.0;
@@ -203,11 +215,13 @@ export class Drugs extends BaseModelClass {
       // every drug needing every channel (e.g. pge1 has only pda_*, the catecholamines only hr/cont/svr)
       hr_sum   += this._emax(c_drive, def.hr_emax,   def.hr_ec50,   def.hr_hill);
       cont_sum += this._emax(c_drive, def.cont_emax, def.cont_ec50, def.cont_hill);
+      lus_sum  += this._emax(c_drive, def.lus_emax,  def.lus_ec50,  def.lus_hill);
       svr_sum  += this._emax(c_drive, def.svr_emax,  def.svr_ec50,  def.svr_hill);
       pda_sum  += this._emax(c_drive, def.pda_emax,  def.pda_ec50,  def.pda_hill);
     });
     this.hr_drug_factor = 1.0 + hr_sum;
     this.cont_drug_factor = 1.0 + cont_sum;
+    this.lus_drug_factor = 1.0 + lus_sum;
     this.svr_drug_factor = 1.0 + svr_sum;
     this.pda_drug_factor = 1.0 + pda_sum;
     this.conc_eff = this.concentrations.adrenaline ?? 0.0;
@@ -216,6 +230,7 @@ export class Drugs extends BaseModelClass {
     // write the (summed) effector channels
     if (this._heart) this._heart.hr_drug_factor = this.hr_drug_factor; // already wired into HR calc
     this._write_chamber_inotropy(this.cont_drug_factor); // mirrors the Mob inotropy path
+    this._write_chamber_lusitropy(this.lus_drug_factor); // diastolic-relaxation channel (el_min side)
     if (this._circ) this._circ.svr_factor_drug = this.svr_drug_factor; // independent SVR channel
     if (this._pda) this._pda.diameter_drug_factor = this.pda_drug_factor; // ductal patency (PGE1)
 
@@ -278,6 +293,19 @@ export class Drugs extends BaseModelClass {
     if (h._ra) h._ra.el_max_drug_factor = factor;
   }
 
+  // write the lusitropy factor to every heart chamber (el_min side); mirrors _write_chamber_inotropy.
+  // factor < 1 lowers el_min = faster diastolic relaxation; 1.0 = no effect.
+  _write_chamber_lusitropy(factor) {
+    const h = this._heart;
+    if (!h) return;
+    if (h._lv) h._lv.el_min_drug_factor = factor;
+    if (h._rv) h._rv.el_min_drug_factor = factor;
+    if (h._la) h._la.el_min_drug_factor = factor;
+    if (h._raivci) h._raivci.el_min_drug_factor = factor;
+    if (h._rasvc) h._rasvc.el_min_drug_factor = factor;
+    if (h._ra) h._ra.el_min_drug_factor = factor;
+  }
+
   // ensure every blood compartment carries each drug key (the dicts ship empty), so the existing
   // volume_in mixing has something to propagate, and resolve the organ-localized clearance targets.
   // Runs once, after Circulation has built its components onto model.models.
@@ -311,10 +339,12 @@ export class Drugs extends BaseModelClass {
     this._resolve_refs();
     if (this._heart) this._heart.hr_drug_factor = 1.0;
     this._write_chamber_inotropy(1.0);
+    this._write_chamber_lusitropy(1.0);
     if (this._circ) this._circ.svr_factor_drug = 1.0;
     if (this._pda) this._pda.diameter_drug_factor = 1.0;
     this.hr_drug_factor = 1.0;
     this.cont_drug_factor = 1.0;
+    this.lus_drug_factor = 1.0;
     this.svr_drug_factor = 1.0;
     this.pda_drug_factor = 1.0;
   }

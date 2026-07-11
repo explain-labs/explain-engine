@@ -49,13 +49,11 @@ export class Heart extends BaseModelClass {
     this.cont_factor_left = 1.0; // left heart contractility factor
     this.cont_factor_right = 1.0; // right heart contractility factor
     this.cont_mob_factor = 1.0; // contractility factor of myocardial oxygen balance model
-    this.cont_drug_factor = 1.0; // contractility factor of drug model (not implemented yet)
 
     this.relax_factor = 1.0; // relaxation factor (higher is less relaxation!)
     this.relax_factor_left = 1.0; // left heart relaxation factor
     this.relax_factor_right = 1.0; // right heart relaxation factor
     this.relax_mob_factor = 1.0; // relaxation factor of myocardial oxygen balance model
-    this.relax_drug_factor = 1.0; // relaxation factor of drug model (not implemented yet)
 
     this.pc_el_factor = 1.0; // elastance factor of the pericardium
     this.pc_extra_volume = 0.0; // additional volume of the pericardium

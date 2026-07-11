@@ -18,6 +18,7 @@ export class HeartChamber extends TimeVaryingElastance {
     this.ans_activity = 1.0; // activiaty of the ans
     this.el_max_mob_factor = 1.0; // contractility factor from the myocardial oxygen balance model (Mob); 1.0 = no effect
     this.el_max_drug_factor = 1.0; // contractility (inotropy) factor from the Drugs PK/PD model; 1.0 = no effect
+    this.el_min_drug_factor = 1.0; // lusitropy (diastolic relaxation) factor from the Drugs PK/PD model; <1.0 = better relaxation, 1.0 = no effect
 
     // load-induced contractility factors written by the HeartFunction model (1.0 = no effect, NOT reset each step)
     this.el_max_load_factor = 1.0; // acute, reversible contractility depression from high wall stress (afterload mismatch / over-dilation)
@@ -49,6 +50,7 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.el_min_factor - 1) * this.el_min
         + (this.el_min_factor_ps - 1) * this.el_min
         + (this.el_min_factor_scaling_ps - 1) * this.el_min
+        + (this.el_min_drug_factor - 1) * this.el_min   // drug lusitropy (Drugs PK/PD): <1 lowers el_min = better relaxation
         - (this.ans_activity - 1) * this.el_min * this.ans_sens
 
     // ans influences ANS systolic function B1 receptor activation -> positive intropic effect
