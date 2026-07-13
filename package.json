@@ -1,0 +1,51 @@
+{
+  "name": "explain-engine",
+  "version": "0.1.0",
+  "description": "Explain — a framework-agnostic, dependency-free physiological simulation engine (whole-body neonatal & adult cardiorespiratory model) that runs inside a Web Worker.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Tim Antonius <timantonius@pm.me>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Dobutamine/explain-engine.git"
+  },
+  "keywords": [
+    "physiology",
+    "simulation",
+    "neonatal",
+    "cardiorespiratory",
+    "hemodynamics",
+    "web-worker"
+  ],
+  "main": "./Model.js",
+  "exports": {
+    ".": "./Model.js",
+    "./Model": "./Model.js",
+    "./ModelEngine": "./ModelEngine.js",
+    "./ModelIndex": "./ModelIndex.js",
+    "./realtime/RealtimeBus": "./realtime/RealtimeBus.js",
+    "./helpers/RealtimeChannels": "./helpers/RealtimeChannels.js",
+    "./helpers/Calibrator": "./helpers/Calibrator.js",
+    "./model_definitions/*": "./model_definitions/*"
+  },
+  "files": [
+    "*.js",
+    "base_models",
+    "component_models",
+    "device_models",
+    "helpers",
+    "realtime",
+    "model_definitions",
+    "README.md",
+    "LICENSE",
+    "CITATION.cff"
+  ],
+  "sideEffects": [
+    "./ModelEngine.js"
+  ],
+  "scripts": {
+    "probe": "node scripts/probe_fetus.mjs"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

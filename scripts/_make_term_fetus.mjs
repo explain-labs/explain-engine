@@ -10,8 +10,8 @@
 //   O2 gradient UV 80% > IVC 64% > AA 62% > AD 57%, umbilical-artery gas pH 7.27 / PCO2 50 / BE -5.
 import fs from "node:fs";
 
-const src = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
-const dst = new URL("../public/model_definitions/term_fetus.json", import.meta.url);
+const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const dst = new URL("../model_definitions/term_fetus.json", import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 // --- top-level metadata ---

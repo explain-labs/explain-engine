@@ -41,10 +41,10 @@ globalThis.postMessage = (msg) => {
 const _log = console.log;
 if (!VERBOSE) console.log = () => {};
 
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 
-const path = new URL(`../public/model_definitions/${SCENARIO}.json`, import.meta.url);
+const path = new URL(`../model_definitions/${SCENARIO}.json`, import.meta.url);
 const def = JSON.parse(fs.readFileSync(path, "utf8")).model_definition;
 send("POST", "build", def);
 send("GET", "state", []);

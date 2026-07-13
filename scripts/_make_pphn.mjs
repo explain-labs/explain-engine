@@ -43,7 +43,7 @@
 //   node scripts/probe_cdh.mjs pphn          (generic shunt/atrial-pressure + suprasystemic read-out)
 //   node scripts/probe_pda.mjs pphn          (cardiac-phase-resolved ductal Doppler)
 //
-// Usage:  node scripts/_make_pphn.mjs [--write]   (writes public/model_definitions/pphn.json)
+// Usage:  node scripts/_make_pphn.mjs [--write]   (writes model_definitions/pphn.json)
 
 import fs from "node:fs";
 
@@ -83,7 +83,7 @@ function applyVentilator(M, vent) {
 }
 
 const WRITE = process.argv.includes("--write");
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
 j.name = "pphn";
@@ -111,7 +111,7 @@ log.push(`C shunts: Pda.diameter_relative=${cfg.shunts.pda}, diameter_fo=${cfg.s
 applyVentilator(M, cfg.vent);
 log.push(`E vent: ON FiO2=${cfg.vent.fio2} PIP=${cfg.vent.pip} PEEP=${cfg.vent.peep} rate=${cfg.vent.rate} PC; ETT connected, MOUTH_DS blocked, Breathing off`);
 
-const dst = new URL("../public/model_definitions/pphn.json", import.meta.url);
+const dst = new URL("../model_definitions/pphn.json", import.meta.url);
 const out = JSON.stringify(j, null, 1) + "\n";
 if (WRITE) { fs.writeFileSync(dst, out); console.log(`wrote pphn.json\n  ${log.join("\n  ")}`); }
 else { const tmp = "/tmp/pphn.json"; fs.writeFileSync(tmp, out); console.log(`dry run -> ${tmp} (pass --write to commit)\n  ${log.join("\n  ")}`); }

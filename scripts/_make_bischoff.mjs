@@ -40,7 +40,7 @@
 import fs from "node:fs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
-import { calc_gas_composition } from "../explain/component_models/GasComposition.js";
+import { calc_gas_composition } from "../component_models/GasComposition.js";
 
 // per-phenotype lever table (starting points; final numbers found by iterating reseed + probe). Field
 // meanings match the _make_preterm.mjs table; bischoff-specific additions are the CPAP block (cpap /
@@ -81,11 +81,11 @@ let liveModel = null;
 globalThis.self = globalThis;
 globalThis.postMessage = (m) => { if (m && m.type === "state") liveModel = m.payload; };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
-const src = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
-const dst = new URL(`../public/model_definitions/bischoff_${key}.json`, import.meta.url);
+const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const dst = new URL(`../model_definitions/bischoff_${key}.json`, import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 // build the term baseline (freezes model._baseline_weight = 3.545, the allometric denominator), then scale.

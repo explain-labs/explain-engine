@@ -27,9 +27,9 @@ globalThis.postMessage = (msg) => {
   if (msg.type === "error") console.error("ENGINE ERROR:", msg.message, msg.payload ?? "");
 };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
-const def = (JSON.parse(fs.readFileSync(new URL(`../public/model_definitions/${scenario}.json`, import.meta.url), "utf8"))).model_definition;
+const def = (JSON.parse(fs.readFileSync(new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"))).model_definition;
 send("POST", "build", def);
 send("GET", "state", []);
 const model = liveModel;

@@ -56,7 +56,7 @@ if (keys.length === 0 || keys.some((k) => !TGA[k])) {
   process.exit(1);
 }
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 // Swap a HeartValve on/off, keeping is_enabled and no_flow consistent (the engine gates flow on no_flow).
 function setValve(v, on) {
@@ -94,7 +94,7 @@ for (const key of keys) {
   log.push(`B mixing: diameter_fo=${cfg.mixing.fo} fo_lr_factor=${cfg.mixing.fo_lr_factor} (atrial), ` +
     `Pda.diameter_relative=${cfg.mixing.pda} (ductal), diameter_vsd=${cfg.mixing.vsd} (intact septum)`);
 
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
   console.log(`wrote ${key}.json\n  ${log.join("\n  ")}`);
 }

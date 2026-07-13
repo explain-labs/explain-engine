@@ -57,7 +57,7 @@ if (keys.length === 0 || keys.some((k) => !TA[k])) {
   process.exit(1);
 }
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 for (const key of keys) {
   const cfg = TA[key];
@@ -90,7 +90,7 @@ for (const key of keys) {
   M.Pda.diameter_relative = cfg.pulmonary.pda;
   log.push(`C pulmonary: diameter_vsd=${cfg.pulmonary.vsd} (LV->RV->PA route), RV_PA.r_for=${cfg.pulmonary.rv_pa_r_for} (pulmonary stenosis), Pda.diameter_relative=${cfg.pulmonary.pda} (duct supply)`);
 
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
   console.log(`wrote ${key}.json\n  ${log.join("\n  ")}`);
 }

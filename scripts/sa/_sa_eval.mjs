@@ -14,7 +14,7 @@ import { createEngine } from "../_harness.mjs";
 import { measureVitals } from "../_probe.mjs";
 import { getParamSet, applyAll, toOutputVector, OUTPUTS } from "./_sa_params.mjs";
 
-const scenarioPath = (s) => new URL(`../../public/model_definitions/${s}.json`, import.meta.url);
+const scenarioPath = (s) => new URL(`../../model_definitions/${s}.json`, import.meta.url);
 
 // Load a scenario definition (the model_definition object the engine builds).
 export function loadScenario(scenario) {

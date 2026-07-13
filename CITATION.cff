@@ -1,0 +1,28 @@
+# Citation metadata for the Explain physiological simulation engine.
+# See https://citation-file-format.github.io/ . Fields marked TODO must be
+# completed before the first tagged release / Zenodo archival.
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+title: "Explain: a whole-body physiological simulation engine"
+abstract: >-
+  Explain is a framework-agnostic, dependency-free physiological simulation
+  engine modelling whole-body neonatal and adult cardiorespiratory physiology
+  (heart, circulation, respiration, blood gases, metabolism, and a library of
+  calibrated patient scenarios). It runs inside a Web Worker and is driven
+  through a small message-based API.
+type: software
+version: "0.1.0"
+# date-released: TODO (YYYY-MM-DD, set at first release)
+authors:
+  - given-names: Tim
+    family-names: Antonius
+    email: timantonius@pm.me
+    # orcid: "https://orcid.org/TODO"  # add your ORCID before release
+repository-code: "https://github.com/Dobutamine/explain-engine"
+license: MIT
+keywords:
+  - physiology
+  - simulation
+  - neonatology
+  - cardiorespiratory modelling
+# doi: TODO (Zenodo mints this per GitHub release once the webhook is enabled)

@@ -18,7 +18,7 @@
 //
 // SPEC schema (all fields optional except `baseline`):
 //   {
-//     "baseline": "term_neonate",          // a name in public/model_definitions/
+//     "baseline": "term_neonate",          // a name in model_definitions/
 //     "name": "custom_patient",            // output scenario name (metadata)
 //     "description": "...",                // output description (auto-generated if absent)
 //     "targets": {                          // only listed vitals are calibrated
@@ -43,7 +43,7 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { measureVitals, selectProfile, RANGES, flagOf } from "./_probe.mjs";
-import { makeController, runCalibration } from "../explain/helpers/Calibrator.js";
+import { makeController, runCalibration } from "../helpers/Calibrator.js";
 
 // ---------------------------------------------------------------------------
 // 0. read the SPEC (from --spec <file> or stdin)
@@ -108,7 +108,7 @@ const RDS_BUNDLE = {
 // 1. build the baseline headless
 // ---------------------------------------------------------------------------
 const eng = await createEngine();
-const baseUrl = new URL(`../public/model_definitions/${baseline}.json`, import.meta.url);
+const baseUrl = new URL(`../model_definitions/${baseline}.json`, import.meta.url);
 let baseJson;
 try {
   baseJson = JSON.parse(fs.readFileSync(baseUrl, "utf8"));

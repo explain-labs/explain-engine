@@ -25,10 +25,10 @@ globalThis.postMessage = (m) => {
 };
 const _log = console.log;
 console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 console.log = _log;
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
-const def = JSON.parse(fs.readFileSync(new URL(`../public/model_definitions/${SCENARIO}.json`, import.meta.url), "utf8")).model_definition;
+const def = JSON.parse(fs.readFileSync(new URL(`../model_definitions/${SCENARIO}.json`, import.meta.url), "utf8")).model_definition;
 const r = (x, n = 3) => Number((x ?? 0).toFixed(n));
 
 // build a fresh model, freeze ANS, compress remodeling so the chronic layer is observable

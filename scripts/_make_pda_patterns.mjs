@@ -105,10 +105,10 @@ let liveModel = null;
 globalThis.self = globalThis;
 globalThis.postMessage = (m) => { if (m && m.type === "state") liveModel = m.payload; };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 for (const key of keys) {
   const cfg = PATTERNS[key];
@@ -177,7 +177,7 @@ for (const key of keys) {
   j.model_definition = model;
   const out = JSON.stringify(j, null, 1) + "\n";
   JSON.parse(out);
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, out);
   _log(`wrote ${key}.json  (panel ${cfg.panel})\n  ${log.join("\n  ")}`);
 }

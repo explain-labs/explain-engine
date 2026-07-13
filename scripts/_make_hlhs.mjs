@@ -84,7 +84,7 @@ if (keys.length === 0 || keys.some((k) => !HLHS[k])) {
   process.exit(1);
 }
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 // Atrese a HeartValve (block all flow through it), keeping is_enabled and no_flow consistent.
 function atrese(v) { v.is_enabled = false; v.no_flow = true; }
@@ -135,7 +135,7 @@ for (const key of keys) {
   }
   log.push(`E PVR: pulmonary arteriolar r x${cfg.pvr} (Qp:Qs balance)`);
 
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
   console.log(`wrote ${key}.json\n  ${log.join("\n  ")}`);
 }

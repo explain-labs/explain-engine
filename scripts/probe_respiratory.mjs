@@ -25,7 +25,7 @@ const ANS_ON = flag("--ans");
 
 const eng = await createEngine();
 const log = eng.log;
-const path = new URL(`../public/model_definitions/${scenario}.json`, import.meta.url);
+const path = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
 const json = JSON.parse(fs.readFileSync(path, "utf8"));
 const def = json.model_definition || json;
 const round = (x, n = 2) => (typeof x === "number" && isFinite(x) ? Number(x.toFixed(n)) : x);

@@ -18,8 +18,8 @@
 //   (differential cyanosis), R->L ductal shunt ~232 mL/min, asymmetric pulmonary flow (L 97 < R 191 mL/min).
 import fs from "node:fs";
 
-const src = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
-const dst = new URL("../public/model_definitions/term_neonate_cdh.json", import.meta.url);
+const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const dst = new URL("../model_definitions/term_neonate_cdh.json", import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 // --- top-level metadata ---

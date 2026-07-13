@@ -60,7 +60,7 @@ if (keys.length === 0 || keys.some((k) => !AS[k])) {
   process.exit(1);
 }
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 for (const key of keys) {
   const cfg = AS[key];
@@ -92,7 +92,7 @@ for (const key of keys) {
   M.Shunts.fo_lr_factor = cfg.atrial.fo_lr_factor;
   log.push(`C atrial: diameter_fo=${cfg.atrial.fo} fo_lr_factor=${cfg.atrial.fo_lr_factor} (L->R LA decompression)`);
 
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
   console.log(`wrote ${key}.json\n  ${log.join("\n  ")}`);
 }

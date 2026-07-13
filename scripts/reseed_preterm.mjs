@@ -28,10 +28,10 @@ let liveModel = null;
 globalThis.self = globalThis;
 globalThis.postMessage = (m) => { if (m && m.type === "state") liveModel = m.payload; };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
-const file = new URL(`../public/model_definitions/${name}.json`, import.meta.url);
+const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 
 send("POST", "build", json.model_definition);

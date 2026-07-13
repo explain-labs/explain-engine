@@ -28,10 +28,10 @@ globalThis.postMessage = (m) => {
   if (m.type === "error") console.error("ENGINE ERROR:", m.message, m.payload ?? "");
 };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
-const path = new URL(`../public/model_definitions/${scenario}.json`, import.meta.url);
+const path = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
 const json = JSON.parse(fs.readFileSync(path, "utf8"));
 send("POST", "build", json.model_definition || json);
 send("GET", "state", []);

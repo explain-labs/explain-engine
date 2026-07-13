@@ -12,14 +12,14 @@
 
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
-import { buildLiveControllers, runCalibration, measureWindow, LIVE_TARGETS, DEFAULT_TOL } from "../explain/helpers/Calibrator.js";
+import { buildLiveControllers, runCalibration, measureWindow, LIVE_TARGETS, DEFAULT_TOL } from "../helpers/Calibrator.js";
 
 const argv = process.argv.slice(2);
 const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
 const READKEY = { co: "lvo", spo2: "spo2_pre", blood_volume: "total_blood_volume" };
 
 const eng = await createEngine();
-const json = JSON.parse(fs.readFileSync(new URL(`../public/model_definitions/${scenario}.json`, import.meta.url), "utf8"));
+const json = JSON.parse(fs.readFileSync(new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"));
 const model = eng.build(json.model_definition || json);
 if (!model || !model.models) { console.error(`build failed for "${scenario}"`); process.exit(1); }
 const step = (s) => eng.calc(s);

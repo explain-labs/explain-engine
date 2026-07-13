@@ -9,7 +9,7 @@
 // Usage:
 //   node scripts/headless.mjs <scenario> [--seconds N] [--window W] [--no-ans] [--no-autoreg] [--verbose]
 //
-// <scenario> is a file name in public/model_definitions/ without the .json suffix
+// <scenario> is a file name in model_definitions/ without the .json suffix
 // (e.g. term_neonate, adult_female). Prints the renal calibration panel.
 
 import fs from "node:fs";
@@ -55,13 +55,13 @@ if (!VERBOSE) console.log = () => {};
 // ---------------------------------------------------------------------------
 // 2. import the engine (runs its module body → registers self.onmessage)
 // ---------------------------------------------------------------------------
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 
 // ---------------------------------------------------------------------------
 // 3. build the scenario
 // ---------------------------------------------------------------------------
-const path = new URL(`../public/model_definitions/${scenario}.json`, import.meta.url);
+const path = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
 const json = JSON.parse(fs.readFileSync(path, "utf8"));
 const def = json.model_definition || json;
 

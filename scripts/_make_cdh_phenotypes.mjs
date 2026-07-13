@@ -93,7 +93,7 @@ if (keys.length === 0 || keys.some((k) => !PHENO[k])) {
   process.exit(1);
 }
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 // Replicate Ventilator.switch_ventilator(true) in the static definition: enabling the device is not
 // enough — the engine only connects the ET tube to the patient inside switch_ventilator, which opens the
@@ -159,7 +159,7 @@ for (const key of keys) {
   applyVentilator(M, cfg.vent);
   log.push(`E vent: ON FiO2=${cfg.vent.fio2} PIP=${cfg.vent.pip} PEEP=${cfg.vent.peep} rate=${cfg.vent.rate} PC; ETT connected, MOUTH_DS blocked, Breathing off`);
 
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
   console.log(`wrote ${key}.json\n  ${log.join("\n  ")}`);
 }

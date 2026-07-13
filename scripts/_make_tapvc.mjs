@@ -64,7 +64,7 @@ if (keys.length === 0 || keys.some((k) => !TAPVC[k])) {
   process.exit(1);
 }
 
-const srcPath = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
+const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.url);
 
 for (const key of keys) {
   const cfg = TAPVC[key];
@@ -96,7 +96,7 @@ for (const key of keys) {
   M.Pda.diameter_relative = 0;
   log.push("C ductal: Pda closed (TAPVC is foramen-ovale-dependent, not duct-dependent)");
 
-  const dst = new URL(`../public/model_definitions/${key}.json`, import.meta.url);
+  const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
   console.log(`wrote ${key}.json\n  ${log.join("\n  ")}`);
 }

@@ -40,7 +40,7 @@ function blocks(isAdult, gluVal) {
 }
 
 for (const scenario of scenarios) {
-  const file = new URL(`../public/model_definitions/${scenario}.json`, import.meta.url);
+  const file = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
   const json = JSON.parse(fs.readFileSync(file, "utf8"));
   const def = json.model_definition || json;
   const m = def.models;

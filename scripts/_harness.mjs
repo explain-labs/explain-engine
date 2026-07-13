@@ -32,7 +32,7 @@ export async function createEngine({ verbose = false } = {}) {
   // (the engine uses Vite-style extensionless relative imports)
   if (!_engineImported) {
     register("./resolve-extensionless.mjs", import.meta.url);
-    await import("../explain/ModelEngine.js");
+    await import("../ModelEngine.js");
     _engineImported = true;
   }
 

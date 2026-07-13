@@ -56,11 +56,11 @@ let liveModel = null;
 globalThis.self = globalThis;
 globalThis.postMessage = (m) => { if (m && m.type === "state") liveModel = m.payload; };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
-const src = new URL("../public/model_definitions/term_neonate.json", import.meta.url);
-const dst = new URL(`../public/model_definitions/preterm_${ga}wk.json`, import.meta.url);
+const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const dst = new URL(`../model_definitions/preterm_${ga}wk.json`, import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 // build the term baseline (build freezes model._baseline_weight = model.weight = 3.545, the allometric

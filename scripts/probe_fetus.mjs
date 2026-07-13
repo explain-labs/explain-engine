@@ -24,7 +24,7 @@
 import fs from "node:fs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
-import { calc_blood_composition } from "../explain/component_models/BloodComposition.js";
+import { calc_blood_composition } from "../component_models/BloodComposition.js";
 
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
@@ -43,10 +43,10 @@ globalThis.postMessage = (msg) => {
 };
 const _log = console.log;
 if (!VERBOSE) console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 
-const path = new URL("../public/model_definitions/term_fetus.json", import.meta.url);
+const path = new URL("../model_definitions/term_fetus.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(path, "utf8"));
 send("POST", "build", json.model_definition || json);
 send("GET", "state", []);

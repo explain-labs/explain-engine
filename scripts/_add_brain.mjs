@@ -6,7 +6,7 @@ import fs from "node:fs";
 for (const item of process.argv.slice(2)) {
   const [scenario, gainStr] = item.split("=");
   const gain = gainStr !== undefined ? Number(gainStr) : 1.0;
-  const file = new URL(`../public/model_definitions/${scenario}.json`, import.meta.url);
+  const file = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
   const json = JSON.parse(fs.readFileSync(file, "utf8"));
   const m = (json.model_definition || json).models;
   if (!m || !m.Kidneys) { console.error(`SKIP ${scenario}: no Kidneys to anchor`); continue; }

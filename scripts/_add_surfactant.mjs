@@ -13,7 +13,7 @@ if (!items.length) { console.error("usage: node scripts/_add_surfactant.mjs <sce
 for (const item of items) {
   const [scenario, surfStr] = item.split("=");
   const surfactant = surfStr !== undefined ? Number(surfStr) : 0.3;
-  const file = new URL(`../public/model_definitions/${scenario}.json`, import.meta.url);
+  const file = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
   const json = JSON.parse(fs.readFileSync(file, "utf8"));
   const def = json.model_definition || json;
   const m = def.models;

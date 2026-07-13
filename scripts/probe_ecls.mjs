@@ -18,7 +18,7 @@ const WINDOW = opt("--window", 20);
 
 const eng = await createEngine();
 const log = eng.log;
-const json = JSON.parse(fs.readFileSync(new URL(`../public/model_definitions/${scenario}.json`, import.meta.url), "utf8"));
+const json = JSON.parse(fs.readFileSync(new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"));
 const def = json.model_definition || json;
 const round = (x, n = 2) => (typeof x === "number" && isFinite(x) ? Number(x.toFixed(n)) : x);
 

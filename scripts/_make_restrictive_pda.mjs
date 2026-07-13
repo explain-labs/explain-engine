@@ -30,11 +30,11 @@ let liveModel = null;
 globalThis.self = globalThis;
 globalThis.postMessage = (m) => { if (m && m.type === "state") liveModel = m.payload; };
 const _log = console.log; console.log = () => {};
-await import("../explain/ModelEngine.js");
+await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
-const src = new URL("../public/model_definitions/preterm_28wk.json", import.meta.url);
-const dst = new URL("../public/model_definitions/preterm_28wk_restrictive_pda.json", import.meta.url);
+const src = new URL("../model_definitions/preterm_28wk.json", import.meta.url);
+const dst = new URL("../model_definitions/preterm_28wk_restrictive_pda.json", import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 send("POST", "build", j.model_definition);
