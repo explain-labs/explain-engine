@@ -1,3 +1,8 @@
 node_modules/
 .DS_Store
 *.log
+
+# Default output of scripts/sa/plot_sa.mjs. Derived from the tracked campaign
+# results and cheap to regenerate; the canonical figure assets live in the
+# thesis repo, which invokes the script with --out.
+scripts/sa/results/figures/

@@ -1,10 +1,9 @@
 // Generate the two sensitivity-analysis figures for the AI-parameterization paper (P6),
 // from the on-disk campaign results. Pure JavaScript, zero dependencies, emits standalone
-// SVG (matching the repo's flat thesis/*.svg figure-asset convention) — no plotting library,
-// consistent with the SA harness's no-dependency style.
+// standalone SVG — no plotting library, consistent with the SA harness's no-dependency style.
 //
-//   node scripts/sa/plot_sa.mjs           # writes both SVGs into thesis/
-//   node scripts/sa/plot_sa.mjs --out DIR # override output directory
+//   node scripts/sa/plot_sa.mjs           # writes both SVGs into scripts/sa/results/figures/
+//   node scripts/sa/plot_sa.mjs --out DIR # override output directory (e.g. a thesis checkout)
 //
 // Fig A  (FigSA_onelever_validation.svg)      — per-target first-order Sᵢ vs total S_Tᵢ of the
 //        DESIGNATED lever (weight-fixed Sobol′, term neonate, N=512). Colour = one-lever verdict.
@@ -20,7 +19,7 @@ import fs from "node:fs";
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
 const RES = new URL("./results/", import.meta.url).pathname;
-const OUT = arg("--out", new URL("../../thesis/", import.meta.url).pathname);
+const OUT = arg("--out", new URL("./results/figures/", import.meta.url).pathname);
 const load = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : null);
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 
@@ -206,7 +205,9 @@ const outs = [
   ["FigSA_onelever_validation.svg", figA()],
   ["FigSA_operating_point_dominance.svg", figB()],
 ];
+const dir = OUT.endsWith("/") ? OUT : OUT + "/";
+fs.mkdirSync(dir, { recursive: true });
 for (const [name, content] of outs) {
-  fs.writeFileSync(OUT + name, content);
-  console.log(`wrote ${OUT}${name}  (${content.length} bytes)`);
+  fs.writeFileSync(dir + name, content);
+  console.log(`wrote ${dir}${name}  (${content.length} bytes)`);
 }
