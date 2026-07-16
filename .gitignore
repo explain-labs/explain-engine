@@ -1,6 +1,7 @@
 node_modules/
 .DS_Store
 *.log
+.obsidian/
 
 # Default output of scripts/sa/plot_sa.mjs. Derived from the tracked campaign
 # results and cheap to regenerate; the canonical figure assets live in the
