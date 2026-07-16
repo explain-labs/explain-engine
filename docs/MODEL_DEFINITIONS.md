@@ -1,8 +1,14 @@
 # Model definitions (scenario files)
 
-A scenario file is a single JSON document that describes one complete patient/experiment: the engine settings, every model instance with its parameters and current state, plus the UI metadata (diagram, animation, saved tabs/presets). They live in `public/model_definitions/*.json` and are served statically. `Model.load(name)` fetches `/model_definitions/<name>.json`, unwraps it, and hands the result to `build()`. The set of available scenarios is `public/model_definitions/index.json` — a flat JSON array of filename **stems** (no `.json`), each of which is a valid argument to `Model.load(name)`.
+A scenario file is a single JSON document that describes one complete patient/experiment: the engine settings, every model instance with its parameters and current state, plus the UI metadata (diagram, animation, saved tabs/presets) that consumers may attach. The canonical library lives in this repo at `model_definitions/*.json`, with `model_definitions/index.json` listing the available scenarios — a flat JSON array of filename **stems** (no `.json`), each a valid argument to `Model.load(name)`. `Model.load(name)` fetches `<name>.json`, unwraps it, and hands the result to `build()`; how the file is served is the consumer's business.
 
-> The canonical, served copies are under `public/model_definitions/`. `explain/model_definitions/` holds a separate dev copy; edit the served set unless you know you want the dev mirror.
+> **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
+>
+> Consumers generate their own copy from it. In the [explain-ui](https://github.com/Dobutamine/explain-ui)
+> web app, `scripts/sync-scenarios.mjs` copies this directory into its `public/model_definitions/`
+> on every `predev`/`prebuild` and serves it statically. **That copy is generated, gitignored, and
+> overwritten** — editing a canonical scenario there loses your work on the next `npm run dev`. (The
+> sync is additive, so *new* files written alongside — user/developer snapshots — do persist.)
 
 ## Top-level keys
 
@@ -180,7 +186,7 @@ Each group lists the component names that a given `scale_*` method touches, and 
 
 `configuration` is **UI/store-only state** — the engine never reads it in `build()`. In `term_neonate.json` it holds `diagram_speed`, `diagram_scale`, `chart_hires`, `default_tabs`, `tabs`, `presets`, `monitors`, `controllers`.
 
-It may also carry an optional `configuration.events` array (absent in `term_neonate.json`). Events are named, reusable bundles of timed property changes. They reach the engine **only** indirectly: the events store mirrors `configuration.events` in memory and, when an event fires, pushes each change through `Model.setPropValue` / `callModelFunction`, which the engine's [TaskScheduler](./TaskScheduler.md) applies. The shapes (`src/stores/events.ts`):
+It may also carry an optional `configuration.events` array (absent in `term_neonate.json`). Events are named, reusable bundles of timed property changes. They reach the engine **only** indirectly: the events store mirrors `configuration.events` in memory and, when an event fires, pushes each change through `Model.setPropValue` / `callModelFunction`, which the engine's [TaskScheduler](./TaskScheduler.md) applies. The shapes (explain-ui's `src/stores/events.ts`):
 
 ```ts
 interface ScheduledEvent {
@@ -213,4 +219,4 @@ A flat JSON array of scenario filename stems, e.g.:
 ["adult_female", "term_neonate", "term_fetus", "preterm_28wk", "..."]
 ```
 
-Each entry `X` maps to `public/model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in the app.
+Each entry `X` maps to `model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in consuming apps. (In explain-ui, `sync-scenarios.mjs` rebuilds its served `index.json` as the union of the canonical set and any local snapshots.)

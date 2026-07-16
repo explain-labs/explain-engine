@@ -2,7 +2,18 @@
 
 How to exercise and verify the Explain engine **headlessly** — build a scenario, drive the step loop, and read model state directly from Node, without a browser, a Web Worker, or the Vue layer. This is the workflow used for physiological calibration and model-development verification. The tools here are the `scripts/*.mjs` files; this doc explains the shared harness they sit on, the canonical probe pattern, and the full inventory. See [ARCHITECTURE](./ARCHITECTURE.md) for the two-thread picture and the `{type, message, payload}` wire protocol these scripts reuse.
 
-> **The scripts live OUTSIDE `explain/`.** Everything documented here is in `scripts/` at the **repo root** (`/scripts/`), not under `explain/`. They `import` the engine **read-only** — they never modify engine source — and they run with **`node` directly** (`node scripts/probe_vitals.mjs term_neonate`). There is **no `npm test`**: the root `package.json` `scripts` block has only `dev`/`build`/`preview`/`typecheck`/`start`/`serve` — no test runner is wired up. These are interactive verification tools you run by hand, not a CI suite.
+> **Everything you need is in this repo, with no install step.** The tools are the `scripts/*.mjs`
+> files at this repo's root, beside the engine source they drive. They `import` the engine
+> **read-only** — they never modify engine source — and run with **`node` directly**:
+>
+> ```bash
+> git clone git@github.com:Dobutamine/explain-engine.git && cd explain-engine
+> node scripts/probe_vitals.mjs term_neonate   # no npm install needed
+> ```
+>
+> This repo has **zero dependencies and zero devDependencies**, so a bare clone runs a full
+> calibrated simulation immediately. There is **no `npm test`** and no CI suite — `package.json`
+> wires one convenience script (`probe`). These are interactive verification tools you run by hand.
 
 ## The headless harness
 
@@ -44,14 +55,14 @@ Because `calc` runs the step loop **fully synchronously** (no `setInterval`, no 
 node scripts/headless.mjs <scenario> [--seconds N] [--window W] [--no-ans] [--no-autoreg] [--verbose]
 ```
 
-`<scenario>` is a filename in `public/model_definitions/` without `.json`. It supports live-tuning overrides on the Kidneys/Hormones models (`--kf`, `--water`, `--frac na=…,k=…`, `--hset key=val,…`) and a perturbation phase (`--bleed FRAC`, `--naload DELTA`, `--phase2 S`), printing a JSON report to stdout (diagnostics to stderr).
+`<scenario>` is a filename in `model_definitions/` without `.json`. It supports live-tuning overrides on the Kidneys/Hormones models (`--kf`, `--water`, `--frac na=…,k=…`, `--hset key=val,…`) and a perturbation phase (`--bleed FRAC`, `--naload DELTA`, `--phase2 S`), printing a JSON report to stdout (diagnostics to stderr).
 
 ## Writing/running a probe
 
 A probe is a self-contained `.mjs` that boots the engine, runs a scripted physiological scenario, and prints a human-readable verdict. The shared shape (canonically in `scripts/probe_vitals.mjs`):
 
 1. **Boot** — register the resolve hook, install the `self`/`postMessage` shims, `await import("../explain/ModelEngine.js")`, define `send`. (Probes predating `_harness.mjs` inline this; newer ones import `createEngine`.)
-2. **Build** — read `public/model_definitions/<scenario>.json`, unwrap `json.model_definition || json`, `send("POST","build",def)`, `send("GET","state",[])`, capture `model`. A build failure exits `1`.
+2. **Build** — read `model_definitions/<scenario>.json`, unwrap `json.model_definition || json`, `send("POST","build",def)`, `send("GET","state",[])`, capture `model`. A build failure exits `1`.
 3. **Isolate (optional)** — disable the system that would mask the one under test, typically the baroreflex: `if (model.models.Ans) model.models.Ans.is_enabled = false`. (`probe_vitals.mjs` keeps the ANS **on** — its target is the *regulated* operating point — and exposes `--no-ans` to turn it off.)
 4. **Warm to steady state** — one big synchronous `send("POST","calc",SECONDS)` (default 60–120 s) to clear startup transients.
 5. **Measure** — a slice-loop that advances the sim in small steps and cycle-averages the pulsatile signals so beat-to-beat ripple cancels:

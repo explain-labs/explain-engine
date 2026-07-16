@@ -1,8 +1,8 @@
 # Explain Engine — Model Documentation Index
 
-This directory documents the **Explain physiological simulation engine** (the framework-agnostic
-ES modules under `explain/`, not the Vue/UI layer). Each model class and engine helper has its own
-reference doc; this page is the map.
+This directory documents the **Explain physiological simulation engine** — the framework-agnostic
+ES modules in this repository, not any consuming UI layer. Each model class and engine helper has
+its own reference doc; this page is the map.
 
 **New here?** Start with **[ARCHITECTURE](./ARCHITECTURE.md)** — the whole-model developer overview
 (two-thread design, message protocol, build/step loop, the cross-cutting patterns every model uses,

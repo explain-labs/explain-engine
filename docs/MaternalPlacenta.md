@@ -202,7 +202,7 @@ controller that **writes** other models' factor layers:
 
 ## Example definition (JSON)
 
-From `public/model_definitions/adult_female_uterus.json`:
+From `model_definitions/adult_female_uterus.json`:
 
 ```json
 {
