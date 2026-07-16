@@ -12,12 +12,12 @@ abstract: >-
   through a small message-based API.
 type: software
 version: "0.1.0"
-# date-released: TODO (YYYY-MM-DD, set at first release)
+date-released: "2026-07-16"
 authors:
   - given-names: Tim
     family-names: Antonius
     email: timantonius@pm.me
-    # orcid: "https://orcid.org/TODO"  # add your ORCID before release
+    orcid: "https://orcid.org/0000-0003-0289-1508"
 repository-code: "https://github.com/Dobutamine/explain-engine"
 license: MIT
 keywords:
