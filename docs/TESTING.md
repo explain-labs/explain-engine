@@ -29,7 +29,7 @@ console.log(model.models.Heart.heart_rate); // state is final and readable immed
 
 | Member | What it does |
 |---|---|
-| `send(type, message, payload)` | Raw envelope dispatch — `self.onmessage({ data: { type, message, payload } })`. The same `{type, message, payload}` envelope `explain/Model.js` posts over the wire (see [ARCHITECTURE](./ARCHITECTURE.md)). |
+| `send(type, message, payload)` | Raw envelope dispatch — `self.onmessage({ data: { type, message, payload } })`. The same `{type, message, payload}` envelope [`Model.js`](../Model.js) posts over the wire (see [ARCHITECTURE](./ARCHITECTURE.md)). |
 | `build(def)` | `send("POST", "build", def)` then `send("GET", "state", [])`; returns the live `model` handle (by reference). `def` is a `model_definition` object. |
 | `calc(seconds)` | `send("POST", "calc", seconds)` — runs `seconds / modeling_stepsize` steps **synchronously**. |
 | `scale(group, factor)` | `send("POST", "scale", { group, factor })` — routes to `ModelEngine.scale_model`. |
@@ -38,11 +38,11 @@ console.log(model.models.Heart.heart_rate); // state is final and readable immed
 
 ### The zero-engine-edit shim trick
 
-`explain/ModelEngine.js` is a **Web-Worker module**: its only entry point is `self.onmessage`, and it replies via `postMessage`. Neither global exists in plain Node. The harness fabricates them **before** importing the engine, so the engine loads unmodified:
+[`ModelEngine.js`](../ModelEngine.js) is a **Web-Worker module**: its only entry point is `self.onmessage`, and it replies via `postMessage`. Neither global exists in plain Node. The harness fabricates them **before** importing the engine, so the engine loads unmodified:
 
 1. **ESM resolve hook.** The engine uses Vite-style **extensionless** relative imports (e.g. `import ... from "./ModelIndex"`), which Node's ESM resolver rejects. `scripts/resolve-extensionless.mjs` is a resolve hook that catches a failed relative-specifier import and retries it with a `.js` suffix. The harness registers it first: `register("./resolve-extensionless.mjs", import.meta.url)`.
 2. **Global shims, installed BEFORE the engine import.** `globalThis.self = globalThis`, and `globalThis.postMessage = (msg) => {…}` — the fake `postMessage` captures the engine's replies: a `state` message stashes the live `model` (`liveModel = msg.payload`, **by reference, not a clone**), and `error` / `status ERROR` messages are forwarded to `console.error`.
-3. **Import the engine.** `await import("../explain/ModelEngine.js")` runs the module body, which registers `self.onmessage` on the shimmed global.
+3. **Import the engine.** `await import("../ModelEngine.js")` runs the module body, which registers `self.onmessage` on the shimmed global.
 4. **Drive it** through the same envelope the real worker uses: `send("POST", "build", def)`, `send("GET", "state", [])` to grab the live `model`, `send("POST", "calc", seconds)` to step.
 
 Because `calc` runs the step loop **fully synchronously** (no `setInterval`, no realtime batching), model state is final and directly readable the instant `calc` returns — that is what makes deterministic, assertion-style probing possible.
@@ -61,7 +61,7 @@ node scripts/headless.mjs <scenario> [--seconds N] [--window W] [--no-ans] [--no
 
 A probe is a self-contained `.mjs` that boots the engine, runs a scripted physiological scenario, and prints a human-readable verdict. The shared shape (canonically in `scripts/probe_vitals.mjs`):
 
-1. **Boot** — register the resolve hook, install the `self`/`postMessage` shims, `await import("../explain/ModelEngine.js")`, define `send`. (Probes predating `_harness.mjs` inline this; newer ones import `createEngine`.)
+1. **Boot** — register the resolve hook, install the `self`/`postMessage` shims, `await import("../ModelEngine.js")`, define `send`. (Probes predating `_harness.mjs` inline this; newer ones import `createEngine`.)
 2. **Build** — read `model_definitions/<scenario>.json`, unwrap `json.model_definition || json`, `send("POST","build",def)`, `send("GET","state",[])`, capture `model`. A build failure exits `1`.
 3. **Isolate (optional)** — disable the system that would mask the one under test, typically the baroreflex: `if (model.models.Ans) model.models.Ans.is_enabled = false`. (`probe_vitals.mjs` keeps the ANS **on** — its target is the *regulated* operating point — and exposes `--no-ans` to turn it off.)
 4. **Warm to steady state** — one big synchronous `send("POST","calc",SECONDS)` (default 60–120 s) to clear startup transients.
@@ -102,17 +102,18 @@ Probes are **interactive verification tools, not pass/fail test cases.** They pr
 
 ## Probe inventory
 
-~29 `probe_*.mjs` scripts. Group by what they verify:
+32 `probe_*.mjs` scripts. Group by what they verify:
 
 | Group | Scripts | Verifies |
 |---|---|---|
 | **Core vitals / calibration** | `probe_vitals.mjs`, `probe_tune.mjs`, `probe_ea.mjs` | Regulated vitals + ABG vs normal ranges; the live closed-loop tuner; mitral E/A ratio. |
-| **Physiology systems** | `probe_brain.mjs`, `probe_surfactant.mjs`, `probe_derecruitment.mjs`, `probe_thermo.mjs`, `probe_glucose.mjs`, `probe_lactate.mjs`, `probe_heartfunction.mjs`, `probe_cpap.mjs`, `probe_arrhythmia.mjs`, `probe_drugs.mjs`, `probe_pge1.mjs` | Cerebral autoregulation/ICP; RDS recruitment/derecruitment + surfactant; thermoregulation; glucose/insulin; hypoxic lactate; load-induced contractility; CPAP/PS ventilation of spontaneous breathing; conduction arrhythmias; adrenaline/noradrenaline PK/PD; PGE1 ductal patency. |
+| **Physiology systems** | `probe_brain.mjs`, `probe_respiratory.mjs`, `probe_surfactant.mjs`, `probe_derecruitment.mjs`, `probe_thermo.mjs`, `probe_glucose.mjs`, `probe_lactate.mjs`, `probe_renal.mjs`, `probe_heartfunction.mjs`, `probe_cpap.mjs`, `probe_arrhythmia.mjs`, `probe_drugs.mjs`, `probe_pge1.mjs` | Cerebral autoregulation/ICP; respiratory/acid-base dose-response sweeps (FiO2, O2 diffusion, minute volume, UMA); RDS recruitment/derecruitment + surfactant; thermoregulation; glucose/insulin; hypoxic lactate; GFR + RAAS/ADH response to haemorrhage and volume load; load-induced contractility; CPAP/PS ventilation of spontaneous breathing; conduction arrhythmias; adrenaline/noradrenaline PK/PD; PGE1 ductal patency. |
+| **Devices** | `probe_ventilator.mjs`, `probe_ecls.mjs` | Pressure-control ventilation of a preterm RDS lung with spontaneous drive off, sweeping FiO2 / rate / PEEP; veno-arterial ECMO rescue under near-abolished alveolar diffusion, sweeping pump speed / sweep-gas flow. Both report the **emergent** blood gas — oxygenation and CO2 removal come from the gas-exchange physics (same Fick law as the native lung), not from the device. |
 | **Fetal / maternal** | `probe_fetus.mjs`, `probe_uterus.mjs`, `probe_placenta.mjs` | Fetal circulation; uterine bed / pregnancy adaptation / contractions; maternal placenta. |
 | **PDA / CDH** | `probe_pda.mjs`, `probe_cdh.mjs` | PDA Doppler envelope classification; congenital diaphragmatic hernia phenotypes. |
 | **CHD family** | `probe_as.mjs`, `probe_coarc.mjs`, `probe_dtga.mjs`, `probe_hlhs.mjs`, `probe_paivs.mjs`, `probe_pavsd.mjs`, `probe_ps.mjs`, `probe_ta.mjs`, `probe_tapvc.mjs` | Duct/FO-dependent congenital heart disease scenarios (aortic stenosis, coarctation, d-TGA, HLHS, PA-IVS, PA-VSD, pulmonary stenosis, tricuspid atresia, TAPVC). |
 
-> `probe_knowledge_pack.mjs` is **not** an engine test — it validates the clinical-chat knowledge pack, not engine physiology. Ignore it for engine verification.
+> Most probes default to `term_neonate`; the ones whose physiology only makes sense on a sick lung default elsewhere (e.g. `probe_ventilator.mjs` → `preterm_28wk`). Check the script's `Usage:` header.
 
 ## Other engine-dev tooling
 
@@ -120,7 +121,7 @@ The remaining `scripts/*.mjs` support calibration, scenario authoring, and stead
 
 | Group | Scripts | Role |
 |---|---|---|
-| **Calibration** | `build_patient.mjs`, `probe_tune.mjs` | Closed-loop calibration via `explain/helpers/Calibrator.js` (see [Calibrator](./Calibrator.md)) — `build_patient.mjs` builds a new calibrated patient from target vitals; `probe_tune.mjs` exercises the same live tuner headlessly. |
+| **Calibration** | `build_patient.mjs`, `probe_tune.mjs` | Closed-loop calibration via [`helpers/Calibrator.js`](../helpers/Calibrator.js) (see [Calibrator](./Calibrator.md)) — `build_patient.mjs` builds a new calibrated patient from target vitals; `probe_tune.mjs` exercises the same live tuner headlessly. |
 | **Reseeding** | `reseed_*.mjs` (e.g. `reseed_term_neonate`, `reseed_preterm`, `reseed_adult_female`, the CHD set) | Warm a scenario to steady state and serialize it back into `model_definition` (baking equilibrium seeds, clearing startup transients). Each shares `_serialize_state.mjs` (replicates `Model._processModelState`). **Default is a dry run to `/tmp`**; pass `--write` to overwrite the scenario file in place. |
 | **Scenario generation** | `_make_*.mjs` (e.g. `_make_preterm`, `_make_cdh_phenotypes`, `_make_dtga`, `_make_pda_patterns`, …) | Generate/derive a scenario JSON (usually from `term_neonate`) by applying phenotype-specific lever edits. |
 | **Feature patchers** | `_add_neonatal_core.mjs`, `_add_brain.mjs`, `_add_surfactant.mjs` | Patch a model/feature into many existing scenario JSONs at once (without reseeding, to preserve calibration). |
