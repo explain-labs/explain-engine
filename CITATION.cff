@@ -25,4 +25,4 @@ keywords:
   - simulation
   - neonatology
   - cardiorespiratory modelling
-# doi: TODO (Zenodo mints this per GitHub release once the webhook is enabled)
+doi: "10.5281/zenodo.21389097"  # concept (all-versions) DOI

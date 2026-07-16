@@ -1,5 +1,8 @@
 # Explain Model (`src/explain`)
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21389097.svg)](https://doi.org/10.5281/zenodo.21389097)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+
 This folder contains the in-browser physiological simulation engine used by the web app.
 The model runs in a dedicated Web Worker (`ModelEngine.js`) and is controlled from the main thread through the `Model` wrapper (`Model.js`).
 
@@ -183,4 +186,13 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 ### 6. Cleanup
 
 - When done (component unmount, hot reload), call `explain.dispose()` to terminate the worker and drop listeners.
+
+## Citation
+
+If you use this software, please cite it via its archived release. The DOI below is the
+**concept (all-versions) DOI** and always resolves to the latest release:
+
+> Antonius, T. *Explain: a whole-body physiological simulation engine* (v0.1.0). Zenodo. https://doi.org/10.5281/zenodo.21389097
+
+Machine-readable metadata lives in [`CITATION.cff`](./CITATION.cff); GitHub's "Cite this repository" button reads it directly. To cite a specific version, use that release's version-specific DOI from the [Zenodo record](https://doi.org/10.5281/zenodo.21389097) instead of the concept DOI.
 
