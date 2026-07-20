@@ -57,6 +57,14 @@ conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites
    `calc_gas_composition(model, fio2, model.temp, model.humidity)`. Guarding on the raw
    concentrations (rather than the derived `ctotal`) preserves a restored/loaded saved state even if
    `ctotal` was not serialized.
+6. **Reconcile water vapour with the final temperature.** A device (`Ventilator`, `Ecls`) may have
+   bootstrapped its own gas lines in its `init_model`, which runs *before* this one, at a different
+   temperature than step 2/3 ends up applying — leaving a water content that is supersaturated for
+   the final temperature. Normally `add_watervapour` would condense that out, but a compartment
+   belonging to a switched-off device is never stepped (`step_model` gates on `is_enabled`), so it
+   would report a physically impossible relative humidity forever. Any compartment found
+   supersaturated here therefore has its composition rebuilt at its final temperature. In practice
+   this is only ever an idle ventilator circuit holding fresh gas.
 
 `calc_model` is intentionally empty.
 
@@ -67,7 +75,12 @@ conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites
 - **`set_temperature(new_temp, sites = ["OUT", "MOUTH"])`** — record `temp_settings[site]` for each
   site (`parseFloat`), then apply `temp` **and** `target_temp` to all recorded sites.
 - **`set_humidity(new_humidity, sites = ["OUT", "MOUTH"])`** — record `humidity_settings[site]`
-  (`parseFloat`) and apply `humidity` to all recorded sites.
+  (`parseFloat`) and apply `humidity` to all recorded sites. Since `humidity` is a live evaporation
+  target that [`GasCapacitance`](./GasCapacitance.md) reads every step, a normal compartment relaxes
+  to the new value on its own. A `fixed_composition` compartment is never touched by
+  `add_watervapour`, so those — and *only* those — additionally get their composition recomputed.
+  Recomputing an airway compartment here would rebuild it from `fio2` and discard its accumulated
+  CO₂.
 - **`set_fio2(new_fio2, sites = ["OUT", "MOUTH"])`** — set `fio2` (`parseFloat`, to avoid string
   concatenation corrupting the `1 − (fio2 + fico2)` fraction math), then re-derive each site's
   composition via the standalone [`calc_gas_composition`](./GasComposition.md) at that site's current
@@ -100,7 +113,9 @@ warm, fully-saturated alveoli):
   consistent pressure/temperature/humidity and a physiological room-air (or FiO₂-set) composition.
 - The setters are the entry points the UI / `Ventilator` / `Ecls` and the bot use to change inspired
   oxygen, ambient pressure, and airway conditioning at runtime.
-- Compartments not listed in `humidity_settings` start at the global `humidity` and are humidified
-  over time by `GasCapacitance.add_watervapour`.
+- Compartments not listed in `humidity_settings` keep whatever `humidity` they carry (the
+  `GasCapacitance` default is `1.0`, a saturated wall) and are humidified over time by
+  `GasCapacitance.add_watervapour`. Device gas paths that should stay dry — the ventilator supply,
+  the ECLS sweep gas — must declare `humidity: 0` explicitly.
 - The gas chemistry itself is documented in [`GasComposition`](./GasComposition.md) and
   [`GasCapacitance`](./GasCapacitance.md).

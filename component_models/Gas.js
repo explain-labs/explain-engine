@@ -63,6 +63,29 @@ export class Gas extends BaseModelClass {
       }
     });
 
+    // Reconcile water vapour with the temperature each compartment actually ended up at.
+    //
+    // A device (Ventilator/Ecls) may have bootstrapped its gas lines in its own init_model, which
+    // runs before this one, at a different temperature than the one applied above — leaving a
+    // water content that is supersaturated for the final temperature. add_watervapour would
+    // normally condense that out, but it never gets the chance on a compartment belonging to a
+    // switched-off device, since step_model gates on is_enabled. Without this pass an idle
+    // ventilator circuit reports a physically impossible relative humidity. Only a supersaturated
+    // compartment is rebuilt, and in practice that is just a circuit holding fresh gas, so
+    // rebuilding its composition from fio2 costs nothing.
+    this._gas_components.forEach((model) => {
+      const ctotal = model.co2 + model.cco2 + model.cn2 + model.ch2o + model.cother;
+      if (ctotal <= 0.0 || !(model.pres_atm > 0.0)) return;
+
+      // work from the concentrations rather than the derived ph2o, which on a compartment that is
+      // never stepped still reflects whatever temperature it was last bootstrapped at
+      const p_h2o = (model.ch2o / ctotal) * model.pres_atm;
+      const p_sat = Math.exp(20.386 - 5132 / (model.temp + 273.15));
+      if (p_h2o <= p_sat) return;
+
+      calc_gas_composition(model, this.fio2, model.temp, model.humidity);
+    });
+
     // flag that the model is initialized
     this._is_initialized = true;
   }
@@ -111,8 +134,17 @@ export class Gas extends BaseModelClass {
 
     // set the humidities of the different gas containing components
     Object.keys(this.humidity_settings).forEach((model_name) => {
-      let humidity = this.humidity_settings[model_name];
-      this._model_engine.models[model_name].humidity = humidity;
+      let m = this._model_engine.models[model_name];
+      if (!m) return;
+      m.humidity = this.humidity_settings[model_name];
+
+      // humidity is a live evaporation target, so a normal compartment relaxes to it on its own.
+      // a fixed-composition one is never touched by add_watervapour, so it needs an explicit
+      // recompute. only do it there: calc_gas_composition rebuilds the whole composition from
+      // fio2, which on an airway compartment would discard its accumulated CO2
+      if (m.fixed_composition) {
+        calc_gas_composition(m, this.fio2, m.temp, m.humidity);
+      }
     });
   }
 

@@ -436,6 +436,10 @@ export class Ventilator extends BaseModelClass {
   set_humidity(new_humidity) {
     if (new_humidity >= 0 && new_humidity <= 1.0) {
       this.humidity = new_humidity;
+      // the compartments carry their own humidity target, so write it there too or the next
+      // set_fio2/set_temp call reads the stale value back and reverts this one
+      this._vent_gasin.humidity = this.humidity;
+      this._vent_gascircuit.humidity = this.humidity;
       calc_gas_composition(
         this._vent_gasin,
         this.fio2,
@@ -447,6 +451,11 @@ export class Ventilator extends BaseModelClass {
 
   set_temp(new_temp) {
     this.temp = new_temp;
+    // set target_temp as well, otherwise add_heat relaxes the compartment straight back to the
+    // old target and the composition computed below no longer matches its temperature
+    this._vent_gasin.temp = this.temp;
+    this._vent_gasin.target_temp = this.temp;
+    this._vent_gascircuit.target_temp = this.temp;
     calc_gas_composition(
       this._vent_gasin,
       this.fio2,

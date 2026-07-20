@@ -220,9 +220,17 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode |
 | `set_cpap(cpap, insp_flow)` | Configure CPAP (`cpap` → `peep_cmh2o`) |
 | `set_fio2(new_fio2)` | Re-derive fresh-gas composition (accepts a fraction or a percentage > 20) |
-| `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition |
+| `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition, and push the new humidity / temperature onto `VENT_GASIN` and `VENT_GASCIRCUIT` themselves — see note below |
 | `set_ettube_diameter(d)` / `set_ettube_length(l)` | Update tube geometry → resistance |
 | `trigger_breath(...)` | Force the next breath by expiring the current one (its `pip`/`peep`/… arguments are ignored) |
+
+> **Why the setters write to the gas compartments directly.** `humidity` and `target_temp` are live
+> targets that [`GasCapacitance`](./GasCapacitance.md) relaxes toward on every step. Setting only the
+> Ventilator's own `temp`/`humidity` and recomputing the composition is not enough — the compartment
+> keeps its old targets and is dragged straight back. `set_temp` therefore also sets
+> `VENT_GASIN.temp`/`target_temp` and `VENT_GASCIRCUIT.target_temp`, and `set_humidity` sets
+> `humidity` on both. Note that `VENT_GASIN` is `fixed_composition`, so `add_heat`/`add_watervapour`
+> skip it entirely and it holds whatever it is given.
 
 ## Example definition (JSON)
 

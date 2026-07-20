@@ -7,6 +7,13 @@ local temperature and humidity. It is the counterpart to the
 [`GasCapacitance.calc_gas_composition`](./GasCapacitance.md) *method* (which instead derives partial
 pressures from the compartment's already-present concentrations).
 
+> ⚠️ **The `humidity` argument here is not the same thing as `GasCapacitance.humidity`,** despite the
+> shared name. This one is a *one-shot initial condition*: the relative humidity to build the
+> composition at, right now. `GasCapacitance.humidity` is a *live target* — the wall wetness the
+> compartment relaxes toward on every step. They usually hold the same value (callers pass
+> `model.humidity` through), but they answer different questions, and this is the most likely place
+> to get confused. See [`GasCapacitance`](./GasCapacitance.md#config-unique-to-gascapacitance).
+
 ## Inheritance
 
 This is **not a class** — it is a module-level function, so it has no inheritance chain. It takes a
@@ -81,6 +88,13 @@ c_s = f_s · ctotal
 (Recall `gc.co2` is the **oxygen** concentration — see [`GasCapacitance`](./GasCapacitance.md).)
 All partial pressures, fractions and concentrations are thus mutually consistent and the
 concentrations sum to `ctotal`.
+
+> **`fo2` is a wet fraction and will read below the `fio2` you set.** The dry fraction is applied to
+> `(pressure − ph2o)`, but `f_s` divides by the full `pressure` — so setting `fio2 = 0.21` on a
+> saturated 37 °C compartment at 760 mmHg yields `fo2 ≈ 0.197`. That is correct, not a rounding
+> error: it is the same water-vapour dilution the alveolar gas equation accounts for. The runtime
+> `GasCapacitance.calc_gas_composition` method uses the same wet convention, so the two agree. If
+> you need the dry fraction back, divide by `(1 − fh2o)`.
 
 ## When it is used
 
