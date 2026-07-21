@@ -78,6 +78,19 @@ export class Ecls extends BaseModelClass {
     this.pump_res_back = 50; // resistance of the pump (mmHg/(L/s))
     this.pump_vol = 0.031; // volume of the pump (L)
 
+    // pump head-flow (H-Q) characteristic — active coefficients, copied from the selected entry in
+    // `pumps` below. Centrifugal head (mmHg) = hq_a*(rpm/1000)^2 - hq_b*(rpm/1000)*Q - hq_c*Q^2 (Q in
+    // L/min), a real rotodynamic characteristic (afterload/preload sensitive) rather than the old
+    // flow-independent -rpm/25. Roller mode is a positive-displacement flow source: an integral
+    // controller trims the drive pressure so circuit flow tracks Q_target = roller_ml_per_rev*rpm/1000.
+    this.pump_hq_a = 12.0; // head vs rpm^2 term (mmHg per krpm^2)
+    this.pump_hq_b = 18.0; // head falloff vs rpm*flow (mmHg per krpm per L/min)
+    this.pump_hq_c = 6.0; // head falloff vs flow^2 (mmHg per (L/min)^2)
+    this.pump_max_rpm = 5500; // informational max rpm of the selected pump
+    this.roller_ml_per_rev = 1.5; // roller stroke volume (mL per revolution)
+    this.roller_kp = 30.0; // roller flow-controller gain (mmHg per (L/min) error per update)
+    this.roller_drive_max = 900.0; // clamp on roller drive pressure (mmHg)
+
 
     this.return_cannulas = {
       "Bio-Medicus arterial 8 Fr": {
@@ -140,6 +153,35 @@ export class Ecls extends BaseModelClass {
       },
     }
 
+    // pump device library — real ECLS pumps with head-flow (H-Q) coefficients (centrifugal) or
+    // positive-displacement parameters (roller). Coefficients are calibrated so each pump reaches its
+    // rated flow at its rated rpm against a physiologic circuit afterload, with a datasheet-like
+    // deadhead (Q=0) pressure at max_rpm. `prime` is the priming volume (L). Selecting `pump_type`
+    // copies these into the active fields above and sets `pump_mode` from `type`.
+    this.pumps = {
+      "Abbott PediMag": { // pediatric mag-lev centrifugal, ~1.5 L/min, 14 mL prime
+        type: "centrifugal", max_rpm: 5500, prime: 0.014,
+        hq_a: 12.0, hq_b: 18.0, hq_c: 6.0,
+      },
+      "Abbott CentriMag": { // adult mag-lev centrifugal, ~9.9 L/min @5000 rpm, 31 mL prime
+        type: "centrifugal", max_rpm: 5000, prime: 0.031,
+        hq_a: 14.0, hq_b: 4.0, hq_c: 1.2,
+      },
+      "Getinge Rotaflow RF-32": { // adult centrifugal, ~10 L/min, 32 mL prime
+        type: "centrifugal", max_rpm: 5000, prime: 0.032,
+        hq_a: 14.0, hq_b: 4.0, hq_c: 1.1,
+      },
+      "Medtronic Bio-Pump BP-50": { // neonatal centrifugal cone, lower rpm range, 48 mL prime
+        type: "centrifugal", max_rpm: 3000, prime: 0.048,
+        hq_a: 22.0, hq_b: 30.0, hq_c: 8.0,
+      },
+      "Generic roller pump": { // positive-displacement, near-constant flow vs afterload
+        type: "roller", max_rpm: 250, prime: 0.030,
+        ml_per_rev: 1.5, roller_kp: 30.0, roller_drive_max: 900.0,
+      },
+    };
+    this.pump_type = "Abbott PediMag"; // selects the pump; copies its coefficients / mode below
+
     this.drainage_cannula_type = "Bio-Medicus venous 12 Fr";
     this.return_cannula_type = "Bio-Medicus arterial 10 Fr";
 
@@ -153,6 +195,10 @@ export class Ecls extends BaseModelClass {
       this.return_cannula_diameter = selectedReturnCannula.inner_diameter;
       this.return_cannula_length = selectedReturnCannula.length;
     }
+
+    // apply the initially selected pump (copies H-Q / roller coefficients and sets pump_mode)
+    this._prev_pump_type = "";
+    this._apply_pump_selection();
 
     // -----------------------------------------------
     // initialize dependent parameters
@@ -186,7 +232,10 @@ export class Ecls extends BaseModelClass {
     this._p_ven_avg_calculator = new RealTimeMovingAverage(this.pressure_avg_window);
     this._p_int_avg_calculator = new RealTimeMovingAverage(this.pressure_avg_window);
     this._p_art_avg_calculator = new RealTimeMovingAverage(this.pressure_avg_window);
-    
+    this._pump_flow_ema = 0.0; // short-EMA of circuit flow (L/min): the H-Q / roller controller input
+    this._pump_flow_ema_tc = 0.3; // time constant (s) for that EMA — tracks flow but damps the feedback loop
+    this._roller_drive = 0.0; // integral-controller drive pressure (mmHg) for roller mode
+
 
     this._ecls_drainage = null; // reference to the drainage model instance
     this._ecls_tubing_in = null; // reference to the tubing in model instance
@@ -205,6 +254,33 @@ export class Ecls extends BaseModelClass {
     // heater-cooler overrides it with the fast device tc, so it can be restored when released. null
     // means "not currently overriding" (nothing to restore).
     this._blood_temp_tc_restore = null;
+  }
+
+  // after the base assigns the scenario JSON (which may set pump_type) and instantiates the ECLS_*
+  // sub-models, re-apply the pump selection so the active H-Q / roller coefficients and pump_mode
+  // match the loaded pump from build time — not only once the running update loop notices the change.
+  init_model(args = {}) {
+    super.init_model(args);
+    this._apply_pump_selection();
+  }
+
+  // copy the selected pump's characteristics into the active fields and set pump_mode from its type.
+  // Cheap and idempotent; re-run when pump_type changes so a scenario/UI switch takes effect.
+  _apply_pump_selection() {
+    const p = this.pumps[this.pump_type];
+    if (!p) return;
+    this.pump_mode = p.type === "roller" ? 1 : 0;
+    this.pump_max_rpm = p.max_rpm ?? this.pump_max_rpm;
+    if (p.type === "roller") {
+      this.roller_ml_per_rev = p.ml_per_rev ?? this.roller_ml_per_rev;
+      this.roller_kp = p.roller_kp ?? this.roller_kp;
+      this.roller_drive_max = p.roller_drive_max ?? this.roller_drive_max;
+    } else {
+      this.pump_hq_a = p.hq_a ?? this.pump_hq_a;
+      this.pump_hq_b = p.hq_b ?? this.pump_hq_b;
+      this.pump_hq_c = p.hq_c ?? this.pump_hq_c;
+    }
+    this._prev_pump_type = this.pump_type;
   }
 
   // restore ECLS_OXY's perfusion time constant to its pre-override value and hand thermal control
@@ -230,6 +306,8 @@ export class Ecls extends BaseModelClass {
       this._p_int_avg_calculator.reset();
       this._p_art_avg_calculator.reset();
       this._blood_comp_counter = 0.0;
+      this._pump_flow_ema = 0.0; // clear the pump-control state so a restart begins from rest
+      this._roller_drive = 0.0;
 
       // disable the circuit sub-models so a stopped ECLS no longer conducts (refs are cached once the
       // circuit has run; they are null before the first run, when the sub-models are already disabled)
@@ -322,6 +400,11 @@ export class Ecls extends BaseModelClass {
           this.return_cannula_length = selectedReturnCannula.length;
         }
 
+        // re-apply the pump library entry if the selection changed (scenario/UI switch)
+        if (this.pump_type !== this._prev_pump_type) {
+          this._apply_pump_selection();
+        }
+
         // make sure all the associated models are in the same enabled/disabled state as the placenta model
         this._ecls_drainage.is_enabled = this.ecls_running;
         this._ecls_tubing_in.is_enabled = this.ecls_running;
@@ -395,24 +478,45 @@ export class Ecls extends BaseModelClass {
         this._ecls_gasex.dif_o2 = this.dif_o2;
         this._ecls_gasex.dif_co2 = this.dif_co2;
 
-        // calculate the pump pressure and apply the pump pressures to the connected resistors
-        this.pump_pressure = -this.pump_rpm / 25.0;
-        this._ecls_pump.pump_rpm = this.pump_rpm;
-        // Fully define both vessels' external pressures in each branch so switching pump_mode at
-        // runtime cannot leave the previous mode's drive stuck on. The BloodVessel level never
-        // self-resets p1_ext/p2_ext (only the owned resistor does, each step), so the inactive
-        // vessel must be explicitly cleared here or its stale drive would keep compounding.
+        // --- pump drive: head-flow (H-Q) characteristic ---
+        // Flow input is a short EMA of the circuit flow (L/min); lagged feedback keeps the operating
+        // point stable without the 6 s display flow_avg's sluggishness.
+        const q_lmin = this._ecls_return.flow * 60.0;
+        const ema_frac = this._pump_flow_ema_tc > 0.0
+          ? Math.min(1.0, this._update_interval / this._pump_flow_ema_tc) : 1.0;
+        this._pump_flow_ema += (q_lmin - this._pump_flow_ema) * ema_frac;
+        const q = Math.max(0.0, this._pump_flow_ema);
+
         if (this.pump_mode === 0) {
-          // centrifugal: drive the pump, clear the oxygenator
+          // centrifugal: rotodynamic head = hq_a*krpm^2 − hq_b*krpm*Q − hq_c*Q^2 (mmHg). Head falls as
+          // flow rises, so the operating point is afterload/preload sensitive. Clamped ≥ 0 — the pump
+          // cannot generate reverse head.
+          const krpm = this.pump_rpm / 1000.0;
+          const head = this.pump_hq_a * krpm * krpm - this.pump_hq_b * krpm * q - this.pump_hq_c * q * q;
+          this.pump_pressure = -Math.max(head, 0.0);
+          this._roller_drive = 0.0; // keep the roller integrator clear while in centrifugal mode
+        } else {
+          // roller: positive-displacement flow source. An integral controller trims the drive pressure
+          // so circuit flow tracks Q_target = roller_ml_per_rev*rpm/1000, making flow (nearly)
+          // independent of afterload. Clamped to [0, roller_drive_max].
+          const q_target = this.roller_ml_per_rev * this.pump_rpm / 1000.0;
+          this._roller_drive += this.roller_kp * (q_target - q);
+          this._roller_drive = Math.min(Math.max(this._roller_drive, 0.0), this.roller_drive_max);
+          this.pump_pressure = -this._roller_drive;
+        }
+        this._ecls_pump.pump_rpm = this.pump_rpm;
+
+        // Apply the drive to the driven vessel's DOWNSTREAM node (p2_ext) and zero the other vessel, so
+        // a runtime pump_mode switch cannot leave a stale drive applied (the BloodVessel never
+        // self-resets p1_ext/p2_ext; only its owned resistor does, each step). Centrifugal drives the
+        // pump; roller drives the oxygenator (mirroring the pump case) — driving ECLS_OXY.p1_ext instead
+        // would lower the upstream node and push the circuit backward.
+        if (this.pump_mode === 0) {
           this._ecls_pump.p1_ext = 0.0;
           this._ecls_pump.p2_ext = this.pump_pressure;
           this._ecls_oxy.p1_ext = 0.0;
           this._ecls_oxy.p2_ext = 0.0;
         } else {
-          // roller: drive the oxygenator forward, clear the pump. Apply the negative drive pressure to
-          // the oxygenator's DOWNSTREAM node (p2_ext) — mirroring the centrifugal case on the pump — so
-          // it over-fills the oxygenator from the pump and drives the whole circuit forward. Applying
-          // it to p1_ext (as before) lowered the upstream/pump node instead and drove flow backward.
           this._ecls_oxy.p1_ext = 0.0;
           this._ecls_oxy.p2_ext = this.pump_pressure;
           this._ecls_pump.p1_ext = 0.0;

@@ -10421,6 +10421,7 @@
     "dif_co2": 0.001,
     "pump_rpm": 1500,
     "pump_mode": 0,
+    "pump_type": "Abbott CentriMag",
     "pump_pressure": -60,
     "cannula_sizes_single": [
      19,

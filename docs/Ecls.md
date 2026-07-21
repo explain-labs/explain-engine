@@ -80,8 +80,12 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `oxy_vol` | L | Oxygenator volume (default 0.09) |
 | `pump_res_for` / `pump_res_back` | mmHg/(L/s) | Pump resistance (default 50/50) |
 | `pump_vol` | L | Pump volume (default 0.031) |
-| `pump_rpm` | rpm | Pump speed (default 1500) |
-| `pump_mode` | 0/1 | 0 = centrifugal (drives the pump), 1 = roller (drives the oxygenator) |
+| `pump_rpm` | rpm | Pump speed — the primary control (default 1500) |
+| `pump_type` | string | Key into `pumps` (default `Abbott PediMag`); selecting it copies the H-Q/roller coefficients and sets `pump_mode` |
+| `pump_mode` | 0/1 | 0 = centrifugal (drives the pump), 1 = roller (drives the oxygenator); set from the selected pump's `type` |
+| `pump_hq_a` / `pump_hq_b` / `pump_hq_c` | — | Centrifugal head-flow coefficients (mmHg per krpm², per krpm·(L/min), per (L/min)²) |
+| `roller_ml_per_rev` / `roller_kp` / `roller_drive_max` | mL/rev, —, mmHg | Roller flow-source stroke volume, controller gain, drive clamp |
+| `pumps` | dict | Pump device library (H-Q coefficients / roller params, `type`, `max_rpm`, `prime` per device) |
 | `gas_flow` | L/min | Sweep-gas flow (default 0.5) |
 | `gas_fio2` | fraction | Sweep-gas FiO₂ (default 0.205) |
 | `gas_fico2` | fraction | Sweep-gas FiCO₂ (default 0.000392) |
@@ -107,7 +111,7 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `p_art` | mmHg | Filtered arterial/outlet pressure (`ECLS_TUBING_OUT.pres`) |
 | `flow` | L/min | Circuit blood flow (`ECLS_RETURN.flow × 60`) |
 | `flow_avg` | L/min | Moving-average of `flow` |
-| `pump_pressure` | mmHg | Pump drive pressure = `−pump_rpm / 25` |
+| `pump_pressure` | mmHg | Pump drive pressure = `−head` (centrifugal H-Q) or `−`roller-controller output |
 | `sat_ven_o2` | % | Venous (pre-oxygenator) O₂ saturation |
 | `sat_postoxy_o2` | % | Post-oxygenator O₂ saturation |
 | `pco2_postoxy` | mmHg | Post-oxygenator pCO₂ |
@@ -164,22 +168,53 @@ circuit has run.)
 10. Once per `_blood_comp_interval` (1.0 s), recompute blood composition on the two tubing
     compartments and read out `sat_ven_o2`, `sat_postoxy_o2`, `pco2_postoxy`.
 
-### Pump drive
+### Pump drive — head-flow (H-Q) model
 
+The pump develops a **flow-dependent head**, not a fixed pressure. The flow input is a short EMA
+(`_pump_flow_ema_tc`, ~0.3 s) of the circuit flow (`ECLS_RETURN.flow × 60`, L/min) — lagged feedback
+that keeps the operating point stable without the 6 s display `flow_avg`'s sluggishness.
+
+**Centrifugal** (`pump_mode 0`) — rotodynamic characteristic, head clamped ≥ 0:
 ```
-pump_pressure = −pump_rpm / 25
-pump_mode 0 (centrifugal): ECLS_PUMP.p2_ext = pump_pressure;  ECLS_OXY  p1_ext = p2_ext = 0
-pump_mode 1 (roller):      ECLS_OXY.p2_ext  = pump_pressure;  ECLS_PUMP p1_ext = p2_ext = 0
+head = hq_a·(rpm/1000)² − hq_b·(rpm/1000)·Q − hq_c·Q²      // mmHg, Q in L/min
+pump_pressure = −head
+```
+Head falls as flow rises, so the operating point is **afterload/preload sensitive** — the defining
+behaviour of a centrifugal pump. (At insufficient rpm the head cannot overcome arterial afterload and
+the circuit can run retrograde — physiological for valveless VA ECMO.)
+
+**Roller** (`pump_mode 1`) — positive-displacement **flow source**. An integral controller trims the
+drive so circuit flow tracks the target, making flow (nearly) **independent of afterload**:
+```
+Q_target = roller_ml_per_rev·rpm / 1000
+_roller_drive += roller_kp·(Q_target − Q)     // clamped to [0, roller_drive_max]
+pump_pressure = −_roller_drive
 ```
 
-The negative external pressure on the driven vessel's **downstream** node (`p2_ext`) creates the
-pressure gradient that drives flow **forward** through the circuit — over-filling that compartment from
-upstream and pushing it on (the resistors compute flow from the resulting node pressures). Both modes
-use the same downstream-node drive, so both push forward; earlier roller-mode code drove `ECLS_OXY.p1_ext`
-(the upstream node) and pushed the circuit backward. Each branch explicitly zeroes the *other* vessel's
-external pressures, so switching `pump_mode` at runtime cannot leave the previous mode's drive applied on
-top of the new one — the `BloodVessel` never self-resets `p1_ext`/`p2_ext`; only its owned resistor does,
-each step.
+The drive is applied to the driven vessel's **downstream** node (`p2_ext`) and the other vessel's
+`p1_ext`/`p2_ext` are zeroed — centrifugal drives `ECLS_PUMP`, roller drives `ECLS_OXY`:
+```
+pump_mode 0: ECLS_PUMP.p2_ext = pump_pressure;  ECLS_OXY  p1_ext = p2_ext = 0
+pump_mode 1: ECLS_OXY.p2_ext  = pump_pressure;  ECLS_PUMP p1_ext = p2_ext = 0
+```
+The negative downstream-node pressure over-fills that compartment from upstream and pushes the circuit
+**forward**; driving `p1_ext` (the upstream node) instead would push it backward. Zeroing the other
+vessel means switching `pump_mode` at runtime cannot leave a stale drive applied (the `BloodVessel`
+never self-resets `p1_ext`/`p2_ext`; only its owned resistor does, each step). `head` is applied as a
+single-node external pressure — a lumped approximation of the true inlet→outlet head, adequate for the
+0D circuit.
+
+### Pump device library
+
+`this.pumps` is a dictionary of real ECLS pumps (Abbott PediMag / CentriMag, Getinge Rotaflow RF-32,
+Medtronic Bio-Pump BP-50, a generic roller), each carrying its H-Q coefficients (`hq_a`/`hq_b`/`hq_c`)
+or roller parameters (`ml_per_rev`/`roller_kp`/`roller_drive_max`), `type` (`centrifugal`/`roller`),
+`max_rpm`, and priming volume. Setting `pump_type` copies the entry's coefficients into the active
+fields and sets `pump_mode` from `type` (in the constructor, and re-applied each update when `pump_type`
+changes). `pump_rpm` remains the control. Coefficients are calibrated so each pump reaches roughly its
+rated flow at its rated rpm against a physiologic circuit afterload; note the **circuit** (cannula size,
+venous return) sets the achievable flow ceiling, so a small patient stays preload-limited (e.g. ~0.5
+L/min for a term neonate) regardless of pump rating.
 
 ### Sweep-gas inlet valve
 
@@ -261,7 +296,11 @@ Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows un
   [`Thermoregulation`](./Thermoregulation.md) (which resumes warming `ECLS_OXY` toward core).
 - **References are resolved lazily** each tick while running; a missing sub-model skips the tick rather
   than dereferencing undefined.
-- **Pump logic is duplicated.** The `pump_pressure = −pump_rpm/25` computation mirrors
-  `BloodPump.calc_pressure`; `ECLS_PUMP` is a [`BloodVessel`](./BloodVessel.md) driven externally
-  rather than a `BloodPump`.
+- **Pump logic is mirrored in `BloodPump`.** The H-Q head + roller flow-source model in this device is
+  mirrored in [`BloodPump.calc_pressure`](./BloodPump.md) (kept consistent, though no scenario uses that
+  standby class); `ECLS_PUMP` is a [`BloodVessel`](./BloodVessel.md) driven externally rather than a
+  `BloodPump`.
+- **Flow is preload/afterload limited by the *circuit*, not the pump rating.** The H-Q curve sets the
+  head; the cannula sizes and venous return set the achievable flow. A term neonate stays ~0.5 L/min
+  even at high rpm (correct); increasing `pump_rpm` past the preload limit just raises head, not flow.
 - **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.
