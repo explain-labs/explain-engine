@@ -378,7 +378,7 @@ fidelity of the pump, oxygenator, and cannula library. Commit hashes are on `mai
 - H-Q coefficients **fit to published characteristics** — `hq_a` from the rpm²-scaled deadhead
   (Rotaflow anchored by two independent points), `hq_b` from rated flow. See [BloodPump](./BloodPump.md).
 
-### Oxygenator gas transfer (`494bb15`, `9602a13`)
+### Oxygenator gas transfer (`494bb15`, `9602a13`, `bd22b0a`)
 
 - **Rated-flow membrane limit (C1).** `GasExchanger` gained optional `o2_cap`/`co2_cap` ceilings
   (default 0 = legacy; the native lung `GASEX_LL`/`GASEX_RL` keep the exact old physics). ECLS drives
@@ -386,6 +386,12 @@ fidelity of the pump, oxygenator, and cannula library. Commit hashes are on `mai
   exceeds the oxygenator's rated flow instead of pinning at ~100%.
 - **Post-oxy blood-gas taps (C2).** `sat_postoxy_o2` / `pco2_postoxy` are read from `ECLS_OXY` (the true
   membrane compartment) rather than the downstream `ECLS_TUBING_OUT`.
+- **Hyperoxia runaway fix (`bd22b0a`).** When an oxygenator drove blood O₂ content above the po₂ the
+  composition solver could bracket, the solver left po₂ at the −1 sentinel; `GasExchanger` then read
+  `po2_blood = −1` and pumped O₂ in at the capped rate every step — a self-sustaining runaway that
+  inflated `to2` and pinned post-oxy saturation at −1 (seen on the adult scenarios, whose lower Hb
+  reaches a higher po₂). Fixed by skipping the flux while a partial pressure is the −1 sentinel and
+  raising the solver's po₂ ceiling 800 → 1000 mmHg. Native-lung ABG unchanged.
 
 ### Cannula library (`d47538e`, `c3f4278`)
 
