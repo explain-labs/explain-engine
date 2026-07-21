@@ -91,6 +91,15 @@ export class Ecls extends BaseModelClass {
     this.roller_kp = 30.0; // roller flow-controller gain (mmHg per (L/min) error per update)
     this.roller_drive_max = 900.0; // clamp on roller drive pressure (mmHg)
 
+    // oxygenator membrane transfer — active fields, copied from the selected entry in `oxygenators`
+    // below and pushed onto ECLS_GASEX. o2_cap/co2_cap (mmol/s) are the membrane transfer ceiling that
+    // makes the oxygenator rated-flow-limited (post-oxy saturation falls once blood flow exceeds the
+    // rated flow) instead of always fully saturating.
+    this.oxy_o2_cap = 0.067; // max O2 transfer (mmol/s) of the selected oxygenator
+    this.oxy_co2_cap = 0.054; // max CO2 transfer (mmol/s)
+    this.oxy_surface_area = 0.38; // membrane surface area (m^2) — informational
+    this.oxy_rated_flow = 1.5; // rated blood flow (L/min) — informational
+
 
     this.return_cannulas = {
       "Bio-Medicus arterial 8 Fr": {
@@ -182,6 +191,27 @@ export class Ecls extends BaseModelClass {
     };
     this.pump_type = "Abbott PediMag"; // selects the pump; copies its coefficients / mode below
 
+    // oxygenator device library — real membrane oxygenators with their rated blood flow (L/min),
+    // membrane surface area (m^2), priming volume (L) and O2/CO2 transfer ceilings (mmol/s). o2_cap is
+    // anchored to the Quadrox-i Neonatal datasheet (~90 mL O2/min ≈ 0.067 mmol/s at 1.5 L/min) and
+    // scaled by rated flow for the larger devices; co2_cap likewise (~73 mL CO2/min ≈ 0.054 mmol/s).
+    // Selecting `oxygenator_type` copies these into the active fields above.
+    this.oxygenators = {
+      "Getinge Quadrox-i Neonatal": {
+        surface_area: 0.38, rated_flow: 1.5, o2_cap: 0.067, co2_cap: 0.054, prime: 0.038,
+      },
+      "Getinge Quadrox-i Pediatric": {
+        surface_area: 0.8, rated_flow: 2.8, o2_cap: 0.13, co2_cap: 0.10, prime: 0.081,
+      },
+      "Getinge Quadrox-i Small Adult": {
+        surface_area: 1.3, rated_flow: 5.0, o2_cap: 0.22, co2_cap: 0.18, prime: 0.215,
+      },
+      "Medtronic Nautilus (Adult)": {
+        surface_area: 1.8, rated_flow: 7.0, o2_cap: 0.31, co2_cap: 0.25, prime: 0.260,
+      },
+    };
+    this.oxygenator_type = "Getinge Quadrox-i Neonatal"; // selects the oxygenator; copies caps below
+
     this.drainage_cannula_type = "Bio-Medicus venous 12 Fr";
     this.return_cannula_type = "Bio-Medicus arterial 10 Fr";
 
@@ -199,6 +229,10 @@ export class Ecls extends BaseModelClass {
     // apply the initially selected pump (copies H-Q / roller coefficients and sets pump_mode)
     this._prev_pump_type = "";
     this._apply_pump_selection();
+
+    // apply the initially selected oxygenator (copies the membrane transfer ceilings)
+    this._prev_oxygenator_type = "";
+    this._apply_oxygenator_selection();
 
     // -----------------------------------------------
     // initialize dependent parameters
@@ -262,6 +296,19 @@ export class Ecls extends BaseModelClass {
   init_model(args = {}) {
     super.init_model(args);
     this._apply_pump_selection();
+    this._apply_oxygenator_selection();
+  }
+
+  // copy the selected oxygenator's characteristics into the active fields. Cheap and idempotent;
+  // re-run when oxygenator_type changes so a scenario/UI switch takes effect.
+  _apply_oxygenator_selection() {
+    const o = this.oxygenators[this.oxygenator_type];
+    if (!o) return;
+    this.oxy_o2_cap = o.o2_cap ?? this.oxy_o2_cap;
+    this.oxy_co2_cap = o.co2_cap ?? this.oxy_co2_cap;
+    this.oxy_surface_area = o.surface_area ?? this.oxy_surface_area;
+    this.oxy_rated_flow = o.rated_flow ?? this.oxy_rated_flow;
+    this._prev_oxygenator_type = this.oxygenator_type;
   }
 
   // copy the selected pump's characteristics into the active fields and set pump_mode from its type.
@@ -404,6 +451,10 @@ export class Ecls extends BaseModelClass {
         if (this.pump_type !== this._prev_pump_type) {
           this._apply_pump_selection();
         }
+        // re-apply the oxygenator library entry if the selection changed
+        if (this.oxygenator_type !== this._prev_oxygenator_type) {
+          this._apply_oxygenator_selection();
+        }
 
         // make sure all the associated models are in the same enabled/disabled state as the placenta model
         this._ecls_drainage.is_enabled = this.ecls_running;
@@ -474,9 +525,11 @@ export class Ecls extends BaseModelClass {
         }
         this.prev_gas_flow = this.gas_flow;
 
-        // update the gasexchanger diffusion constants
+        // update the gasexchanger diffusion constants and membrane transfer ceilings (rated-flow limit)
         this._ecls_gasex.dif_o2 = this.dif_o2;
         this._ecls_gasex.dif_co2 = this.dif_co2;
+        this._ecls_gasex.o2_cap = this.oxy_o2_cap;
+        this._ecls_gasex.co2_cap = this.oxy_co2_cap;
 
         // --- pump drive: head-flow (H-Q) characteristic ---
         // Flow input is a short EMA of the circuit flow (L/min); lagged feedback keeps the operating

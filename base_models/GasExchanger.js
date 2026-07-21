@@ -15,6 +15,14 @@ export class GasExchanger extends BaseModelClass {
     this.dif_o2 = 0.0; // diffusion constant for oxygen (mmol/mmHg * s)
     this.dif_co2 = 0.0; // diffusion constant for carbon dioxide (mmol/mmHg * s)
 
+    // Optional membrane transfer ceiling (mmol/s). 0 = disabled = legacy pure-diffusion behaviour, so
+    // this is inert for the native-lung exchangers (GASEX_LL/GASEX_RL), which never set it. Only the
+    // ECLS oxygenator sets it (driven by the Ecls device) to model a rated-flow membrane: once blood
+    // flow exceeds the membrane's rated flow, the per-step flux is capped, so the outlet compartment
+    // cannot fully saturate and post-oxygenator saturation falls — instead of pinning at ~100%.
+    this.o2_cap = 0.0; // max O2 transfer (mmol/s); 0 = no ceiling
+    this.co2_cap = 0.0; // max CO2 transfer (mmol/s); 0 = no ceiling
+
     // non-persistent factors
     this.dif_o2_factor = 1.0; // factor modifying the oxygen diffusion constant
     this.dif_co2_factor = 1.0; // factor modifying the carbon diffusion constant
@@ -75,6 +83,14 @@ export class GasExchanger extends BaseModelClass {
     // calculate the O2 flux from the blood to the gas compartment
     this.flux_o2 = (po2_blood - po2_gas) * this.dif_o2_step * this._t;
 
+    // membrane transfer ceiling: cap the per-step flux magnitude at o2_cap*dt (mmol). Inert when
+    // o2_cap == 0 (native lung). This is what makes the ECLS oxygenator rated-flow-limited.
+    if (this.o2_cap > 0.0) {
+      const o2_lim = this.o2_cap * this._t;
+      if (this.flux_o2 > o2_lim) this.flux_o2 = o2_lim;
+      else if (this.flux_o2 < -o2_lim) this.flux_o2 = -o2_lim;
+    }
+
     // calculate the new O2 concentrations of the gas and blood compartments
     let new_to2_blood = (to2_blood * this._blood.vol - this.flux_o2) / this._blood.vol;
     if (new_to2_blood < 0) new_to2_blood = 0.0;
@@ -84,6 +100,13 @@ export class GasExchanger extends BaseModelClass {
 
     // calculate the CO2 flux from the blood to the gas compartment
     this.flux_co2 = (pco2_blood - pco2_gas) * this.dif_co2_step * this._t;
+
+    // membrane transfer ceiling for CO2 (see O2 above). Inert when co2_cap == 0.
+    if (this.co2_cap > 0.0) {
+      const co2_lim = this.co2_cap * this._t;
+      if (this.flux_co2 > co2_lim) this.flux_co2 = co2_lim;
+      else if (this.flux_co2 < -co2_lim) this.flux_co2 = -co2_lim;
+    }
 
     // calculate the new CO2 concentrations of the gas and blood compartments
     let new_tco2_blood = (tco2_blood * this._blood.vol - this.flux_co2) / this._blood.vol;

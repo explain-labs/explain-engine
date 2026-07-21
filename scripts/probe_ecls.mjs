@@ -48,7 +48,7 @@ function measure(m) {
 
 // build fresh, cripple lung, optionally run ECMO with given settings, warm, measure
 function run({ ecmo = false, rpm = 4000, gas_flow = 0.5, gas_fio2 = 1.0, pump_mode = 0,
-              pump_type = null, ret_fac = 1.0,
+              pump_type = null, ret_fac = 1.0, oxygenator_type = null, o2_cap = null,
               blood_temp_active = false, blood_temp = 37.0 } = {}) {
   const m = eng.build(def);
   const E = m.models.Ecls;
@@ -63,6 +63,8 @@ function run({ ecmo = false, rpm = 4000, gas_flow = 0.5, gas_fio2 = 1.0, pump_mo
     E.return_res_factor = ret_fac;            // afterload proxy: raise the return-side resistance
     E.gas_flow = gas_flow;
     E.gas_fio2 = gas_fio2;
+    if (oxygenator_type) E.oxygenator_type = oxygenator_type;  // selects membrane transfer caps
+    if (o2_cap !== null) E.oxy_o2_cap = o2_cap;                // override the O2 transfer ceiling
     E.blood_temp_active = blood_temp_active;
     E.blood_temp = blood_temp;
   }
@@ -168,5 +170,24 @@ H("F. Sweep-gas valve controller  (3500 rpm)");
     log(`${String(gf).padEnd(11)} ${String(round(INSP.r_for,0)).padStart(7)}   ${INSP.no_flow}`);
   }
   log(`exp valve managed: enabled=${EXP?.is_enabled}  no_back_flow=${EXP?.no_back_flow}`);
+}
+
+// G. Oxygenator membrane transfer (rated-flow limit). G1 selects each library oxygenator: below its
+// rated blood flow the outlet fully saturates; once blood flow exceeds the rating the outlet sat falls
+// (visible when circuit flow > rated, e.g. an undersized oxygenator or an adult scenario). G2 fixes the
+// oxygenator and scans the O2 transfer ceiling down at the scenario's own flow — post-oxy sat holds
+// while the membrane has headroom, then falls as the ceiling drops below what the flow demands.
+H("G. Oxygenator membrane transfer  (4500 rpm, sweep 1.0 L/min FiO2 1.0)");
+log("G1 library      rated  Qcirc   postOxy  PaO2");
+for (const ox of ["Getinge Quadrox-i Neonatal","Getinge Quadrox-i Pediatric","Getinge Quadrox-i Small Adult","Medtronic Nautilus (Adult)"]) {
+  const a = run({ ecmo: true, rpm: 4500, gas_flow: 1.0, oxygenator_type: ox });
+  const rated = probe.models.Ecls.oxygenators[ox].rated_flow;
+  log(`  ${ox.padEnd(28)} ${String(rated).padStart(4)}  ${String(round(a.flow,2)).padStart(5)}  ${String(round(a.sat_postoxy,1)).padStart(6)}  ${round(a.po2)}`);
+}
+log("G2 O2 transfer-ceiling scan (Quadrox Neonatal, this scenario's flow):");
+log("  o2_cap(mmol/s)  postOxy  PaO2");
+for (const cap of [0.067, 0.02, 0.008, 0.003]) {
+  const a = run({ ecmo: true, rpm: 4500, gas_flow: 1.0, oxygenator_type: "Getinge Quadrox-i Neonatal", o2_cap: cap });
+  log(`  ${String(cap).padEnd(14)} ${String(round(a.sat_postoxy,1)).padStart(6)}  ${round(a.po2)}`);
 }
 log("");

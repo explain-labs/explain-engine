@@ -30,6 +30,19 @@ mmol/L) and the gas compartment's concentrations (`co2`/`cco2`, mmol/L). The flu
 same element loads O₂ into blood at the lung when `po2_gas > po2_blood` and the gradient simply flips
 direction for CO₂.
 
+### Optional membrane transfer ceiling (`o2_cap` / `co2_cap`)
+
+By default the flux is pure partial-pressure diffusion with no upper bound, so a well-mixed compartment
+equilibrates fully every pass — fine for the alveolus, but it means a membrane oxygenator would always
+saturate its outlet regardless of blood flow. Setting `o2_cap`/`co2_cap` > 0 (mmol/s) **caps the
+per-step flux magnitude** at `cap · Δt`, modelling a membrane with a finite rated transfer. In steady
+state the outlet content becomes `venous + cap / Q_blood`, so below the rated flow the blood still
+fully saturates but above it the outlet saturation **falls** (total transfer plateaus at `cap`).
+
+The caps default to `0` and only the [`Ecls`](./Ecls.md) device sets them, only on `ECLS_GASEX` (from
+its oxygenator library). The native-lung exchangers `GASEX_LL`/`GASEX_RL` never receive a cap, so they
+keep the exact legacy pure-diffusion behaviour — this class change is inert for the lung.
+
 ## Properties
 
 ### Config
@@ -40,6 +53,8 @@ direction for CO₂.
 | `comp_gas` | name | Gas compartment (the `po2`/`pco2` gas side) |
 | `dif_o2` | mmol/(mmHg·s) | O₂ diffusion constant (default 0.0) |
 | `dif_co2` | mmol/(mmHg·s) | CO₂ diffusion constant (default 0.0) |
+| `o2_cap` | mmol/s | Optional **membrane transfer ceiling** for O₂; `0` (default) = disabled = legacy pure-diffusion |
+| `co2_cap` | mmol/s | Optional membrane transfer ceiling for CO₂; `0` (default) = disabled |
 
 ### Computed / local
 
@@ -81,12 +96,14 @@ dif_o2_step = dif_o2
 5. **O₂ flux** and new contents:
    ```
    flux_o2      = (po2_blood − po2_gas) · dif_o2_step · Δt
+   if (o2_cap > 0) flux_o2 = clamp(flux_o2, −o2_cap·Δt, +o2_cap·Δt)   # membrane transfer ceiling
    new_to2_blood = (to2_blood · vol_blood − flux_o2) / vol_blood     (floored at 0)
    new_co2_gas   = (co2_gas   · vol_gas   + flux_o2) / vol_gas       (floored at 0)
    ```
 6. **CO₂ flux** and new contents:
    ```
    flux_co2      = (pco2_blood − pco2_gas) · dif_co2_step · Δt
+   if (co2_cap > 0) flux_co2 = clamp(flux_co2, −co2_cap·Δt, +co2_cap·Δt)
    new_tco2_blood = (tco2_blood · vol_blood − flux_co2) / vol_blood  (floored at 0)
    new_cco2_gas   = (cco2_gas   · vol_gas   + flux_co2) / vol_gas     (floored at 0)
    ```

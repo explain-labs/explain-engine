@@ -9794,6 +9794,7 @@
     "pump_rpm": 1500,
     "pump_mode": 0,
     "pump_type": "Abbott CentriMag",
+    "oxygenator_type": "Getinge Quadrox-i Small Adult",
     "pump_pressure": -60,
     "cannula_sizes_single": [
      19,

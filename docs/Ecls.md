@@ -96,6 +96,10 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `blood_temp_tc` | s | Heat-exchanger equilibration time constant (default 2.0, fast) |
 | `dif_o2` | mmol/(mmHg·s) | Gas-exchanger O₂ diffusion constant (default 0.0005) |
 | `dif_co2` | mmol/(mmHg·s) | Gas-exchanger CO₂ diffusion constant (default 0.001) |
+| `oxygenator_type` | string | Key into `oxygenators` (default `Getinge Quadrox-i Neonatal`); copies the membrane transfer caps |
+| `oxy_o2_cap` / `oxy_co2_cap` | mmol/s | Active O₂/CO₂ membrane transfer ceilings, pushed onto `ECLS_GASEX` |
+| `oxy_surface_area` / `oxy_rated_flow` | m², L/min | Selected oxygenator's surface area / rated blood flow (informational) |
+| `oxygenators` | dict | Oxygenator device library (surface area, rated flow, `o2_cap`/`co2_cap`, prime per device) |
 | `drainage_cannula_diameter` / `_length` | m | Drainage cannula geometry (copied from the selected library entry) |
 | `return_cannula_diameter` / `_length` | m | Return cannula geometry (copied from the selected library entry) |
 | `tubing_in_diameter`/`_length`, `tubing_out_diameter`/`_length` | m | Tubing geometry |
@@ -161,7 +165,8 @@ circuit has run.)
    resistor, so writing `r_for` onto it would do nothing.)
 6. Recompute the sweep-gas composition when `gas_fio2`/`gas_fico2` changed; size the inspiratory-valve
    resistance each update so sweep flow tracks `gas_flow` (see below).
-7. Update `ECLS_GASEX.dif_o2` / `dif_co2`.
+7. Update `ECLS_GASEX.dif_o2` / `dif_co2` and the membrane transfer ceilings `o2_cap` / `co2_cap`
+   (from the selected oxygenator) — the rated-flow limit.
 8. **Pump drive** (see below).
 9. Read raw pressures, push them through the moving-average filters into `p_ven`/`p_int`/`p_art`, set
    `flow` (= `ECLS_RETURN.flow × 60`) and `flow_avg`.
@@ -215,6 +220,25 @@ changes). `pump_rpm` remains the control. Coefficients are calibrated so each pu
 rated flow at its rated rpm against a physiologic circuit afterload; note the **circuit** (cannula size,
 venous return) sets the achievable flow ceiling, so a small patient stays preload-limited (e.g. ~0.5
 L/min for a term neonate) regardless of pump rating.
+
+### Oxygenator device library and rated-flow transfer
+
+`this.oxygenators` is a dictionary of real membrane oxygenators (Getinge Quadrox-i Neonatal / Pediatric
+/ Small Adult, Medtronic Nautilus), each carrying its membrane `surface_area` (m²), `rated_flow`
+(L/min), priming volume, and — the physics-driving fields — `o2_cap` / `co2_cap`, the **membrane
+transfer ceilings** in mmol/s. Setting `oxygenator_type` copies these into the active `oxy_*` fields (in
+the constructor, `init_model`, and each update when the selection changes); `Ecls` then pushes
+`oxy_o2_cap` / `oxy_co2_cap` onto `ECLS_GASEX.o2_cap` / `co2_cap` beside the diffusion constants.
+
+The caps make the oxygenator **rated-flow-limited** (see [GasExchanger](./GasExchanger.md)): below the
+oxygenator's rated blood flow the outlet blood fully saturates, but once circuit flow exceeds the rating
+the per-step transfer is capped and post-oxygenator saturation **falls** — an undersized oxygenator (or
+one run past its rating) can no longer fully oxygenate. Because only `ECLS_GASEX` gets a cap, the native
+lung's `GasExchanger` instances are unaffected. The `o2_cap`/`co2_cap` values are anchored to the
+Quadrox-i Neonatal datasheet (~90 mL O₂/min, ~73 mL CO₂/min at 1.5 L/min) and scaled by rated flow for
+the larger devices. At a term neonate's preload-limited ~0.5 L/min the outlet stays fully saturated for
+every library oxygenator (correct — all are rated well above that); the decline appears only when blood
+flow exceeds the selected device's rated flow.
 
 ### Sweep-gas inlet valve
 
