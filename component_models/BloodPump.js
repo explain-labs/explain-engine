@@ -20,9 +20,9 @@ export class BloodPump extends BloodCapacitance {
     // but is kept consistent so it can be dropped into a circuit. Centrifugal head (mmHg) =
     // hq_a*(rpm/1000)^2 - hq_b*(rpm/1000)*Q - hq_c*Q^2 (Q in L/min); roller trims an integral drive to
     // hold Q_target = ml_per_rev*rpm/1000.
-    this.pump_hq_a = 12.0; // head vs rpm^2 term (mmHg per krpm^2)
-    this.pump_hq_b = 18.0; // head falloff vs rpm*flow (mmHg per krpm per L/min)
-    this.pump_hq_c = 6.0; // head falloff vs flow^2 (mmHg per (L/min)^2)
+    this.pump_hq_a = 9.9; // head vs rpm^2 term (mmHg per krpm^2) — default matches Ecls PediMag fit
+    this.pump_hq_b = 30.3; // head falloff vs rpm*flow (mmHg per krpm per L/min) — Euler-slip term
+    this.pump_hq_c = 0.0; // head falloff vs flow^2 (mmHg per (L/min)^2); 0 in the datasheet fit
     this.roller_ml_per_rev = 1.5; // roller stroke volume (mL per revolution)
     this.roller_kp = 30.0; // roller flow-controller gain (mmHg per (L/min) error per step)
     this.roller_drive_max = 900.0; // clamp on roller drive pressure (mmHg)

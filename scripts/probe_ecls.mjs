@@ -103,10 +103,12 @@ for (const gf of [0.2, 0.5, 1.0, 2.0]) {
   log(`${String(gf).padEnd(10)} ${String(round(a.pco2)).padStart(6)} ${String(round(a.po2)).padStart(7)} ${String(round(a.spo2)).padStart(7)}`);
 }
 
-// D. Pump physics (H-Q curve): (D1) both modes drive FORWARD; (D2) centrifugal flow FALLS with afterload
-// while the roller flow-source HOLDS; (D3) each library pump drives forward; (D4) deadhead (very high
-// afterload) collapses flow and the pump develops near its max head. Note on a neonate the circuit is
-// preload-limited (~0.5 L/min), so the D2 centrifugal drop is modest; run an adult scenario to see it larger.
+// D. Pump physics (H-Q curve): (D1) both modes drive FORWARD; (D2) afterload sweep — the roller
+// flow-source holds its target while the centrifugal responds per its H-Q slope; (D3) each library pump
+// drives forward; (D4) deadhead (very high afterload) collapses flow and the pump develops near its max
+// head. Note: with the datasheet-fit coefficients a correctly-sized pump has ample head margin and the
+// patient is preload-limited (~0.5 L/min neonate), so the centrifugal afterload drop is small here —
+// pronounced afterload sensitivity needs the pump operating near its rated flow, not the preload cap.
 H("D. Pump physics — H-Q curve  (4500 rpm, sweep 0.5 L/min FiO2 1.0)");
 log("D1 mode    Qcirc   PaO2    SpO2   dir");
 for (const [name, pt] of [["centrifugal", "Abbott PediMag"], ["roller", "Generic roller pump"]]) {

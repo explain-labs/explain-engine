@@ -83,9 +83,9 @@ export class Ecls extends BaseModelClass {
     // L/min), a real rotodynamic characteristic (afterload/preload sensitive) rather than the old
     // flow-independent -rpm/25. Roller mode is a positive-displacement flow source: an integral
     // controller trims the drive pressure so circuit flow tracks Q_target = roller_ml_per_rev*rpm/1000.
-    this.pump_hq_a = 12.0; // head vs rpm^2 term (mmHg per krpm^2)
-    this.pump_hq_b = 18.0; // head falloff vs rpm*flow (mmHg per krpm per L/min)
-    this.pump_hq_c = 6.0; // head falloff vs flow^2 (mmHg per (L/min)^2)
+    this.pump_hq_a = 9.9; // head vs rpm^2 term (mmHg per krpm^2) — default = Abbott PediMag
+    this.pump_hq_b = 30.3; // head falloff vs rpm*flow (mmHg per krpm per L/min) — Euler-slip term
+    this.pump_hq_c = 0.0; // head falloff vs flow^2 (mmHg per (L/min)^2); 0 in the datasheet fit
     this.pump_max_rpm = 5500; // informational max rpm of the selected pump
     this.roller_ml_per_rev = 1.5; // roller stroke volume (mL per revolution)
     this.roller_kp = 30.0; // roller flow-controller gain (mmHg per (L/min) error per update)
@@ -209,22 +209,28 @@ export class Ecls extends BaseModelClass {
     // rated flow at its rated rpm against a physiologic circuit afterload, with a datasheet-like
     // deadhead (Q=0) pressure at max_rpm. `prime` is the priming volume (L). Selecting `pump_type`
     // copies these into the active fields above and sets `pump_mode` from `type`.
+    // H-Q coefficients (head = hq_a*(rpm/1000)^2 - hq_b*(rpm/1000)*Q mmHg, Q in L/min; hq_c=0) fit to
+    // published pump characteristics: per-pump deadhead (Q=0) scaled as rpm^2 fixes hq_a, and the rated
+    // flow at max rpm fixes the Euler-slip falloff hq_b. Notably the Rotaflow deadhead is consistent
+    // across two independent data points (~108 mmHg @2000 rpm shut-off, ~700 mmHg @5000 rpm) giving
+    // hq_a≈28. The linear (N·Q) falloff keeps a finite slope at low flow (afterload sensitivity) rather
+    // than the flat low-flow curve a pure Q^2 term would give. See docs/BloodPump.md for the table/sources.
     this.pumps = {
-      "Abbott PediMag": { // pediatric mag-lev centrifugal, ~1.5 L/min, 14 mL prime
+      "Abbott PediMag": { // pediatric mag-lev centrifugal, ~1.5 L/min max, 14 mL prime
         type: "centrifugal", max_rpm: 5500, prime: 0.014,
-        hq_a: 12.0, hq_b: 18.0, hq_c: 6.0,
+        hq_a: 9.9, hq_b: 30.3, hq_c: 0.0,
       },
       "Abbott CentriMag": { // adult mag-lev centrifugal, ~9.9 L/min @5000 rpm, 31 mL prime
         type: "centrifugal", max_rpm: 5000, prime: 0.031,
-        hq_a: 14.0, hq_b: 4.0, hq_c: 1.2,
+        hq_a: 24.0, hq_b: 11.1, hq_c: 0.0,
       },
-      "Getinge Rotaflow RF-32": { // adult centrifugal, ~10 L/min, 32 mL prime
+      "Getinge Rotaflow RF-32": { // adult centrifugal, ~10 L/min, 32 mL prime; deadhead ~700 mmHg @5000
         type: "centrifugal", max_rpm: 5000, prime: 0.032,
-        hq_a: 14.0, hq_b: 4.0, hq_c: 1.1,
+        hq_a: 28.0, hq_b: 13.0, hq_c: 0.0,
       },
       "Medtronic Bio-Pump BP-50": { // neonatal centrifugal cone, lower rpm range, 48 mL prime
         type: "centrifugal", max_rpm: 3000, prime: 0.048,
-        hq_a: 22.0, hq_b: 30.0, hq_c: 8.0,
+        hq_a: 20.0, hq_b: 28.9, hq_c: 0.0,
       },
       "Generic roller pump": { // positive-displacement, near-constant flow vs afterload
         type: "roller", max_rpm: 250, prime: 0.030,

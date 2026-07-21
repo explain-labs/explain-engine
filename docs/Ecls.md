@@ -223,10 +223,18 @@ Medtronic Bio-Pump BP-50, a generic roller), each carrying its H-Q coefficients 
 or roller parameters (`ml_per_rev`/`roller_kp`/`roller_drive_max`), `type` (`centrifugal`/`roller`),
 `max_rpm`, and priming volume. Setting `pump_type` copies the entry's coefficients into the active
 fields and sets `pump_mode` from `type` (in the constructor, and re-applied each update when `pump_type`
-changes). `pump_rpm` remains the control. Coefficients are calibrated so each pump reaches roughly its
-rated flow at its rated rpm against a physiologic circuit afterload; note the **circuit** (cannula size,
-venous return) sets the achievable flow ceiling, so a small patient stays preload-limited (e.g. ~0.5
-L/min for a term neonate) regardless of pump rating.
+changes). `pump_rpm` remains the control.
+
+The H-Q coefficients are **fit to published pump characteristics** (`head = hq_a·(rpm/1000)² −
+hq_b·(rpm/1000)·Q`, with `hq_c = 0`): the deadhead (`Q=0`) scaled as rpm² fixes `hq_a`, and the rated
+flow at max rpm fixes the Euler-slip falloff `hq_b`. For the Rotaflow the deadhead is fixed by two
+independent data points (~108 mmHg shut-off at 2000 rpm and ~700 mmHg at 5000 rpm → `hq_a ≈ 28`); the
+others are anchored to their deadhead magnitude and rated flow (see [BloodPump](./BloodPump.md) for the
+coefficient table and sources). The linear `N·Q` falloff keeps a finite slope at low flow, so raising
+afterload reduces flow across the operating range. Note the **circuit** (cannula size, venous return)
+sets the achievable flow ceiling, so a small patient stays preload-limited (e.g. ~0.5 L/min for a term
+neonate) regardless of pump rating — afterload changes then move flow little until the preload limit is
+relieved.
 
 ### Oxygenator device library and rated-flow transfer
 

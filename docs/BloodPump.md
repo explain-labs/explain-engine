@@ -75,6 +75,28 @@ independent), driving the driven resistor's **downstream** node. The connector w
 
 > ⚠️ **Currently unused.** No scenario instantiates a `BloodPump`. The ECLS pump (`ECLS_PUMP`) is a [`BloodVessel`](./BloodVessel.md) driven directly by the [`Ecls`](./Ecls.md) device, which carries the same H-Q pump-pressure logic (kept in sync with this class). The class is registered (exported in `ModelIndex.js`) and UI-exposed, and was made defensively correct — it declares `pres_cc`/`pres_mus`/`inlet`/`outlet`, null-guards the connectors and computes `pres_tm` — so it will not crash or produce `NaN` if instantiated, but it is legacy/standby code.
 
+## Pump characteristic (H-Q coefficient fit)
+
+The centrifugal head `head = hq_a·(rpm/1000)² − hq_b·(rpm/1000)·Q − hq_c·Q²` (mmHg, Q in L/min) uses
+coefficients fit to published pump characteristics: `hq_a` from the deadhead (`Q=0`, ∝ rpm²) and `hq_b`
+from the rated flow at max rpm (Euler-slip linear falloff; `hq_c = 0`). The [`Ecls`](./Ecls.md) `pumps`
+library carries these per device:
+
+| Pump | `hq_a` | `hq_b` | `hq_c` | deadhead @ max rpm | rated flow |
+|---|---|---|---|---|---|
+| Abbott PediMag | 9.9 | 30.3 | 0 | ~300 mmHg @5500 | ~1.5 L/min |
+| Abbott CentriMag | 24 | 11.1 | 0 | ~600 mmHg @5000 | ~9.9 L/min |
+| Getinge Rotaflow RF-32 | 28 | 13.0 | 0 | ~700 mmHg @5000 | ~10 L/min |
+| Medtronic Bio-Pump BP-50 | 20 | 28.9 | 0 | ~180 mmHg @3000 | neonatal |
+
+The Rotaflow `hq_a` is the strongest anchor: its deadhead is consistent across two independent points
+(~108 mmHg shut-off at 2000 rpm and ~700 mmHg at 5000 rpm), confirming the rpm² scaling. The remaining
+coefficients are anchored to each pump's published deadhead magnitude and rated flow; they are **not**
+digitized from the full manufacturer H-Q figures (which were not accessible), so the mid-curve shape is
+the theoretical Euler-slip (linear) default. Sources: Wang et al 2020 *Artif Organs*
+(Rotaflow/CentriMag/PediMag pediatric ECMO characterisation), the ROTAFLOW/CentriMag adult ECLS
+comparison, and manufacturer rated-flow specs.
+
 ## Example definition (JSON)
 
 No scenario contains a `BloodPump`, so the following is **illustrative** (the inherited capacitance fields plus the pump-specific fields):
