@@ -101,21 +101,45 @@ export class Ecls extends BaseModelClass {
     this.oxy_rated_flow = 1.5; // rated blood flow (L/min) — informational
 
 
+    // Return (arterial) cannula library. Keys use the "Biomedicus" spelling the scenario definitions
+    // reference (so a selection actually resolves). Neonatal/pediatric 8-12 Fr through adult 15-21 Fr;
+    // resistance (mmHg/(L/s)) falls with Fr size. The 10 Fr (1700) and 19 Fr (120) entries match the
+    // values the term-neonate and adult scenarios already ship.
     this.return_cannulas = {
-      "Bio-Medicus arterial 8 Fr": {
+      "Biomedicus arterial 8 Fr": {
         "inner_diameter": 0.002, // m
         "length": 0.1, // m
         "resistance": 5500
       },
-      "Bio-Medicus arterial 10 Fr": {
+      "Biomedicus arterial 10 Fr": {
         "inner_diameter": 0.00267, // m
         "length": 0.105, // m
         "resistance": 1700
       },
-      "Bio-Medicus arterial 12 Fr": {
+      "Biomedicus arterial 12 Fr": {
         "inner_diameter": 0.0032, // m
         "length": 0.11, // m
         "resistance": 650
+      },
+      "Biomedicus arterial 15 Fr": {
+        "inner_diameter": 0.004, // m
+        "length": 0.18, // m
+        "resistance": 400
+      },
+      "Biomedicus arterial 17 Fr": {
+        "inner_diameter": 0.0048, // m
+        "length": 0.2, // m
+        "resistance": 200
+      },
+      "Biomedicus arterial 19 Fr": {
+        "inner_diameter": 0.0055, // m
+        "length": 0.22, // m
+        "resistance": 120
+      },
+      "Biomedicus arterial 21 Fr": {
+        "inner_diameter": 0.006, // m
+        "length": 0.24, // m
+        "resistance": 80
       },
        "Medtronic Crescent 13 Fr": {
         "inner_diameter": 0.0029, // m
@@ -129,26 +153,44 @@ export class Ecls extends BaseModelClass {
       },
     }
 
+    // Drainage (venous) cannula library. Same "Biomedicus" spelling; neonatal/pediatric 8-14 Fr through
+    // adult 21-25 Fr multistage venous cannulae (lower resistance than arterial for a given Fr). The
+    // 12 Fr (600) and 25 Fr (55) entries match the term-neonate and adult scenario values.
     this.drainage_cannulas = {
-      "Bio-Medicus venous 8 Fr": {
+      "Biomedicus venous 8 Fr": {
         "inner_diameter": 0.0021, // m
         "length": 0.1, // m
         "resistance": 4600
       },
-      "Bio-Medicus venous 10 Fr": {
+      "Biomedicus venous 10 Fr": {
         "inner_diameter": 0.0027, // m
         "length": 0.105, // m
         "resistance": 1500
       },
-      "Bio-Medicus venous 12 Fr": {
+      "Biomedicus venous 12 Fr": {
         "inner_diameter": 0.0033, // m
         "length": 0.11, // m
         "resistance": 600
       },
-      "Bio-Medicus venous 14 Fr": {
+      "Biomedicus venous 14 Fr": {
         "inner_diameter": 0.0039, // m
         "length": 0.115, // m
         "resistance": 260
+      },
+      "Biomedicus venous 21 Fr": {
+        "inner_diameter": 0.006, // m
+        "length": 0.2, // m
+        "resistance": 150
+      },
+      "Biomedicus venous 23 Fr": {
+        "inner_diameter": 0.0068, // m
+        "length": 0.22, // m
+        "resistance": 90
+      },
+      "Biomedicus venous 25 Fr": {
+        "inner_diameter": 0.0075, // m
+        "length": 0.25, // m
+        "resistance": 55
       },
       "Medtronic Crescent 13 Fr": {
         "inner_diameter": 0.0028, // m
@@ -212,8 +254,8 @@ export class Ecls extends BaseModelClass {
     };
     this.oxygenator_type = "Getinge Quadrox-i Neonatal"; // selects the oxygenator; copies caps below
 
-    this.drainage_cannula_type = "Bio-Medicus venous 12 Fr";
-    this.return_cannula_type = "Bio-Medicus arterial 10 Fr";
+    this.drainage_cannula_type = "Biomedicus venous 12 Fr";
+    this.return_cannula_type = "Biomedicus arterial 10 Fr";
 
     if (this.drainage_cannulas[this.drainage_cannula_type]) {
       const selectedDrainageCannula = this.drainage_cannulas[this.drainage_cannula_type];

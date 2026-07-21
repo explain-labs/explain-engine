@@ -22,8 +22,8 @@ at build, and reached by name; `Ecls` itself contributes no compartment physics,
 
 - A drainage → pump → oxygenator → return blood circuit wired into two named patient compartments
   (`drainage_site`, `return_site`).
-- A selectable cannula library (real Bio-Medicus / Medtronic Crescent devices) that sets cannula
-  geometry and resistance.
+- A selectable cannula library (real Biomedicus / Medtronic Crescent devices, neonatal 8 Fr through
+  adult 25 Fr venous / 21 Fr arterial) that sets cannula geometry and resistance.
 - Centrifugal or roller pump drive, applied as an external pressure across the pump or oxygenator.
 - A sweep-gas side feeding the oxygenator's gas exchanger, with adjustable FiO₂/FiCO₂ and diffusion
   constants.
@@ -69,8 +69,8 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `ecls_clamped` | bool | Clamp the blood path (`no_flow` on every blood sub-model; disables the gas exchanger) |
 | `drainage_site` | string | Patient compartment the drainage cannula drains (default `RA`) |
 | `return_site` | string | Patient compartment the return cannula feeds (default `AAR`) |
-| `drainage_cannula_type` | string | Key into `drainage_cannulas` (default `Bio-Medicus venous 12 Fr`) |
-| `return_cannula_type` | string | Key into `return_cannulas` (default `Bio-Medicus arterial 10 Fr`) |
+| `drainage_cannula_type` | string | Key into `drainage_cannulas` (default `Biomedicus venous 12 Fr`) |
+| `return_cannula_type` | string | Key into `return_cannulas` (default `Biomedicus arterial 10 Fr`) |
 | `drainage_res_factor` | × | Multiplier on drainage-cannula resistance (default 1.0) |
 | `return_res_factor` | × | Multiplier on return-cannula resistance |
 | `tubing_res_factor` | × | Multiplier on both tubing resistances |
@@ -134,8 +134,14 @@ size the four [`RealTimeMovingAverage`](./RealTimeMovingAverage.md) filters
 
 ## Cannula library
 
-`drainage_cannulas` / `return_cannulas` are dictionaries of real devices (Bio-Medicus, Medtronic
-Crescent), each with an `inner_diameter` (m), `length` (m) and measured `resistance` (mmHg/(L/s)).
+`drainage_cannulas` / `return_cannulas` are dictionaries of real devices (Biomedicus venous 8–25 Fr /
+arterial 8–21 Fr, Medtronic Crescent dual-lumen), each with an `inner_diameter` (m), `length` (m) and
+measured `resistance` (mmHg/(L/s)). Keys use the `Biomedicus` spelling that `drainage_cannula_type` /
+`return_cannula_type` reference, so a selection resolves. The constructor holds the full catalogue
+(neonatal 8 Fr through adult 25 Fr venous / 21 Fr arterial); note a scenario definition may **embed its
+own** `drainage_cannulas` / `return_cannulas` (a serialized snapshot), which takes precedence over the
+constructor for that scenario — the neonatal scenarios embed the neonatal sizes, the adult scenarios the
+adult sizes.
 Setting `drainage_cannula_type` / `return_cannula_type` copies the matching entry's geometry and
 resistance into the active `*_cannula_*` / `*_res` parameters — once in the constructor, and re-checked
 each tick in `calc_model`.
