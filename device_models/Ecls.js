@@ -198,7 +198,24 @@ export class Ecls extends BaseModelClass {
     this._ecls_gas_oxy = null; // reference to the gas oxygenator model instance
     this._ecls_gas_out = null; // reference to the gas out model instance
     this._ecls_gas_insp_valve = null; // reference to the gas inspiration valve model instance
+    this._ecls_gas_exp_valve = null; // reference to the gas expiration valve model instance
     this._ecls_gasex = null; // reference to the gas exchanger model instance (ECLS_GASEX)
+
+    // heater-cooler bookkeeping: ECLS_OXY's own perfusion time constant, captured once before the
+    // heater-cooler overrides it with the fast device tc, so it can be restored when released. null
+    // means "not currently overriding" (nothing to restore).
+    this._blood_temp_tc_restore = null;
+  }
+
+  // restore ECLS_OXY's perfusion time constant to its pre-override value and hand thermal control
+  // back to Thermoregulation. Safe to call when no override is active (restore field is null).
+  _release_heater_cooler() {
+    if (!this._ecls_oxy) return;
+    this._ecls_oxy.temp_ext_override = false;
+    if (this._blood_temp_tc_restore !== null) {
+      this._ecls_oxy.blood_temp_tc = this._blood_temp_tc_restore;
+      this._blood_temp_tc_restore = null;
+    }
   }
 
   calc_model() {
@@ -218,12 +235,13 @@ export class Ecls extends BaseModelClass {
       // circuit has run; they are null before the first run, when the sub-models are already disabled)
       [this._ecls_drainage, this._ecls_tubing_in, this._ecls_pump, this._ecls_oxy,
        this._ecls_tubing_out, this._ecls_return, this._ecls_gas_source, this._ecls_gas_oxy,
-       this._ecls_gas_out, this._ecls_gas_insp_valve, this._ecls_gasex].forEach((m) => {
+       this._ecls_gas_out, this._ecls_gas_insp_valve, this._ecls_gas_exp_valve,
+       this._ecls_gasex].forEach((m) => {
         if (m) m.is_enabled = false;
       });
       // release the heater-cooler so a stopped circuit leaves ECLS_OXY as a neutral blood
-      // compartment (Thermoregulation resumes warming it toward core)
-      if (this._ecls_oxy) this._ecls_oxy.temp_ext_override = false;
+      // compartment (Thermoregulation resumes warming it toward core), restoring its original tc
+      this._release_heater_cooler();
       return;
     }
 
@@ -233,11 +251,16 @@ export class Ecls extends BaseModelClass {
     // (_ecls_oxy is resolved on the first update below; guard the pre-first-update steps.)
     if (this._ecls_oxy) {
       if (this.blood_temp_active) {
+        // capture the compartment's own tc once, before we override it, so release can restore it
+        if (this._blood_temp_tc_restore === null) {
+          this._blood_temp_tc_restore = this._ecls_oxy.blood_temp_tc;
+        }
         this._ecls_oxy.temp_ext_override = true;
         this._ecls_oxy.body_temp = this.blood_temp;
         this._ecls_oxy.blood_temp_tc = this.blood_temp_tc;
       } else if (this._ecls_oxy.temp_ext_override) {
-        this._ecls_oxy.temp_ext_override = false;
+        // heater-cooler turned off while ECLS keeps running: restore the original tc and hand back
+        this._release_heater_cooler();
       }
     }
 
@@ -269,6 +292,7 @@ export class Ecls extends BaseModelClass {
         this._ecls_gas_oxy = this._model_engine.models["ECLS_GAS_OXY"];
         this._ecls_gas_out = this._model_engine.models["ECLS_GAS_OUT"];
         this._ecls_gas_insp_valve = this._model_engine.models["ECLS_GAS_INSP_VALVE"];
+        this._ecls_gas_exp_valve = this._model_engine.models["ECLS_GAS_EXP_VALVE"];
         this._ecls_gasex = this._model_engine.models["ECLS_GASEX"];
 
         // skip this tick if the circuit wiring is incomplete (any sub-model missing) rather than
@@ -309,6 +333,13 @@ export class Ecls extends BaseModelClass {
         this._ecls_gas_oxy.is_enabled = this.ecls_running;
         this._ecls_gas_out.is_enabled = this.ecls_running;
         this._ecls_gas_insp_valve.is_enabled = this.ecls_running;
+        // manage the expiratory valve symmetrically with the inspiratory one (it is a nested
+        // component of ECLS_GAS_OXY and was previously left on its static JSON state). Block reverse
+        // flow so the fixed-pressure ECLS_GAS_OUT reservoir cannot back-fill the oxygenator gas side.
+        if (this._ecls_gas_exp_valve) {
+          this._ecls_gas_exp_valve.is_enabled = this.ecls_running;
+          this._ecls_gas_exp_valve.no_back_flow = true;
+        }
         this._ecls_gasex.is_enabled = this.ecls_running;
 
         // clamp umbilical vessels if set to clamped
@@ -321,11 +352,13 @@ export class Ecls extends BaseModelClass {
         this._ecls_gasex.is_enabled = !this.ecls_clamped;
 
         // set the resistances of the associated models
-        this._ecls_drainage.r_for = this.drainage_res * this.drainage_res_factor; // set the drainage resistance to a high value to simulate the umbilical artery resistance
-        this._ecls_drainage.r_back = this.drainage_res * this.drainage_res_factor; // set the drainage resistance to a high value to simulate the umbilical artery resistance
-        this._ecls_tubing_in.r_for = this.tubing_in_res * this.tubing_res_factor; // set the tubing resistance to a low value to simulate the tubing resistance
-        this._ecls_tubing_in.r_back = this.tubing_in_res * this.tubing_res_factor; // set the tubing resistance to a low value to simulate the tubing resistance
-        this._ecls_pump.r_for = this.pump_res_for * this.pump_res_factor; // set the pump resistance to a low value to simulate the pump resistance
+        this._ecls_drainage.r_for = this.drainage_res * this.drainage_res_factor; // drainage cannula resistance
+        this._ecls_drainage.r_back = this.drainage_res * this.drainage_res_factor; // drainage cannula resistance
+        // NB: ECLS_TUBING_IN is a BloodCapacitance (pure compliance, owns no resistor), so writing
+        // r_for/r_back onto it did nothing. The inlet segment's resistance is the pump's own inlet
+        // resistor (ECLS_PUMP owns the TUBING_IN->PUMP connector, driven by pump_res_for below); the
+        // drainage cannula resistance lives in ECLS_DRAINAGE above. tubing_in_res is not a live term.
+        this._ecls_pump.r_for = this.pump_res_for * this.pump_res_factor; // pump / inlet-segment resistance
         this._ecls_pump.r_back = this.pump_res_back * this.pump_res_factor; // set the pump resistance to a low value to simulate the pump resistance
         this._ecls_oxy.r_for = this.oxy_res_for * this.oxy_res_factor; // set the oxygenator resistance to a medium value to simulate the oxygenator resistance
         this._ecls_oxy.r_back = this.oxy_res_back * this.oxy_res_factor; // set the oxygenator resistance to a medium value to simulate the oxygenator resistance
@@ -341,17 +374,22 @@ export class Ecls extends BaseModelClass {
           this.prev_fico2 = this.gas_fico2;
         }
 
-        // update the inspiratory valve position
-        if (this.prev_gas_flow !== this.gas_flow) {
-          // calculate the resistance of the inspiratory valve. 
-          // flow = pressure / resistance => resistance = pressure / flow. Assuming a maximum pressure of 100 mmHg and a maximum flow of 10 L/min, the maximum resistance would be 100 / 10 = 10 mmHg/(L/min). We can then set the opening of the valve based on the gas flow as a fraction of the maximum flow.
-          // resistance = pressure / flow => opening = flow / max_flow
-          let res = (this._ecls_gas_source.pres - this._ecls_gas_out.pres) / (this.gas_flow / 60.0); // calculate the resistance of the inspiratory valve based on the current pressure and gas flow
-          if (res > 60) {
-            this._ecls_gas_insp_valve.r_for = res - 50; 
-          }
-          this.prev_gas_flow = this.gas_flow;
+        // size the inspiratory valve so the sweep-gas flow tracks the gas_flow set-point. The gas line
+        // GAS_SOURCE -[R_insp]-> GAS_OXY -[R_exp]-> GAS_OUT has both ends held at fixed pressure, so in
+        // steady state Q = dP / (R_insp + R_exp)  =>  R_insp = dP / Q - R_exp. Recomputed every update
+        // (cheap, robust to any pressure change) and reading the actual expiratory-valve resistance
+        // rather than the previous hard-coded 50. Reproduces the calibrated 23950 at gas_flow 0.5.
+        if (this.gas_flow > 0.0) {
+          const dP = this._ecls_gas_source.pres - this._ecls_gas_out.pres;
+          const q = this.gas_flow / 60.0; // requested sweep flow L/min -> L/s
+          const r_exp = this._ecls_gas_exp_valve ? this._ecls_gas_exp_valve.r_for : 0.0;
+          this._ecls_gas_insp_valve.r_for = Math.max(dP / q - r_exp, 1.0); // keep strictly positive
+          this._ecls_gas_insp_valve.no_flow = false;
+        } else {
+          // gas_flow <= 0: shut the sweep gas off cleanly instead of dividing by zero
+          this._ecls_gas_insp_valve.no_flow = true;
         }
+        this.prev_gas_flow = this.gas_flow;
 
         // update the gasexchanger diffusion constants
         this._ecls_gasex.dif_o2 = this.dif_o2;
@@ -360,12 +398,25 @@ export class Ecls extends BaseModelClass {
         // calculate the pump pressure and apply the pump pressures to the connected resistors
         this.pump_pressure = -this.pump_rpm / 25.0;
         this._ecls_pump.pump_rpm = this.pump_rpm;
+        // Fully define both vessels' external pressures in each branch so switching pump_mode at
+        // runtime cannot leave the previous mode's drive stuck on. The BloodVessel level never
+        // self-resets p1_ext/p2_ext (only the owned resistor does, each step), so the inactive
+        // vessel must be explicitly cleared here or its stale drive would keep compounding.
         if (this.pump_mode === 0) {
+          // centrifugal: drive the pump, clear the oxygenator
           this._ecls_pump.p1_ext = 0.0;
           this._ecls_pump.p2_ext = this.pump_pressure;
-        } else {
-          this._ecls_oxy.p1_ext = this.pump_pressure;
+          this._ecls_oxy.p1_ext = 0.0;
           this._ecls_oxy.p2_ext = 0.0;
+        } else {
+          // roller: drive the oxygenator forward, clear the pump. Apply the negative drive pressure to
+          // the oxygenator's DOWNSTREAM node (p2_ext) — mirroring the centrifugal case on the pump — so
+          // it over-fills the oxygenator from the pump and drives the whole circuit forward. Applying
+          // it to p1_ext (as before) lowered the upstream/pump node instead and drove flow backward.
+          this._ecls_oxy.p1_ext = 0.0;
+          this._ecls_oxy.p2_ext = this.pump_pressure;
+          this._ecls_pump.p1_ext = 0.0;
+          this._ecls_pump.p2_ext = 0.0;
         }
 
         // get the measured pressures and flow from the associated models

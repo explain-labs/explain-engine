@@ -5,6 +5,11 @@
 // sweep-gas flow, reporting the extracorporeal circuit flow and the EMERGENT systemic blood gas —
 // oxygenation and CO2 removal come from the membrane gas-exchanger (same Fick law as the native lung).
 //
+// Sections: A baseline, B pump-speed sweep, C CO2-vs-sweep-gas, D pump mode (centrifugal vs roller —
+// both must drive FORWARD), E blood-side heater-cooler (hypothermia + no residual time-constant on
+// release), F sweep-gas inlet-valve controller (R_insp tracks the set-point; gas_flow=0 shuts off) and
+// expiratory-valve management.
+//
 // Usage: node scripts/probe_ecls.mjs [scenario] [--seconds N] [--window W]
 
 import fs from "node:fs";
@@ -35,13 +40,15 @@ function measure(m) {
     eng.calc(SLICE);
     add("po2", AA?.po2); add("pco2", AA?.pco2); add("spo2", M?.sao2_pre);
     add("flow", E?.flow_avg ?? E?.flow); add("sat_ven", E?.sat_ven_o2); add("sat_postoxy", E?.sat_postoxy_o2);
+    add("temp", AA?.temp);
   }
   for (const k in acc) acc[k] /= N;
   return acc;
 }
 
 // build fresh, cripple lung, optionally run ECMO with given settings, warm, measure
-function run({ ecmo = false, rpm = 3000, gas_flow = 0.5, gas_fio2 = 1.0 } = {}) {
+function run({ ecmo = false, rpm = 3000, gas_flow = 0.5, gas_fio2 = 1.0, pump_mode = 0,
+              blood_temp_active = false, blood_temp = 37.0 } = {}) {
   const m = eng.build(def);
   const E = m.models.Ecls;
   if (!E) throw new Error(`no Ecls model in "${scenario}"`);
@@ -50,8 +57,11 @@ function run({ ecmo = false, rpm = 3000, gas_flow = 0.5, gas_fio2 = 1.0 } = {}) 
     E.ecls_running = true;
     E.ecls_clamped = false;   // open the blood path + enable membrane exchange
     E.pump_rpm = rpm;
+    E.pump_mode = pump_mode;
     E.gas_flow = gas_flow;
     E.gas_fio2 = gas_fio2;
+    E.blood_temp_active = blood_temp_active;
+    E.blood_temp = blood_temp;
   }
   eng.calc(SECONDS);
   return measure(m);
@@ -85,5 +95,52 @@ log("Gas(L/min) PaCO2   PaO2    SpO2");
 for (const gf of [0.2, 0.5, 1.0, 2.0]) {
   const a = run({ ecmo: true, rpm: 3500, gas_flow: gf });
   log(`${String(gf).padEnd(10)} ${String(round(a.pco2)).padStart(6)} ${String(round(a.po2)).padStart(7)} ${String(round(a.spo2)).padStart(7)}`);
+}
+
+// D. pump mode: centrifugal and roller must BOTH drive forward with comparable flow. A negative flow
+// here means the roller-mode drive is pushing the circuit backward (regression guard).
+H("D. Pump mode  (3500 rpm, sweep 0.5 L/min FiO2 1.0)");
+log("Mode         Qcirc   PaO2    SpO2    PaCO2   dir");
+for (const [name, pm] of [["centrifugal", 0], ["roller", 1]]) {
+  const a = run({ ecmo: true, rpm: 3500, pump_mode: pm });
+  const dir = a.flow > 0.1 ? "fwd" : (a.flow < -0.1 ? "REVERSE!" : "~0");
+  log(`${name.padEnd(12)} ${String(round(a.flow,2)).padStart(6)} ${String(round(a.po2)).padStart(7)} ${String(round(a.spo2)).padStart(7)} ${String(round(a.pco2)).padStart(7)}   ${dir}`);
+}
+
+// E. blood-side heater-cooler: a hypothermia target pulls arterial temperature down while active, and
+// releasing it restores the oxygenator compartment's own perfusion time constant (no residual state).
+H("E. Heater-cooler  (3500 rpm; target 33.5 C)");
+{
+  const m = eng.build(def);
+  const E = m.models.Ecls, O = m.models.ECLS_OXY;
+  crippleLung(m);
+  E.ecls_running = true; E.ecls_clamped = false; E.pump_rpm = 3500;
+  eng.calc(30);
+  const tc0 = O.blood_temp_tc, t0 = m.models.AA.temp;
+  E.blood_temp_active = true; E.blood_temp = 33.5;
+  eng.calc(SECONDS);
+  const tOn = m.models.AA.temp, tcOn = O.blood_temp_tc, ovrOn = O.temp_ext_override;
+  E.blood_temp_active = false;
+  eng.calc(30);
+  const tcOff = O.blood_temp_tc, ovrOff = O.temp_ext_override;
+  log(`arterial temp: ${round(t0,2)} -> ${round(tOn,2)} C (target 33.5)   ${tOn < t0 - 0.1 ? "cooling ok" : "NOT cooling"}`);
+  log(`oxy tc: ${round(tc0,1)}s -> ${round(tcOn,1)}s (active, override=${ovrOn}) -> ${round(tcOff,1)}s (released, override=${ovrOff})   ${tcOff === tc0 && !ovrOff ? "restored ok" : "RESIDUAL STATE!"}`);
+}
+
+// F. sweep-gas inlet-valve controller: R_insp should track the set-point (R_insp = dP/Q - R_exp), and
+// gas_flow = 0 must shut the sweep off cleanly (no divide-by-zero). Also confirm the expiratory valve
+// is managed (enabled with the circuit, back-flow blocked).
+H("F. Sweep-gas valve controller  (3500 rpm)");
+{
+  const m = eng.build(def);
+  const E = m.models.Ecls, INSP = m.models.ECLS_GAS_INSP_VALVE, EXP = m.models.ECLS_GAS_EXP_VALVE;
+  crippleLung(m);
+  E.ecls_running = true; E.ecls_clamped = false; E.pump_rpm = 3500;
+  log("gas(L/min)  R_insp    no_flow");
+  for (const gf of [0.5, 1.0, 2.0, 0.0]) {
+    E.gas_flow = gf; eng.calc(5);
+    log(`${String(gf).padEnd(11)} ${String(round(INSP.r_for,0)).padStart(7)}   ${INSP.no_flow}`);
+  }
+  log(`exp valve managed: enabled=${EXP?.is_enabled}  no_back_flow=${EXP?.no_back_flow}`);
 }
 log("");
