@@ -43,6 +43,15 @@ export class Ecls extends BaseModelClass {
     this.gas_fico2 = 0.000392; // fraction of inspired carbon dioxide in the gas flow through the oxygenator
     this.gas_humidity = 0.5; // humidity of the gas flow through the oxygenator (fraction)
     this.gas_temp = 20.0; // temperature of the gas flow through the oxygenator (dgs C)
+
+    // blood-side heater-cooler (heat exchanger) — controls the temperature of the blood leaving the
+    // oxygenator. OFF by default so ECLS_OXY behaves like any other blood compartment (neutral).
+    // When active it drives ECLS_OXY toward blood_temp; that cooled/warmed blood advects into the
+    // patient and, via the two-node coupling, pulls the whole blood pool and the core toward it —
+    // this is how therapeutic hypothermia / controlled rewarming is represented.
+    this.blood_temp_active = false; // master on/off for the heater-cooler
+    this.blood_temp = 37.0; // target blood temperature at the oxygenator (dgs C)
+    this.blood_temp_tc = 2.0; // heat-exchanger equilibration time constant (s) — fast
     this.dif_o2 = 0.0005; // diffusion constant for oxygen (mmol/mmHg * s)
     this.dif_co2 = 0.001; // diffusion constant for carbon dioxide (mmol/mmHg * s)
     this.pump_rpm = 1500.0; // pump speed in rotations per minute
@@ -212,7 +221,24 @@ export class Ecls extends BaseModelClass {
        this._ecls_gas_out, this._ecls_gas_insp_valve, this._ecls_gasex].forEach((m) => {
         if (m) m.is_enabled = false;
       });
+      // release the heater-cooler so a stopped circuit leaves ECLS_OXY as a neutral blood
+      // compartment (Thermoregulation resumes warming it toward core)
+      if (this._ecls_oxy) this._ecls_oxy.temp_ext_override = false;
       return;
+    }
+
+    // blood-side heater-cooler: while active, take over the oxygenator blood compartment's thermal
+    // target so it heads toward blood_temp instead of core. temp_ext_override tells Thermoregulation
+    // and Blood not to reset it to core. When inactive, release it back to core-warmed behaviour.
+    // (_ecls_oxy is resolved on the first update below; guard the pre-first-update steps.)
+    if (this._ecls_oxy) {
+      if (this.blood_temp_active) {
+        this._ecls_oxy.temp_ext_override = true;
+        this._ecls_oxy.body_temp = this.blood_temp;
+        this._ecls_oxy.blood_temp_tc = this.blood_temp_tc;
+      } else if (this._ecls_oxy.temp_ext_override) {
+        this._ecls_oxy.temp_ext_override = false;
+      }
     }
 
     this._blood_comp_counter += this._t;

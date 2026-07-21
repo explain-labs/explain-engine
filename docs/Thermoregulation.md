@@ -10,20 +10,26 @@ auto-seed the core sits exactly at `setpoint_temp` (37 °C) at rest, every owned
 baseline vitals/ABG are unchanged. The model only diverges when the thermal environment is perturbed
 (cold incubator, radiant warmer, evaporative loss) or when heat production changes.
 
-## Sensors → core node → effectors
+## Sensors → tissue node ⇄ blood pool → effectors
 
 ```
-SENSORS (lazy refs)              CORE NODE (single-node heat balance)        EFFECTORS (owned, default-neutral)
+SENSORS (lazy refs)              TISSUE NODE (heat balance)                   EFFECTORS (owned, default-neutral)
 Metabolism.vo2 · vo2_factor ──┐
-env_temp / radiant_temp ──────┼─► Q_prod (metabolic + brown fat)            Metabolism.vo2_temp_factor  (Q10 metabolic coupling)
-rel_humidity ─────────────────┼─► Q_loss (radiative+convective+evap +trim)  Heart.hr_temp_factor        (temperature → heart rate)
-weight (Meeh SA) ─────────────┘    dCore = (Q_prod − Q_loss)/(m·c)·dt        Blood.set_temperature(core) (acid-base / O2 dissoc. dT term)
+env_temp / radiant_temp ──────┼─► Q_prod (metabolic + brown fat)            Metabolism.vo2_temp_factor    (Q10 metabolic coupling)
+rel_humidity ─────────────────┼─► Q_loss (radiative+convective+evap +trim)  Heart.hr_temp_factor          (temperature → heart rate)
+weight (Meeh SA) ─────────────┘    − Q_perf (exchange with blood pool)       Blood.set_perfusion_target(core) (blood warms toward core)
+                                   dCore = (Q_prod − Q_loss − Q_perf)/C_t·dt  Gas.set_body_temperature(core)   (airway gas warms toward core)
+                                        ⇅ Q_perf = G_perf·(core − blood_mean)
+                                   BLOOD POOL (distributed; warms toward core via Blood's relaxation)
 ```
 
-## Heat balance
+## Heat balance (two-node: tissue + blood pool)
 
-Every `_update_interval` (default **1 s** — temperature is slow), `_update_temperature(u)` runs the
-single-node balance with `u` the exact elapsed time since the last update:
+The body thermal mass is split into a **tissue node** (this model's integrated `core_temp`) and the
+**distributed blood pool** (every blood compartment's `temp`, warmed toward `core` by
+[`Blood`](./Blood.md)'s per-step relaxation and advected around the circuit). They exchange heat by
+perfusion. Every `_update_interval` (default **1 s** — temperature is slow), `_update_temperature(u)`
+runs, with `u` the exact elapsed time since the last update:
 
 ```
 Q_prod  = metabolic + brown_fat                                                  [W]
@@ -34,8 +40,32 @@ Q_loss_eff = SA·[ h_radiative·(core − radiant_eff) + h_convective·(core −
              + SA·evap_coeff·(1 − rel_humidity) + _loss_trim                     [W]
   SA = surface_area_k · weight^(2/3)              (Meeh surface area, m^2)
   radiant_eff = radiant_temp if set, else env_temp
-dCore = (Q_prod − Q_loss_eff) / (weight · heat_capacity) · u                     [degC]
+Q_perf  = G_perf · (core − blood_mean)                                           [W]  (NEW)
+  blood_mean = heat-capacity-weighted mean temperature over ALL blood compartments (Blood.get_thermal_state)
+  C_blood  = blood_volume_per_kg · weight · blood_density · cp_blood   (coupling mass = circulating volume)
+  G_perf   = C_blood / blood_temp_tc                  (perfusion conductance, W/K)
+C_tissue = weight · heat_capacity − C_blood
+dCore = (Q_prod − Q_loss_eff − Q_perf) / C_tissue · u                            [degC]
 ```
+
+**The coupling is the point:** the blood pool absorbs exactly `Q_perf` via its relaxation (same
+`G_perf`), so energy is conserved. Cooling the blood — e.g. an [`Ecls`](./Ecls.md) heater-cooler on
+one compartment — lowers `blood_mean`, drives `Q_perf > 0`, and pulls the core down; rewarming
+reverses it. **Neutral at rest by construction:** with no blood sink, the blood pool relaxes to
+`core`, `blood_mean == core`, `Q_perf == 0`, and the balance reduces exactly to the former
+single-node form — so the `_loss_trim` seed keeps `dCore = 0` and baseline vitals/ABG are unchanged.
+
+> **Coupling mass = physiological circulating blood volume.** `blood_mean` is measured over *all*
+> blood compartments, but the sum of their volumes (~193 mL/kg) is ~2.4× real blood volume because it
+> includes organ vascular beds. Using that inflated mass for the perfusion coupling created an
+> oversized thermal buffer that damped the cold/warm response and would have forced unphysical
+> heat-transfer coefficients to compensate. So the coupling `C_blood` uses `blood_volume_per_kg`
+> (0.08 L/kg, real circulating volume); `h_radiative`/`h_convective` were then recalibrated (×1.75, to
+> 9.6/7.0 W/m²·K — still physical) so the cold response and brown-fat engagement match the former
+> single-node model. The small price is that the relaxation warms the full temperature field while the
+> core balance debits only the circulating mass — a bounded *transient* energy inexactness, zero at
+> rest. `blood_temp_tc` (shared with `Blood`) tunes both the pool relaxation and, via `G_perf`, how
+> fast the core follows the blood.
 
 Neonates **cannot shiver**: below set-point they defend temperature by **non-shivering (brown-fat)
 thermogenesis** (`brown_fat_heat`), a linear deficit term capped at `bat_max_per_kg · weight`. The
@@ -60,19 +90,25 @@ Hormones setpoint anchoring and the Kidneys TGF seed.
 
 ## Effectors (owned channels)
 
-On each update `_apply_effectors()` maps core temperature to three channels, all default-neutral and
+On each update `_apply_effectors()` maps core temperature to four channels, all default-neutral and
 independent of `Ans` / `Drugs`:
 
 | Channel | Mapping | Notes |
 |---|---|---|
-| `Metabolism.vo2_temp_factor` | `q10 ^ ((core − 37)/10)`, clamped `[vo2_temp_factor_min, vo2_temp_factor_max]` | **new** Q10 metabolic coupling; folds into `vo2_eff` |
+| `Metabolism.vo2_temp_factor` | `q10 ^ ((core − 37)/10)`, clamped `[vo2_temp_factor_min, vo2_temp_factor_max]` | Q10 metabolic coupling; folds into `vo2_eff` |
 | `Heart.hr_temp_factor` | `1 + hr_temp_gain·(core − setpoint)`, clamped `[hr_temp_factor_min, hr_temp_factor_max]` | drives a previously-dormant Heart channel (already summed into HR in `Heart.calc`) |
 | `Blood.set_temperature(core)` | propagates core temp to **every** blood compartment | feeds the temperature (dT) term of the Stewart acid-base / O2-dissociation solver (`BloodComposition`) |
+| `Gas.set_body_temperature(core)` | propagates core temp to the body-warmed airway gas compartments (`DS`/`ALL`/`ALR`) | alveoli target core directly, dead space holds its build-time offset (≈5 °C) below it; sets each `GasCapacitance.target_temp` — see [`GasCapacitance`](./GasCapacitance.md). `MOUTH` (inspired-air source) is excluded |
 
 The master gate `thermoregulation_running` (default `true`), when set `false`, calls
-`_release_channels()` **once** — resetting `vo2_temp_factor`/`hr_temp_factor` to `1.0` and
-`Blood.set_temperature(37.0)` — then idles. This is the clean "off" switch; while enabled, manual
-edits to those channels are overwritten each tick.
+`_release_channels()` **once** — resetting `vo2_temp_factor`/`hr_temp_factor` to `1.0`,
+`Blood.set_temperature(37.0)` and `Gas.set_body_temperature(setpoint)` (restoring the build-time gas
+targets) — then idles. This is the clean "off" switch; while enabled, manual edits to those channels
+are overwritten each tick.
+
+All four channels are **neutral at rest by construction**: at `core == setpoint` the factors are
+`1.0`, blood is at set-point, and the gas targets equal their build values — so a scenario that ships
+thermoregulation has unchanged baseline vitals/ABG until the thermal environment is perturbed.
 
 ## Key parameters (defaults / units)
 
@@ -107,4 +143,5 @@ limb (which grows ∝ `core − env_temp` and so always overtakes) plus the `vo2
 [`Metabolism`](./Metabolism.md) (VO2 source + the Q10 effector target) ·
 [`Heart`](./Heart.md) (`hr_temp_factor` channel) ·
 [`Blood`](./Blood.md) (`set_temperature` → acid-base / O2-dissociation) ·
+[`Gas`](./Gas.md) / [`GasCapacitance`](./GasCapacitance.md) (`set_body_temperature` → airway gas targets) ·
 [`Hormones`](./Hormones.md) (sibling controller / neutrality idiom).

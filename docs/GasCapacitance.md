@@ -54,7 +54,7 @@ See [`Capacitance`](./Capacitance.md) for the full list and the factor system. K
 | `pres_atm` | mmHg | Atmospheric pressure (default 760); set by the [`Gas`](./Gas.md) manager at build |
 | `pres_cc` | mmHg | Chest-compression external pressure, non-persistent — cleared each step |
 | `pres_mus` | mmHg | Muscle external pressure, non-persistent — cleared each step |
-| `target_temp` | °C | Temperature the gas relaxes toward (set per-site by `Gas`) |
+| `target_temp` | °C | Temperature the gas relaxes toward. Seeded per-site by `Gas`; for the body-warmed airway compartments (`DS`/`ALL`/`ALR`) it then **rides body core temperature** each thermoregulation update — see below |
 | `temp` | °C | Current gas temperature (also runtime state; seeded by `Gas`) |
 | `humidity` | fraction | **Wall wetness**: the relative humidity this compartment can sustain by evaporation, 0–1. Read every step by `add_watervapour` — it is a target, not a state variable. Airway mucosa is `1.0`; a dry medical gas line is `0.0`. Default `1.0` |
 | `temp_tc` | s | Thermal equilibration time constant (default `1.0`) |
@@ -182,6 +182,16 @@ An Antoine-type form returning mmHg: 46.49 at 37 °C, 35.45 at 32 °C, 17.81 at 
 - **No water or heat crosses the blood–gas barrier.** [`GasExchanger`](./GasExchanger.md) and
   [`GasDiffusor`](./GasDiffusor.md) transfer only O₂ and CO₂. An alveolus is humidified from its own
   `target_temp`, not from pulmonary capillary blood.
+- **`target_temp` tracks body core temperature (for the body-warmed compartments).**
+  [`Thermoregulation`](./Thermoregulation.md) pushes `core_temp` onto the perfused airway
+  compartments each update via `Gas.set_body_temperature` — the alveoli (`ALL`/`ALR`) target core
+  directly, the dead space (`DS`) holds its build-time offset (≈5 °C) below it. So a febrile or
+  hypothermic patient conditions inspired gas toward the *actual* core, not a hard 37 °C, and the
+  alveolar gas moves with the blood it exchanges with. The coupling is **neutral at rest** (at
+  core == set-point the targets equal their build values) and inactive when thermoregulation is
+  absent or disabled (targets stay at their seeded values). `MOUTH` is excluded — it is the
+  inspired-air source, warmed by the environment, not the body. A residual ~1–2 °C alveolar-below-
+  core deficit remains from tidal mixing with cooler dead-space gas.
 - **Both routines conserve molar mass.** Heating and humidification change the volume, so each
   rescales every concentration by `V₀/V₁` afterwards. Heating moves no molecules at all;
   humidification moves only water. Without that rescale the compartment would keep its

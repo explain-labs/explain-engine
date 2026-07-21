@@ -85,6 +85,14 @@ conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites
   concatenation corrupting the `1 − (fio2 + fico2)` fraction math), then re-derive each site's
   composition via the standalone [`calc_gas_composition`](./GasComposition.md) at that site's current
   `temp`/`humidity`.
+- **`set_body_temperature(core_temp)`** — push the body core temperature onto the body-warmed airway
+  compartments, the gas counterpart to `Blood.set_temperature`. Called each update by
+  [`Thermoregulation`](./Thermoregulation.md). Each such compartment's `target_temp` is set to
+  `core_temp + delta`, where `delta` is the compartment's build-time offset from the set-point
+  (captured in `init_model` for the **non-`fixed_composition`** members of `temp_settings` — `DS`,
+  `ALL`, `ALR`; `MOUTH` is excluded as the environment-warmed inspired-air source). At rest
+  (`core == set-point`) the targets equal their build values, so the coupling is neutral; a febrile
+  or hypothermic patient conditions inspired gas toward the actual core instead of a hard 37 °C.
 
 ## Example definition (JSON)
 

@@ -29,6 +29,7 @@ It does not move volume or compute pressure; flow mixing is done per-compartment
 |---|---|---|
 | `viscosity` | cP | Reference blood viscosity (default 6.0) |
 | `temp` | degC | Reference blood temperature (default 37.0) |
+| `blood_temp_tc` | s | Perfusion equilibration time constant — how fast blood warms toward its perfusion target (default 10.0); seeded onto each compartment as `blood_temp_tc` |
 | `to2` | mmol/L | Reference total O₂ concentration seeded into compartments |
 | `tco2` | mmol/L | Reference total CO₂ concentration seeded into compartments |
 | `solutes` | object | Reference circulating solute set (Na, K, Ca, Mg, Cl, lactate, albumin, phosphates, uma, hemoglobin, glucose, …) |
@@ -66,9 +67,24 @@ After applying the definition args, `init_model` walks `model.models` and, for e
 
 The empty-solutes guard (rather than a `to2 == 0 && tco2 == 0` proxy) is deliberate: a restored / loaded saved state already carries per-compartment composition, and that composition is preserved even when a compartment legitimately has `to2 == 0`. Finally it caches the `AA`/`AD` references and sets `art_solutes = {...this.solutes}`.
 
+## Warming blood toward the body (`calc_model`, every step)
+
+Blood temperature is **a warmed, advecting field, not a stamp.** Every step, `calc_model` relaxes each
+blood compartment's `temp` toward its `body_temp` over `blood_temp_tc` —
+`temp += (body_temp − temp)·min(1, _t/blood_temp_tc)` — the blood counterpart of
+[`GasCapacitance.add_heat`](./GasCapacitance.md) (incompressible, so temperature only). `body_temp` is
+the perfusion target set by [`Thermoregulation`](./Thermoregulation.md) via `set_perfusion_target`
+(= core), or a device setpoint on a compartment flagged `temp_ext_override` (e.g. an
+[`Ecls`](./Ecls.md) heater-cooler). Combined with the temperature advection in `volume_in`, blood
+temperature now carries real gradients around the circuit instead of being re-pinned to core each
+second. The heat this exchange carries is fed back into Thermoregulation's core balance (`Q_perf`),
+so cooling the blood cools the core. Each compartment therefore also carries three thermal fields,
+seeded in `init_model`: `body_temp` (perfusion target), `blood_temp_tc` (relaxation tc),
+`temp_ext_override` (device-controlled flag).
+
 ## Publishing blood gases (`calc_model`)
 
-`calc_model` accumulates `_t` into `_update_counter` and only acts once `_update_counter >= _update_interval` (1.0 s), then resets the counter. On each tick it calls `calc_blood_composition` (see [BloodComposition](./BloodComposition.md)) on selected compartments and copies the results:
+The same `calc_model` also accumulates `_t` into `_update_counter` and, once `_update_counter >= _update_interval` (1.0 s), resets the counter. On each tick it calls `calc_blood_composition` (see [BloodComposition](./BloodComposition.md)) on selected compartments and copies the results:
 
 - **`AA`** → `preductal_art_bloodgas`
 - **`AD`** → `art_bloodgas`, and `art_solutes = {...AD.solutes}`
@@ -81,7 +97,9 @@ Each setter updates the reference value on `Blood` and/or pushes a value out to 
 
 | Setter | Effect |
 |---|---|
-| `set_temperature(temp, bc_site = "")` | Sets `temp` on all compartments (or one site); updates `this.temp` |
+| `set_temperature(temp, bc_site = "")` | Sets `temp` **directly** on all compartments (or one site); updates `this.temp`. Kept for build-time seeding / manual resets — **not** the runtime thermal path (see below) |
+| `set_perfusion_target(core)` | Sets `body_temp = core` on every compartment except those with `temp_ext_override` (device-controlled). The effector channel [`Thermoregulation`](./Thermoregulation.md) drives each update; blood then warms toward it over `blood_temp_tc` |
+| `get_thermal_state(density, cp)` | Returns `{ c_blood, t_mean }` — the blood pool heat capacity `Σ vol·density·cp` (J/K) and its heat-capacity-weighted mean temperature. Used by Thermoregulation's two-node balance |
 | `set_viscosity(viscosity)` | Sets `viscosity` on all compartments; updates `this.viscosity` |
 | `set_haldane_coeff(coeff)` | Sets `haldane_coeff` on all compartments; updates `this.haldane_coeff` |
 | `set_P50(p50)` | Sets `P50_0` on all compartments; updates `this.P50_0` (pick the dissociation curve, e.g. fetal vs adult) |

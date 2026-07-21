@@ -16,9 +16,15 @@ export class Gas extends BaseModelClass {
     this.humidity_settings = {}; // dictionary holding the initial humidity settings of gas containing models
     this.temp_settings = {}; // dictionary holding the initial temperature settings of gas containing models
 
+    // wiring for the body-temperature coupling (resolved lazily; Thermoregulation may build later)
+    this.thermoregulation_name = "Thermoregulation";
+
     // local properties
     this.gas_containing_modeltypes = ["GasCapacitance"];
     this._gas_components = [];
+    // per-site thermal offset from the body set-point for the body-warmed (perfused) airway
+    // compartments — see set_body_temperature. Captured at build so rest stays neutral.
+    this._body_temp_delta = {};
   }
 
   init_model(args = {}) {
@@ -86,6 +92,21 @@ export class Gas extends BaseModelClass {
       calc_gas_composition(model, this.fio2, model.temp, model.humidity);
     });
 
+    // Capture the thermal offset of each body-warmed (perfused) airway compartment relative to the
+    // body set-point, so set_body_temperature can ride core temperature while staying exactly
+    // neutral at rest. Body-warmed = the non-fixed_composition members of temp_settings (DS, ALL,
+    // ALR): the alveoli and dead space warmed by the airway wall. MOUTH is fixed_composition (the
+    // inspired-air source, warmed by the environment not the body) so it is excluded, as are the
+    // device gas lines, which are not in temp_settings.
+    const thermo = this._model_engine.models[this.thermoregulation_name];
+    const setpoint = thermo && thermo.setpoint_temp != null ? thermo.setpoint_temp : 37.0;
+    this._body_temp_delta = {};
+    Object.keys(this.temp_settings).forEach((model_name) => {
+      const m = this._model_engine.models[model_name];
+      if (!m || m.fixed_composition) return;
+      this._body_temp_delta[model_name] = m.target_temp - setpoint;
+    });
+
     // flag that the model is initialized
     this._is_initialized = true;
   }
@@ -94,6 +115,18 @@ export class Gas extends BaseModelClass {
     // no per-step work: Gas is an orchestrator. The gas physics run in the individual
     // GasCapacitance elements (pressure/volume) and GasComposition (fractions/partial
     // pressures) during their own step calls; Gas only owns build-time setup here.
+  }
+
+  // Push the body core temperature onto the body-warmed airway compartments, the gas counterpart to
+  // Blood.set_temperature. Each compartment rides core with its build-time offset, so at rest
+  // (core == set-point) the targets equal their build values and nothing changes; under
+  // fever/hypothermia the alveoli track core and the dead space holds its ~5 degC deficit below it.
+  // Thermoregulation drives this from its effector pass.
+  set_body_temperature(core_temp) {
+    Object.keys(this._body_temp_delta).forEach((model_name) => {
+      const m = this._model_engine.models[model_name];
+      if (m) m.target_temp = core_temp + this._body_temp_delta[model_name];
+    });
   }
 
   set_atmospheric_pressure(new_pres_atm) {

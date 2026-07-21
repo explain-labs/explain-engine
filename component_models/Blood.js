@@ -11,6 +11,7 @@ export class Blood extends BaseModelClass {
     // initialize independent properties
     this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
     this.temp = 37.0; // temperature (dgs C)
+    this.blood_temp_tc = 10.0; // perfusion equilibration time constant (s) for warming blood toward the body/core temperature
     this.to2 = 0.0; // total oxygen concentration (mmol/l)
     this.tco2 = 0.0; // total carbon dioxide concentration (mmol/l)
     this.solutes = {}; // dictionary holding the initial circulating solutes
@@ -67,6 +68,13 @@ export class Blood extends BaseModelClass {
           model.temp = this.temp;
           model.viscosity = this.viscosity;
         }
+        // thermal-coupling fields (the compartment warms toward body_temp over blood_temp_tc).
+        // body_temp is the perfusion target written by Thermoregulation each update (= core), or a
+        // device setpoint when temp_ext_override is set (e.g. an ECLS heater-cooler). Initialized
+        // here rather than in each compartment constructor to keep one source of truth.
+        if (model.body_temp === undefined) model.body_temp = model.temp;
+        if (model.blood_temp_tc === undefined) model.blood_temp_tc = this.blood_temp_tc;
+        if (model.temp_ext_override === undefined) model.temp_ext_override = false;
       }
     }
 
@@ -82,6 +90,19 @@ export class Blood extends BaseModelClass {
   }
 
   calc_model() {
+
+    // Warm (or cool) every blood compartment toward its perfusion target over blood_temp_tc — the
+    // body warming the blood, as a rate process instead of the old instantaneous stamp. Runs every
+    // step so a device/advected perturbation survives and convects around the circuit. Incompressible,
+    // so temperature only (no volume/solute change); the clamped fraction cannot overshoot. This is
+    // the blood counterpart of GasCapacitance.add_heat. The heat this exchanges with the tissue node
+    // is accounted for by Thermoregulation via q_perfusion (same conductance), closing the loop.
+    for (const model of this._blood_components) {
+      if (model.fixed_composition) continue;
+      const tc = model.blood_temp_tc > 0.0 ? model.blood_temp_tc : this.blood_temp_tc;
+      const frac = tc > 0.0 ? Math.min(1.0, this._t / tc) : 1.0;
+      model.temp += (model.body_temp - model.temp) * frac;
+    }
 
     this._update_counter += this._t;
     if (this._update_counter >= this._update_interval) {
@@ -130,7 +151,32 @@ export class Blood extends BaseModelClass {
         model.temp = new_temp;
       });
     }
-    
+
+  }
+
+  // Set the perfusion target (the tissue/core temperature the blood warms toward) on every blood
+  // compartment, except those a device currently controls (temp_ext_override). This is the effector
+  // channel Thermoregulation drives each update — it replaces the old instantaneous set_temperature
+  // stamp, so blood temperature is now a relaxed, advecting field rather than a re-pinned constant.
+  set_perfusion_target(core_temp) {
+    this._blood_components.forEach((model) => {
+      if (!model.temp_ext_override) model.body_temp = core_temp;
+    });
+  }
+
+  // Report the blood pool's thermal state for the two-node heat balance: total heat capacity
+  // C_blood = Sum(vol_i * density * cp) and the heat-capacity-weighted mean temperature. Density in
+  // kg/L, cp in J/kg/K → C in J/K. Used by Thermoregulation to compute the perfusion heat exchange.
+  get_thermal_state(density, cp) {
+    let c_blood = 0.0;
+    let ct = 0.0;
+    this._blood_components.forEach((model) => {
+      const c_i = model.vol * density * cp;
+      c_blood += c_i;
+      ct += c_i * model.temp;
+    });
+    const t_mean = c_blood > 0.0 ? ct / c_blood : this.temp;
+    return { c_blood, t_mean };
   }
 
   set_viscosity(new_viscosity) {

@@ -35,7 +35,7 @@ Read from the compartment `bc`:
 |---|---|---|
 | `bc.to2` | mmol/L | Total O₂ concentration (target for the O₂ solve) |
 | `bc.tco2` | mmol/L | Total CO₂ concentration (input to the acid-base solve) |
-| `bc.temp` | degC | Temperature (CO₂ solubility, P50 shift) |
+| `bc.temp` | degC | Temperature (CO₂ solubility, P50 shift). A real per-compartment field: warmed toward core by [`Blood`](./Blood.md)'s relaxation and advected by flow, so it can carry genuine gradients (e.g. blood cooled by an [`Ecls`](./Ecls.md) heater-cooler) rather than a uniform stamp |
 | `bc.solutes.na/k/ca/mg/cl/lact` | mmol/L | Strong ions → SID |
 | `bc.solutes.albumin/phosphates/uma` | — | Non-bicarbonate buffers / unmeasured anions |
 | `bc.solutes.hemoglobin` | mmol/L | Haemoglobin (converted to g/dL via `/0.6206`) |

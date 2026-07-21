@@ -86,6 +86,9 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `gas_fico2` | fraction | Sweep-gas FiCO₂ (default 0.000392) |
 | `gas_humidity` | fraction | Sweep-gas humidity (default 0.5) |
 | `gas_temp` | °C | Sweep-gas temperature (default 20) |
+| `blood_temp_active` | bool | Blood-side **heater-cooler** on/off (default `false` = neutral; `ECLS_OXY` behaves like any blood compartment) |
+| `blood_temp` | °C | Heater-cooler target blood temperature at the oxygenator (default 37); e.g. 33.5 for therapeutic hypothermia |
+| `blood_temp_tc` | s | Heat-exchanger equilibration time constant (default 2.0, fast) |
 | `dif_o2` | mmol/(mmHg·s) | Gas-exchanger O₂ diffusion constant (default 0.0005) |
 | `dif_co2` | mmol/(mmHg·s) | Gas-exchanger CO₂ diffusion constant (default 0.001) |
 | `drainage_cannula_diameter` / `_length` | m | Drainage cannula geometry (copied from the selected library entry) |
