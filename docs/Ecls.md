@@ -50,8 +50,9 @@ patient(drainage_site) ─[ECLS_DRAINAGE]─► ECLS_TUBING_IN ─► ECLS_PUMP 
 | `ECLS_TUBING_OUT` | BloodCapacitance/BloodVessel | Outflow tubing; its pressure is reported as `p_art` |
 | `ECLS_RETURN` | Resistor | Return cannula (`ECLS_TUBING_OUT → return_site`); its flow ×60 is `flow` |
 | `ECLS_GAS_SOURCE` | GasCapacitance | Sweep-gas source (composition from `gas_fio2`/`gas_fico2`/…) |
-| `ECLS_GAS_INSP_VALVE` | Resistor | Sweep-gas inlet valve (resistance set from `gas_flow`) |
+| `ECLS_GAS_INSP_VALVE` | Resistor | Sweep-gas inlet valve; resistance sized each update so sweep flow tracks `gas_flow` |
 | `ECLS_GAS_OXY` | GasCapacitance | Gas side of the oxygenator |
+| `ECLS_GAS_EXP_VALVE` | Resistor | Sweep-gas outlet valve (`ECLS_GAS_OXY → ECLS_GAS_OUT`); enabled with the circuit, back-flow blocked |
 | `ECLS_GAS_OUT` | GasCapacitance | Sweep-gas outlet |
 | `ECLS_GASEX` | GasExchanger | O₂/CO₂ exchange between `ECLS_OXY` (blood) and `ECLS_GAS_OXY` (gas) |
 
@@ -111,7 +112,7 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `sat_postoxy_o2` | % | Post-oxygenator O₂ saturation |
 | `pco2_postoxy` | mmHg | Post-oxygenator pCO₂ |
 | `drainage_res` / `return_res` | mmHg/(L/s) | Active cannula resistances (from the selected library entry) |
-| `tubing_in_res` / `tubing_out_res` | mmHg/(L/s) | Tubing resistances |
+| `tubing_in_res` / `tubing_out_res` | mmHg/(L/s) | Tubing resistances. `tubing_out_res` drives the `ECLS_OXY → ECLS_TUBING_OUT` resistor; `tubing_in_res` is **vestigial** — it is not applied (see calc-cycle step 5) |
 | `tubing_in_vol` / `tubing_out_vol` | L | Tubing volumes |
 
 ### Internal (`_`-prefixed) and moving averages
@@ -142,14 +143,20 @@ circuit has run.)
 
 1. Rebuild any moving-average filter whose window size changed (`flow_avg_window` /
    `pressure_avg_window`).
-2. Resolve the eleven `ECLS_*` sub-model references; **skip the tick** if any is missing.
+2. Resolve the `ECLS_*` sub-model references; **skip the tick** if any of the eleven required ones is
+   missing (`ECLS_GAS_EXP_VALVE` is resolved too, but its use is individually guarded rather than
+   gating the tick).
 3. Apply `drainage_site` / `return_site` to the cannula resistors, and copy the selected cannula
    geometry/resistance from the library.
-4. Sync every sub-model's `is_enabled` to `ecls_running`; set `no_flow = ecls_clamped` on all blood
-   sub-models; enable `ECLS_GASEX` only when **unclamped** (`is_enabled = !ecls_clamped`).
-5. Push resistances onto each sub-model: cannula/tubing/pump/oxygenator resistance × its `*_res_factor`.
-6. Recompute the sweep-gas composition when `gas_fio2`/`gas_fico2` changed, and the inspiratory-valve
-   resistance when `gas_flow` changed.
+4. Sync every sub-model's `is_enabled` to `ecls_running` (including both sweep-gas valves); set
+   `no_flow = ecls_clamped` on all blood sub-models; enable `ECLS_GASEX` only when **unclamped**
+   (`is_enabled = !ecls_clamped`); block back-flow on `ECLS_GAS_EXP_VALVE`.
+5. Push resistances onto each sub-model: drainage/return cannula, pump, oxygenator and outlet-tubing
+   resistance × its `*_res_factor`. (The inlet segment's resistance is the pump's own inlet resistor;
+   `tubing_in_res` is **not** applied — `ECLS_TUBING_IN` is a bare `BloodCapacitance` that owns no
+   resistor, so writing `r_for` onto it would do nothing.)
+6. Recompute the sweep-gas composition when `gas_fio2`/`gas_fico2` changed; size the inspiratory-valve
+   resistance each update so sweep flow tracks `gas_flow` (see below).
 7. Update `ECLS_GASEX.dif_o2` / `dif_co2`.
 8. **Pump drive** (see below).
 9. Read raw pressures, push them through the moving-average filters into `p_ven`/`p_int`/`p_art`, set
@@ -161,22 +168,32 @@ circuit has run.)
 
 ```
 pump_pressure = −pump_rpm / 25
-pump_mode 0 (centrifugal): ECLS_PUMP.p1_ext = 0,   ECLS_PUMP.p2_ext = pump_pressure
-pump_mode 1 (roller):      ECLS_OXY.p1_ext = pump_pressure,   ECLS_OXY.p2_ext = 0
+pump_mode 0 (centrifugal): ECLS_PUMP.p2_ext = pump_pressure;  ECLS_OXY  p1_ext = p2_ext = 0
+pump_mode 1 (roller):      ECLS_OXY.p2_ext  = pump_pressure;  ECLS_PUMP p1_ext = p2_ext = 0
 ```
 
-The negative external pressure on the downstream node creates the pressure gradient that drives flow
-through the circuit (the resistors compute flow from the resulting node pressures).
+The negative external pressure on the driven vessel's **downstream** node (`p2_ext`) creates the
+pressure gradient that drives flow **forward** through the circuit — over-filling that compartment from
+upstream and pushing it on (the resistors compute flow from the resulting node pressures). Both modes
+use the same downstream-node drive, so both push forward; earlier roller-mode code drove `ECLS_OXY.p1_ext`
+(the upstream node) and pushed the circuit backward. Each branch explicitly zeroes the *other* vessel's
+external pressures, so switching `pump_mode` at runtime cannot leave the previous mode's drive applied on
+top of the new one — the `BloodVessel` never self-resets `p1_ext`/`p2_ext`; only its owned resistor does,
+each step.
 
 ### Sweep-gas inlet valve
 
-When `gas_flow` changes, the inlet-valve resistance is sized from the source-to-out pressure drop and
-the requested flow:
+Each update the inlet-valve resistance is sized so the sweep-gas flow tracks the `gas_flow` set-point.
+The gas line `ECLS_GAS_SOURCE →[R_insp]→ ECLS_GAS_OXY →[R_exp]→ ECLS_GAS_OUT` is held at fixed pressure
+at both ends, so in steady state `Q = ΔP / (R_insp + R_exp)`, giving:
 
 ```
-res = (ECLS_GAS_SOURCE.pres − ECLS_GAS_OUT.pres) / (gas_flow / 60)
-if res > 60: ECLS_GAS_INSP_VALVE.r_for = res − 50
+R_insp = (ECLS_GAS_SOURCE.pres − ECLS_GAS_OUT.pres) / (gas_flow / 60) − R_exp
 ```
+
+where `R_exp` is the live `ECLS_GAS_EXP_VALVE` resistance (not a hard-coded constant). `R_insp` is
+clamped strictly positive. When `gas_flow ≤ 0` the inlet valve is set `no_flow` (sweep off) rather than
+dividing by zero.
 
 ## Factor system
 
@@ -235,8 +252,13 @@ Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows un
 
 ## Notes & caveats
 
-- **Stopping the circuit disables it.** The off-branch sets `is_enabled = false` on all sub-models, so
-  a stopped ECLS no longer conducts passive flow.
+- **Stopping the circuit disables it.** The off-branch sets `is_enabled = false` on all sub-models
+  (both sweep-gas valves included), so a stopped ECLS no longer conducts passive flow, and releases the
+  heater-cooler (see below).
+- **The heater-cooler releases cleanly.** Enabling `blood_temp_active` overrides `ECLS_OXY`'s own
+  perfusion time constant with the fast `blood_temp_tc`; disabling it (or stopping ECLS) restores the
+  compartment's original time constant and clears `temp_ext_override`, handing thermal control back to
+  [`Thermoregulation`](./Thermoregulation.md) (which resumes warming `ECLS_OXY` toward core).
 - **References are resolved lazily** each tick while running; a missing sub-model skips the tick rather
   than dereferencing undefined.
 - **Pump logic is duplicated.** The `pump_pressure = −pump_rpm/25` computation mirrors
