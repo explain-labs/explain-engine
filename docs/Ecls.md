@@ -347,7 +347,8 @@ Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows un
 ## Changelog
 
 An audit of the ECLS model on 2026-07-21 fixed a set of correctness bugs and raised the physiological
-fidelity of the pump, oxygenator, and cannula library. Commit hashes are on `main`.
+fidelity of the pump, oxygenator, and cannula library. The audit was completed in a single session that
+day (commits span 21:00–23:29), so this one date covers every change below. Commit hashes are on `main`.
 
 ### Correctness fixes (`298124e`, docs `c8abc7f`)
 
