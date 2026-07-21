@@ -116,9 +116,9 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `flow` | L/min | Circuit blood flow (`ECLS_RETURN.flow × 60`) |
 | `flow_avg` | L/min | Moving-average of `flow` |
 | `pump_pressure` | mmHg | Pump drive pressure = `−head` (centrifugal H-Q) or `−`roller-controller output |
-| `sat_ven_o2` | % | Venous (pre-oxygenator) O₂ saturation |
-| `sat_postoxy_o2` | % | Post-oxygenator O₂ saturation |
-| `pco2_postoxy` | mmHg | Post-oxygenator pCO₂ |
+| `sat_ven_o2` | % | Venous (pre-oxygenator) O₂ saturation — tapped at the drainage tubing `ECLS_TUBING_IN` |
+| `sat_postoxy_o2` | % | Post-oxygenator O₂ saturation — tapped at the oxygenator blood compartment `ECLS_OXY` |
+| `pco2_postoxy` | mmHg | Post-oxygenator pCO₂ — tapped at `ECLS_OXY` |
 | `drainage_res` / `return_res` | mmHg/(L/s) | Active cannula resistances (from the selected library entry) |
 | `tubing_in_res` / `tubing_out_res` | mmHg/(L/s) | Tubing resistances. `tubing_out_res` drives the `ECLS_OXY → ECLS_TUBING_OUT` resistor; `tubing_in_res` is **vestigial** — it is not applied (see calc-cycle step 5) |
 | `tubing_in_vol` / `tubing_out_vol` | L | Tubing volumes |
@@ -170,8 +170,10 @@ circuit has run.)
 8. **Pump drive** (see below).
 9. Read raw pressures, push them through the moving-average filters into `p_ven`/`p_int`/`p_art`, set
    `flow` (= `ECLS_RETURN.flow × 60`) and `flow_avg`.
-10. Once per `_blood_comp_interval` (1.0 s), recompute blood composition on the two tubing
-    compartments and read out `sat_ven_o2`, `sat_postoxy_o2`, `pco2_postoxy`.
+10. Once per `_blood_comp_interval` (1.0 s), recompute blood composition and read out `sat_ven_o2`
+    (from the drainage tubing `ECLS_TUBING_IN`, pre-oxygenator) and `sat_postoxy_o2` / `pco2_postoxy`
+    (from the oxygenator blood compartment `ECLS_OXY` itself — the true membrane outlet, rather than the
+    downstream `ECLS_TUBING_OUT` which lags it by advective mixing).
 
 ### Pump drive — head-flow (H-Q) model
 

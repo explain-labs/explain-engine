@@ -588,11 +588,14 @@ export class Ecls extends BaseModelClass {
 
         if (this._blood_comp_counter >= this._blood_comp_interval) {
           this._blood_comp_counter -= this._blood_comp_interval;
+          // Venous (pre-oxygenator) read-out from the drainage tubing; post-oxygenator read-outs from
+          // ECLS_OXY itself — the actual membrane blood compartment — not ECLS_TUBING_OUT, which sits
+          // one compartment downstream and lags the true oxygenator outlet by its advective mixing.
           calc_blood_composition(this._ecls_tubing_in);
-          calc_blood_composition(this._ecls_tubing_out);
+          calc_blood_composition(this._ecls_oxy);
           this.sat_ven_o2 = this._ecls_tubing_in.so2;
-          this.sat_postoxy_o2 = this._ecls_tubing_out.so2;
-          this.pco2_postoxy = this._ecls_tubing_out.pco2;
+          this.sat_postoxy_o2 = this._ecls_oxy.so2;
+          this.pco2_postoxy = this._ecls_oxy.pco2;
         }
       }
   }
