@@ -343,3 +343,54 @@ Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows un
   head; the cannula sizes and venous return set the achievable flow. A term neonate stays ~0.5 L/min
   even at high rpm (correct); increasing `pump_rpm` past the preload limit just raises head, not flow.
 - **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.
+
+## Changelog
+
+An audit of the ECLS model on 2026-07-21 fixed a set of correctness bugs and raised the physiological
+fidelity of the pump, oxygenator, and cannula library. Commit hashes are on `main`.
+
+### Correctness fixes (`298124e`, docs `c8abc7f`)
+
+- **Pump-mode switch leak (A2).** Each `pump_mode` branch now zeroes the *inactive* vessel's external
+  pressures, so switching centrifugal↔roller at runtime no longer leaves the previous mode's drive
+  stuck on (double drive).
+- **Roller-mode backward flow.** Roller mode drove the oxygenator's *upstream* node and pushed the
+  circuit backward; it now drives the downstream node (`ECLS_OXY.p2_ext`), mirroring the centrifugal
+  case, so it drives forward.
+- **Heater-cooler residual state (A3).** The compartment's own `blood_temp_tc` is captured before the
+  override and restored (via `_release_heater_cooler`) when the heater-cooler is disabled or ECLS stops,
+  instead of leaving the fast device tc stuck on `ECLS_OXY`.
+- **Sweep-gas inlet-valve controller (A4).** Replaced the fragile heuristic with the closed-form
+  `R_insp = ΔP/Q − R_exp`, recomputed every update, reading the live expiratory-valve resistance, and
+  shutting the sweep off (`no_flow`) when `gas_flow ≤ 0` instead of dividing by zero.
+- **Expiratory sweep-gas valve (A5).** `ECLS_GAS_EXP_VALVE` is now resolved, enabled/disabled with the
+  circuit, and its back-flow blocked so the fixed-pressure `ECLS_GAS_OUT` reservoir cannot back-fill the
+  oxygenator gas side.
+- **Inlet-tubing dead code (A1).** Removed the inert `r_for`/`r_back` write to `ECLS_TUBING_IN` (a
+  `BloodCapacitance` that owns no resistor); `tubing_in_res` was vestigial. No behaviour change.
+- `probe_ecls.mjs` gained sections D–F (pump mode, heater-cooler, sweep-gas controller).
+
+### Pump physics (`bbd3ad8`, coefficients `7784c97`)
+
+- Replaced the flow-independent `pump_pressure = −pump_rpm/25` with a real **head-flow (H-Q)
+  characteristic** (`head = hq_a·(rpm/1000)² − hq_b·(rpm/1000)·Q`), a **roller flow-source** controller,
+  and a **pump device library** (PediMag, CentriMag, Rotaflow RF-32, Bio-Pump BP-50, generic roller).
+- H-Q coefficients **fit to published characteristics** — `hq_a` from the rpm²-scaled deadhead
+  (Rotaflow anchored by two independent points), `hq_b` from rated flow. See [BloodPump](./BloodPump.md).
+
+### Oxygenator gas transfer (`494bb15`, `9602a13`)
+
+- **Rated-flow membrane limit (C1).** `GasExchanger` gained optional `o2_cap`/`co2_cap` ceilings
+  (default 0 = legacy; the native lung `GASEX_LL`/`GASEX_RL` keep the exact old physics). ECLS drives
+  them from an **oxygenator device library**, so post-oxygenator saturation now falls once blood flow
+  exceeds the oxygenator's rated flow instead of pinning at ~100%.
+- **Post-oxy blood-gas taps (C2).** `sat_postoxy_o2` / `pco2_postoxy` are read from `ECLS_OXY` (the true
+  membrane compartment) rather than the downstream `ECLS_TUBING_OUT`.
+
+### Cannula library (`d47538e`, `c3f4278`)
+
+- Added adult sizes (venous 21/23/25 Fr, arterial 15/17/19/21 Fr) and fixed the `Bio-Medicus` →
+  `Biomedicus` key-naming mismatch so selections resolve.
+- **Centralized** the catalogue in the constructor and removed the per-scenario embedded copies, so
+  every scenario sees the full catalogue and any cannula can be selected in any scenario
+  (behaviour-neutral: all scenarios resolve to their shipped resistances).
