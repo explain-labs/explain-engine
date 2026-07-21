@@ -10280,65 +10280,6 @@
     "pump_res_for": 50,
     "pump_res_back": 70,
     "pump_vol": 0.031,
-    "return_cannulas": {
-     "Biomedicus arterial 8 Fr": {
-      "inner_diameter": 0.002,
-      "length": 0.1,
-      "resistance": 5500
-     },
-     "Biomedicus arterial 10 Fr": {
-      "inner_diameter": 0.00267,
-      "length": 0.105,
-      "resistance": 1700
-     },
-     "Biomedicus arterial 12 Fr": {
-      "inner_diameter": 0.0032,
-      "length": 0.11,
-      "resistance": 650
-     },
-     "Medtronic Crescent 13 Fr": {
-      "inner_diameter": 0.0029,
-      "length": 0.089,
-      "resistance": 7000
-     },
-     "Medtronic Crescent 15 Fr": {
-      "inner_diameter": 0.0029,
-      "length": 0.097,
-      "resistance": 2700
-     }
-    },
-    "drainage_cannulas": {
-     "Biomedicus venous 8 Fr": {
-      "inner_diameter": 0.0021,
-      "length": 0.1,
-      "resistance": 4600
-     },
-     "Biomedicus venous 10 Fr": {
-      "inner_diameter": 0.0027,
-      "length": 0.105,
-      "resistance": 1500
-     },
-     "Biomedicus venous 12 Fr": {
-      "inner_diameter": 0.0033,
-      "length": 0.11,
-      "resistance": 600
-     },
-     "Biomedicus venous 14 Fr": {
-      "inner_diameter": 0.0039,
-      "length": 0.115,
-      "resistance": 260
-     },
-     "Medtronic Crescent 13 Fr": {
-      "inner_diameter": 0.0028,
-      "length": 0.089,
-      "resistance": 2500
-     },
-     "Medtronic Crescent 15 Fr": {
-      "inner_diameter": 0.0028,
-      "length": 0.097,
-      "resistance": 1100
-     }
-    },
     "drainage_cannula_type": "Biomedicus venous 12 Fr",
     "return_cannula_type": "Biomedicus arterial 10 Fr",
     "p_ven": 0,

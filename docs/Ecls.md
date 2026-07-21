@@ -137,11 +137,10 @@ size the four [`RealTimeMovingAverage`](./RealTimeMovingAverage.md) filters
 `drainage_cannulas` / `return_cannulas` are dictionaries of real devices (Biomedicus venous 8–25 Fr /
 arterial 8–21 Fr, Medtronic Crescent dual-lumen), each with an `inner_diameter` (m), `length` (m) and
 measured `resistance` (mmHg/(L/s)). Keys use the `Biomedicus` spelling that `drainage_cannula_type` /
-`return_cannula_type` reference, so a selection resolves. The constructor holds the full catalogue
-(neonatal 8 Fr through adult 25 Fr venous / 21 Fr arterial); note a scenario definition may **embed its
-own** `drainage_cannulas` / `return_cannulas` (a serialized snapshot), which takes precedence over the
-constructor for that scenario — the neonatal scenarios embed the neonatal sizes, the adult scenarios the
-adult sizes.
+`return_cannula_type` reference, so a selection resolves. The **constructor is the single source of
+truth** for the catalogue (neonatal 8 Fr through adult 25 Fr venous / 21 Fr arterial) — scenario
+definitions no longer embed their own `drainage_cannulas` / `return_cannulas` snapshot, so every scenario
+sees the full catalogue and any cannula (neonatal or adult) can be selected in any scenario.
 Setting `drainage_cannula_type` / `return_cannula_type` copies the matching entry's geometry and
 resistance into the active `*_cannula_*` / `*_res` parameters — once in the constructor, and re-checked
 each tick in `calc_model`.

@@ -10448,45 +10448,6 @@
     "pump_res_for": 50,
     "pump_res_back": 70,
     "pump_vol": 0.25,
-    "return_cannulas": {
-     "Biomedicus arterial 15 Fr": {
-      "inner_diameter": 0.004,
-      "length": 0.18,
-      "resistance": 400
-     },
-     "Biomedicus arterial 17 Fr": {
-      "inner_diameter": 0.0048,
-      "length": 0.2,
-      "resistance": 200
-     },
-     "Biomedicus arterial 19 Fr": {
-      "inner_diameter": 0.0055,
-      "length": 0.22,
-      "resistance": 120
-     },
-     "Biomedicus arterial 21 Fr": {
-      "inner_diameter": 0.006,
-      "length": 0.24,
-      "resistance": 80
-     }
-    },
-    "drainage_cannulas": {
-     "Biomedicus venous 21 Fr": {
-      "inner_diameter": 0.006,
-      "length": 0.2,
-      "resistance": 150
-     },
-     "Biomedicus venous 23 Fr": {
-      "inner_diameter": 0.0068,
-      "length": 0.22,
-      "resistance": 90
-     },
-     "Biomedicus venous 25 Fr": {
-      "inner_diameter": 0.0075,
-      "length": 0.25,
-      "resistance": 55
-     }
-    },
     "drainage_cannula_type": "Biomedicus venous 25 Fr",
     "return_cannula_type": "Biomedicus arterial 19 Fr",
     "p_ven": 0,
