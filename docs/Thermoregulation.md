@@ -97,12 +97,12 @@ independent of `Ans` / `Drugs`:
 |---|---|---|
 | `Metabolism.vo2_temp_factor` | `q10 ^ ((core − 37)/10)`, clamped `[vo2_temp_factor_min, vo2_temp_factor_max]` | Q10 metabolic coupling; folds into `vo2_eff` |
 | `Heart.hr_temp_factor` | `1 + hr_temp_gain·(core − setpoint)`, clamped `[hr_temp_factor_min, hr_temp_factor_max]` | drives a previously-dormant Heart channel (already summed into HR in `Heart.calc`) |
-| `Blood.set_temperature(core)` | propagates core temp to **every** blood compartment | feeds the temperature (dT) term of the Stewart acid-base / O2-dissociation solver (`BloodComposition`) |
+| `Blood.set_perfusion_target(core)` | sets the target every blood compartment warms toward (via `Blood`'s relaxation), skipping device-controlled ones (`temp_ext_override`) | blood temperature feeds the (dT) term of the Stewart acid-base / O2-dissociation solver (`BloodComposition`), and the heat this exchange carries returns to the core balance via `Q_perf` |
 | `Gas.set_body_temperature(core)` | propagates core temp to the body-warmed airway gas compartments (`DS`/`ALL`/`ALR`) | alveoli target core directly, dead space holds its build-time offset (≈5 °C) below it; sets each `GasCapacitance.target_temp` — see [`GasCapacitance`](./GasCapacitance.md). `MOUTH` (inspired-air source) is excluded |
 
 The master gate `thermoregulation_running` (default `true`), when set `false`, calls
 `_release_channels()` **once** — resetting `vo2_temp_factor`/`hr_temp_factor` to `1.0`,
-`Blood.set_temperature(37.0)` and `Gas.set_body_temperature(setpoint)` (restoring the build-time gas
+`Blood.set_perfusion_target(37.0)` and `Gas.set_body_temperature(setpoint)` (restoring the build-time gas
 targets) — then idles. This is the clean "off" switch; while enabled, manual edits to those channels
 are overwritten each tick.
 
@@ -120,9 +120,12 @@ thermoregulation has unchanged baseline vitals/ABG until the thermal environment
 | `setpoint_temp` | `37.0 °C` | hypothalamic set-point |
 | `heat_capacity` | `3470 J/kg/K` | specific heat of body tissue |
 | `surface_area_k` | `0.05` | Meeh constant in `SA = k·weight^(2/3)` |
-| `h_radiative` / `h_convective` | `5.5` / `4.0 W/m²/K` | radiative / convective transfer coefficients |
+| `h_radiative` / `h_convective` | `9.6` / `7.0 W/m²/K` | radiative / convective transfer coefficients (recalibrated ×1.75 for the two-node coupling) |
 | `evap_coeff` | `6.0 W/m²` per `(1−humidity)` | evaporative/respiratory loss coefficient |
 | `caloric_equiv_o2` | `20.1 J/mL` | heat released per mL O2 consumed |
+| `blood_density` / `cp_blood` | `1.06 kg/L` / `3800 J/kg/K` | blood pool density and specific heat |
+| `blood_temp_tc` | `10.0 s` | perfusion equilibration time constant (`G_perf = C_blood / tc`); shared with `Blood` |
+| `blood_volume_per_kg` | `0.08 L/kg` | circulating blood volume used for the core-coupling mass |
 | `bat_gain` / `bat_max_per_kg` | `6.0 W/°C` / `4.5 W/kg` | brown-fat gain and ceiling |
 | `q10` | `2.3` | Q10 of metabolic rate (per 10 °C) |
 | `hr_temp_gain` | `0.1` | HR factor rise per °C above set-point (~10%/°C) |
@@ -130,7 +133,7 @@ thermoregulation has unchanged baseline vitals/ABG until the thermal environment
 | `hr_temp_factor_min/max` | `0.6` / `1.6` | HR-factor clamp |
 
 Read-outs: `core_temp`, `skin_temp`, `heat_production`, `heat_loss`, `brown_fat_heat`,
-`vo2_temp_factor`, `hr_temp_factor`.
+`blood_temp_mean`, `q_perfusion`, `vo2_temp_factor`, `hr_temp_factor`.
 
 ## Risk note
 
@@ -139,9 +142,39 @@ VO2 which raises heat production which warms the core further. It is bounded by 
 limb (which grows ∝ `core − env_temp` and so always overtakes) plus the `vo2_temp_factor` clamp
 `[0.5, 2.5]`. Keep the clamp in place when re-tuning `q10` or `caloric_equiv_o2`.
 
+## Thermal model — scope & known limitations
+
+The temperature model spans this class plus [`GasCapacitance`](./GasCapacitance.md) (airway gas warms
+toward core) and [`Blood`](./Blood.md) (blood pool warms toward core, two-node coupled). It is
+neutral at rest and reproduces environmental cold/warm defence, brown-fat thermogenesis, and
+device-driven blood cooling/rewarming. The following are **deliberate open items**, not bugs — recorded
+so they are not rediscovered as defects:
+
+- **Respiratory heat/water loss is lumped, not ventilation-driven.** Warming and humidifying inspired
+  gas costs the body no *conserved* heat: `add_heat`/`add_watervapour` draw from an implicit infinite
+  source, and `q_evaporative = SA·evap_coeff·(1−rel_humidity)` is a skin-like surface term with no
+  dependence on tidal volume, minute ventilation, or the actual gas temperature/humidity. Closing this
+  (a heat flux at the alveolus so pulmonary blood warms the gas and the core rewarms the return) is the
+  natural next step and would reuse the gas + blood temperature fields already in place.
+- **`MOUTH` and `env_temp` are independent ambients.** The inspired-air source (`MOUTH`, seeded ~20 °C)
+  and the thermal environment (`env_temp`, 32 °C incubator default) are not unified, so a cold/warm
+  environment does not consistently drive inspired-gas temperature.
+- **Blood core-coupling uses circulating volume, not the compartment sum.** `blood_mean` is measured
+  over all blood compartments, but the coupling mass is `blood_volume_per_kg` (real circulating volume)
+  because the compartments sum to ~2.4× that (they include vascular beds). This keeps the loss
+  coefficients physical at the cost of a small, bounded *transient* energy inexactness — zero at rest.
+- **`ctotal` is not gas-law-consistent in a sealed static gas pocket.** Pressure comes from elastance
+  while `ctotal` sums species, and the two are not hard-coupled. For flowing gas this stays within ~2 %
+  (see [`GasCapacitance`](./GasCapacitance.md)); a never-ventilated compartment (`term_fetus` lungs)
+  drifts to ~8.6 %.
+- **Warm-environment core response is more defended** than the former single-node model (rise ~0.57 vs
+  ~0.82 °C in the probe's hot step) — a consequence of the blood/core thermal buffer, considered more
+  physiological.
+
 ## See also
 [`Metabolism`](./Metabolism.md) (VO2 source + the Q10 effector target) ·
 [`Heart`](./Heart.md) (`hr_temp_factor` channel) ·
-[`Blood`](./Blood.md) (`set_temperature` → acid-base / O2-dissociation) ·
+[`Blood`](./Blood.md) (`set_perfusion_target` → blood warming, acid-base / O2-dissociation) ·
 [`Gas`](./Gas.md) / [`GasCapacitance`](./GasCapacitance.md) (`set_body_temperature` → airway gas targets) ·
+[`Ecls`](./Ecls.md) (blood-side heater-cooler) ·
 [`Hormones`](./Hormones.md) (sibling controller / neutrality idiom).
