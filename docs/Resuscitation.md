@@ -59,22 +59,38 @@ breaths within a pause.
 
 ## Enabling CPR — `switch_cpr(state)`
 
-When turned **on** it: starts the ventilator (`switch_ventilator(true)`), configures pressure control
-from `vent_pres_pip` / `vent_pres_peep` / `vent_insp_time` (`set_pc(pip, peep, 1.0, t_in, 5.0)`),
-switches off spontaneous `Breathing` (`switch_breathing(false)`), and sets `cpr_enabled = true`.
-Turning it **off** just clears `cpr_enabled` (the ventilator/breathing states are left as they are).
-All calls are null-guarded with `?.`.
+Both branches first call `_reset_cycle()`, which zeroes every internal timer/counter
+(`_comp_timer`, `_comp_counter`, `_comp_pause`, `_comp_pause_counter`, `_vent_counter`,
+`_vent_breath_count`) and `chest_comp_pres`. This guarantees a re-toggle always restarts a clean
+cycle rather than resuming mid-compression or mid-pause with stale state.
+
+When turned **on** it: resets the cycle, starts the ventilator (`switch_ventilator(true)`), configures
+pressure control from `vent_pres_pip` / `vent_pres_peep` / `vent_insp_time`
+(`set_pc(pip, peep, MANUAL_MODE_VENT_BACKUP_RATE, t_in, 5.0)`), switches off spontaneous `Breathing`
+(`switch_breathing(false)`), and sets `cpr_enabled = true`.
+
+Turning it **off** resets the cycle and clears `cpr_enabled`, but **intentionally leaves the
+ventilator running and spontaneous `Breathing` switched off** — this models the post-arrest,
+still-ventilated patient. There is no automatic restore of spontaneous breathing; re-enable it
+explicitly (`Breathing.switch_breathing(true)` / `Ventilator.switch_ventilator(false)`) if a
+post-ROSC spontaneous state is wanted. All calls are null-guarded with `?.`.
 
 ## Calculation cycle (`calc_model`)
 
 Runs every step while `cpr_enabled` (returns immediately otherwise):
 
+   Frequencies are clamped to a small positive floor (`MIN_FREQ`) before being used in `60/f`
+   denominators, so a configured `0` cannot produce an infinite-period cycle.
 1. **Timing** — the compression pause equals the time for `vent_no` breaths
-   (`_comp_pause_interval = (60/vent_freq)·vent_no`); the per-breath interval is
-   `_vent_interval = _comp_pause_interval/vent_no + _t`. In continuous mode the ventilator rate is set
-   to `vent_freq`; otherwise it is forced to `1.0` (breaths are triggered manually during pauses).
-2. **Pause handling** — while paused, advance `_comp_pause_counter` until `_comp_pause_interval`
-   elapses (then resume compressions), and fire `Ventilator.trigger_breath()` every `_vent_interval`.
+   (`_comp_pause_interval = (60/vent_freq)·vent_no`); breaths are spaced one breath-duration apart
+   (`_vent_interval = 60/vent_freq`). In continuous mode the ventilator rate is set to `vent_freq`;
+   otherwise it is dropped to `MANUAL_MODE_VENT_BACKUP_RATE` (a low mandatory-backup rate, **not** 0 —
+   breaths are triggered manually during pauses, and the backup only fires if a trigger is missed).
+2. **Pause handling** — while paused, `chest_comp_pres` is held at 0 (no compression force is applied
+   during the ventilation pause); advance `_comp_pause_counter` until `_comp_pause_interval` elapses
+   (then resume compressions). The first breath of the pause is delivered on pause entry; the
+   remaining breaths are scheduled every `_vent_interval`, capped at `vent_no` total via
+   `_vent_breath_count`, so exactly `vent_no` breaths are delivered per pause.
 3. **Compression force** (when not paused) — a half-rectified sine:
 
    ```
@@ -84,7 +100,8 @@ Runs every step while `cpr_enabled` (returns immediately otherwise):
    ```
 
    so pressure ramps 0 → max → 0 each compression. After `60/chest_comp_freq` seconds the compression
-   counter increments.
+   counter increments (only in non-continuous mode; in continuous mode the counter is unused and is
+   not advanced).
 4. **Cycle control** — after `chest_comp_no` compressions in non-continuous mode, enter a pause and
    trigger a breath.
 5. **Apply force** — for each `{ compartment: weight }` in `chest_comp_targets`,
@@ -168,5 +185,25 @@ From `term_neonate.json`:
 - **Compression is order-sensitive.** Applied via `pres_ext +=`; if `Resuscitation` steps after a
   target compartment, that compartment sees the compression one step later. Stable at the default step
   size.
-- **Frequencies must be > 0** — `chest_comp_freq` and `vent_freq` appear in denominators; zero would
-  yield a degenerate (infinite-period) cycle.
+- **Frequencies are clamped, not assumed valid** — `chest_comp_freq` and `vent_freq` appear in
+  `60/f` denominators and are floored at `MIN_FREQ`, so a configured `0` degrades to a very-low-rate
+  cycle instead of producing `Infinity`/`NaN`.
+
+## Verification — `scripts/probe_resuscitation.mjs`
+
+Headless probe that warms a scenario, simulates a cardiac **arrest** (disables `Heart` and zeroes the
+chamber activation factors so the ventricles are flaccid), then runs CPR via `switch_cpr(true)` and
+prints a labelled `ok`/`FAIL` table:
+
+```bash
+node scripts/probe_resuscitation.mjs term_neonate
+node scripts/probe_resuscitation.mjs term_neonate --cpr-seconds 60 --no-ans
+```
+
+It checks: the compression waveform sweeps 0 → `chest_comp_max_pres` → 0; the paused branch forces
+`chest_comp_pres` to 0 (deterministic injection test — a natural pause is always entered at a
+waveform zero-crossing, so the stale-pressure bug can only be exercised by injecting a value); mean
+forward aortic-valve (`LV_AA`) flow under CPR rises well above the arrested baseline (compressions
+actually drive circulation through `pres_ext`); exactly `vent_no` breaths are delivered per pause;
+and a `switch_cpr` off→on re-toggle restarts a clean cycle. Like every probe here it is interactive
+and **always exits 0** — read the table.

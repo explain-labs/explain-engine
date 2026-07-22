@@ -102,13 +102,13 @@ Probes are **interactive verification tools, not pass/fail test cases.** They pr
 
 ## Probe inventory
 
-32 `probe_*.mjs` scripts. Group by what they verify:
+34 `probe_*.mjs` scripts. Group by what they verify:
 
 | Group | Scripts | Verifies |
 |---|---|---|
 | **Core vitals / calibration** | `probe_vitals.mjs`, `probe_tune.mjs`, `probe_ea.mjs` | Regulated vitals + ABG vs normal ranges; the live closed-loop tuner; mitral E/A ratio. |
 | **Physiology systems** | `probe_brain.mjs`, `probe_respiratory.mjs`, `probe_surfactant.mjs`, `probe_derecruitment.mjs`, `probe_thermo.mjs`, `probe_glucose.mjs`, `probe_lactate.mjs`, `probe_renal.mjs`, `probe_heartfunction.mjs`, `probe_cpap.mjs`, `probe_arrhythmia.mjs`, `probe_drugs.mjs`, `probe_pge1.mjs` | Cerebral autoregulation/ICP; respiratory/acid-base dose-response sweeps (FiO2, O2 diffusion, minute volume, UMA); RDS recruitment/derecruitment + surfactant; thermoregulation; glucose/insulin; hypoxic lactate; GFR + RAAS/ADH response to haemorrhage and volume load; load-induced contractility; CPAP/PS ventilation of spontaneous breathing; conduction arrhythmias; adrenaline/noradrenaline PK/PD; PGE1 ductal patency. |
-| **Devices** | `probe_ventilator.mjs`, `probe_ecls.mjs` | Pressure-control ventilation of a preterm RDS lung with spontaneous drive off, sweeping FiO2 / rate / PEEP; veno-arterial ECMO rescue under near-abolished alveolar diffusion, sweeping pump speed / sweep-gas flow. Both report the **emergent** blood gas — oxygenation and CO2 removal come from the gas-exchange physics (same Fick law as the native lung), not from the device. |
+| **Devices** | `probe_ventilator.mjs`, `probe_ecls.mjs`, `probe_resuscitation.mjs` | Pressure-control ventilation of a preterm RDS lung with spontaneous drive off, sweeping FiO2 / rate / PEEP; veno-arterial ECMO rescue under near-abolished alveolar diffusion, sweeping pump speed / sweep-gas flow (both report the **emergent** blood gas from the gas-exchange physics, not the device); CPR — under a simulated arrest, verifies the compression waveform, that compressions drive forward aortic flow via `pres_ext`, the `vent_no`-breaths-per-pause timing, and a clean `switch_cpr` re-toggle. |
 | **Fetal / maternal** | `probe_fetus.mjs`, `probe_uterus.mjs`, `probe_placenta.mjs` | Fetal circulation; uterine bed / pregnancy adaptation / contractions; maternal placenta. |
 | **PDA / CDH** | `probe_pda.mjs`, `probe_cdh.mjs` | PDA Doppler envelope classification; congenital diaphragmatic hernia phenotypes. |
 | **CHD family** | `probe_as.mjs`, `probe_coarc.mjs`, `probe_dtga.mjs`, `probe_hlhs.mjs`, `probe_paivs.mjs`, `probe_pavsd.mjs`, `probe_ps.mjs`, `probe_ta.mjs`, `probe_tapvc.mjs` | Duct/FO-dependent congenital heart disease scenarios (aortic stenosis, coarctation, d-TGA, HLHS, PA-IVS, PA-VSD, pulmonary stenosis, tricuspid atresia, TAPVC). |

@@ -1,5 +1,15 @@
 import { BaseModelClass } from "../base_models/BaseModelClass.js";
 
+// In non-continuous CPR the ventilator is breath-triggered manually during each compression pause.
+// The mechanical rate is dropped to this low value so the ventilator does NOT auto-cycle during the
+// compression phase; it is only a mandatory fallback that keeps the patient breathing if a manual
+// trigger is ever missed. It is deliberately not 0 (a true "off"), because a missed trigger during a
+// prolonged compression phase should still eventually deliver a breath.
+const MANUAL_MODE_VENT_BACKUP_RATE = 1.0; // breaths/min
+
+// clamp for the frequencies that feed 60/f denominators, so a 0 can't yield an infinite-period cycle
+const MIN_FREQ = 1e-6;
+
 export class Resuscitation extends BaseModelClass {
   // static properties
   static model_type = "Resuscitation";
@@ -41,8 +51,9 @@ export class Resuscitation extends BaseModelClass {
     this._comp_pause = false; // determines whether the compressions are paused or not
     this._comp_pause_interval = 2.0; // interval of the compressions pause (s)
     this._comp_pause_counter = 0.0; // compressions pause counter (s)
-    this._vent_interval = 0.0; // interval between ventilations (s)
+    this._vent_interval = 0.0; // interval between ventilations within a pause (s)
     this._vent_counter = 0.0; // ventilation interval counter (s)
+    this._vent_breath_count = 0; // breaths already delivered in the current pause
   }
 
   init_model(args = {}) {
@@ -66,18 +77,28 @@ export class Resuscitation extends BaseModelClass {
     // return if cpr is not enabled
     if (!this.cpr_enabled) return;
 
-    // calculate the compression pause (no of ventilations * breath duration)
-    this._comp_pause_interval = (60.0 / this.vent_freq) * this.vent_no;
-    this._vent_interval = this._comp_pause_interval / this.vent_no + this._t;
+    // guarded frequencies (a 0 would make the 60/f denominators below degenerate)
+    const vent_freq = Math.max(this.vent_freq, MIN_FREQ);
+    const comp_freq = Math.max(this.chest_comp_freq, MIN_FREQ);
+    const breath_duration = 60.0 / vent_freq; // seconds per ventilation
+
+    // the compression pause lasts long enough to deliver vent_no breaths, one per breath_duration
+    this._comp_pause_interval = breath_duration * this.vent_no;
+    this._vent_interval = breath_duration; // spacing between breaths within a pause
 
     // if the compressions are continuous set the ventilator frequency on the ventilator model;
-    // otherwise set an extremely low ventilator rate (breaths are triggered manually during pauses)
+    // otherwise drop it to the manual backup rate (breaths are triggered manually during pauses)
     if (this._ventilator) {
-      this._ventilator.vent_rate = this.chest_comp_cont ? this.vent_freq : 1.0;
+      this._ventilator.vent_rate = this.chest_comp_cont
+        ? vent_freq
+        : MANUAL_MODE_VENT_BACKUP_RATE;
     }
 
     // handle the pause in compressions
     if (this._comp_pause) {
+      // no compression force is generated during the ventilation pause
+      this.chest_comp_pres = 0.0;
+
       this._comp_pause_counter += this._t;
 
       if (this._comp_pause_counter > this._comp_pause_interval) {
@@ -87,24 +108,31 @@ export class Resuscitation extends BaseModelClass {
         this._vent_counter = 0.0;
       }
 
+      // deliver the remaining scheduled breaths (the first was fired on pause entry), spaced one
+      // breath_duration apart, and never more than vent_no in total
       this._vent_counter += this._t;
 
-      if (this._vent_counter > this._vent_interval) {
+      if (
+        this._vent_counter > this._vent_interval &&
+        this._vent_breath_count < this.vent_no
+      ) {
         this._vent_counter = 0.0;
+        this._vent_breath_count += 1;
         this._ventilator?.trigger_breath();
       }
     } else {
       // calculate the compression force using y(t) = A sin(2PIft+o)
       const a = this.chest_comp_max_pres / 2.0;
-      const f = this.chest_comp_freq / 60.0;
+      const f = comp_freq / 60.0;
       this.chest_comp_pres =
         a * Math.sin(2 * Math.PI * f * this._comp_timer - 0.5 * Math.PI) + a;
 
       this._comp_timer += this._t;
 
-      if (this._comp_timer > 60.0 / this.chest_comp_freq) {
+      if (this._comp_timer > 60.0 / comp_freq) {
         this._comp_timer = 0.0;
-        this._comp_counter += 1;
+        // only count compressions when a pause is expected; in continuous mode the counter is unused
+        if (!this.chest_comp_cont) this._comp_counter += 1;
       }
     }
 
@@ -113,6 +141,9 @@ export class Resuscitation extends BaseModelClass {
       this._comp_pause = true;
       this._comp_pause_counter = 0.0;
       this._comp_counter = 0;
+      // first breath of the pause is delivered here; the rest are scheduled in the pause branch
+      this._vent_counter = 0.0;
+      this._vent_breath_count = 1;
       this._ventilator?.trigger_breath();
     }
 
@@ -127,20 +158,36 @@ export class Resuscitation extends BaseModelClass {
   }
 
   switch_cpr(state) {
+    // always start (or stop) from a clean cycle so a re-toggle never resumes mid-compression/pause
+    this._reset_cycle();
+
     if (state) {
       this._ventilator?.switch_ventilator(true);
       this._ventilator?.set_pc(
         this.vent_pres_pip,
         this.vent_pres_peep,
-        1.0,
+        MANUAL_MODE_VENT_BACKUP_RATE,
         this.vent_insp_time,
         5.0
       );
       this._breathing?.switch_breathing(false);
       this.cpr_enabled = true;
     } else {
+      // note: turning CPR off intentionally leaves the ventilator running and spontaneous breathing
+      // off — it models the post-arrest, still-ventilated patient. There is no automatic restore.
       this.cpr_enabled = false;
     }
+  }
+
+  // reset the internal compression/ventilation cycle state to a clean starting point
+  _reset_cycle() {
+    this._comp_timer = 0.0;
+    this._comp_counter = 0;
+    this._comp_pause = false;
+    this._comp_pause_counter = 0.0;
+    this._vent_counter = 0.0;
+    this._vent_breath_count = 0;
+    this.chest_comp_pres = 0.0;
   }
 
   set_fio2(new_fio2) {
