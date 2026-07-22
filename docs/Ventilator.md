@@ -4,7 +4,7 @@ The `Ventilator` device model simulates a **mechanical ventilator** that drives 
 through an endotracheal (ET) tube. It owns a small gas circuit — a fresh-gas reservoir, the patient
 circuit, an expiratory (PEEP) reservoir, and the inspiratory/expiratory valves plus the ET-tube
 resistor — and modulates those parts every step to deliver the configured ventilation mode (`PC`,
-`PRVC`, `PS`, or `CPAP`). Pressures are entered in cmH₂O and converted to the engine's mmHg
+`PRVC`, `VC`, `PS`, or `CPAP`). Pressures are entered in cmH₂O and converted to the engine's mmHg
 internally.
 
 ## Inheritance
@@ -21,12 +21,17 @@ reaches into them by name to set valve states, resistances and reservoir volumes
 
 ## What it models
 
-- An ET-tube-coupled mechanical ventilator with four modes: pressure control (`PC`), pressure-regulated
-  volume control (`PRVC`), pressure support (`PS`), and continuous positive airway pressure (`CPAP`).
-- Time-cycled (`PC`/`PRVC`) and flow-cycled (`PS`) breath delivery, with optional patient
-  synchronization (trigger detection off the `Breathing` model).
+- An ET-tube-coupled mechanical ventilator with five modes: pressure control (`PC`), pressure-regulated
+  volume control (`PRVC`), volume control (`VC`), pressure support (`PS`), and continuous positive
+  airway pressure (`CPAP`).
+- Time-cycled (`PC`/`PRVC`/`VC`) and flow-cycled (`PS`) breath delivery, with optional patient
+  synchronization (trigger detection off the `Breathing` model). `PS` also carries a time-cycled
+  mandatory backup so it delivers breaths during apnea / when unsynchronized.
+- An optional end-inspiratory pause (`insp_pause`) that produces a plateau pressure, enabling measured
+  static compliance and airway resistance.
 - A flow- and diameter-dependent ET-tube resistance (turbulent tube behaviour).
-- Per-breath read-outs: tidal volumes, minute volume, dynamic compliance, end-tidal CO₂.
+- Per-breath read-outs: tidal volumes, minute volume, dynamic & static compliance, measured peak /
+  plateau pressure and airway resistance, end-tidal CO₂.
 
 ## Gas circuit (owned sub-models)
 
@@ -60,12 +65,13 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `temp` | °C | Fresh-gas temperature (default 37) |
 | `ettube_diameter` | mm | ET-tube inner diameter (default 4); drives the `_a`/`_b` resistance coefficients |
 | `ettube_length` | mm | ET-tube length (default 110); scales resistance by `length/110` |
-| `vent_mode` | string | `PC` / `PRVC` / `PS` / `CPAP` (default `PRVC`) |
-| `vent_rate` | breaths/min | Mechanical rate (default 40) |
-| `tidal_volume` | L | Target tidal volume for PRVC (default 0.015) |
+| `vent_mode` | string | `PC` / `PRVC` / `VC` / `PS` / `CPAP` (default `PRVC`) |
+| `vent_rate` | breaths/min | Mechanical rate; in `PS` it is the backup/apnea rate (default 40) |
+| `tidal_volume` | L | Target tidal volume for `PRVC` and `VC` (default 0.015) |
 | `insp_time` | s | Inspiratory time (default 0.4) |
-| `insp_flow` | L/min | Inspiratory flow setting (default 12) |
-| `exp_flow` | L/min | Expiratory flow setting (default 3; not used in the current math) |
+| `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
+| `insp_flow` | L/min | Inspiratory flow setting; the delivered flow target in `VC` (default 12) |
+| `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
 | `pip_cmh2o` | cmH₂O | Peak inspiratory pressure target (default 14) |
 | `pip_cmh2o_max` | cmH₂O | PIP ceiling for PRVC auto-regulation (default 14) |
 | `peep_cmh2o` | cmH₂O | Positive end-expiratory pressure / CPAP level (default 3) |
@@ -81,9 +87,13 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `vol` | mL | Volume integrated from ET-tube flow over the current breath (reset each inspiration) |
 | `exp_time` | s | Expiratory time = `60/vent_rate − insp_time` |
 | `trigger_volume` | L | Trigger threshold = `(tidal_volume/100) · trigger_volume_perc` |
-| `minute_volume` | L/min | `exp_tidal_volume · vent_rate` (CPAP uses the patient's spontaneous rate instead) |
-| `compliance` | mL/cmH₂O | Dynamic compliance, measured per breath at end-expiration |
-| `resistance` | — | Left as `null` (placeholder; see notes) |
+| `minute_volume` | L/min | `exp_tidal_volume · rate` — the set `vent_rate` for mandatory modes, the *measured* rate in `PS`; CPAP uses the patient's spontaneous rate |
+| `compliance` | mL/cmH₂O | Dynamic compliance (= `compliance_dynamic`), measured per breath at end-expiration |
+| `compliance_dynamic` | mL/cmH₂O | `Vt / (p_peak − PEEP)` — always available |
+| `compliance_static` | mL/cmH₂O | `Vt / (p_plat − PEEP)` — only when an inspiratory pause produced a plateau (else 0) |
+| `resistance` | cmH₂O/(L/s) | Measured airway resistance `(p_peak − p_plat) / insp_flow` — needs a plateau; `null` when unmeasurable |
+| `p_peak` | cmH₂O | Measured peak inspiratory (circuit) pressure over the breath |
+| `p_plat` | cmH₂O | Measured plateau pressure, sampled during the inspiratory pause |
 | `exp_tidal_volume` | L | Expired tidal volume (per breath) |
 | `insp_tidal_volume` | L | Inspired tidal volume (per breath) |
 | `tv_kg` | mL/kg | Expired tidal volume per kg (`exp_tidal_volume·1000 / weight`) |
@@ -100,7 +110,10 @@ resistance coefficients derived from diameter. `_insp_time_counter`/`_exp_time_c
 `_insp_tidal_volume_counter`/`_exp_tidal_volume_counter`, `_trigger_volume_counter`, `_inspiration`,
 `_expiration`, `_peak_flow`, `_prev_et_tube_flow`, `_trigger_blocked`, `_trigger_start`,
 `_tv_tolerance` (0.0005 L), `_et_tube_resistance`, and the `_vent_*` sub-model references back the
-cycling/triggering logic.
+cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `_pause`,
+`_pause_counter`, `_had_pause`, `_pip_meas` (running peak → `p_peak`), `_insp_flow_at_pause`,
+`_min_exp_time` (0.1 s floor), `_mandatory_breath` and `_breath_interval_counter`/`_measured_rate`
+(PS backup + measured rate), and `_vc_vol_target` (the VC servo's flow-phase cut-off).
 
 ## Calculation cycle (`calc_model`)
 
@@ -108,11 +121,14 @@ cycling/triggering logic.
 2. If `synchronized` **and** not CPAP, run `triggering()`.
 3. Dispatch on `vent_mode`:
    - `PC` / `PRVC` → `time_cycling()` then `pressure_control()`
+   - `VC` → `time_cycling()` then `volume_control()`
    - `PS` → `flow_cycling()` then `pressure_control()`
    - `CPAP` → `cpap_control()`
 4. Publish read-outs: airway `pres`, `flow` (ET-tube flow × 60), integrate `vol`, sample `co2` from
-   `DS`, set `minute_volume` (except in CPAP, which reports a spontaneous minute volume), and refresh
-   the ET-tube resistance.
+   `DS`, set `minute_volume` (using the measured rate in `PS`; CPAP reports a spontaneous minute
+   volume), advance the breath-interval counter, and refresh the ET-tube resistance. Compliance and
+   resistance are **not** touched here — they are measured once per breath (see
+   `calc_measured_mechanics`), so `calc_model` must not clobber them.
 
 ### Breath cycle counters (`ncc_insp` / `ncc_exp`)
 
@@ -126,35 +142,68 @@ expiration (the same `ncc === 1` convention the `Breathing` model uses for spont
 > or write those — it drives its own `ncc_insp`/`ncc_exp`. The engine-level counters are reserved/
 > vestigial for the ventilator.
 
-### `time_cycling` (PC / PRVC)
+### `time_cycling` (PC / PRVC / VC)
 
-Recomputes `exp_time = 60/vent_rate − insp_time`. When `_insp_time_counter` exceeds `insp_time`, it
-closes inspiration (latches `insp_tidal_volume`, sets `_expiration`). When `_exp_time_counter` exceeds
-`exp_time`, it opens a new inspiration: resets `vol`, latches `exp_tidal_volume`, samples `etco2` and
-`tv_kg` from `DS`/weight, and computes per-breath `compliance`:
+Recomputes `exp_time = max(60/vent_rate − insp_time, _min_exp_time)` — **floored at 0.1 s** so a high
+rate / long `insp_time` can no longer drive it negative (which would jam the cycler into continuous
+inspiration). The inspiratory phase is split into a **flow phase** and an optional **pause**, with
+`Ti = flow phase + pause`, so `exp_time` and the set I:E ratio are preserved.
 
-```
-compliance = 1 / ( (_pip − _peep)·1.35951 / (exp_tidal_volume·1000) )      [mL/cmH₂O]
-```
+- End of the flow phase: when `_insp_time_counter > (insp_time − insp_pause)` — or, in `VC`, when the
+  delivered volume `_insp_tidal_volume_counter` reaches the (servo-trimmed) target `_vc_vol_target`.
+  If `insp_pause > 0` it enters a bounded hold (`_pause`, both valves shut); otherwise it ends
+  inspiration immediately.
+- End of the pause: after `insp_pause` seconds it samples `p_plat` from the equilibrated circuit
+  pressure and ends inspiration.
+- End of expiration: `_start_inspiration()` opens a new breath — resets `vol`, latches
+  `exp_tidal_volume`, samples `etco2`/`tv_kg`, updates the measured rate, and calls
+  `calc_measured_mechanics()` for the breath just completed. In `PRVC` it then calls
+  `pressure_regulated_volume_control()`; in `VC`, `volume_control_servo()`.
 
-In PRVC it then calls `pressure_regulated_volume_control()`. The active phase advances its counter
-each step and toggles `_trigger_blocked`.
+During the flow phase the routine also tracks the peak circuit pressure into `_pip_meas` (used as
+`p_peak`). The active phase advances its counter each step and toggles `_trigger_blocked`.
 
 ### `flow_cycling` (PS)
 
-Pressure support begins only after a triggered breath. While ET-tube flow is rising it stays in
-inspiration and tracks `_peak_flow`; when flow falls below **30 % of peak** it cycles to expiration
-and clears `triggered_breath`. Negative ET-tube flow with no active triggered breath integrates the
-expiratory tidal volume.
+Pressure support is patient-triggered and **flow-cycled**: a breath begins on a patient trigger
+(`triggered_breath` with rising ET-tube flow), the routine tracks `_peak_flow`, and cycles to
+expiration when flow falls below **30 % of peak**. It also runs a **time-cycled mandatory backup**:
+if no breath has started within `60/vent_rate` (tracked breath-start to breath-start via
+`_breath_interval_counter`), it delivers a mandatory, time-cycled breath (terminated at `insp_time`).
+This makes `PS` usable with `synchronized = false` and provides apnea backup. Peak circuit pressure is
+captured into `_pip_meas` for the mechanics read-outs.
 
 ### `pressure_control`
 
+- **Pause** — if `_pause` is set, shut **both** valves so the circuit equilibrates with the lung
+  (plateau), and return.
 - **Inspiration** — close `VENT_EXP_VALVE`, open `VENT_INSP_VALVE` with
   `r_for = (VENT_GASIN.pres + _pip − pres_atm − _peep) / (insp_flow/60)`; shut the inspiratory valve
-  again once `VENT_GASCIRCUIT.pres` exceeds PIP; integrate inspiratory tidal volume from positive ET-tube flow.
+  again once `VENT_GASCIRCUIT.pres` exceeds PIP; integrate inspiratory tidal volume from positive
+  ET-tube flow and record `_insp_flow_at_pause` for the resistance measurement.
 - **Expiration** — close `VENT_INSP_VALVE`, open `VENT_EXP_VALVE` (`r_for = 10`), and pin the
   expiratory reservoir volume to hold PEEP (`vol = _peep/el_base + u_vol`); integrate expiratory tidal
   volume from negative ET-tube flow.
+
+### `volume_control` (VC)
+
+Volume control delivers a roughly **constant inspiratory flow** by re-solving the inspiratory valve
+resistance every step — `r_for = (VENT_GASIN.pres − VENT_GASCIRCUIT.pres) / (insp_flow/60)` pins the
+flow near the target while the lung fills — until the delivered volume reaches `_vc_vol_target`, then
+holds (the inspiratory pause, in `time_cycling`) and cycles to expiration. `pip_cmh2o_max` acts as a
+pressure pop-off (shut the valve if the circuit exceeds it). Expiration mirrors `pressure_control`.
+VC **bypasses** the PRVC PIP servo. Because the compliant circuit stores compression volume that
+dumps into the lung, the delivered tidal volume is trimmed breath-to-breath by
+`volume_control_servo()` (proportional, clamped to `[0.1·Vt, Vt]`) so `exp_tidal_volume` converges on
+the set `tidal_volume`; if `insp_flow` is too low the breath is genuinely flow-limited and undershoots.
+
+### `calc_measured_mechanics`
+
+Called once per breath (at `_start_inspiration`) on the just-completed breath:
+`compliance_dynamic = Vt / (p_peak − PEEP)` (always, and copied to `compliance`); and when a plateau
+exists (`insp_pause > 0`), `compliance_static = Vt / (p_plat − PEEP)` and
+`resistance = (p_peak − p_plat) / flow` with `flow` the interrupted ET-tube flow (`_insp_flow_at_pause`,
+L/s). Without a plateau, `compliance_static = 0` and `resistance = null`.
 
 ### `cpap_control` (CPAP / PS coupling to spontaneous breathing)
 
@@ -178,7 +227,7 @@ clamped between `peep_cmh2o + 2` and `pip_cmh2o_max`.
 
 Sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` and
 the trigger is not blocked, it arms `_trigger_start` and integrates ET-tube flow; once the integrated
-volume exceeds `trigger_volume` it forces the breath (`_exp_time_counter = exp_time`) and sets
+volume exceeds `trigger_volume` it forces the breath (`_exp_time_counter = exp_time + 0.1`) and sets
 `triggered_breath = true`.
 
 ## Coupling to `Breathing` (active airway inlet)
@@ -217,12 +266,14 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `switch_ventilator(state)` | Enable/disable the device and all `_ventilator_parts`; sets `no_flow = !state` on each part; blocks `MOUTH_DS` (`no_flow = state`); resets read-outs when turned off |
 | `set_pc(pip, peep, rate, t_in, insp_flow)` | Configure PC mode |
 | `set_prvc(pip_max, peep, rate, tv, t_in, insp_flow)` | Configure PRVC (`tv` in mL → L) |
-| `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode |
+| `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
+| `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`rate` = backup rate) |
 | `set_cpap(cpap, insp_flow)` | Configure CPAP (`cpap` → `peep_cmh2o`) |
-| `set_fio2(new_fio2)` | Re-derive fresh-gas composition (accepts a fraction or a percentage > 20) |
-| `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition, and push the new humidity / temperature onto `VENT_GASIN` and `VENT_GASCIRCUIT` themselves — see note below |
+| `set_pause(seconds)` | Set the end-inspiratory hold for any time-cycled mode (clamped `< insp_time`) |
+| `set_fio2(new_fio2)` | Re-derive fresh-gas composition (a fraction ≤ 1, or a percentage > 1) |
+| `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition (both `VENT_GASIN` and `VENT_GASCIRCUIT`), and push the new humidity / temperature onto those compartments — see note below |
 | `set_ettube_diameter(d)` / `set_ettube_length(l)` | Update tube geometry → resistance |
-| `trigger_breath(...)` | Force the next breath by expiring the current one (its `pip`/`peep`/… arguments are ignored) |
+| `trigger_breath()` | Force the next breath by expiring the current one |
 
 > **Why the setters write to the gas compartments directly.** `humidity` and `target_temp` are live
 > targets that [`GasCapacitance`](./GasCapacitance.md) relaxes toward on every step. Setting only the
@@ -259,6 +310,7 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
   "vent_rate": 40,
   "tidal_volume": 0.015,
   "insp_time": 0.4,
+  "insp_pause": 0,
   "insp_flow": 12,
   "exp_flow": 3,
   "pip_cmh2o": 14,
@@ -284,13 +336,21 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
 
 ## Notes & caveats
 
-- **`compliance` is per-breath, in mL/cmH₂O**, measured at end-expiration; it is *not* recomputed
-  every step (an earlier every-step formula used inconsistent units and was removed).
-- **`resistance` is left as `null`** in `calc_model` — a placeholder; the meaningful airway resistance
-  is `_et_tube_resistance` / `VENT_ETTUBE.r_for`.
-- **`trigger_breath(...)` ignores its arguments**; it only forces the current breath to expire.
+- **`compliance`/`resistance` are measured per breath** at end-expiration (in
+  `calc_measured_mechanics`), not recomputed every step. `compliance` mirrors `compliance_dynamic`
+  (mL/cmH₂O). Static compliance and airway resistance (cmH₂O/(L/s)) require an inspiratory pause
+  (`insp_pause > 0`); without one, `compliance_static = 0` and `resistance = null`.
+- **`resistance` may be `null`** whenever no plateau was measured — downstream displays must tolerate
+  a null.
+- **Re-enabling is clean.** `switch_ventilator` calls `_reset_state()`, zeroing the internal cycle
+  counters/flags so a re-enabled ventilator starts a fresh breath rather than resuming mid-cycle.
+- **`trigger_breath()` takes no arguments**; it only forces the current breath to expire.
+- **`set_fio2` percent/fraction rule**: values ≤ 1 are treated as a fraction, values > 1 as a
+  percentage (so `20` → 0.20, `45` → 0.45).
+- **VC delivered volume is servo-trimmed.** `volume_control_servo` converges `exp_tidal_volume` on the
+  set `tidal_volume` across circuits/flows; a too-low `insp_flow` still flow-limits and undershoots.
 - **External-model references are null-safe.** `DS` (et/CO₂), `MOUTH_DS` (mouth blocking) and the
   `Breathing` model (trigger) are guarded with `?.`; the `VENT_*` sub-models are the ventilator's own
   components and are assumed present after build.
-- **`exp_time = 60/vent_rate − insp_time` can go negative** if `insp_time` exceeds the breath period
-  at very high rates — a configuration error, not guarded.
+- **`exp_time` is floored at `_min_exp_time` (0.1 s)** — `60/vent_rate − insp_time` can no longer go
+  negative at very high rates / long `insp_time`, so the cycler cannot jam into continuous inspiration.

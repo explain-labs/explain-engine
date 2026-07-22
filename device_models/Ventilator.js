@@ -22,6 +22,7 @@ export class Ventilator extends BaseModelClass {
     this.vent_rate = 40;
     this.tidal_volume = 0.015;
     this.insp_time = 0.4;
+    this.insp_pause = 0.0;
     this.insp_flow = 12;
     this.exp_flow = 3;
     this.pip_cmh2o = 14;
@@ -39,9 +40,14 @@ export class Ventilator extends BaseModelClass {
     this.trigger_volume = 0.0;
     this.minute_volume = 0.0;
     this.compliance = 0.0;
+    this.compliance_dynamic = 0.0;
+    this.compliance_static = 0.0;
     this.resistance = 0.0;
+    this.p_peak = 0.0;
+    this.p_plat = 0.0;
     this.exp_tidal_volume = 0.0;
     this.insp_tidal_volume = 0.0;
+    this.tv_kg = 0.0;
     this.ncc_insp = 0.0;
     this.ncc_exp = 0.0;
     this.etco2 = 0.0;
@@ -57,6 +63,7 @@ export class Ventilator extends BaseModelClass {
     this._vent_ettube = null;
     this._ventilator_parts = [];
     this._ettube_length_ref = 110;
+    this._min_exp_time = 0.1;
     this._pip = 0.0;
     this._pip_max = 0.0;
     this._peep = 0.0;
@@ -69,9 +76,18 @@ export class Ventilator extends BaseModelClass {
     this._trigger_volume_counter = 0.0;
     this._inspiration = false;
     this._expiration = true;
+    this._pause = false;
+    this._pause_counter = 0.0;
+    this._had_pause = false;
+    this._pip_meas = 0.0;
+    this._insp_flow_at_pause = 0.0;
     this._tv_tolerance = 0.0005;
+    this._vc_vol_target = 0.015;
     this._trigger_blocked = false;
     this._trigger_start = false;
+    this._mandatory_breath = false;
+    this._breath_interval_counter = 0.0;
+    this._measured_rate = 0.0;
     this._breathing_model = null;
     this._peak_flow = 0.0;
     this._prev_et_tube_flow = 0.0;
@@ -121,10 +137,15 @@ export class Ventilator extends BaseModelClass {
       this.triggering();
     }
 
-    // do the cycling and pressure regulation
+    // do the cycling and pressure/flow regulation
     if (this.vent_mode === "PC" || this.vent_mode === "PRVC") {
       this.time_cycling();
       this.pressure_control();
+    }
+
+    if (this.vent_mode === "VC") {
+      this.time_cycling();
+      this.volume_control();
     }
 
     if (this.vent_mode === "PS") {
@@ -143,12 +164,15 @@ export class Ventilator extends BaseModelClass {
     // CPAP reports a spontaneous minute volume from cpap_control (patient's own rate), so don't
     // overwrite it here with the mechanical vent_rate
     if (this.vent_mode !== "CPAP") {
-      this.minute_volume = this.exp_tidal_volume * this.vent_rate;
+      // PS is patient/backup-triggered, so its actual rate can differ from the set vent_rate;
+      // report the measured rate there and the set rate for the mandatory time-cycled modes
+      const rate = this.vent_mode === "PS" ? this._measured_rate : this.vent_rate;
+      this.minute_volume = this.exp_tidal_volume * rate;
     }
-    // compliance is measured per breath at end-expiration in time_cycling (mL/cmH2O); it is not
-    // recomputed here — the previous every-step formula used inconsistent units (L/mmHg) and
-    // overwrote that per-breath value
-    this.resistance = null;
+    // compliance and resistance are measured per breath at end-expiration in
+    // calc_measured_mechanics(); they are NOT recomputed here (and must not be clobbered to null
+    // each step, or the per-breath measurement would never survive)
+    this._breath_interval_counter += this._t;
     this._et_tube_resistance = this.calc_ettube_resistance(this.flow);
   }
 
@@ -166,47 +190,63 @@ export class Ventilator extends BaseModelClass {
 
     if (this._trigger_volume_counter > this.trigger_volume) {
       this._trigger_volume_counter = 0.0;
-      this._exp_time_counter = this.exp_time;
+      this._exp_time_counter = this.exp_time + 0.1;
       this._trigger_start = false;
       this.triggered_breath = true;
     }
   }
 
   flow_cycling() {
-    if (this._vent_ettube.flow > 0.0 && this.triggered_breath) {
-      if (this._vent_ettube.flow > this._prev_et_tube_flow) {
-        this._inspiration = true;
-        this._expiration = false;
-        this.ncc_insp = -1;
+    // Pressure-support state machine: a patient-triggered, flow-cycled breath (terminates when
+    // inspiratory flow decays below 30% of peak), with a time-cycled mandatory backup so the
+    // ventilator still delivers breaths during apnea / when unsynchronized.
+    this.exp_time = Math.max(
+      60.0 / this.vent_rate - this.insp_time,
+      this._min_exp_time
+    );
 
-        if (this._vent_ettube.flow > this._peak_flow) {
-          this._peak_flow = this._vent_ettube.flow;
-        }
-
-        this.exp_tidal_volume = -this._exp_tidal_volume_counter;
-      } else if (this._vent_ettube.flow < 0.3 * this._peak_flow) {
-        this._inspiration = false;
-        this._expiration = true;
-        this.ncc_exp = -1;
-        this._exp_tidal_volume_counter = 0.0;
-        this.triggered_breath = false;
+    // start of a breath: patient trigger, or a time-cycled apnea backup that keeps the delivered
+    // rate at vent_rate (timed breath-start to breath-start via _breath_interval_counter)
+    if (this._expiration) {
+      let start = false;
+      if (this.triggered_breath && this._vent_ettube.flow > 0.0) {
+        start = true;
+        this._mandatory_breath = false;
+      } else if (this._breath_interval_counter > 60.0 / this.vent_rate) {
+        start = true;
+        this._mandatory_breath = true;
+        this.triggered_breath = true;
       }
-
-      this._prev_et_tube_flow = this._vent_ettube.flow;
-    }
-
-    if (this._vent_ettube.flow < 0.0 && !this.triggered_breath) {
-      this._peak_flow = 0.0;
-      this._prev_et_tube_flow = 0.0;
-      this._inspiration = false;
-      this._expiration = true;
-      this.ncc_exp = -1;
-      this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
+      if (start) {
+        this._start_inspiration();
+        this._peak_flow = 0.0;
+        this._prev_et_tube_flow = 0.0;
+      }
     }
 
     if (this._inspiration) {
+      this._insp_time_counter += this._t;
       this.ncc_insp += 1;
       this._trigger_blocked = true;
+
+      if (this._vent_ettube.flow > this._peak_flow) {
+        this._peak_flow = this._vent_ettube.flow;
+      }
+      const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+      if (p > this._pip_meas) this._pip_meas = p;
+
+      const flow_cycled =
+        !this._mandatory_breath &&
+        this._peak_flow > 0.0 &&
+        this._vent_ettube.flow < 0.3 * this._peak_flow;
+      const time_cycled =
+        this._mandatory_breath && this._insp_time_counter > this.insp_time;
+
+      if (flow_cycled || time_cycled) {
+        this._end_inspiration();
+      }
+
+      this._prev_et_tube_flow = this._vent_ettube.flow;
     }
 
     if (this._expiration) {
@@ -216,38 +256,55 @@ export class Ventilator extends BaseModelClass {
   }
 
   time_cycling() {
-    this.exp_time = 60.0 / this.vent_rate - this.insp_time;
-    if (this._insp_time_counter > this.insp_time) {
-      this._insp_time_counter = 0.0;
-      this.insp_tidal_volume = this._insp_tidal_volume_counter;
-      this._insp_tidal_volume_counter = 0.0;
-      this._inspiration = false;
-      this._expiration = true;
-      this.triggered_breath = false;
-      this.ncc_exp = -1;
+    // guard against a non-positive expiratory time at high rate / long inspiratory time, which
+    // would otherwise make _exp_time_counter > exp_time true every step (continuous inspiration)
+    this.exp_time = Math.max(
+      60.0 / this.vent_rate - this.insp_time,
+      this._min_exp_time
+    );
+    // the inspiratory pause is carved OUT of insp_time (Ti = flow phase + pause), so for time-cycled
+    // modes exp_time and the set I:E ratio are preserved. In VC the flow phase instead ends when the
+    // volume target is met (so Ti = fill time + pause, generally shorter than insp_time).
+    const flow_time = Math.max(0.0, this.insp_time - this.insp_pause);
+
+    // end of the inspiratory FLOW phase (time reached, or the VC volume target is met)
+    if (this._inspiration && !this._pause) {
+      const vol_reached =
+        this.vent_mode === "VC" &&
+        this._insp_tidal_volume_counter >= this._vc_vol_target;
+      if (this._insp_time_counter > flow_time || vol_reached) {
+        if (this.insp_pause > 0.0) {
+          // end-inspiratory hold of a bounded duration (not the remainder of insp_time, which would
+          // let the circuit fully equilibrate into the lung and overshoot the target)
+          this._pause = true;
+          this._had_pause = true;
+          this._pause_counter = 0.0;
+        } else {
+          this._end_inspiration();
+        }
+      }
     }
 
+    // end of the inspiratory PAUSE: sample the equilibrated plateau pressure, then expire
+    if (this._pause) {
+      this._pause_counter += this._t;
+      if (this._pause_counter > this.insp_pause) {
+        this.p_plat = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+        this._pause = false;
+        this._end_inspiration();
+      }
+    }
+
+    // end of EXPIRATION -> start a new mechanical breath
     if (this._exp_time_counter > this.exp_time) {
       this._exp_time_counter = 0.0;
-      this._inspiration = true;
-      this._expiration = false;
-      this.ncc_insp = -1;
-      this.vol = 0.0;
-      this.exp_tidal_volume = -this._exp_tidal_volume_counter;
-      this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
-      this.tv_kg = (this.exp_tidal_volume * 1000.0) / this._model_engine.weight;
-
-      if (this.exp_tidal_volume > 0) {
-        this.compliance =
-          1 /
-          (((this._pip - this._peep) * 1.35951) /
-            (this.exp_tidal_volume * 1000.0));
-      }
-
-      this._exp_tidal_volume_counter = 0.0;
+      this._start_inspiration();
 
       if (this.vent_mode === "PRVC") {
         this.pressure_regulated_volume_control();
+      }
+      if (this.vent_mode === "VC") {
+        this.volume_control_servo();
       }
     }
 
@@ -256,6 +313,11 @@ export class Ventilator extends BaseModelClass {
       this.ncc_insp += 1;
       this._trigger_blocked = true;
       this._trigger_volume_counter = 0.0;
+      // track the peak circuit pressure during the flow phase only (the pause relaxes to plateau)
+      if (!this._pause) {
+        const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+        if (p > this._pip_meas) this._pip_meas = p;
+      }
     }
 
     if (this._expiration) {
@@ -265,7 +327,86 @@ export class Ventilator extends BaseModelClass {
     }
   }
 
+  _start_inspiration() {
+    // exp -> insp transition: closes out the breath just completed (measurements) and opens a new one
+    this.ncc_insp = -1;
+    this.vol = 0.0;
+    this._insp_time_counter = 0.0;
+    this._pause = false;
+    this._inspiration = true;
+    this._expiration = false;
+
+    this.exp_tidal_volume = -this._exp_tidal_volume_counter;
+    this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
+    const weight = this._model_engine.weight;
+    this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
+
+    this.calc_measured_mechanics();
+
+    this._exp_tidal_volume_counter = 0.0;
+    this._pip_meas = 0.0;
+    this._had_pause = false;
+
+    if (this._breath_interval_counter > 0.0) {
+      this._measured_rate = 60.0 / this._breath_interval_counter;
+    }
+    this._breath_interval_counter = 0.0;
+  }
+
+  _end_inspiration() {
+    // insp -> exp transition. During a pause the tidal-volume counter is frozen (valves shut), so
+    // latching the delivered inspiratory volume here is correct for both the paused and no-pause path.
+    this.insp_tidal_volume = this._insp_tidal_volume_counter;
+    this._insp_tidal_volume_counter = 0.0;
+    this._insp_time_counter = 0.0;
+    this._inspiration = false;
+    this._expiration = true;
+    this._pause = false;
+    this.triggered_breath = false;
+    this._mandatory_breath = false;
+    this.ncc_exp = -1;
+  }
+
+  calc_measured_mechanics() {
+    // called at the end of a breath, on the quantities gathered over that breath
+    const vt_ml = this.exp_tidal_volume * 1000.0; // L -> mL
+    this.p_peak = this._pip_meas; // cmH2O
+
+    // dynamic compliance is always available (measured PIP - PEEP)
+    const drive_dyn = this.p_peak - this.peep_cmh2o; // cmH2O
+    if (this.exp_tidal_volume > 0 && drive_dyn > 0) {
+      this.compliance_dynamic = vt_ml / drive_dyn; // mL/cmH2O
+      this.compliance = this.compliance_dynamic; // keep the legacy field = dynamic
+    }
+
+    // static compliance + airway resistance need a plateau, i.e. a real end-inspiratory hold
+    if (this._had_pause && this.p_plat > 0) {
+      const drive_stat = this.p_plat - this.peep_cmh2o; // cmH2O
+      if (this.exp_tidal_volume > 0 && drive_stat > 0) {
+        this.compliance_static = vt_ml / drive_stat; // mL/cmH2O
+      }
+      const flow_ls =
+        this._insp_flow_at_pause > 0
+          ? this._insp_flow_at_pause // L/s, the flow interrupted by the hold
+          : this.insp_flow / 60.0; // fallback: the set flow
+      if (flow_ls > 0) {
+        this.resistance = (this.p_peak - this.p_plat) / flow_ls; // cmH2O/(L/s)
+      }
+    } else {
+      // no plateau available -> report dynamic compliance only, resistance not measurable
+      this.compliance_static = 0.0;
+      this.resistance = null;
+    }
+  }
+
   pressure_control() {
+    // during an inspiratory hold both valves are shut so the circuit equilibrates with the lung
+    if (this._pause) {
+      this._vent_insp_valve.no_flow = true;
+      this._vent_exp_valve.no_flow = true;
+      return;
+    }
+
     if (this._inspiration) {
       this._vent_exp_valve.no_flow = true;
       this._vent_insp_valve.no_flow = false;
@@ -281,6 +422,56 @@ export class Ventilator extends BaseModelClass {
       if (this._vent_ettube.flow > 0) {
         this._insp_tidal_volume_counter += this._vent_ettube.flow * this._t;
       }
+      // remember the flow at the end of the flow phase for the resistance measurement
+      this._insp_flow_at_pause = this._vent_ettube.flow;
+    }
+
+    if (this._expiration) {
+      this._vent_insp_valve.no_flow = true;
+      this._vent_exp_valve.no_flow = false;
+      this._vent_exp_valve.no_back_flow = true;
+      this._vent_exp_valve.r_for = 10;
+      this._vent_gasout.vol =
+        this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+
+      if (this._vent_ettube.flow < 0) {
+        this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
+      }
+    }
+  }
+
+  volume_control() {
+    // Volume control: deliver a ~constant inspiratory flow by re-solving the insp valve resistance
+    // each step (r_for = dP / q_target pins flow while the lung fills), until the set tidal volume
+    // is reached; then hold (inspiratory pause, handled in time_cycling) and cycle to expiration.
+    if (this._pause) {
+      this._vent_insp_valve.no_flow = true;
+      this._vent_exp_valve.no_flow = true;
+      return;
+    }
+
+    if (this._inspiration) {
+      this._vent_exp_valve.no_flow = true;
+      this._vent_insp_valve.no_flow = false;
+      this._vent_insp_valve.no_back_flow = true;
+
+      const q = this.insp_flow / 60.0; // L/s target
+      const dp = this._vent_gasin.pres - this._vent_gascircuit.pres; // mmHg
+      if (dp > 0 && q > 0) {
+        this._vent_insp_valve.r_for = dp / q; // pins flow ~ q as circuit pressure climbs
+      } else {
+        this._vent_insp_valve.no_flow = true; // supply can no longer drive flow in
+      }
+
+      // pressure safety limit (pop-off): hold once the circuit reaches the PIP ceiling
+      if (this._vent_gascircuit.pres > this._pip_max + this.pres_atm) {
+        this._vent_insp_valve.no_flow = true;
+      }
+
+      if (this._vent_ettube.flow > 0) {
+        this._insp_tidal_volume_counter += this._vent_ettube.flow * this._t;
+      }
+      this._insp_flow_at_pause = this._vent_ettube.flow;
     }
 
     if (this._expiration) {
@@ -354,6 +545,20 @@ export class Ventilator extends BaseModelClass {
     }
   }
 
+  volume_control_servo() {
+    // Volume-control breath-to-breath trim: the volume that actually reaches the patient differs
+    // from the flow-phase cut-off because the compliant circuit stores compression volume that
+    // dumps into the lung. Nudge the internal flow-phase target so the measured expiratory tidal
+    // volume converges on the set tidal_volume (proportional, clamped to [0.1*Vt, Vt]).
+    const err = this.tidal_volume - this.exp_tidal_volume; // L
+    this._vc_vol_target += 0.5 * err;
+    const lo = 0.1 * this.tidal_volume;
+    if (this._vc_vol_target < lo) this._vc_vol_target = lo;
+    if (this._vc_vol_target > this.tidal_volume) {
+      this._vc_vol_target = this.tidal_volume;
+    }
+  }
+
   reset_dependent_properties() {
     this.pres = 0.0;
     this.flow = 0.0;
@@ -362,9 +567,14 @@ export class Ventilator extends BaseModelClass {
     this.trigger_volume = 0.0;
     this.minute_volume = 0.0;
     this.compliance = 0.0;
+    this.compliance_dynamic = 0.0;
+    this.compliance_static = 0.0;
     this.resistance = 0.0;
+    this.p_peak = 0.0;
+    this.p_plat = 0.0;
     this.exp_tidal_volume = 0.0;
     this.insp_tidal_volume = 0.0;
+    this.tv_kg = 0.0;
     this.ncc_insp = 0.0;
     this.ncc_exp = 0.0;
     this.etco2 = 0.0;
@@ -372,8 +582,35 @@ export class Ventilator extends BaseModelClass {
     this.triggered_breath = false;
   }
 
+  _reset_state() {
+    // reset the internal state machine so a re-enabled ventilator starts a clean breath instead of
+    // resuming mid-cycle with stale counters
+    this._inspiration = false;
+    this._expiration = true;
+    this._pause = false;
+    this._pause_counter = 0.0;
+    this._had_pause = false;
+    this._mandatory_breath = false;
+    this._insp_time_counter = 0.0;
+    this._exp_time_counter = 0.0;
+    this._insp_tidal_volume_counter = 0.0;
+    this._exp_tidal_volume_counter = 0.0;
+    this._trigger_volume_counter = 0.0;
+    this._trigger_start = false;
+    this._trigger_blocked = false;
+    this._prev_et_tube_flow = 0.0;
+    this._peak_flow = 0.0;
+    this._pip_meas = 0.0;
+    this._insp_flow_at_pause = 0.0;
+    this._breath_interval_counter = 0.0;
+    this._measured_rate = 0.0;
+    this._vc_vol_target = this.tidal_volume;
+    this.vol = 0.0;
+  }
+
   switch_ventilator(state) {
     this.is_enabled = state;
+    this._reset_state();
     if (!state) {
       this.reset_dependent_properties();
     }
@@ -391,9 +628,8 @@ export class Ventilator extends BaseModelClass {
   }
 
   calc_ettube_resistance(flow) {
-    const _ettube_length_ref = 110;
     let res =
-      (this._a * flow + this._b) * (this.ettube_length / _ettube_length_ref);
+      (this._a * flow + this._b) * (this.ettube_length / this._ettube_length_ref);
     if (res < 15.0) {
       res = 15;
     }
@@ -419,11 +655,8 @@ export class Ventilator extends BaseModelClass {
   }
 
   set_fio2(new_fio2) {
-    if (new_fio2 > 20) {
-      this.fio2 = new_fio2 / 100.0;
-    } else {
-      this.fio2 = new_fio2;
-    }
+    // accept either a fraction (0..1) or a percentage (>1, e.g. 21..100)
+    this.fio2 = new_fio2 > 1.0 ? new_fio2 / 100.0 : new_fio2;
 
     calc_gas_composition(
       this._vent_gasin,
@@ -444,6 +677,14 @@ export class Ventilator extends BaseModelClass {
         this._vent_gasin,
         this.fio2,
         this._vent_gasin.temp,
+        this.humidity
+      );
+      // recompute the circuit composition too, matching init_model — otherwise the circuit keeps a
+      // stale gas mix until something else recomputes it
+      calc_gas_composition(
+        this._vent_gascircuit,
+        this.fio2,
+        this._vent_gascircuit.temp,
         this.humidity
       );
     }
@@ -491,6 +732,27 @@ export class Ventilator extends BaseModelClass {
     this.vent_mode = "PRVC";
   }
 
+  set_vc(
+    peep = 4.0,
+    rate = 40.0,
+    tv = 15.0,
+    t_in = 0.4,
+    insp_flow = 10.0,
+    pip_max = 30.0,
+    insp_pause = 0.0
+  ) {
+    this.peep_cmh2o = peep;
+    this.vent_rate = rate;
+    this.tidal_volume = tv / 1000.0;
+    this._vc_vol_target = this.tidal_volume; // servo starts from the set volume
+    this.insp_time = t_in;
+    this.insp_flow = insp_flow;
+    this.pip_cmh2o_max = pip_max; // safety ceiling only; VC does not target a PIP
+    // keep the pause strictly inside inspiration so the flow phase always delivers some gas
+    this.insp_pause = Math.min(Math.max(0.0, insp_pause), Math.max(0.0, t_in - 0.02));
+    this.vent_mode = "VC";
+  }
+
   set_psv(pip = 14.0, peep = 4.0, rate = 40.0, t_in = 0.4, insp_flow = 10.0) {
     this.pip_cmh2o = pip;
     this.pip_cmh2o_max = pip;
@@ -507,13 +769,16 @@ export class Ventilator extends BaseModelClass {
     this.vent_mode = "CPAP";
   }
 
-  trigger_breath(
-    pip = 14.0,
-    peep = 4.0,
-    rate = 40.0,
-    t_in = 0.4,
-    insp_flow = 10.0
-  ) {
+  set_pause(seconds = 0.0) {
+    // end-inspiratory hold, kept strictly inside inspiration (see set_vc)
+    this.insp_pause = Math.min(
+      Math.max(0.0, seconds),
+      Math.max(0.0, this.insp_time - 0.02)
+    );
+  }
+
+  trigger_breath() {
+    // force the current breath to expire so a new mechanical breath starts next step
     this._exp_time_counter = this.exp_time + 0.1;
   }
 }
