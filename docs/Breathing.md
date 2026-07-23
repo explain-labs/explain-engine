@@ -180,6 +180,16 @@ From `term_neonate.json`:
   the muscle pressure are all zeroed (so the thorax coupling adds 0), but the phase machine keeps
   ticking so the tidal-volume integrators can still measure externally driven (ventilator) flow.
 
+## Apnea coupling
+
+`breathing_enabled` (via `switch_breathing`) is the lever the [Apnea](./Apnea.md) controller uses to
+model a **central** apnea of prematurity: switching it off zeroes the muscle effort so no spontaneous
+breath occurs. An **obstructive** apnea instead leaves drive on but occludes the `MOUTH_DS` airway
+resistor (`no_flow = true`) — effort continues, no flow moves, and the tidal-volume feedback ramps
+`rmp_gain` against the obstruction (an exaggerated recovery breath on release). Either way the resulting
+hypoxemia/bradycardia emerge through the gas-exchange and ANS loops, not from Breathing itself. The
+`Resuscitation` device toggles the same flag during CPR.
+
 ## Notes & caveats
 
 - **Airway inlets are null-checked.** `MOUTH_DS` and `VENT_ETTUBE` are looked up each step and only

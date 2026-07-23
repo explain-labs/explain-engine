@@ -114,6 +114,17 @@ Example wiring (term neonate): afferent `BR_MAP` reads `AAR.pres` and drives `EF
 `effect_at_max_firing_rate = 0.428`, `effect_at_min_firing_rate = 1.5` (high pressure → faster
 firing → factor < 1 → lower heart rate; the baroreflex).
 
+### Hypoxic-bradycardia chemoreflex (apnea of prematurity)
+
+The base ANS senses arterial pO₂ (`CR_PO2`) but drives **only breathing** (`CR_PCO2 → EF_MV →
+Breathing.mv_ans_factor`); there is no pO₂→heart-rate path, so hypoxia alone does not slow the heart.
+Scenarios patched by `scripts/_add_apnea.mjs` add one: a dedicated afferent `CR_PO2_HR` (input `AA.po2`)
+drives a new efferent `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` with `effect_at_min_firing_rate ≈ 0.5`
+(low pO₂ → low firing → factor < 1 → **bradycardia**) and `effect_at_max_firing_rate = 1.0` (one-sided:
+hyperoxia gives no tachycardia). Its `set_value` is placed a few mmHg **below** the scenario's calibrated
+baseline `AA.po2`, so the reflex is neutral at rest and only fires when an apnea pulls pO₂ below baseline.
+See [Apnea](./Apnea.md).
+
 ## Notes & caveats
 
 - **Timing / lag.** Afferents, efferents and the manager each run on their own interval and the

@@ -5387,6 +5387,22 @@
      "THORAX"
     ]
    },
+   "Apnea": {
+    "name": "Apnea",
+    "description": "apnea of prematurity — episodic ventilation suppression",
+    "is_enabled": true,
+    "model_type": "Apnea",
+    "components": {},
+    "apnea_enabled": false,
+    "apnea_frequency": 0.2,
+    "apnea_duration": 11,
+    "apnea_variability": 0.3,
+    "apnea_type": "central",
+    "mixed_obstructive_fraction": 0.5,
+    "seed": 42,
+    "breathing_model": "Breathing",
+    "airway_model": "MOUTH_DS"
+   },
    "Metabolism": {
     "name": "Metabolism",
     "description": "Metabolism model",
@@ -5849,6 +5865,37 @@
       "ans_active": true,
       "firing_rate": 0.5331424150645463,
       "effector": 1.5918982489910345
+     },
+     "CR_PO2_HR": {
+      "name": "CR_PO2_HR",
+      "description": "ans chemoreceptor po2 afferent driving hypoxic bradycardia",
+      "is_enabled": true,
+      "model_type": "AnsAfferent",
+      "components": {},
+      "input_model": "AA",
+      "input_prop": "po2",
+      "efferents": [
+       "EF_HR_CHEMO"
+      ],
+      "effect_weight": 1,
+      "min_value": 45.8,
+      "set_value": 60.8,
+      "max_value": 95.8,
+      "tc": 1,
+      "ans_active": true
+     },
+     "EF_HR_CHEMO": {
+      "name": "EF_HR_CHEMO",
+      "description": "ans effector pathway: hypoxic bradycardia on heart rate",
+      "is_enabled": true,
+      "model_type": "AnsEfferent",
+      "components": {},
+      "target_model": "Heart",
+      "target_prop": "hr_chemo_factor",
+      "effect_at_max_firing_rate": 1,
+      "effect_at_min_firing_rate": 0.5,
+      "tc": 1,
+      "ans_active": true
      }
     },
     "ans_active": true,

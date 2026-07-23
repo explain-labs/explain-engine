@@ -116,6 +116,7 @@ The reusable physical primitives every component model is built from.
 | Doc | Models |
 |---|---|
 | [Breathing](./Breathing.md) | Spontaneous breathing drive; muscle pressure on the active airway inlet (MOUTH_DS or VENT_ETTUBE). |
+| [Apnea](./Apnea.md) | Apnea of prematurity: episodic ventilation suppression (central/obstructive/mixed) → emergent desaturation + hypoxic bradycardia. |
 | [Respiration](./Respiration.md) | Respiratory subsystem orchestrator (lung mechanics / gas-exchange wiring & scaling). |
 | [Surfactant](./Surfactant.md) | Dynamic RDS alveolar recruitment/derecruitment with hysteresis + surfactant therapy. |
 

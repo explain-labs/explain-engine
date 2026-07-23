@@ -15,8 +15,11 @@ SA node fires ─► PQ (atrial) ─► AV delay ─► QRS (ventricular) ─►
 ```
 
 - **Heart rate** is the reference rate scaled by the autonomic and modulating factors
-  (`ans_activity_hr · ans_sens`, `hr_factor`, `hr_mob_factor`, …); `hr_override` pins it to the
-  reference.
+  (`ans_activity_hr · ans_sens`, `hr_factor`, `hr_mob_factor`, `hr_temp_factor`, `hr_drug_factor`,
+  `hr_chemo_factor`, …), each an additive `(factor − 1)·heart_rate_ref` term; `hr_override` pins it to
+  the reference. `hr_chemo_factor` (default `1.0` = no effect) is the **peripheral-chemoreflex hypoxic
+  bradycardia** lever, written by an `EF_HR_CHEMO` [Ans](./Ans.md) efferent in scenarios that model
+  apnea of prematurity (see [Apnea](./Apnea.md)); it is neutral everywhere it is not wired.
 - The **sinus interval** `60 / heart_rate` drives the SA node; `pq_time`, `av_delay`, `qrs_time` and
   the rate-corrected `qt_time` (Bazett) set the phase durations.
 

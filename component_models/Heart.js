@@ -44,6 +44,7 @@ export class Heart extends BaseModelClass {
     this.hr_mob_factor = 1.0; // heart rate factor of the myocardial oxygen balance model
     this.hr_temp_factor = 1.0; // heart rate factor of the temperature (driven by the Thermoregulation model)
     this.hr_drug_factor = 1.0; // heart rate factor of the drug model (driven by the Drugs model)
+    this.hr_chemo_factor = 1.0; // heart rate factor of the peripheral chemoreflex (hypoxic bradycardia; driven by an AnsEfferent, 1.0 = no effect)
 
     this.cont_factor = 1.0; // contractility factor
     this.cont_factor_left = 1.0; // left heart contractility factor
@@ -343,7 +344,8 @@ export class Heart extends BaseModelClass {
       (this.hr_factor - 1.0) * this.heart_rate_ref +
       (this.hr_mob_factor - 1.0) * this.heart_rate_ref +
       (this.hr_temp_factor - 1.0) * this.heart_rate_ref +
-      (this.hr_drug_factor - 1.0) * this.heart_rate_ref;
+      (this.hr_drug_factor - 1.0) * this.heart_rate_ref +
+      (this.hr_chemo_factor - 1.0) * this.heart_rate_ref;
 
     if (this.hr_override) {
       this.heart_rate = this.heart_rate_ref;
