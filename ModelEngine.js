@@ -18,7 +18,10 @@
 
 // import all models present in the model_index module
 import * as models from "./ModelIndex";
+// student extension point: custom models, empty on main (see custom_models/README.md)
+import * as custom_models from "./CustomModelIndex";
 import DataCollector from "./helpers/DataCollector";
+import { set_model_registry } from "./helpers/ModelRegistry";
 import TaskScheduler from "./helpers/TaskScheduler";
 import ModelScaler from "./helpers/ModelScaler";
 import { buildLiveControllers, runCalibration, measureWindow } from "./helpers/Calibrator";
@@ -35,7 +38,18 @@ for (let i = 0; i < available_models.length; i++) {
   const model_class = available_models[i];
   available_model_map[model_class.model_type] = model_class;
 }
+// custom models are registered last, so a custom class deliberately reusing a built-in
+// model_type replaces it everywhere; the warning is there to catch the accidental case
+Object.values(custom_models).forEach((model_class) => {
+  if (available_model_map[model_class.model_type]) {
+    console.warn(`ModelEngine: custom model overrides built-in '${model_class.model_type}'`);
+  }
+  available_model_map[model_class.model_type] = model_class;
+  available_models.push(model_class);
+});
 const model_types_cached = [...new Set(available_models.map((mt) => mt.model_type))];
+// publish the merged map so composite models can instantiate sub-components by model_type
+set_model_registry(available_model_map);
 const ENABLE_STEP_ERROR_GUARD = true;
 
 const _get_data_collector = function () {

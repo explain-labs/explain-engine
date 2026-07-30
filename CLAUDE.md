@@ -110,7 +110,17 @@ Preserve it.
 
 **`ModelIndex.js` is the registry.** The engine derives `available_model_map` from whatever
 `ModelIndex.js` exports. **Forgetting to export a new class there is the usual cause of "model type
-not found" at build.**
+not found" at build.** `CustomModelIndex.js` is a second barrel merged on top of it — empty on
+`main`, it is where student/experimental models in `custom_models/` register without touching the
+shared file, and a custom `model_type` deliberately overrides a built-in one (with a `console.warn`).
+Keep it empty on `main`; that is what keeps student branches conflict-free on rebase.
+
+**Composite lookup goes through `helpers/ModelRegistry.js`.** `BaseModelClass` instantiates
+`this.components` sub-models by `model_type` and cannot import the barrels directly to do it —
+every model extends it, so `CustomModelIndex → custom model → BaseModelClass` is an evaluation-time
+cycle ("Cannot access 'BaseModelClass' before initialization"). `ModelEngine` publishes the merged
+map into that registry at startup instead. Don't "simplify" it back into a top-level import or
+spread; both fail at module-evaluation time, not at build time.
 
 **The factor / effective-value pattern.** Core physics params are never used raw. Each tunable
 combines three multiplier layers additively against the base:
@@ -163,7 +173,8 @@ makes deterministic assertion-style probing possible. The harness silences `cons
 3. Implement `init_model(args)` (resolve cross-model refs; set `_is_initialized`) and `calc_model()`
    (the physics). Don't override `step_model()` — the base gates on `is_enabled && _is_initialized`.
 4. Follow the factor convention, with the **correct scaling suffix** for the family.
-5. **Export it from `ModelIndex.js`.**
+5. **Export it from `ModelIndex.js`** — or, for a student/experimental model living in
+   `custom_models/`, from `CustomModelIndex.js` (see `custom_models/README.md`).
 6. Reference the `model_type` in the relevant `model_definitions/*.json`.
 7. Write the per-class doc in `docs/` using the §9 template.
 

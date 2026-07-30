@@ -1,4 +1,12 @@
-import * as Models from "../ModelIndex.js"
+import * as BuiltinModels from "../ModelIndex.js"
+import { get_model_class } from "../helpers/ModelRegistry.js"
+
+// Composite sub-components are instantiated by model_type. Ask the engine's registry first —
+// it holds built-in AND custom models (see ../custom_models/README.md) — and fall back to the
+// ModelIndex namespace, keyed by export name, when the engine has not populated it. Both are
+// resolved lazily: ModelIndex and this file form an import cycle, so its bindings are still
+// uninitialized while this module evaluates, and only complete by the time init_model runs.
+const resolve_model_class = (model_type) => get_model_class(model_type) ?? BuiltinModels[model_type]
 
 // This base model class is the blueprint for all the model objects (classes). It incorporates the properties and methods which all model objects must implement 
 export class BaseModelClass {
@@ -28,7 +36,7 @@ export class BaseModelClass {
     Object.keys(this.components).forEach(component_name => {
       // do not overwrite existing models
       if (!this._model_engine.models.hasOwnProperty(component_name)) {
-        this._model_engine.models[component_name] = new Models[this.components[component_name].model_type](this._model_engine, component_name);
+        this._model_engine.models[component_name] = new (resolve_model_class(this.components[component_name].model_type))(this._model_engine, component_name);
       }
     })
   

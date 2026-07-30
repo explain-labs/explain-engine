@@ -96,6 +96,12 @@ Example: `MicroVascularUnit` creates and configures internal `BloodVessel` compo
 
 ## Adding a new model type
 
+> Writing a model for a course project or an experiment? Use the extension point instead —
+> `custom_models/README.md` and `STUDENT_WORKFLOW.md` in the explain-ui repo. It is the same
+> class contract, but your model registers from `CustomModelIndex.js` rather than the shared
+> `ModelIndex.js`, so your branch never conflicts with anyone else's. The steps below are for
+> models that become part of the core engine.
+
 1. Create a class in `base_models/`, `component_models/`, or `device_models/`.
 2. Extend `BaseModelClass` (or match required engine contract).
 3. Define static `model_type`.
@@ -135,6 +141,10 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 
 ## Student onboarding manual
 
+> Set up first: `STUDENT_WORKFLOW.md` in the explain-ui repo covers cloning both
+> repositories, working on your own branch, and handing work in. This section is the
+> engine-side reference for what to do once you are set up.
+
 ### 1. Running the model
 
 1. Start the Vite dev server (`npm run dev`) from this directory (Vue 3 + Vite + TypeScript app; production build via `npm run build`).
@@ -150,7 +160,11 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 
 ### 3. Adding models
 
-**Base models** (`base_models`)
+**Your own models** (`custom_models`) — the student path
+- Copy `custom_models/_ExampleModel.js`, rename the class and its `static model_type`, and export it from `CustomModelIndex.js`. Add UI fields in `src/model-interface/custom-registry.ts` in the explain-ui repo.
+- Both of those files are empty on `main` and yours to fill in, so your work never collides with the shared registries. Conventions and the full class contract: `custom_models/README.md`.
+
+**Base models** (`base_models`) — core engine only
 - Extend `BaseModelClass` and define a static `model_type`. (UI/parameter metadata is **not** on the class — add a `model_type` entry to the UI schema at `src/model-interface/registry.ts` to make parameters editable.)
 - Implement `init_model(config)` and `calc_model()`/`step_model()`.
 - Import/export the class in `ModelIndex.js`.
@@ -187,7 +201,7 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 - Watch worker traffic in DevTools (console logs prefixed with `Model:`).
 - Hook events: `document.addEventListener("status", (evt) => console.log(evt.detail))`.
 - Snapshot: `explain.getModelState()`; inspect the payload emitted by the worker.
-- Missing models usually mean `model_type` typos or missing exports in `ModelIndex`.
+- Missing models usually mean `model_type` typos or missing exports in `ModelIndex` (or, for your own models, in `CustomModelIndex`).
 
 ### 6. Cleanup
 
