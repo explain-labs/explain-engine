@@ -12,6 +12,15 @@ under `scripts/` (headless harness, probes, sensitivity-analysis campaign) runs 
 with no install step. Consumers mount it as a git submodule — see
 [`explain-ui`](https://github.com/explain-labs/explain-ui) for the web app built on it.
 
+Both repositories are part of the [**Explain Labs**](https://github.com/explain-labs)
+organization — [`explain-labs/explain-engine`](https://github.com/explain-labs/explain-engine)
+(this repo) and [`explain-labs/explain-ui`](https://github.com/explain-labs/explain-ui). The org
+page carries the shared overview of how the two fit together. To work on the engine alone:
+
+```sh
+git clone https://github.com/explain-labs/explain-engine.git
+```
+
 > **Where to read next**
 > - [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — the full engine architecture (two-thread design, build/step loop, wire protocol, scaling/tuning, realtime data plane). Start there for deep detail.
 > - [`./docs/`](./docs/) — per-class physiological reference (one Markdown file per model, e.g. `Heart.md`, `BloodCapacitance.md`, `Pda.md`), plus helper docs (`DataCollector.md`, `TaskScheduler.md`, `ModelScaler.md`, …).
