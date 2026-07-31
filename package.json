@@ -7,7 +7,7 @@
   "author": "Tim Antonius <timantonius@pm.me>",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Dobutamine/explain-engine.git"
+    "url": "git+https://github.com/explain-labs/explain-engine.git"
   },
   "keywords": [
     "physiology",

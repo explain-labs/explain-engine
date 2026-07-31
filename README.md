@@ -10,7 +10,7 @@ is controlled from the main thread through the `Model` wrapper (`Model.js`).
 This repository is self-contained: it has no runtime or build dependencies, and the tooling
 under `scripts/` (headless harness, probes, sensitivity-analysis campaign) runs on plain Node
 with no install step. Consumers mount it as a git submodule — see
-[`explain-ui`](https://github.com/Dobutamine/explain-ui) for the web app built on it.
+[`explain-ui`](https://github.com/explain-labs/explain-ui) for the web app built on it.
 
 > **Where to read next**
 > - [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — the full engine architecture (two-thread design, build/step loop, wire protocol, scaling/tuning, realtime data plane). Start there for deep detail.

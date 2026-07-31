@@ -4,7 +4,7 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
-> Consumers generate their own copy from it. In the [explain-ui](https://github.com/Dobutamine/explain-ui)
+> Consumers generate their own copy from it. In the [explain-ui](https://github.com/explain-labs/explain-ui)
 > web app, `scripts/sync-scenarios.mjs` copies this directory into its `public/model_definitions/`
 > on every `predev`/`prebuild` and serves it statically. **That copy is generated, gitignored, and
 > overwritten** — editing a canonical scenario there loses your work on the next `npm run dev`. (The

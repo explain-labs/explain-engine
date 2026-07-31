@@ -7,7 +7,7 @@ How to exercise and verify the Explain engine **headlessly** — build a scenari
 > **read-only** — they never modify engine source — and run with **`node` directly**:
 >
 > ```bash
-> git clone git@github.com:Dobutamine/explain-engine.git && cd explain-engine
+> git clone git@github.com:explain-labs/explain-engine.git && cd explain-engine
 > node scripts/probe_vitals.mjs term_neonate   # no npm install needed
 > ```
 >

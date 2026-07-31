@@ -14,7 +14,7 @@ instructions when working in `explain-engine/`.
 A framework-agnostic, **dependency-free** physiological simulation engine (whole-body neonatal &
 adult cardiorespiratory model). It runs in a Web Worker (`ModelEngine.js`) and is driven from the
 main thread via `Model.js`. Consumers mount it as a git submodule — the web app that hosts it is
-[`explain-ui`](https://github.com/Dobutamine/explain-ui), a separate repo.
+[`explain-ui`](https://github.com/explain-labs/explain-ui), a separate repo.
 
 `package.json` has **zero `dependencies` and zero `devDependencies`**. There is no build step, no
 bundler, and no `npm install`. A bare clone runs immediately on plain `node`.

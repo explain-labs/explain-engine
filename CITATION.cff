@@ -18,7 +18,7 @@ authors:
     family-names: Antonius
     email: timantonius@pm.me
     orcid: "https://orcid.org/0000-0003-0289-1508"
-repository-code: "https://github.com/Dobutamine/explain-engine"
+repository-code: "https://github.com/explain-labs/explain-engine"
 license: MIT
 keywords:
   - physiology
