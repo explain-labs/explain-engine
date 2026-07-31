@@ -16,6 +16,13 @@ adult cardiorespiratory model). It runs in a Web Worker (`ModelEngine.js`) and i
 main thread via `Model.js`. Consumers mount it as a git submodule — the web app that hosts it is
 [`explain-ui`](https://github.com/explain-labs/explain-ui), a separate repo.
 
+This repo is [`explain-labs/explain-engine`](https://github.com/explain-labs/explain-engine)
+(`git@github.com:explain-labs/explain-engine.git`). It and `explain-ui` moved into the
+`explain-labs` organization from the personal `Dobutamine` account; GitHub still redirects the old
+URLs, so a pre-move clone keeps working, but anything you write should use the org URLs. Shared
+cross-repo usage instructions live on the [org profile](https://github.com/explain-labs), sourced
+from `explain-labs/.github`.
+
 `package.json` has **zero `dependencies` and zero `devDependencies`**. There is no build step, no
 bundler, and no `npm install`. A bare clone runs immediately on plain `node`.
 
