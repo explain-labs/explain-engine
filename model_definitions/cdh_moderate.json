@@ -2,6 +2,8 @@
  "name": "cdh_moderate",
  "user": "timothy",
  "description": "term 3.5 kg neonate with moderate left-sided congenital diaphragmatic hernia: milder asymmetric pulmonary hypoplasia, pulmonary vascular resistance elevated toward systemic with a small bidirectional ductal shunt; oxygenates on moderate FiO2 and is potentially weanable — the contrast case to the severe phenotype; intubated and ventilated",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

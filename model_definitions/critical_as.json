@@ -2,6 +2,8 @@
  "name": "critical_as",
  "user": "timothy",
  "description": "term 3.5 kg neonate with critical aortic stenosis: a severely obstructed aortic valve pressure-loads and fails the left ventricle (a low-flow/low-gradient state), so systemic perfusion — especially the lower body — is duct-dependent (pulmonary-artery to aorta through the ductus) with differential cyanosis, while the high left-atrial pressure decompresses left-to-right across the foramen ovale; a duct-dependent lesion that presents in cardiogenic shock as the duct closes, managed with prostaglandin E1 and balloon valvuloplasty",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

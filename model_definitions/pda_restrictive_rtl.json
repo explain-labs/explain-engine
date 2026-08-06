@@ -2,6 +2,8 @@
  "name": "pda_restrictive_rtl",
  "user": "timothy",
  "description": "term neonate with a restrictive RIGHT-TO-LEFT patent ductus arteriosus in severe pulmonary hypertension (PPHN): suprasystemic pulmonary pressure drives flow from the pulmonary artery to the aorta across a narrow, short restrictive duct, giving a high-velocity systolic RIGHT-TO-LEFT jet (~3.4 m/s, PA ~46 mmHg above Ao at peak systole) that tapers toward baseline in diastole on Doppler (post-ductal desaturation / differential cyanosis)",
+ "provenance": "uncertain",
+ "provenance_note": "provenance not established - confirm before citing in P5/P7",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

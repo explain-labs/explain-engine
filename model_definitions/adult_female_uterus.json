@@ -2,6 +2,8 @@
  "name": "adult_female_uterus",
  "user": "timothy",
  "description": "non-pregnant normal female adult with a body weight of 65 kg and height of 165 cm, with a uterine circulation",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

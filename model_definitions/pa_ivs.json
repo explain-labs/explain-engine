@@ -2,6 +2,8 @@
  "name": "pa_ivs",
  "user": "timothy",
  "description": "term 3.5 kg neonate with pulmonary atresia and intact ventricular septum: the atretic pulmonary valve and intact septum leave the right ventricle a blind, hypoplastic, hypertensive chamber, so all systemic venous return is obligated right-to-left across the foramen ovale and the left ventricle pumps the mixed return; pulmonary blood flow is supplied entirely by the ductus arteriosus (aorta-to-pulmonary-artery), producing cyanosis — a foramen-ovale- and duct-dependent lesion kept alive on prostaglandin E1 pending decompression/shunt palliation",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

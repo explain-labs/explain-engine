@@ -2,6 +2,8 @@
  "name": "critical_ps",
  "user": "timothy",
  "description": "term 3.5 kg neonate with critical pulmonary stenosis: a severely obstructed (but not atretic) pulmonary valve pressure-loads the right ventricle to suprasystemic pressures with only a trickle of antegrade flow, so pulmonary blood flow is duct-dependent (aorta-to-pulmonary-artery through the ductus) and the pressured right atrium decompresses right-to-left across the foramen ovale, producing cyanosis; a duct-dependent lesion managed with prostaglandin E1 and balloon valvuloplasty",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

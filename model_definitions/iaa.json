@@ -2,6 +2,8 @@
  "name": "iaa",
  "user": "timothy",
  "description": "term 3.5 kg neonate with interrupted aortic arch: the aortic arch is discontinuous, so the descending aorta and entire lower body are perfused exclusively right-to-left through the ductus arteriosus, with a ventricular septal defect and marked differential cyanosis; a duct-dependent systemic lesion (strongly associated with 22q11 deletion) that collapses into shock as the duct closes, kept alive on prostaglandin E1 pending single-stage repair",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

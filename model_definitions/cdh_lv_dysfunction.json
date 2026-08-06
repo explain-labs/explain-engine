@@ -2,6 +2,8 @@
  "name": "cdh_lv_dysfunction",
  "user": "timothy",
  "description": "term 3.5 kg neonate with left-sided congenital diaphragmatic hernia, post-capillary (LV-dominant) phenotype: left ventricular hypoplasia and dysfunction with elevated end-diastolic pressure drive pulmonary venous hypertension; the atrial shunt runs left-to-right (high left atrial pressure) while the ductus shunts right-to-left to offload the right ventricle — the phenotype where pulmonary vasodilators may worsen pulmonary oedema; intubated and ventilated",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

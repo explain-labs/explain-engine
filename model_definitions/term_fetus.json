@@ -2,6 +2,8 @@
  "name": "term_fetus",
  "user": "timothy",
  "description": "term fetus in utero (3.545 kg, 40 wk) — fetal circulation: placental gas exchange, wide-open ductus arteriosus and foramen ovale, high pulmonary vascular resistance, inert (fluid-filled) lungs",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",
