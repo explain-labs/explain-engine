@@ -2,6 +2,8 @@
  "name": "cdh_severe",
  "user": "timothy",
  "description": "term 3.5 kg neonate with severe left-sided congenital diaphragmatic hernia, pre-capillary (PVR-dominant) phenotype: marked asymmetric pulmonary hypoplasia (left>right), suprasystemic pulmonary vascular resistance with dominant right-to-left ductal and atrial shunting and differential cyanosis; intubated and ventilated on FiO2 1.0",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

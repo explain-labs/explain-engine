@@ -2,6 +2,8 @@
  "name": "adult_female",
  "user": "timothy",
  "description": "non-pregnant normal female adult with a body weight of 65 kg and height of 165 cm",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

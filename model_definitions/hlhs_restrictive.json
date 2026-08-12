@@ -2,6 +2,8 @@
  "name": "hlhs_restrictive",
  "user": "timothy",
  "description": "term 3.5 kg neonate with hypoplastic left heart syndrome and a RESTRICTIVE atrial septum: as in HLHS the right ventricle is the single pump and all pulmonary venous return must cross the foramen ovale, but the atrial communication is too small to decompress the left atrium — left-atrial pressure rises steeply (pulmonary venous hypertension and oedema), the obligate left-to-right shunt and right-ventricular preload fall, and hypoxaemia is severe; a lethal foramen-ovale-dependent emergency requiring immediate atrial decompression (balloon/blade septostomy or stenting)",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

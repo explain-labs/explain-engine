@@ -2,6 +2,8 @@
  "name": "preterm_26wk",
  "user": "timothy",
  "description": "preterm 0.85 kg neonate, 26 weeks gestation: allometric size scaling + very severe respiratory distress syndrome (surfactant deficiency: stiff low-FRC lungs, reduced gas exchange); spontaneously breathing, no respiratory support",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

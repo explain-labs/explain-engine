@@ -2,6 +2,8 @@
  "name": "preterm_28wk",
  "user": "timothy",
  "description": "preterm 1 kg neonate, 28 weeks gestation: allometric size scaling + severe respiratory distress syndrome (surfactant deficiency: stiff low-FRC lungs, reduced gas exchange); spontaneously breathing, no respiratory support",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

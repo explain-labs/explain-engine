@@ -2,6 +2,8 @@
  "name": "bischoff_cohort",
  "user": "timothy",
  "description": "Bischoff 2021 (Echocardiography 38:1524) Table-1 COHORT (n=45) average: ~25 wk / 720 g preterm neonate, day 1, spontaneously breathing on nasal CPAP (MAP 7 cmH2O, FiO2 0.26). Allometric size scaling + RDS lungs; patent ductus arteriosus with a net left-to-right shunt (LVO/RVO ~1.16) and a patent foramen ovale (atrial communication). Calibrated to the cohort heart-rate, cardiac-output (LVO 187 / RVO 151 ml/kg/min) and arterial blood-gas (pH 7.34, pCO2 ~44, BE -1.2, OI ~4) targets. CPAP is represented by the inspired FiO2 plus a recruited-lung state (the engine's Ventilator CPAP device cannot drive a spontaneously breathing extreme preterm).",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

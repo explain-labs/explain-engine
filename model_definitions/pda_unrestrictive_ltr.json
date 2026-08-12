@@ -2,6 +2,8 @@
  "name": "pda_unrestrictive_ltr",
  "user": "timothy",
  "description": "term neonate with an unrestrictive left-to-right patent ductus arteriosus: a large duct transmits both flow and systemic pressure into the pulmonary artery, giving a CONTINUOUS pulsatile LEFT-TO-RIGHT shunt — high peak-systolic velocity (~2 m/s) with a low end-diastolic velocity (~0.7 m/s, EDV/PSV ~0.35) from rapid diastolic pressure equalization",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

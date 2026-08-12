@@ -2,6 +2,8 @@
  "name": "coarctation",
  "user": "timothy",
  "description": "term 3.5 kg neonate with critical coarctation of the aorta: a severely narrowed aortic isthmus produces upper-body hypertension with weak femoral pulses (a large pre- vs post-ductal pressure gradient) and makes the lower body duct-dependent — the ductus delivers pulmonary-artery blood right-to-left into the descending aorta with mild differential cyanosis; presents in shock as the duct closes, managed with prostaglandin E1 pending surgical repair",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

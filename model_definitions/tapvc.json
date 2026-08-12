@@ -2,6 +2,8 @@
  "name": "tapvc",
  "user": "timothy",
  "description": "term 3.5 kg neonate with (unobstructed, supracardiac) total anomalous pulmonary venous connection: all pulmonary venous return drains to the superior vena cava and mixes with systemic venous return in the right atrium, and the left heart is filled only by an obligate right-to-left shunt across the foramen ovale; produces mild cyanosis from complete mixing and is not duct-dependent (a foramen-ovale-dependent lesion)",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

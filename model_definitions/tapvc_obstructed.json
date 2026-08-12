@@ -2,6 +2,8 @@
  "name": "tapvc_obstructed",
  "user": "timothy",
  "description": "term 3.5 kg neonate with OBSTRUCTED total anomalous pulmonary venous connection: the anomalous channel draining the pulmonary veins to the systemic venous circulation is narrowed, causing severe pulmonary venous hypertension and oedema with secondary pulmonary arterial hypertension, profound cyanosis and low cardiac output; the left heart is filled only by an obligate right-to-left atrial shunt — a foramen-ovale-dependent, prostaglandin-UNRESPONSIVE neonatal surgical emergency",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

@@ -2,6 +2,8 @@
  "name": "preterm_36wk",
  "user": "timothy",
  "description": "preterm 2.7 kg neonate, 36 weeks gestation: allometric size scaling + mild respiratory distress syndrome (surfactant deficiency: stiff low-FRC lungs, reduced gas exchange); spontaneously breathing, no respiratory support",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

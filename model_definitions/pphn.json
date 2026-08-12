@@ -2,6 +2,8 @@
  "name": "pphn",
  "user": "timothy",
  "description": "term 3.5 kg neonate with severe idiopathic persistent pulmonary hypertension of the newborn (PPHN): a structurally normal heart and near-normal lung parenchyma with a maladapted, remodelled pulmonary vascular bed that keeps pulmonary vascular resistance diffusely suprasystemic after birth. The high resistance drives extrapulmonary right-to-left shunting at both the ductus arteriosus and the foramen ovale, producing labile hypoxemia and differential cyanosis (pre- > post-ductal oxygen saturation) despite ventilation on FiO2 1.0; intubated and ventilated",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

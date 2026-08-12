@@ -2,6 +2,8 @@
  "name": "hlhs",
  "user": "timothy",
  "description": "term 3.5 kg neonate with hypoplastic left heart syndrome (mitral and aortic atresia): the left ventricle is non-functional, so the right ventricle is the single pump for a parallel circulation — all pulmonary venous return crosses the foramen ovale left-to-right to mix in the right atrium, and the systemic circulation (including retrograde aortic-arch and coronary perfusion) is supplied right-to-left through a wide ductus arteriosus; a foramen-ovale- and duct-dependent lesion with moderate cyanosis, kept alive on prostaglandin E1 pending Norwood palliation",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

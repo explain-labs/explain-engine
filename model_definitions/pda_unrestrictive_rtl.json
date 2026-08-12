@@ -2,6 +2,8 @@
  "name": "pda_unrestrictive_rtl",
  "user": "timothy",
  "description": "term neonate with an unrestrictive RIGHT-TO-LEFT patent ductus arteriosus in severe pulmonary hypertension (PPHN): a wide duct equalizes suprasystemic pulmonary and aortic pressures, so flow runs RIGHT-TO-LEFT throughout the cycle at LOW velocity (~0.6-0.8 m/s), pulsatile, on Doppler (post-ductal desaturation / differential cyanosis)",
+ "provenance": "uncertain",
+ "provenance_note": "provenance not established - confirm before citing in P5/P7",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

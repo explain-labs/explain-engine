@@ -2,6 +2,8 @@
  "name": "pa_vsd",
  "user": "timothy",
  "description": "term 3.5 kg neonate with pulmonary atresia and a ventricular septal defect: the atretic pulmonary valve gives no antegrade pulmonary flow, but a large VSD lets the right ventricle decompress into the left ventricle and aorta (the ventricles equilibrate at systemic pressure and both eject into the aorta), so the atrial septum need not be open; pulmonary blood flow is supplied entirely by the ductus arteriosus (no MAPCAs modelled) and the mixed aortic blood produces cyanosis — a duct-dependent lesion kept alive on prostaglandin E1 pending repair/shunt",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

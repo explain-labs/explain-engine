@@ -2,6 +2,8 @@
  "name": "pda_restrictive_ltr",
  "user": "timothy",
  "description": "term neonate with a restrictive left-to-right patent ductus arteriosus: a narrow, short duct imposes intrinsic resistance that keeps a large non-equalizing pressure gradient between aorta and pulmonary artery, giving a CONTINUOUS high-velocity 'sawtooth' LEFT-TO-RIGHT jet (~3.5 m/s, peak gradient ~49 mmHg) with low pulsatility (high velocity in both systole and diastole) on Doppler",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

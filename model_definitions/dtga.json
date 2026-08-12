@@ -2,6 +2,8 @@
  "name": "dtga",
  "user": "timothy",
  "description": "term 3.5 kg neonate with d-transposition of the great arteries and intact ventricular septum: the aorta arises from the right ventricle and the pulmonary artery from the left ventricle, so the systemic and pulmonary circulations run in parallel and survival depends on mixing across the foramen ovale and the ductus arteriosus; presents with cyanosis poorly responsive to oxygen — a foramen-ovale- and duct-dependent lesion managed with prostaglandin E1 and balloon atrial septostomy pending the arterial switch operation",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

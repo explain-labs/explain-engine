@@ -2,6 +2,8 @@
  "name": "tricuspid_atresia",
  "user": "timothy",
  "description": "term 3.5 kg neonate with tricuspid atresia (normally related great arteries, restrictive ventricular septal defect and pulmonary stenosis): the absent tricuspid valve obligates all systemic venous return right-to-left across the foramen ovale, leaving the left ventricle as the single pump for a mixed circulation, while pulmonary blood flow reaches the lungs only through the VSD into a hypoplastic right ventricle and is supplemented duct-dependently — producing cyanosis; a foramen-ovale- and duct-dependent lesion managed with prostaglandin E1 and staged single-ventricle palliation",
+ "provenance": "calibrator-fitted",
+ "provenance_note": "anatomy authored by hand (scripts/_make_*.mjs); parameter values fitted to clinical targets by scripts/build_patient.mjs",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

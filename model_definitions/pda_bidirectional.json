@@ -2,6 +2,8 @@
  "name": "pda_bidirectional",
  "user": "timothy",
  "description": "term neonate with a restrictive bidirectional patent ductus arteriosus in pulmonary hypertension: a tight short duct holds a large systolic PA-Ao gradient, producing a high-velocity systolic RIGHT-TO-LEFT jet (~2 m/s, suprasystemic PA) with a lower-velocity diastolic LEFT-TO-RIGHT component on Doppler",
+ "provenance": "hand-authored",
+ "provenance_note": "structure and parameter values set by hand (scripts/_make_*.mjs); used by papers P1-P4",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",

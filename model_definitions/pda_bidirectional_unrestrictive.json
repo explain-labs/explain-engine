@@ -2,6 +2,8 @@
  "name": "pda_bidirectional_unrestrictive",
  "user": "timothy",
  "description": "term neonate with an unrestrictive bidirectional patent ductus arteriosus: a wide duct rapidly equalizes aortic and pulmonary pressures, so velocities stay LOW and the small residual gradient flips with the cardiac cycle — systolic RIGHT-TO-LEFT (~0.5 m/s) and diastolic LEFT-TO-RIGHT (~0.6-0.75 m/s) on Doppler",
+ "provenance": "uncertain",
+ "provenance_note": "provenance not established - confirm before citing in P5/P7",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",
