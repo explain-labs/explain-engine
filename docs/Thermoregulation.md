@@ -37,9 +37,10 @@ Q_prod  = metabolic + brown_fat                                                 
     vo2_eff = Metabolism.vo2 · Metabolism.vo2_factor · vo2_temp_factor           (mL O2/kg/min)
   brown_fat = min( bat_gain · max(0, setpoint − core), bat_max_per_kg · weight ) [W]
 Q_loss_eff = SA·[ h_radiative·(core − radiant_eff) + h_convective·(core − env_temp) ]
-             + SA·evap_coeff·(1 − rel_humidity) + _loss_trim                     [W]
+             + SA·evap_coeff·(1 − rel_humidity) + Q_resp + _loss_trim            [W]
   SA = surface_area_k · weight^(2/3)              (Meeh surface area, m^2)
   radiant_eff = radiant_temp if set, else env_temp
+  Q_resp = Gas.drain_respiratory_heat() / u       (airway gas conditioning, W)
 Q_perf  = G_perf · (core − blood_mean)                                           [W]  (NEW)
   blood_mean = heat-capacity-weighted mean temperature over ALL blood compartments (Blood.get_thermal_state)
   C_blood  = blood_volume_per_kg · weight · blood_density · cp_blood   (coupling mass = circulating volume)
@@ -110,6 +111,68 @@ All four channels are **neutral at rest by construction**: at `core == setpoint`
 `1.0`, blood is at set-point, and the gas targets equal their build values — so a scenario that ships
 thermoregulation has unchanged baseline vitals/ABG until the thermal environment is perturbed.
 
+## Respiratory heat loss (`Q_resp`)
+
+Conditioning inspired gas — warming it to body temperature and saturating it with water vapour —
+costs the body real heat. Rather than deriving that from minute ventilation, each
+[`GasCapacitance`](./GasCapacitance.md) **meters the energy it actually drew from its wall**:
+`add_heat` accumulates `n_gas · cp_molar · dT` into `_q_wall_sensible`, and `add_watervapour`
+accumulates `n_h2o · latent_h2o` into `_q_wall_latent`. `Gas.drain_respiratory_heat()` sums and
+clears both across the body-warmed compartments (`DS`, `ALL`, `ALR` — the keys of
+`Gas._body_temp_delta`) and returns joules since the last call; this class divides by `u` to get
+watts.
+
+Reading the gas physics instead of computing `MV · (T_alv − T_insp)` matters for three reasons:
+
+- It needs no spontaneous-vs-ventilated discrimination. `Breathing.minute_volume` is a per-breath
+  latch that reads `0` under mechanical ventilation and can be up to 60 s stale during apnea, and
+  `Breathing.exp_tidal_volume` is polluted by `VENT_ETTUBE.flow` during CPAP/PS — none of which can
+  mislead a term driven by the gas actually moved.
+- The drained total is **signed**, so heat and water recovered when expired gas cools and condenses
+  in the dead space are credited back. That is real countercurrent airway recovery, and it is why
+  the measured term (~0.87 W in `term_neonate`) sits below the ~1.24 W a bulk formula gives.
+- `fixed_composition` compartments skip both routines, and only body-warmed compartments are
+  drained, so the inspired-air source (`MOUTH`) and the device-heated `Ventilator`/`Ecls` gas lines
+  contribute nothing without being special-cased.
+
+**`Q_resp` is averaged over `resp_window` (30 s), not reported per update**, because
+`_update_interval` (1 s) is shorter than a breath. An adult at 13 breaths/min swings between −0.8 W
+and +19.4 W across the cycle about a true mean of 7.3 W. The running balance would be right on
+average either way, but `_loss_trim` is seeded from a **single snapshot** — landing that on an
+unlucky breath phase would bias resting core permanently (≈1 °C for an adult, since the trim error
+divides by only `SA·(h_radiative + h_convective)` ≈ 12.7 W/K). The seed therefore also waits on
+`_resp_ready`, set when the first full window closes, so it is always fed a breath-spanning mean.
+The cost is that the seed happens at ~30 s instead of 5 s; the extra unseeded drift is < 0.02 °C.
+
+`Q_resp` is folded into `q_loss_raw` **before** the `_loss_trim` auto-seed, so it is absorbed at
+warm-up and the model stays exactly neutral at rest — no scenario's baseline moves. The term shows
+up only when inspired conditions *change*. Measured on room air (20 °C / 50 % RH): **0.87 W of
+9.62 W heat production in `term_neonate` (9 %)**, **0.21 W of 2.71 W in `preterm_28wk` (8 %)**, ~83 %
+of it latent. A heated humidifier (37 °C / 100 % RH) drives it to ≈ 0 and the core rises accordingly
+— which is the thermal reason NICU ventilators heat and humidify, and it previously scored as no
+effect at all.
+
+**Expect a small core response.** Measured whole-model thermal gain is ≈ **0.043 °C per watt**, so
+abolishing the neonate's 0.94 W moves core only ≈ +0.04 °C, approached with a ~430 s time constant.
+That is far below the ≈ 0.5 °C/W a naive `1 / (SA·(h_radiative + h_convective))` estimate suggests,
+because most of the retained heat goes into `Q_perf` rather than into the tissue node. This is a
+property of the pre-existing two-node coupling, not of `Q_resp`: an environmental perturbation of
+the same size (`env_temp` +1.15 °C, which moves radiative *and* convective since `radiant_temp` is
+`null`) gives 0.043 °C/W as well, matching within 2 %.
+
+> Noted while verifying, **pre-existing and not changed here**: after either perturbation `Q_perf`
+> settles at a *sustained* non-zero value (≈1.17 W for the humidifier case) once the residual has
+> converged to ~0. The bullet below describes the coupling-mass inexactness as a *transient* that is
+> zero at rest; at a perturbed steady state it appears not to vanish. Worth a look before relying on
+> absolute core-temperature excursions, independently of respiratory heat.
+
+> **Calibration note.** `evap_coeff` was documented as the "evaporative/**respiratory**" coefficient
+> — respiratory loss used to be lumped into that skin surface term. It is now double-counted there.
+> Because `_loss_trim` auto-seeds, this does **not** move the resting core, but it does leave
+> sensitivity to ambient `rel_humidity` overstated. The `6.0` default is deliberately left unchanged
+> so resting behaviour and today's humidity response are untouched; reducing it to a skin-only value
+> is a physiological judgement left to the modeller.
+
 ## Key parameters (defaults / units)
 
 | Parameter | Default | Meaning |
@@ -121,7 +184,9 @@ thermoregulation has unchanged baseline vitals/ABG until the thermal environment
 | `heat_capacity` | `3470 J/kg/K` | specific heat of body tissue |
 | `surface_area_k` | `0.05` | Meeh constant in `SA = k·weight^(2/3)` |
 | `h_radiative` / `h_convective` | `9.6` / `7.0 W/m²/K` | radiative / convective transfer coefficients (recalibrated ×1.75 for the two-node coupling) |
-| `evap_coeff` | `6.0 W/m²` per `(1−humidity)` | evaporative/respiratory loss coefficient |
+| `evap_coeff` | `6.0 W/m²` per `(1−humidity)` | **skin** (transepidermal) evaporative loss coefficient — see the calibration note under *Respiratory heat loss* |
+| `respiratory_heat_loss` | `true` | count `Q_resp` in the balance; set `false` to compare against a body that conditions gas for free |
+| `resp_window` | `30.0 s` | averaging window for `Q_resp`; must span several breaths (see above) |
 | `caloric_equiv_o2` | `20.1 J/mL` | heat released per mL O2 consumed |
 | `blood_density` / `cp_blood` | `1.06 kg/L` / `3800 J/kg/K` | blood pool density and specific heat |
 | `blood_temp_tc` | `10.0 s` | perfusion equilibration time constant (`G_perf = C_blood / tc`); shared with `Blood` |
@@ -150,12 +215,10 @@ neutral at rest and reproduces environmental cold/warm defence, brown-fat thermo
 device-driven blood cooling/rewarming. The following are **deliberate open items**, not bugs — recorded
 so they are not rediscovered as defects:
 
-- **Respiratory heat/water loss is lumped, not ventilation-driven.** Warming and humidifying inspired
-  gas costs the body no *conserved* heat: `add_heat`/`add_watervapour` draw from an implicit infinite
-  source, and `q_evaporative = SA·evap_coeff·(1−rel_humidity)` is a skin-like surface term with no
-  dependence on tidal volume, minute ventilation, or the actual gas temperature/humidity. Closing this
-  (a heat flux at the alveolus so pulmonary blood warms the gas and the core rewarms the return) is the
-  natural next step and would reuse the gas + blood temperature fields already in place.
+- **Respiratory *water* loss is still not conserved.** `Q_resp` charges the body the *heat* of
+  conditioning inspired gas, but `add_watervapour` still draws the water itself from an implicit
+  infinite source and discards condensate. Insensible fluid loss through the airway is therefore
+  still unmodelled and does not reach fluid balance — only its thermal cost does.
 - **`MOUTH` and `env_temp` are independent ambients.** The inspired-air source (`MOUTH`, seeded ~20 °C)
   and the thermal environment (`env_temp`, 32 °C incubator default) are not unified, so a cold/warm
   environment does not consistently drive inspired-gas temperature.

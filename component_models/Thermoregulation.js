@@ -17,9 +17,14 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
                 brown_fat = bat_gain * max(0, setpoint - core), capped at bat_max * weight   [W]
                   (neonates cannot shiver — they defend temperature by non-shivering thermogenesis)
     Q_loss  = SA * [ h_radiative*(core - radiant_eff) + h_convective*(core - env_temp) ]
-                + Q_evaporative                                                  [W]
+                + Q_evaporative + Q_resp                                         [W]
                 SA = surface_area_k * weight^(2/3)  (Meeh; neonates have a high surface:mass ratio)
                 radiant_eff = radiant_temp (radiant warmer) when set, else env_temp
+                Q_resp = Gas.drain_respiratory_heat() averaged over resp_window — the heat the
+                  airway wall actually spent warming and humidifying the gas that passed through
+                  it, metered by GasCapacitance rather than derived from minute ventilation, so it
+                  stays right under mechanical ventilation and during apnea. Averaged because the
+                  1 s update is shorter than a breath and the _loss_trim seed samples it once.
     Q_perf  = G_perf * (core - blood_mean)                                       [W]
                 G_perf   = C_blood / blood_temp_tc     (perfusion conductance, W/K)
                 C_blood  = Sum_i vol_i * blood_density * cp_blood  (blood pool heat capacity)
@@ -78,6 +83,8 @@ export class Thermoregulation extends BaseModelClass {
     this.env_temp = 32.0; // ambient air temperature (degC) — neutral-thermal incubator default
     this.radiant_temp = null; // radiant-warmer effective temperature (degC); null → use env_temp
     this.rel_humidity = 0.5; // ambient relative humidity (fraction) — modulates evaporative loss
+    this.respiratory_heat_loss = true; // count the cost of conditioning inspired gas (see Q_resp)
+    this.resp_window = 30.0; // averaging window for Q_resp (s) — must span several breaths
 
     // -----------------------------------------------
     // body thermal geometry / constants
@@ -121,6 +128,7 @@ export class Thermoregulation extends BaseModelClass {
     this.brown_fat_heat = 0.0; // non-shivering thermogenesis component (W)
     this.blood_temp_mean = 37.0; // heat-capacity-weighted mean blood temperature (degC), read-out
     this.q_perfusion = 0.0; // heat flowing tissue → blood pool this update (W), read-out
+    this.q_respiratory = 0.0; // heat spent conditioning inspired gas this update (W), read-out
     this.vo2_temp_factor = 1.0; // → Metabolism.vo2_temp_factor (Q10), read-out
     this.hr_temp_factor = 1.0; // → Heart.hr_temp_factor, read-out
 
@@ -132,6 +140,9 @@ export class Thermoregulation extends BaseModelClass {
     this._warmup_counter = 0.0;
     this._loss_trim = 0.0; // auto-seeded additive heat-loss offset (W) → neutral at rest
     this._seeded = false;
+    this._resp_joules = 0.0; // Q_resp accumulator: energy drained but not yet averaged (J)
+    this._resp_elapsed = 0.0; // time covered by that accumulator (s)
+    this._resp_ready = false; // a full averaging window has completed → safe to seed _loss_trim
     this._was_active = false; // tracks active→inactive for the one-shot channel release
     this._metabolism = null;
     this._heart = null;
@@ -150,6 +161,19 @@ export class Thermoregulation extends BaseModelClass {
       if (this._was_active) this._release_channels();
       this._was_active = false;
       return;
+    }
+
+    // resuming after a disabled stretch (and on the very first step): the gas compartments went on
+    // metering the whole time with nobody draining them, so discard that bank instead of charging
+    // an arbitrarily large burst to the first update
+    if (!this._was_active) {
+      this._resolve_refs();
+      if (this._gas && typeof this._gas.drain_respiratory_heat === "function") {
+        this._gas.drain_respiratory_heat();
+      }
+      this._update_counter = 0.0;
+      this._resp_joules = 0.0; // the partial window spans the gap — discard it too
+      this._resp_elapsed = 0.0;
     }
 
     this._update_counter += this._t;
@@ -197,12 +221,43 @@ export class Thermoregulation extends BaseModelClass {
     const q_radiative = sa * this.h_radiative * (this.core_temp - radiant_eff);
     const q_convective = sa * this.h_convective * (this.core_temp - this.env_temp);
     const q_evaporative = sa * this.evap_coeff * (1.0 - this.rel_humidity);
-    const q_loss_raw = q_radiative + q_convective + q_evaporative;
+
+    // Respiratory heat loss: the energy the airway wall actually spent warming and humidifying the
+    // gas that passed through it, metered by GasCapacitance and drained here. Reading the gas
+    // physics rather than deriving it from minute ventilation is what makes this correct under
+    // mechanical ventilation and during apnea, and what lets expiratory heat and water recovery in
+    // the dead space be credited back (the drained total is signed).
+    //
+    // Averaged over resp_window rather than reported per update, because _update_interval (1 s) is
+    // SHORTER THAN A BREATH: an adult at 13/min swings between -0.8 and +19.4 W across the cycle
+    // about a true mean of 7.3 W. The running balance would still be right on average, but the
+    // _loss_trim seed below takes a single snapshot — landing it on an unlucky breath phase would
+    // bias resting core permanently (~1 degC for an adult). Hence also _resp_ready: the seed waits
+    // for one complete window so it is fed a representative number.
+    const has_gas_drain = this._gas && typeof this._gas.drain_respiratory_heat === "function";
+    if (!this.respiratory_heat_loss || !has_gas_drain) {
+      // still drain when switched off, so the compartment accumulators cannot bank while ignored
+      if (has_gas_drain) this._gas.drain_respiratory_heat();
+      this.q_respiratory = 0.0;
+      this._resp_ready = true; // nothing to wait for
+    } else {
+      this._resp_joules += this._gas.drain_respiratory_heat();
+      this._resp_elapsed += u;
+      if (this._resp_elapsed >= this.resp_window) {
+        this.q_respiratory = this._resp_joules / this._resp_elapsed;
+        this._resp_joules = 0.0;
+        this._resp_elapsed = 0.0;
+        this._resp_ready = true;
+      }
+    }
+
+    const q_loss_raw = q_radiative + q_convective + q_evaporative + this.q_respiratory;
 
     // auto-seed the insulation/posture trim so the body is exactly in balance at rest
     if (!this._seeded) {
       this._warmup_counter += u;
-      if (this._warmup_counter >= this._warmup_delay) {
+      // _resp_ready holds the seed until Q_resp has a breath-spanning average behind it
+      if (this._warmup_counter >= this._warmup_delay && this._resp_ready) {
         this._loss_trim = this.heat_production - q_loss_raw; // makes Q_loss_eff == Q_prod at core==setpoint
         this._seeded = true;
       }
@@ -269,6 +324,9 @@ export class Thermoregulation extends BaseModelClass {
     if (this._blood) this._blood.set_perfusion_target(37.0);
     // restore the gas targets to their build values (set-point + offset) so the airway is neutral
     if (this._gas) this._gas.set_body_temperature(this.setpoint_temp);
+    this.q_respiratory = 0.0;
+    this._resp_joules = 0.0;
+    this._resp_elapsed = 0.0;
   }
 
   _clamp(v, lo, hi) {

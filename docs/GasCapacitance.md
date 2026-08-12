@@ -163,10 +163,16 @@ An Antoine-type form returning mmHg: 46.49 at 37 °C, 35.45 at 32 °C, 17.81 at 
 
 ### Modelling assumptions for heat and water
 
-- **The water source is unlimited.** There is no liquid reservoir behind the wall, so a compartment
-  with `humidity > 0` can evaporate indefinitely. Respiratory water loss is therefore not conserved
-  anywhere — [`Thermoregulation`](./Thermoregulation.md) keeps its own independent `rel_humidity`
-  for evaporative heat loss and is not coupled to these compartments.
+- **The water source is unlimited, but its heat cost is now metered.** There is no liquid reservoir
+  behind the wall, so a compartment with `humidity > 0` can evaporate indefinitely, and respiratory
+  *water* loss is still not conserved anywhere. The *energy* is: `add_heat` accumulates
+  `n_gas · _cp_molar · dT` into `_q_wall_sensible` and `add_watervapour` accumulates
+  `n_h2o · _latent_h2o` into `_q_wall_latent`, both **signed**, so gas cooling and condensing credit
+  heat back to the wall. [`Gas.drain_respiratory_heat()`](./Gas.md) sums and clears these across the
+  body-warmed compartments and [`Thermoregulation`](./Thermoregulation.md) charges the total to the
+  body's heat balance as `Q_resp`. The accumulators are `_`-prefixed deliberately: `ModelEngine`
+  strips `_` keys from state dumps, keeping them out of scenario JSON and out of `reseed_*.mjs`.
+  Note `Thermoregulation.rel_humidity` remains a separate *skin* term and is still not coupled here.
 - **Condensate is discarded.** Water that condenses out of supersaturated gas simply leaves the
   system; it does not pool, drain, or re-evaporate.
 - **Brief supersaturation during expiration is expected, not a defect.** Condensation is a
@@ -178,7 +184,18 @@ An Antoine-type form returning mmHg: 46.49 at 37 °C, 35.45 at 32 °C, 17.81 at 
   instantaneous reading lands at an arbitrary breath phase.
 - **`fixed_composition` compartments are inert to both heat and water.** They are infinite
   reservoirs, so `add_heat` and `add_watervapour` both skip them, matching how `volume_in` already
-  holds their composition and temperature against advective mixing.
+  holds their composition and temperature against advective mixing. Their `humidity` is therefore
+  *not* self-correcting: it is applied once, by [`Gas`](./Gas.md) at build time (from
+  `humidity_settings`/`temp_settings`) or by `set_humidity`/`set_temperature` at runtime, both of
+  which rebuild the composition explicitly. Changing `humidity` on such a compartment by any other
+  route leaves `ph2o` stale.
+- **Humidifying the inspired gas barely moves the alveolar gas — this is correct.** Raising `MOUTH`
+  from 50 % to 100 % RH at 20 °C changes alveolar `ph2o` by ≈0.2 mmHg and `po2` not at all, because
+  the airway wall already saturates the gas before it arrives. A heated humidifier (37 °C, 100 % RH)
+  raises alveolar `ph2o` from ≈44 to ≈46 mmHg, essentially by removing the inspiratory cooling. What
+  a humidifier really changes clinically is *where the water comes from* — the device instead of the
+  mucosa — and since the wall is an unlimited source with no water or heat debt (first bullet),
+  that benefit has nothing to attach to here.
 - **No water or heat crosses the blood–gas barrier.** [`GasExchanger`](./GasExchanger.md) and
   [`GasDiffusor`](./GasDiffusor.md) transfer only O₂ and CO₂. An alveolus is humidified from its own
   `target_temp`, not from pulmonary capillary blood.

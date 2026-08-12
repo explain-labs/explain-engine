@@ -43,6 +43,17 @@ export class GasCapacitance extends Capacitance {
    
     // local properties
     this._gas_constant = 62.36367; // ideal gas law constant (L·mmHg/(mol·K))
+    this._cp_molar = 29.1; // molar heat capacity of air at constant pressure (J/(mol·K))
+    this._latent_h2o = 43400.0; // latent heat of vaporisation of water near 37 C (J/mol)
+
+    // Energy this compartment has drawn from its wall since the last drain (J), metered by
+    // add_heat / add_watervapour and consumed by Gas.drain_respiratory_heat -> Thermoregulation.
+    // SIGNED: warming and evaporation take heat from the wall (positive), while gas cooling and
+    // condensing give it back (negative) — that is how airway heat/water recovery on expiration is
+    // credited. Underscore-prefixed on purpose: ModelEngine's state dump drops `_` keys, so these
+    // stay out of scenario JSON and out of anything reseed_*.mjs bakes.
+    this._q_wall_sensible = 0.0;
+    this._q_wall_latent = 0.0;
   }
 
   // override the calc_model method from the Capoacitance class
@@ -133,6 +144,13 @@ export class GasCapacitance extends Capacitance {
     // stepsize larger than the time constant can not overshoot into oscillation
     let frac = this.temp_tc > 0.0 ? Math.min(1.0, this._t / this.temp_tc) : 1.0;
     let dT = (this.target_temp - this.temp) * frac;
+
+    // meter the sensible heat the wall had to supply for this temperature change. the amount is
+    // taken BEFORE the expansion below, and summed from the species rather than ctotal, which
+    // calc_gas_composition only refreshes at the end of calc_model and so lags a step here
+    const n_gas = ((this.co2 + this.cco2 + this.cn2 + this.cother + this.ch2o) * this.vol) / 1000.0;
+    this._q_wall_sensible += n_gas * this._cp_molar * dT;
+
     // add heat to the gas
     this.temp += dT;
 
@@ -201,6 +219,11 @@ export class GasCapacitance extends Capacitance {
     // the evaporated (or condensed) water takes up volume
     let v0 = this.vol;
     let n_h2o = dc * v0; // mmol of water added, or removed when condensing
+
+    // meter the latent heat the wall had to supply to evaporate this water (returned to the wall
+    // when condensing, where n_h2o is negative). this is the dominant respiratory heat term
+    this._q_wall_latent += (n_h2o / 1000.0) * this._latent_h2o;
+
     let dV = ((this._gas_constant * (273.15 + this.temp)) / this.pres) * (n_h2o / 1000.0);
     let v1 = v0 + dV;
     if (v1 <= 0.0) return;

@@ -65,6 +65,18 @@ conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites
    would report a physically impossible relative humidity forever. Any compartment found
    supersaturated here therefore has its composition rebuilt at its final temperature. In practice
    this is only ever an idle ventilator circuit holding fresh gas.
+7. **Apply `temp_settings`/`humidity_settings` to the fixed-composition gas sources they name.**
+   Step 5 only fires on a compartment holding no gas at all, and every reseeded scenario bakes
+   concentrations into its JSON — so on those, steps 3 and 4 reach `temp` and `humidity` but never
+   the composition derived from them. A normal compartment self-heals (`add_watervapour` relaxes
+   `ph2o` toward `humidity · P_sat(temp)` on its own), but a `fixed_composition` one never does,
+   because `add_watervapour` returns immediately there. Without this pass `MOUTH` stays frozen at
+   its baked-in water content forever and **editing `humidity_settings` in a scenario JSON is a
+   silent no-op**; step 6 does not cover it either, since an under-humidified compartment is not
+   supersaturated. Scoped to members of `temp_settings`/`humidity_settings` so device gas lines are
+   left alone — `Ventilator`/`Ecls` circuits are `fixed_composition` too, but are not in those dicts
+   and are bootstrapped by their owning device. Rebuilding from `fio2` is safe on a source, which by
+   definition has no accumulated CO₂ worth preserving; that is why non-fixed members are skipped.
 
 `calc_model` is intentionally empty.
 
@@ -73,7 +85,12 @@ conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites
 - **`set_atmospheric_pressure(new_pres_atm)`** — set `pres_atm` and propagate it to every compartment
   in `_gas_components`.
 - **`set_temperature(new_temp, sites = ["OUT", "MOUTH"])`** — record `temp_settings[site]` for each
-  site (`parseFloat`), then apply `temp` **and** `target_temp` to all recorded sites.
+  site (`parseFloat`), then apply `temp` **and** `target_temp` to all recorded sites. Sites absent
+  from the scenario are skipped: the defaults name compartments not every scenario defines (a
+  neonatal airway has no `OUT`), and a site once recorded stays in `temp_settings` for every later
+  call. Saturation pressure is a function of temperature, so — as in `set_humidity` — a
+  `fixed_composition` site additionally gets its composition recomputed, or it would keep the `ph2o`
+  of the temperature it was built at.
 - **`set_humidity(new_humidity, sites = ["OUT", "MOUTH"])`** — record `humidity_settings[site]`
   (`parseFloat`) and apply `humidity` to all recorded sites. Since `humidity` is a live evaporation
   target that [`GasCapacitance`](./GasCapacitance.md) reads every step, a normal compartment relaxes
@@ -121,6 +138,10 @@ warm, fully-saturated alveoli):
   consistent pressure/temperature/humidity and a physiological room-air (or FiO₂-set) composition.
 - The setters are the entry points the UI / `Ventilator` / `Ecls` and the bot use to change inspired
   oxygen, ambient pressure, and airway conditioning at runtime.
+- To model **humidified inspired gas** (a heated humidifier on a ventilator circuit), raise
+  `humidity_settings.MOUTH` — and `temp_settings.MOUTH` for a *heated* humidifier — in the scenario
+  JSON, or call `set_humidity` / `set_temperature` at runtime. Both paths now take effect on
+  `MOUTH`; before the step-7 pass above, only the runtime setters did.
 - Compartments not listed in `humidity_settings` keep whatever `humidity` they carry (the
   `GasCapacitance` default is `1.0`, a saturated wall) and are humidified over time by
   `GasCapacitance.add_watervapour`. Device gas paths that should stay dry — the ventilator supply,

@@ -92,6 +92,32 @@ export class Gas extends BaseModelClass {
       calc_gas_composition(model, this.fio2, model.temp, model.humidity);
     });
 
+    // Apply temp_settings/humidity_settings to the fixed-composition gas SOURCES they name.
+    //
+    // The bootstrap above only fires on a compartment with no gas at all, and every reseeded
+    // scenario bakes concentrations into its JSON — so on those the settings above reach `temp` and
+    // `humidity` but never the composition derived from them. A normal compartment self-heals,
+    // because add_watervapour relaxes ph2o toward humidity * P_sat(temp) on its own. A
+    // fixed_composition one never does: add_watervapour returns immediately there, so it would stay
+    // frozen at the baked-in water content forever and editing humidity_settings would be a silent
+    // no-op. The supersaturation pass above does not cover it either — an under-humidified
+    // compartment is not supersaturated.
+    //
+    // Scoped to members of temp_settings/humidity_settings so device gas lines are left alone:
+    // Ventilator/Ecls circuits are fixed_composition too, but are not in those dicts and are
+    // bootstrapped by their owning device's init_model, which runs before this one.
+    //
+    // Rebuilding from fio2 is safe here precisely because these are sources: an infinite reservoir
+    // has no accumulated CO2 or history worth preserving. That is not true of the airway
+    // compartments, which is why non-fixed members are deliberately skipped.
+    new Set([...Object.keys(this.temp_settings), ...Object.keys(this.humidity_settings)]).forEach(
+      (model_name) => {
+        const m = this._model_engine.models[model_name];
+        if (!m || !m.fixed_composition) return;
+        calc_gas_composition(m, this.fio2, m.temp, m.humidity);
+      }
+    );
+
     // Capture the thermal offset of each body-warmed (perfused) airway compartment relative to the
     // body set-point, so set_body_temperature can ride core temperature while staying exactly
     // neutral at rest. Body-warmed = the non-fixed_composition members of temp_settings (DS, ALL,
@@ -129,6 +155,29 @@ export class Gas extends BaseModelClass {
     });
   }
 
+  // Sum and clear the heat the patient's airway has given up conditioning gas since the last call,
+  // in joules. Consumed by Thermoregulation, which divides by its own elapsed time to get watts.
+  //
+  // Scoped to the body-warmed compartments — the keys of _body_temp_delta, i.e. the
+  // non-fixed_composition members of temp_settings (DS, ALL, ALR). Those are exactly the
+  // compartments whose wall is the patient. It therefore excludes MOUTH (fixed_composition
+  // inspired-air source, warmed by the environment) and the Ventilator/Ecls gas lines (heated by
+  // the device, and not in temp_settings), without either needing to be special-cased.
+  //
+  // Draining is what bounds the accumulators: a scenario with no Thermoregulation never calls this,
+  // and the compartments simply keep summing a few joules a second with nobody reading them.
+  drain_respiratory_heat() {
+    let total = 0.0;
+    Object.keys(this._body_temp_delta).forEach((model_name) => {
+      const m = this._model_engine.models[model_name];
+      if (!m) return;
+      total += (m._q_wall_sensible ?? 0.0) + (m._q_wall_latent ?? 0.0);
+      m._q_wall_sensible = 0.0;
+      m._q_wall_latent = 0.0;
+    });
+    return total;
+  }
+
   set_atmospheric_pressure(new_pres_atm) {
     this.pres_atm = new_pres_atm;
 
@@ -149,9 +198,23 @@ export class Gas extends BaseModelClass {
 
     // set the temperatures of the different gas containing components
     Object.keys(this.temp_settings).forEach((model_name) => {
+      // the default sites include compartments that not every scenario defines (a neonatal airway
+      // has no OUT), and a site added here stays in temp_settings for every later call, so skip
+      // what is absent rather than throwing on it
+      let m = this._model_engine.models[model_name];
+      if (!m) return;
+
       let temp = this.temp_settings[model_name];
-      this._model_engine.models[model_name].temp = temp;
-      this._model_engine.models[model_name].target_temp = temp;
+      m.temp = temp;
+      m.target_temp = temp;
+
+      // saturation pressure is a function of temperature, so a compartment that add_watervapour
+      // never touches needs its water content recomputed here or it keeps the ph2o of the
+      // temperature it was built at. same scoping as set_humidity: only fixed-composition sources,
+      // since calc_gas_composition rebuilds from fio2 and would discard an airway's accumulated CO2
+      if (m.fixed_composition) {
+        calc_gas_composition(m, this.fio2, m.temp, m.humidity);
+      }
     });
   }
 
