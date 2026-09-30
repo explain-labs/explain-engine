@@ -18,6 +18,7 @@
 //   node scripts/_make_restrictive_pda.mjs
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
@@ -57,6 +58,7 @@ log.push(`BR_MAP: baroreflex MAP setpoint -> ${BR_MAP_SETPOINT} (lifts systemic 
 
 // --- top-level metadata ---
 j.name = "preterm_28wk_restrictive_pda";
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.user = "timothy";
 j.description =
   "preterm 1 kg neonate, 28 weeks gestation with a RESTRICTIVE (closing) patent ductus arteriosus: " +

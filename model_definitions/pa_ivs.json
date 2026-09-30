@@ -864,7 +864,7 @@
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": true,
+    "enabled": false,
     "models": [
      "RV_PA"
     ],
@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "PULM. ATRESIA - INTACT VENTRICULAR SEPTUM",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

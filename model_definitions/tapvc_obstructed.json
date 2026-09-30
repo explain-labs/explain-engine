@@ -666,14 +666,14 @@
    },
    "PV_LA": {
     "type": "Connector",
-    "label": "",
+    "label": "vertical vein",
     "picto": "container.png",
     "enabled": true,
     "models": [
      "PV_LA"
     ],
     "dbcFrom": "PV",
-    "dbcTo": "LA",
+    "dbcTo": "SVC",
     "layout": {
      "general": {
       "animatedBy": "flow",
@@ -682,7 +682,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc",
+      "type": "arc_flip",
       "width": "7",
       "color": "#666666"
      },
@@ -707,7 +707,7 @@
      "label": {
       "pos_x": 0,
       "pos_y": 0,
-      "size": 10,
+      "size": 8,
       "rotation": 0,
       "color": "#ffffff"
      }
@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "TAPVC - OBSTRUCTED",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

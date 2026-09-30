@@ -31,6 +31,8 @@
 //   node scripts/_make_pavsd.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
+import { addVsdConnector } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_pavsd.mjs) --------------------------
 const PAVSD = {
@@ -61,6 +63,8 @@ for (const key of keys) {
   const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
   j.name = key;
+
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
 
@@ -77,6 +81,9 @@ for (const key of keys) {
   M.Shunts.diameter_vsd = cfg.vsd; // large VSD -> RV -> LV -> aorta
   M.Shunts.diameter_fo = 0; // intact atrial septum (NOT foramen-ovale-dependent)
   log.push(`A atresia: RV_PA no_flow (atretic), diameter_vsd=${cfg.vsd} (RV decompresses to aorta), diameter_fo=0`);
+  addVsdConnector(j.diagram_definition.components); // draw the RV -> LV decompression
+  j.diagram_definition.components.RV_PA.enabled = false; // atretic valve: no RV -> PA connection drawn
+  log.push("A diagram: + VSD connector (LV->RV); RV_PA connector hidden (atresia)");
 
   // B. Normalise the combined two-ventricle output into the single aortic outlet ------------------------
   M.Heart.cont_factor_left = cfg.cont;

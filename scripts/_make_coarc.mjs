@@ -33,6 +33,8 @@
 //   node scripts/_make_coarc.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
+import { addVsdConnector, hideConnectors } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_coarc.mjs) --------------------------
 const COARC = {
@@ -71,6 +73,8 @@ for (const key of keys) {
   const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
   j.name = key;
+
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
 
@@ -90,6 +94,11 @@ for (const key of keys) {
   if (cfg.isthmus.interrupted) {
     C.AD.no_flow = true; // interrupt the AAR->AD connector entirely
     log.push("B isthmus: AD.no_flow=true (aortic arch interrupted — no antegrade flow)");
+    // diagram: the interruption is drawn between AA and AAR (the model interrupts AAR -> AD, so the
+    // AAR_AD connector carries no flow and the duct is wired AD <-> PA; diagram-only choice)
+    hideConnectors(j.diagram_definition.components, "AA_AAR");
+    j.diagram_definition.components.AAR.layout.sprite.pos.dgs = 45; // baseline 30: open a visible gap from AA (20)
+    log.push("B diagram: AA_AAR connector hidden (interruption drawn between AA and AAR); AAR moved 30 -> 45 deg");
   } else {
     C.AD.r_for = cfg.isthmus.r_for;
     C.AD.r_back = cfg.isthmus.r_for;
@@ -100,6 +109,10 @@ for (const key of keys) {
   M.Shunts.diameter_vsd = cfg.ductal.vsd;
   M.Shunts.diameter_fo = 0; // atrial septum intact
   log.push(`C septum: diameter_vsd=${cfg.ductal.vsd}, diameter_fo=0`);
+  if (cfg.ductal.vsd > 0) {
+    addVsdConnector(j.diagram_definition.components); // IAA: draw the VSD shunt
+    log.push("C diagram: + VSD connector (LV->RV)");
+  }
 
   const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");

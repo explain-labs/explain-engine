@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "HLHS - RESTRICTIVE ATRIAL SEPTUM",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

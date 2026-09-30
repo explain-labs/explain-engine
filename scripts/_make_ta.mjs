@@ -34,6 +34,8 @@
 //   node scripts/_make_ta.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
+import { addVsdConnector } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_ta.mjs) -----------------------------
 const TA = {
@@ -64,6 +66,8 @@ for (const key of keys) {
   const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
   j.name = key;
+
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
 
@@ -79,6 +83,11 @@ for (const key of keys) {
   heart.RV.el_min = cfg.rv.el_min;
   heart.RV.u_vol = cfg.rv.u_vol;
   log.push(`A atresia: RAIVCI_RV + RASVC_RV no_flow (tricuspid atretic), RV el_min=${cfg.rv.el_min}/u_vol=${cfg.rv.u_vol} (hypoplastic, VSD-fed)`);
+  const dc = j.diagram_definition.components;
+  dc.RA_RV.enabled = false; // atretic valve: no RA -> RV connection drawn
+  // the RV fills only through the VSD, so draw it (flow +ve = LV -> RV)
+  addVsdConnector(dc);
+  log.push("A diagram: RA_RV connector hidden (atresia); + VSD connector (LV->RV)");
 
   // B. Obligate right-to-left atrial shunt (foramen ovale carries the whole systemic venous return) -----
   M.Shunts.diameter_fo = cfg.atrial.fo;

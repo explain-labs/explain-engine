@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "PRETERM NEONATE (28 WK, 1.0 KG)",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "PDA - UNRESTRICTIVE, RIGHT-TO-LEFT (PPHN)",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

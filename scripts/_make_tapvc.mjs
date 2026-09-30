@@ -31,6 +31,7 @@
 //   node scripts/_make_tapvc.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_tapvc.mjs) --------------------------
 const TAPVC = {
@@ -57,6 +58,14 @@ const TAPVC = {
   },
 };
 
+// diagram rewiring for anomalous pulmonary venous drainage (see step D below)
+function applyTapvcDiagram(dc, drainTo) {
+  dc.PV_LA.dbcTo = drainTo; // PV stays on the ring; an arc to an off-ring node renders as a curved chord
+  dc.PV_LA.layout.path.type = "arc_flip"; // bend it up over the pulmonary side, not down through the upper body
+  dc.PV_LA.label = "vertical vein";
+  dc.PV_LA.layout.label.size = 8;
+}
+
 const argv = process.argv.slice(2);
 const keys = argv.includes("--all") ? Object.keys(TAPVC) : argv.filter((a) => !a.startsWith("-"));
 if (keys.length === 0 || keys.some((k) => !TAPVC[k])) {
@@ -71,6 +80,8 @@ for (const key of keys) {
   const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
   j.name = key;
+
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
 
@@ -95,6 +106,16 @@ for (const key of keys) {
   // C. Not duct-dependent — duct closed (TAPVC is PGE1-unresponsive) -------------------------------------
   M.Pda.diameter_relative = 0;
   log.push("C ductal: Pda closed (TAPVC is foramen-ovale-dependent, not duct-dependent)");
+
+  // D. Diagram: animate the anomalous drainage where the model sends it -------------------------------------
+  // The baseline diagram draws PV_LA as a PV -> LA arc on the ring, which would keep animating pulmonary
+  // venous return into the left atrium. Re-point the connector to the drainage site; PV keeps its ring
+  // position (moving it inside the ring was tried and rejected). Because the SVC sits off the ring, the
+  // renderer draws the connector as a curved chord across the diagram interior. "arc_flip" bends it up over the
+  // pulmonary side (like an ascending vertical vein); plain "arc" would bow down over the upper-body nodes,
+  // and a straight path would lie almost on top of the foramen-ovale chord.
+  applyTapvcDiagram(j.diagram_definition.components, cfg.drain_to);
+  log.push(`D diagram: PV_LA drawn PV->${cfg.drain_to} as a curved "vertical vein" (arc_flip; PV stays on the ring)`);
 
   const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");

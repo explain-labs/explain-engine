@@ -46,6 +46,7 @@
 // Usage:  node scripts/_make_pphn.mjs [--write]   (writes model_definitions/pphn.json)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 
 const cfg = {
   // suprasystemic, DIFFUSE (symmetric) pulmonary vascular resistance — PPHN is not asymmetric like CDH
@@ -87,6 +88,8 @@ const srcPath = new URL("../model_definitions/term_neonate.json", import.meta.ur
 const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
 j.name = "pphn";
+
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.user = "timothy";
 j.description = cfg.desc;
 

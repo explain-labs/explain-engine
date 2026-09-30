@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "TRICUSPID ATRESIA",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],
@@ -3276,7 +3276,7 @@
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": true,
+    "enabled": false,
     "models": [
      "RAIVCI_RV",
      "RASVC_RV"
@@ -3383,6 +3383,55 @@
     ],
     "dbcFrom": "PA",
     "dbcTo": "PV",
+    "layout": {
+     "general": {
+      "animatedBy": "flow",
+      "z_index": 8,
+      "alpha": 1,
+      "tinting": true
+     },
+     "path": {
+      "type": "straight",
+      "width": 7,
+      "color": "#333333"
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 0,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 2
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 0,
+      "size": 10,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    }
+   },
+   "VSD": {
+    "type": "Connector",
+    "label": "VSD",
+    "picto": "container.png",
+    "enabled": true,
+    "models": [
+     "VSD"
+    ],
+    "dbcFrom": "LV",
+    "dbcTo": "RV",
     "layout": {
      "general": {
       "animatedBy": "flow",
