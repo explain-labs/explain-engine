@@ -40,6 +40,7 @@
 
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { hideConnectors } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_paivs.mjs) --------------------------
 const PAIVS = {
@@ -90,6 +91,8 @@ for (const key of keys) {
   heart.RV.u_vol = cfg.rv.u_vol;
   M.Shunts.diameter_vsd = cfg.ductal.vsd; // intact septum (0)
   log.push(`A atresia: RV_PA no_flow (atretic), RV el_min=${cfg.rv.el_min}/u_vol=${cfg.rv.u_vol} (hypoplastic), diameter_vsd=${cfg.ductal.vsd}`);
+  hideConnectors(j.diagram_definition.components, "RV_PA"); // atretic valve: no RV -> PA connection drawn
+  log.push("A diagram: RV_PA connector hidden (atresia)");
 
   // B. Tricuspid regurgitation — the only outlet for the blind RV ---------------------------------------
   for (const t of ["RAIVCI_RV", "RASVC_RV"]) {

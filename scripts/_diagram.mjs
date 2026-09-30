@@ -1,10 +1,21 @@
 // Shared diagram_definition edits for the scenario generators (_make_*.mjs). The baseline term_neonate
-// diagram has no VSD connector, so a lesion that opens the ventricular septum must add one or the shunt
-// flow is never drawn.
+// diagram only draws the normal circulation, so a lesion that adds a pathway must add its connector (or
+// its flow is never drawn), and one that closes a structure should hide the connector drawn over it.
 
-// Add a VSD connector (LV -> RV; flow +ve = left-to-right) to diagram components `dc`, styled like the
-// baseline foramen-ovale chord. Matches the connector scripts/_make_tof.mjs draws.
+// Add a straight chord connector `name` (from -> to, animated by the flow of `models`) to diagram
+// components `dc`, styled like the baseline foramen-ovale chord. Chords cross the ring interior, so they
+// don't run over the ring arcs the way a ring-to-ring "arc" connector would.
+export function addChordConnector(dc, name, models, from, to, label = "") {
+  dc[name] = { ...structuredClone(dc.FO), label, models, dbcFrom: from, dbcTo: to };
+  return dc[name];
+}
+
+// Add a VSD connector (LV -> RV; flow +ve = left-to-right). Matches the one scripts/_make_tof.mjs draws.
 export function addVsdConnector(dc) {
-  dc.VSD = { ...structuredClone(dc.FO), label: "VSD", models: ["VSD"], dbcFrom: "LV", dbcTo: "RV" };
-  return dc.VSD;
+  return addChordConnector(dc, "VSD", ["VSD"], "LV", "RV", "VSD");
+}
+
+// Hide connectors drawn over closed/atretic structures (the renderer skips disabled connectors).
+export function hideConnectors(dc, ...names) {
+  for (const n of names) if (dc[n]) dc[n].enabled = false;
 }

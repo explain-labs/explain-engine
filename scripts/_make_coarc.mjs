@@ -34,7 +34,7 @@
 
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
-import { addVsdConnector } from "./_diagram.mjs";
+import { addVsdConnector, hideConnectors } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_coarc.mjs) --------------------------
 const COARC = {
@@ -94,6 +94,8 @@ for (const key of keys) {
   if (cfg.isthmus.interrupted) {
     C.AD.no_flow = true; // interrupt the AAR->AD connector entirely
     log.push("B isthmus: AD.no_flow=true (aortic arch interrupted — no antegrade flow)");
+    hideConnectors(j.diagram_definition.components, "AAR_AD"); // interrupted arch: no AAR -> AD connection drawn
+    log.push("B diagram: AAR_AD connector hidden (interruption)");
   } else {
     C.AD.r_for = cfg.isthmus.r_for;
     C.AD.r_back = cfg.isthmus.r_for;

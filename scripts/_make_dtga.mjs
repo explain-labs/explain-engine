@@ -34,6 +34,7 @@
 
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { addChordConnector, hideConnectors } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_dtga.mjs) ----------------------------
 const TGA = {
@@ -88,6 +89,11 @@ for (const key of keys) {
   setValve(heart.RV_PA, false);  // normal pulmonary valve removed
   setValve(heart.LV_AA, false);  // normal aortic valve removed
   log.push("A outflow: RV->AA + LV->PA enabled; RV->PA + LV->AA disabled (great arteries transposed)");
+  const dc = j.diagram_definition.components;
+  hideConnectors(dc, "RV_PA", "LV_AA"); // normal outflow connectors: no flow
+  addChordConnector(dc, "RV_AA", ["RV_AA"], "RV", "AA"); // transposed outflows as chords that cross in
+  addChordConnector(dc, "LV_PA", ["LV_PA"], "LV", "PA"); // the middle (ring arcs would overlap other paths)
+  log.push("A diagram: RV_PA + LV_AA connectors hidden; + RV_AA and LV_PA chord connectors");
 
   // B. Mixing — atrial communication (FO/ASD) + ductus arteriosus; intact ventricular septum ------------
   M.Shunts.diameter_fo = cfg.mixing.fo;

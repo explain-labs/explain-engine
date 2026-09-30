@@ -1109,7 +1109,7 @@
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": true,
+    "enabled": false,
     "models": [
      "AAR_AD"
     ],
