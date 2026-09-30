@@ -346,10 +346,10 @@
      "sprite": {
       "color": "#ffffff",
       "pos": {
-       "type": "rel",
-       "x": -0.4,
-       "y": -0.35,
-       "dgs": 0
+       "type": "arc",
+       "x": 0,
+       "y": 0,
+       "dgs": 320
       },
       "scale": {
        "x": 1,
@@ -682,7 +682,7 @@
       "tinting": true
      },
      "path": {
-      "type": "straight",
+      "type": "arc",
       "width": "7",
       "color": "#666666"
      },

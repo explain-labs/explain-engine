@@ -60,10 +60,8 @@ const TAPVC = {
 
 // diagram rewiring for anomalous pulmonary venous drainage (see step D below)
 function applyTapvcDiagram(dc, drainTo) {
-  dc.PV.layout.sprite.pos = { type: "rel", x: -0.4, y: -0.35, dgs: 0 }; // confluence, between lungs and SVC
-  dc.PV_LA.dbcTo = drainTo;
+  dc.PV_LA.dbcTo = drainTo; // PV stays on the ring; "arc" to an off-ring node renders as a curved chord
   dc.PV_LA.label = "vertical vein";
-  dc.PV_LA.layout.path.type = "straight";
   dc.PV_LA.layout.label.size = 8;
 }
 
@@ -110,13 +108,12 @@ for (const key of keys) {
 
   // D. Diagram: animate the anomalous drainage where the model sends it -------------------------------------
   // The baseline diagram draws PV_LA as a PV -> LA arc on the ring, which would keep animating pulmonary
-  // venous return into the left atrium. PV (upper right of the ring) has no clean route to the SVC (inside,
-  // left): any path crosses the upper-body nodes or runs along the foramen-ovale chord. So the PV node — the
-  // pulmonary venous confluence — moves off the ring to just inside it, top-left, and PV_LA becomes a short
-  // straight "vertical vein" to the SVC (the lung-vein and IPS connectors follow the node automatically).
-  // The LA is then visibly fed only by the foramen ovale.
+  // venous return into the left atrium. Re-point the connector to the drainage site; PV keeps its ring
+  // position (moving it inside the ring was tried and rejected). Because the SVC sits off the ring, the
+  // renderer draws the "arc" as a curved chord across the diagram interior (it passes over the upper-body
+  // nodes); a straight path would lie almost on top of the foramen-ovale chord, so it is not used.
   applyTapvcDiagram(j.diagram_definition.components, cfg.drain_to);
-  log.push(`D diagram: PV node moved inside the ring; PV_LA drawn PV->${cfg.drain_to} ("vertical vein")`);
+  log.push(`D diagram: PV_LA drawn PV->${cfg.drain_to} as a curved "vertical vein" (PV stays on the ring)`);
 
   const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
