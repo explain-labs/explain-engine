@@ -37,6 +37,7 @@
 
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { narrowConnector } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_ps.mjs) -----------------------------
 const PS = {
@@ -83,6 +84,8 @@ for (const key of keys) {
   heart.RV_PA.r_for = cfg.rv_pa_r_for; // no_flow stays false: stenosis, not atresia
   M.Heart.cont_factor_right = cfg.rv_cont; // pressure-loaded RV beginning to fail
   log.push(`A stenosis: RV_PA.r_for=${cfg.rv_pa_r_for} (patent valve), cont_factor_right=${cfg.rv_cont} (pressure-loaded RV)`);
+  narrowConnector(j.diagram_definition.components, "RV_PA"); // draw the critical valve narrowed
+  log.push("A diagram: RV_PA connector narrowed (stenosis)");
 
   // B. Duct-dependent pulmonary flow — open ductus; intact ventricular septum ----------------------------
   M.Pda.diameter_relative = cfg.ductal.pda;

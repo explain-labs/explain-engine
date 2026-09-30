@@ -19,3 +19,10 @@ export function addVsdConnector(dc) {
 export function hideConnectors(dc, ...names) {
   for (const n of names) if (dc[n]) dc[n].enabled = false;
 }
+
+// Draw connector `name` narrower than the standard 7 px to show a stenosis (the coronaries, the thinnest
+// vessels in the baseline diagram, are 3 px; a critical valve is drawn thinner still).
+export const STENOSIS_WIDTH = 2;
+export function narrowConnector(dc, name, width = STENOSIS_WIDTH) {
+  if (dc[name]) dc[name].layout.path.width = width;
+}

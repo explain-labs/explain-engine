@@ -1222,7 +1222,7 @@
      },
      "path": {
       "type": "arc",
-      "width": 7,
+      "width": 2,
       "color": "#666666"
      },
      "sprite": {
