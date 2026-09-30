@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "TETRALOGY OF FALLOT - PINK (24H, 3.3 KG)",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "SEVERE TETRALOGY OF FALLOT ON PGE1 (24H)",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],
