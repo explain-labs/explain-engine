@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "CDH - SEVERE",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

@@ -23,6 +23,7 @@
 // share of combined ventricular output is higher and pulmonary share lower than at term; MAP tracks
 // gestation (much lower than the term fetus's ~51 mmHg).
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { FETAL, FETAL_GAS } from "./_ga_tables.mjs";
@@ -203,6 +204,7 @@ const description =
   `exchange, wide-open ductus arteriosus and foramen ovale, high pulmonary vascular resistance, ` +
   `inert (fluid-filled) lungs; allometric size scaling from the term fetus`;
 j.name = name;
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.description = description;
 j.user = "timothy";
 j.provenance = "calibrator-fitted";

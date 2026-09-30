@@ -2539,7 +2539,7 @@
    },
    "TITLE": {
     "type": "Device",
-    "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+    "label": "PULMONARY ATRESIA WITH VSD",
     "picto": "vessel.png",
     "enabled": true,
     "models": [],

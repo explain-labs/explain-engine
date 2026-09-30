@@ -18,6 +18,7 @@
 // Targets (regulated operating point, probe_vitals --profile preterm_NN): preterm runs faster (HR/RR
 // higher) at a lower MAP (~ GA in mmHg) with RDS oxygenation (lower PO2/SpO2, mild resp acidosis).
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
@@ -135,6 +136,7 @@ model.age = 0;
 
 // --- top-level metadata ---
 j.name = `preterm_${ga}wk`;
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.user = "timothy";
 j.description =
   `preterm ${cfg.weight} kg neonate, ${ga} weeks gestation: allometric size scaling + ` +

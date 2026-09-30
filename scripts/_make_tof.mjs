@@ -46,6 +46,7 @@
 //   node scripts/_make_tof.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 
@@ -61,10 +62,8 @@ const AGE = 1 / 365; // years (adult scenarios store age in years); 24 hours —
 //   cont     Heart.cont_factor_left/right (normalise the two-ventricles-into-one-aorta output)
 //   pda      { rel: Pda.diameter_relative, mm: Pda.diameter_ao/pa_max }
 //   fo       Shunts.diameter_fo, mm (small PFO, near-universal at 24 h)
-//   title    diagram TITLE label (term_neonate's "NORMAL NEONATE ..." would otherwise be inherited)
 const TOF = {
   tof_pink: {
-    title: "TETRALOGY OF FALLOT - PINK (24H, 3.3 KG)",
     vsd: 5, rvot: 600, rv_aa: 300, cont: 0.75, // mild RVOT, smaller override share -> acyanotic
     pda: { rel: 0, mm: 3 }, fo: 1.5,
     desc: "term 3.3 kg neonate, 24 hours old, with a mild ('pink') tetralogy of Fallot: a large " +
@@ -73,7 +72,6 @@ const TOF = {
       "is normal-to-increased and the infant is acyanotic (SpO2 >= 92%); the ductus has closed",
   },
   tof: {
-    title: "TETRALOGY OF FALLOT (24H, 3.3 KG)",
     vsd: 5, rvot: 1500, rv_aa: 110, cont: 0.7,
     pda: { rel: 0.3, mm: 3 }, fo: 1.5,
     desc: "term 3.3 kg neonate, 24 hours old, with tetralogy of Fallot: a large malaligned ventricular " +
@@ -83,7 +81,6 @@ const TOF = {
       "mild cyanosis (SpO2 ~85%)",
   },
   tof_severe: {
-    title: "SEVERE TETRALOGY OF FALLOT ON PGE1 (24H)",
     vsd: 5, rvot: 3000, rv_aa: 110, cont: 0.7, // antegrade trickle ~180 mL/min; duct closed -> SpO2 ~58%
     pda: { rel: 0.6, mm: 4 }, fo: 1.5, // PGE1-held duct; Qp:Qs ~1.2
     desc: "term 3.3 kg neonate, 24 hours old, with severe tetralogy of Fallot: critical right ventricular " +
@@ -92,7 +89,6 @@ const TOF = {
       "is held open on prostaglandin E1 (closing it produces profound cyanosis)",
   },
   tof_pa: {
-    title: "TETRALOGY OF FALLOT + PULM. ATRESIA (24H)",
     vsd: 5, rvot: null, rv_aa: 110, cont: 0.7,
     pda: { rel: 0.8, mm: 4 }, fo: 1.5, // sole Qp; wider over-circulates the lungs (Qp:Qs 1.8)
     desc: "term 3.3 kg neonate, 24 hours old, with tetralogy of Fallot and pulmonary atresia: no antegrade " +
@@ -186,10 +182,10 @@ for (const key of keys) {
   // along the main circle (RV 200° -> AA 20° sweeps through PA 230°, the lungs, LA and LV), so its dots
   // would be drawn right over the RV_PA path and read as antegrade pulmonary flow.
   const dc = j.diagram_definition.components;
-  if (dc.TITLE) dc.TITLE.label = cfg.title;
+  const title = setDiagramTitle(j, key); // from scripts/_titles.mjs
   dc.VSD = connector("VSD", ["VSD"], "LV", "RV", "straight");
   dc.RV_AA = connector("", ["RV_AA"], "RV", "AA", "straight");
-  log.push(`G diagram: title "${cfg.title}"; + VSD (LV->RV) and RV_AA (RV->AA) chord connectors`);
+  log.push(`G diagram: title "${title}"; + VSD (LV->RV) and RV_AA (RV->AA) chord connectors`);
   if (cfg.rvot === null && dc.RV_PA) {
     dc.RV_PA.enabled = false; // atretic valve: no connection drawn (the renderer skips disabled connectors)
     log.push("G diagram: RV_PA connector hidden (atresia)");

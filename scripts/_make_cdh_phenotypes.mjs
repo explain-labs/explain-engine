@@ -36,6 +36,7 @@
 //   node scripts/_make_cdh_phenotypes.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 
 // ---- per-phenotype lever table (starting points; tune against the probes) -------------------------
 const PHENO = {
@@ -117,6 +118,8 @@ for (const key of keys) {
   const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
   j.name = key;
+
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
 

@@ -33,6 +33,7 @@
 //   node scripts/_make_dtga.mjs --all      (all)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_dtga.mjs) ----------------------------
 const TGA = {
@@ -69,6 +70,8 @@ for (const key of keys) {
   const j = JSON.parse(fs.readFileSync(srcPath, "utf8"));
 
   j.name = key;
+
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
 

@@ -13,6 +13,7 @@
 // Re-measure with `node scripts/probe_fetus.mjs term_fetus` after any change here rather than
 // trusting this block.
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 
 const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
 const dst = new URL("../model_definitions/term_fetus.json", import.meta.url);
@@ -20,6 +21,7 @@ const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 // --- top-level metadata ---
 j.name = "term_fetus";
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.user = "timothy";
 j.description =
   "term fetus in utero (3.545 kg, 40 wk) — fetal circulation: placental gas exchange, wide-open ductus arteriosus and foramen ovale, high pulmonary vascular resistance, inert (fluid-filled) lungs";

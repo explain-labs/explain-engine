@@ -37,6 +37,7 @@
 //   node scripts/_make_pda_patterns.mjs --all          (all patterns)
 
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
@@ -155,6 +156,7 @@ for (const key of keys) {
 
   // --- top-level metadata ---
   j.name = key;
+  setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
   j.user = "timothy";
   j.description = cfg.desc;
   model.name = j.name;

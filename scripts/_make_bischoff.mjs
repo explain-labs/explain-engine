@@ -38,6 +38,7 @@
 // then calibrate with: node scripts/probe_vitals.mjs bischoff_cohort --profile preterm_26 --verbose
 //                 and: node scripts/probe_pda.mjs bischoff_cohort --beats 6
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 import { calc_gas_composition } from "../component_models/GasComposition.js";
@@ -161,6 +162,7 @@ model.age = 0;
 
 // --- top-level metadata ---
 j.name = `bischoff_${key}`;
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.user = "timothy";
 j.description = cfg.desc;
 model.name = `bischoff_${key}`;

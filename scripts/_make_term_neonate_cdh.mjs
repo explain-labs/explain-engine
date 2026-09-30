@@ -17,6 +17,7 @@
 //   ABG pH 7.29 / PCO2 47 / PO2 38 (permissive hypercapnia), pre-ductal SpO2 79% / post-ductal 66%
 //   (differential cyanosis), R->L ductal shunt ~232 mL/min, asymmetric pulmonary flow (L 97 < R 191 mL/min).
 import fs from "node:fs";
+import { setDiagramTitle } from "./_titles.mjs";
 
 const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
 const dst = new URL("../model_definitions/term_neonate_cdh.json", import.meta.url);
@@ -24,6 +25,7 @@ const j = JSON.parse(fs.readFileSync(src, "utf8"));
 
 // --- top-level metadata ---
 j.name = "term_neonate_cdh";
+setDiagramTitle(j, j.name); // diagram TITLE from scripts/_titles.mjs
 j.user = "timothy";
 j.description =
   "term 3.545 kg neonate with severe left-sided congenital diaphragmatic hernia: asymmetric pulmonary " +
