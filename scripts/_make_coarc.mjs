@@ -34,6 +34,7 @@
 
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { addVsdConnector } from "./_diagram.mjs";
 
 // ---- per-variant lever table (starting points; tune against probe_coarc.mjs) --------------------------
 const COARC = {
@@ -103,6 +104,10 @@ for (const key of keys) {
   M.Shunts.diameter_vsd = cfg.ductal.vsd;
   M.Shunts.diameter_fo = 0; // atrial septum intact
   log.push(`C septum: diameter_vsd=${cfg.ductal.vsd}, diameter_fo=0`);
+  if (cfg.ductal.vsd > 0) {
+    addVsdConnector(j.diagram_definition.components); // IAA: draw the VSD shunt
+    log.push("C diagram: + VSD connector (LV->RV)");
+  }
 
   const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
