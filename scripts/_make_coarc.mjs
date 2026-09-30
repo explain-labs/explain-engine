@@ -97,7 +97,8 @@ for (const key of keys) {
     // diagram: the interruption is drawn between AA and AAR (the model interrupts AAR -> AD, so the
     // AAR_AD connector carries no flow and the duct is wired AD <-> PA; diagram-only choice)
     hideConnectors(j.diagram_definition.components, "AA_AAR");
-    log.push("B diagram: AA_AAR connector hidden (interruption drawn between AA and AAR)");
+    j.diagram_definition.components.AAR.layout.sprite.pos.dgs = 45; // baseline 30: open a visible gap from AA (20)
+    log.push("B diagram: AA_AAR connector hidden (interruption drawn between AA and AAR); AAR moved 30 -> 45 deg");
   } else {
     C.AD.r_for = cfg.isthmus.r_for;
     C.AD.r_back = cfg.isthmus.r_for;
