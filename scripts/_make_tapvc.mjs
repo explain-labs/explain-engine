@@ -60,7 +60,8 @@ const TAPVC = {
 
 // diagram rewiring for anomalous pulmonary venous drainage (see step D below)
 function applyTapvcDiagram(dc, drainTo) {
-  dc.PV_LA.dbcTo = drainTo; // PV stays on the ring; "arc" to an off-ring node renders as a curved chord
+  dc.PV_LA.dbcTo = drainTo; // PV stays on the ring; an arc to an off-ring node renders as a curved chord
+  dc.PV_LA.layout.path.type = "arc_flip"; // bend it up over the pulmonary side, not down through the upper body
   dc.PV_LA.label = "vertical vein";
   dc.PV_LA.layout.label.size = 8;
 }
@@ -110,10 +111,11 @@ for (const key of keys) {
   // The baseline diagram draws PV_LA as a PV -> LA arc on the ring, which would keep animating pulmonary
   // venous return into the left atrium. Re-point the connector to the drainage site; PV keeps its ring
   // position (moving it inside the ring was tried and rejected). Because the SVC sits off the ring, the
-  // renderer draws the "arc" as a curved chord across the diagram interior (it passes over the upper-body
-  // nodes); a straight path would lie almost on top of the foramen-ovale chord, so it is not used.
+  // renderer draws the connector as a curved chord across the diagram interior. "arc_flip" bends it up over the
+  // pulmonary side (like an ascending vertical vein); plain "arc" would bow down over the upper-body nodes,
+  // and a straight path would lie almost on top of the foramen-ovale chord.
   applyTapvcDiagram(j.diagram_definition.components, cfg.drain_to);
-  log.push(`D diagram: PV_LA drawn PV->${cfg.drain_to} as a curved "vertical vein" (PV stays on the ring)`);
+  log.push(`D diagram: PV_LA drawn PV->${cfg.drain_to} as a curved "vertical vein" (arc_flip; PV stays on the ring)`);
 
   const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");

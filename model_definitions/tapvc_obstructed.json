@@ -682,7 +682,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc",
+      "type": "arc_flip",
       "width": "7",
       "color": "#666666"
      },
