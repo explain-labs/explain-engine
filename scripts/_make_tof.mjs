@@ -177,10 +177,17 @@ for (const key of keys) {
   model.description = cfg.desc;
 
   // G. diagram: draw the VSD and the RV -> aorta override pathway ------------------------------------------
+  // RV_AA is a straight chord across the ring, NOT an arc: an arc between ring compartments runs clockwise
+  // along the main circle (RV 200° -> AA 20° sweeps through PA 230°, the lungs, LA and LV), so its dots
+  // would be drawn right over the RV_PA path and read as antegrade pulmonary flow.
   const dc = j.diagram_definition.components;
   dc.VSD = connector("VSD", ["VSD"], "LV", "RV", "straight");
-  dc.RV_AA = connector("", ["RV_AA"], "RV", "AA", "arc");
-  log.push("G diagram: + VSD (LV->RV) and RV_AA (RV->AA) connectors");
+  dc.RV_AA = connector("", ["RV_AA"], "RV", "AA", "straight");
+  log.push("G diagram: + VSD (LV->RV) and RV_AA (RV->AA) chord connectors");
+  if (cfg.rvot === null && dc.RV_PA) {
+    dc.RV_PA.enabled = false; // atretic valve: no connection drawn (the renderer skips disabled connectors)
+    log.push("G diagram: RV_PA connector hidden (atresia)");
+  }
 
   j.name = key;
   j.user = "timothy";

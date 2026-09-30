@@ -3489,9 +3489,9 @@
       "tinting": true
      },
      "path": {
-      "type": "arc",
+      "type": "straight",
       "width": 7,
-      "color": "#666666"
+      "color": "#333333"
      },
      "sprite": {
       "color": "#ffffff",

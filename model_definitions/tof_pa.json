@@ -864,7 +864,7 @@
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": true,
+    "enabled": false,
     "models": [
      "RV_PA"
     ],
@@ -3489,9 +3489,9 @@
       "tinting": true
      },
      "path": {
-      "type": "arc",
+      "type": "straight",
       "width": 7,
-      "color": "#666666"
+      "color": "#333333"
      },
      "sprite": {
       "color": "#ffffff",
