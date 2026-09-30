@@ -58,6 +58,15 @@ const TAPVC = {
   },
 };
 
+// diagram rewiring for anomalous pulmonary venous drainage (see step D below)
+function applyTapvcDiagram(dc, drainTo) {
+  dc.PV.layout.sprite.pos = { type: "rel", x: -0.4, y: -0.35, dgs: 0 }; // confluence, between lungs and SVC
+  dc.PV_LA.dbcTo = drainTo;
+  dc.PV_LA.label = "vertical vein";
+  dc.PV_LA.layout.path.type = "straight";
+  dc.PV_LA.layout.label.size = 8;
+}
+
 const argv = process.argv.slice(2);
 const keys = argv.includes("--all") ? Object.keys(TAPVC) : argv.filter((a) => !a.startsWith("-"));
 if (keys.length === 0 || keys.some((k) => !TAPVC[k])) {
@@ -98,6 +107,16 @@ for (const key of keys) {
   // C. Not duct-dependent — duct closed (TAPVC is PGE1-unresponsive) -------------------------------------
   M.Pda.diameter_relative = 0;
   log.push("C ductal: Pda closed (TAPVC is foramen-ovale-dependent, not duct-dependent)");
+
+  // D. Diagram: animate the anomalous drainage where the model sends it -------------------------------------
+  // The baseline diagram draws PV_LA as a PV -> LA arc on the ring, which would keep animating pulmonary
+  // venous return into the left atrium. PV (upper right of the ring) has no clean route to the SVC (inside,
+  // left): any path crosses the upper-body nodes or runs along the foramen-ovale chord. So the PV node — the
+  // pulmonary venous confluence — moves off the ring to just inside it, top-left, and PV_LA becomes a short
+  // straight "vertical vein" to the SVC (the lung-vein and IPS connectors follow the node automatically).
+  // The LA is then visibly fed only by the foramen ovale.
+  applyTapvcDiagram(j.diagram_definition.components, cfg.drain_to);
+  log.push(`D diagram: PV node moved inside the ring; PV_LA drawn PV->${cfg.drain_to} ("vertical vein")`);
 
   const dst = new URL(`../model_definitions/${key}.json`, import.meta.url);
   fs.writeFileSync(dst, JSON.stringify(j, null, 1) + "\n");
