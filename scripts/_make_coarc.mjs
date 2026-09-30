@@ -94,8 +94,10 @@ for (const key of keys) {
   if (cfg.isthmus.interrupted) {
     C.AD.no_flow = true; // interrupt the AAR->AD connector entirely
     log.push("B isthmus: AD.no_flow=true (aortic arch interrupted — no antegrade flow)");
-    hideConnectors(j.diagram_definition.components, "AAR_AD"); // interrupted arch: no AAR -> AD connection drawn
-    log.push("B diagram: AAR_AD connector hidden (interruption)");
+    // diagram: the interruption is drawn between AA and AAR (the model interrupts AAR -> AD, so the
+    // AAR_AD connector carries no flow and the duct is wired AD <-> PA; diagram-only choice)
+    hideConnectors(j.diagram_definition.components, "AA_AAR");
+    log.push("B diagram: AA_AAR connector hidden (interruption drawn between AA and AAR)");
   } else {
     C.AD.r_for = cfg.isthmus.r_for;
     C.AD.r_back = cfg.isthmus.r_for;
