@@ -49,6 +49,7 @@ import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
+import { narrowConnector } from "./_diagram.mjs";
 
 const WEIGHT = 3.3; // kg
 const AGE = 1 / 365; // years (adult scenarios store age in years); 24 hours — a label, no model reads it
@@ -58,13 +59,15 @@ const AGE = 1 / 365; // years (adult scenarios store age in years); 24 hours —
 //            go larger: at 6-7 mm the Poiseuille resistance (~1/d^4) is so low that the explicit step loop
 //            goes unstable (VSD flow oscillates at tens to hundreds of L/min)
 //   rvot     RV_PA.r_for (baseline 55); null = pulmonary atresia (RV_PA no_flow / disabled)
+//   rvot_w   diagram width of the RV_PA connector (standard 7 px), scaled to the obstruction; 2 = critical,
+//            as in critical_ps
 //   rv_aa    RV_AA.r_for — the overriding aorta (lower = more of the RV output goes to the aorta)
 //   cont     Heart.cont_factor_left/right (normalise the two-ventricles-into-one-aorta output)
 //   pda      { rel: Pda.diameter_relative, mm: Pda.diameter_ao/pa_max }
 //   fo       Shunts.diameter_fo, mm (small PFO, near-universal at 24 h)
 const TOF = {
   tof_pink: {
-    vsd: 5, rvot: 600, rv_aa: 300, cont: 0.75, // mild RVOT, smaller override share -> acyanotic
+    vsd: 5, rvot: 600, rvot_w: 5, rv_aa: 300, cont: 0.75, // mild RVOT, smaller override share -> acyanotic
     pda: { rel: 0, mm: 3 }, fo: 1.5,
     desc: "term 3.3 kg neonate, 24 hours old, with a mild ('pink') tetralogy of Fallot: a large " +
       "malaligned ventricular septal defect with an overriding aorta and only mild right ventricular " +
@@ -72,7 +75,7 @@ const TOF = {
       "is normal-to-increased and the infant is acyanotic (SpO2 >= 92%); the ductus has closed",
   },
   tof: {
-    vsd: 5, rvot: 1500, rv_aa: 110, cont: 0.7,
+    vsd: 5, rvot: 1500, rvot_w: 4, rv_aa: 110, cont: 0.7,
     pda: { rel: 0.3, mm: 3 }, fo: 1.5,
     desc: "term 3.3 kg neonate, 24 hours old, with tetralogy of Fallot: a large malaligned ventricular " +
       "septal defect, an overriding aorta receiving output from both ventricles, and moderate right " +
@@ -81,7 +84,7 @@ const TOF = {
       "mild cyanosis (SpO2 ~85%)",
   },
   tof_severe: {
-    vsd: 5, rvot: 3000, rv_aa: 110, cont: 0.7, // antegrade trickle ~180 mL/min; duct closed -> SpO2 ~58%
+    vsd: 5, rvot: 3000, rvot_w: 2, rv_aa: 110, cont: 0.7, // antegrade trickle ~180 mL/min; duct closed -> SpO2 ~58%
     pda: { rel: 0.6, mm: 4 }, fo: 1.5, // PGE1-held duct; Qp:Qs ~1.2
     desc: "term 3.3 kg neonate, 24 hours old, with severe tetralogy of Fallot: critical right ventricular " +
       "outflow tract obstruction leaves little antegrade pulmonary flow, the ventricular shunt runs " +
@@ -189,6 +192,9 @@ for (const key of keys) {
   if (cfg.rvot === null && dc.RV_PA) {
     dc.RV_PA.enabled = false; // atretic valve: no connection drawn (the renderer skips disabled connectors)
     log.push("G diagram: RV_PA connector hidden (atresia)");
+  } else {
+    narrowConnector(dc, "RV_PA", cfg.rvot_w); // RVOT obstruction drawn narrowed, scaled to severity
+    log.push(`G diagram: RV_PA connector width ${cfg.rvot_w} (RVOT obstruction)`);
   }
 
   j.name = key;
