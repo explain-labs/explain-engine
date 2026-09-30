@@ -3276,7 +3276,7 @@
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": true,
+    "enabled": false,
     "models": [
      "RAIVCI_RV",
      "RASVC_RV"

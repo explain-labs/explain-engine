@@ -82,6 +82,8 @@ for (const key of keys) {
   heart.RV.el_min = cfg.rv.el_min;
   heart.RV.u_vol = cfg.rv.u_vol;
   log.push(`A atresia: RAIVCI_RV + RASVC_RV no_flow (tricuspid atretic), RV el_min=${cfg.rv.el_min}/u_vol=${cfg.rv.u_vol} (hypoplastic, VSD-fed)`);
+  j.diagram_definition.components.RA_RV.enabled = false; // atretic valve: no RA -> RV connection drawn
+  log.push("A diagram: RA_RV connector hidden (atresia)");
 
   // B. Obligate right-to-left atrial shunt (foramen ovale carries the whole systemic venous return) -----
   M.Shunts.diameter_fo = cfg.atrial.fo;
