@@ -28,6 +28,9 @@
 //       "hb": 9.5,            // hemoglobin in mmol/L (the model's unit)
 //       "hb_gdl": 15.3,       // OR hemoglobin in g/dL — builder converts to mmol/L
 //       "temp": 36.8, "pda": 0.4,                                         // structural
+//       "fio2": 0.3,          // inspired O2 fraction (0.21-1.0) the patient breathes; structural.
+//                             //   Without it SpO2/PO2 are fitted in room air, which gives a baby
+//                             //   on oxygen far healthier lungs than it has.
 //       "hr": 160, "map": 33, "cvp": 4, "pap_m": 28,                      // iterated
 //       "spo2": 90, "po2": 55, "pco2": 52, "ph": 7.28, "be": -5, "co": 0.3 // iterated
 //     },
@@ -51,6 +54,11 @@
 // Blood.set_solute / set_P50 reach the MATERNAL pool PL_MAT as well, so fetal mode snapshots and
 // restores it after every such write — otherwise the BE/pH controller acidifies the mother and
 // shifts the placental gradient under the O2 controller's feet.
+//
+// The emitted scenario carries a top-level `build_report` (machine-readable: per-target residual,
+// lever, lever value and whether the lever ran into its bound; the full measured vitals vector
+// with normal-range flags; the structural changes applied; and any `targets` key this builder
+// does not know, which it ignores). stderr keeps the human-readable version of the same report.
 //
 // Units mirror the monitor/ABG the app shows: pressures mmHg, SpO2/SvO2 %, temp °C,
 // pH unitless, pCO2/pO2 mmHg, BE mmol/L, weight kg, height m, CO L/min. Hb is
@@ -145,6 +153,21 @@ if (!model || !model.models) {
 // ---------------------------------------------------------------------------
 const trace = (...a) => console.error(...a);
 const has = (k) => targets[k] != null;
+
+// every `targets` key this builder acts on; anything else is ignored — and reported, because a
+// silently dropped target looks exactly like one that was applied
+const KNOWN_TARGETS = new Set([
+  "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2",
+  "hr", "map", "cvp", "pap_m", "spo2", "po2", "pco2", "ph", "be", "co",
+]);
+const ignoredTargets = Object.keys(targets).filter((k) => targets[k] != null && !KNOWN_TARGETS.has(k));
+if (ignoredTargets.length) trace(`ignored targets (not known to the builder): ${ignoredTargets.join(", ")}`);
+// po2 wins over spo2 and be over ph (one lever each); the loser is not calibrated
+const supersededTargets = [];
+if (has("po2") && has("spo2")) supersededTargets.push({ key: "spo2", by: "po2" });
+if (has("be") && has("ph")) supersededTargets.push({ key: "ph", by: "be" });
+for (const s of supersededTargets) trace(`target ${s.key} not calibrated: ${s.by} uses the same lever`);
+const notes = []; // things the caller should know that are neither a residual nor an error
 
 // fetal vs neonatal baseline. Sniff the baseline JSON (before any structural pass) so the branch
 // is decided up front; an explicit spec.fetal overrides.
@@ -270,6 +293,37 @@ if (model.models.Blood && (has("hb") || has("hb_gdl"))) {
 // thermoregulation set-point -> target core/blood temperature
 if (has("temp") && model.models.Thermoregulation) { model.models.Thermoregulation.setpoint_temp = targets.temp; trace(`structural: temp setpoint ${targets.temp}`); }
 
+// inspired oxygen fraction. Must be in place before calibration: the O2 lever (alveolar
+// diffusion) is then fitted to the measured SpO2/PO2 AT this FiO2 — the same saturation on 40 %
+// oxygen means much worse lungs than on room air. Gas.set_fio2 rewrites the composition of the
+// ambient/mouth gas the patient breathes; an enabled ventilator carries its own fio2 and is not
+// touched here.
+if (has("fio2")) {
+  const f = targets.fio2;
+  if (typeof f !== "number" || !(f >= 0.21 && f <= 1.0)) {
+    console.error(`build_patient: targets.fio2 must be a fraction between 0.21 and 1.0 (got ${JSON.stringify(f)}).`);
+    process.exit(1);
+  }
+  if (FETAL_MODE) {
+    console.error(`build_patient: targets.fio2 is meaningless on a fetal baseline ("${baseline}") — the fetus does not breathe.`);
+    process.exit(1);
+  }
+  if (!model.models.Gas) {
+    console.error(`build_patient: baseline "${baseline}" has no Gas model, cannot set fio2.`);
+    process.exit(1);
+  }
+  // set_fio2's default sites are ["OUT", "MOUTH"] and it does not skip a missing one; the
+  // neonatal scenarios have no OUT compartment, so name the sites that exist
+  const sites = ["OUT", "MOUTH"].filter((n) => model.models[n]);
+  if (!sites.length) {
+    console.error(`build_patient: baseline "${baseline}" has no ambient gas compartment (OUT/MOUTH), cannot set fio2.`);
+    process.exit(1);
+  }
+  model.models.Gas.set_fio2(f, sites);
+  trace(`structural: FiO2 ${f} (${sites.join(", ")})`);
+  if (model.models.Ventilator?.is_enabled) notes.push("the baseline has an enabled ventilator, which supplies its own FiO2; targets.fio2 only set the ambient gas");
+}
+
 // baroreflex MAP set-point: defend the requested MAP so the ANS doesn't fight it
 if (has("map") && model.models.BR_MAP) { model.models.BR_MAP.set_value = targets.map; trace(`structural: baroreflex MAP set-point ${targets.map}`); }
 
@@ -301,13 +355,13 @@ const controllers = [];
 if (has("map")) {
   let f = seed && seed.svr ? seed.svr : 1.0;
   eng.scale("systemic_resistances", f);
-  controllers.push(mkc({ key: "map", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) }));
+  controllers.push(mkc({ key: "map", lever: "systemic resistance scale", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) }));
 }
 // PAP mean <- pulmonary vascular resistance scaling (↑PVR ↑PAP)
 if (has("pap_m")) {
   let f = patho.pvr_scale || (seed && seed.pvr) || 1.0;
   eng.scale("pulmonary_resistances", f);
-  controllers.push(mkc({ key: "pap_m", lo: 0.3, hi: 12, sign: +1, gain: 0.05, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
+  controllers.push(mkc({ key: "pap_m", lever: "pulmonary resistance scale", lo: 0.3, hi: 12, sign: +1, gain: 0.05, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
 } else if (patho.pvr_scale || (seed && seed.pvr)) {
   eng.scale("pulmonary_resistances", patho.pvr_scale || seed.pvr); // structural-only PVR
 }
@@ -316,17 +370,17 @@ if (has("cvp")) {
   const base = {};
   for (const n of ["VLB", "VUB"]) { const c = model.models[n]; if (c) base[n] = c.u_vol; }
   const apply = (mult) => { for (const n in base) model.models[n].u_vol = base[n] * mult; };
-  controllers.push(mkc({ key: "cvp", lo: 0.5, hi: 1.3, sign: -1, gain: 0.05, value: 1.0, set: apply }));
+  controllers.push(mkc({ key: "cvp", lever: "venous unstressed volume x", lo: 0.5, hi: 1.3, sign: -1, gain: 0.05, value: 1.0, set: apply }));
 }
 // HR <- heart-rate reference setpoint (direct)
 if (has("hr")) {
   const start = model.models.Heart?.heart_rate_ref ?? targets.hr;
-  controllers.push(mkc({ key: "hr", lo: 60, hi: 240, sign: +1, gain: 0.8, value: start, set: (v) => { if (model.models.Heart) model.models.Heart.heart_rate_ref = v; } }));
+  controllers.push(mkc({ key: "hr", lever: "Heart.heart_rate_ref", lo: 60, hi: 240, sign: +1, gain: 0.8, value: start, set: (v) => { if (model.models.Heart) model.models.Heart.heart_rate_ref = v; } }));
 }
 // CO (LV output) <- ventricular contractility (el_max persistent factor)
 if (has("co")) {
   const apply = (f) => { for (const n of ["LV", "RV"]) { const m = model.models[n]; if (m) m.el_max_factor_ps = f; } };
-  controllers.push(mkc({ key: "co", lo: 0.3, hi: 3, sign: +1, gain: 0.8, value: 1.0, set: apply }));
+  controllers.push(mkc({ key: "co", lever: "LV/RV el_max_factor_ps", lo: 0.3, hi: 3, sign: +1, gain: 0.8, value: 1.0, set: apply }));
 }
 // PO2 / SpO2 <- alveolar O2 diffusion persistent factor (↑dif ↑PO2); in a FETUS the alveolar
 // diffusors are inert (dif_o2 = 0, so the factor multiplies into zero — a complete no-op that would
@@ -339,11 +393,11 @@ if (has("po2") || has("spo2")) {
   const key = has("po2") ? "po2" : "spo2";
   if (FETAL_MODE) {
     const P = model.models.Placenta;
-    controllers.push(mkc({ key, lo: 4.0, hi: 10.0, sign: +1, gain: key === "po2" ? 0.05 : 0.03,
+    controllers.push(mkc({ key, lever: "Placenta.mat_to2", lo: 4.0, hi: 10.0, sign: +1, gain: key === "po2" ? 0.05 : 0.03,
       value: P.mat_to2, set: (v) => { P.mat_to2 = v; } }));
   } else {
     const apply = (f) => { for (const n of ["GASEX_LL", "GASEX_RL"]) { const m = model.models[n]; if (m) m.dif_o2_factor_ps = f; } };
-    controllers.push(mkc({ key, lo: 0.1, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: 1.0, set: apply }));
+    controllers.push(mkc({ key, lever: "alveolar O2 diffusion x", lo: 0.1, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: 1.0, set: apply }));
   }
 }
 // pCO2 <- spontaneous ventilatory drive (Breathing.minute_volume_ref multiplier).
@@ -358,12 +412,14 @@ if (has("po2") || has("spo2")) {
 // `probe_fetus.mjs <scenario> --mattco2`, not asserted from reading).
 if (has("pco2") && FETAL_MODE) {
   const P = model.models.Placenta;
-  controllers.push(mkc({ key: "pco2", lo: 14, hi: 30, sign: +1, gain: 0.15, value: P.mat_tco2, set: (v) => { P.mat_tco2 = v; } }));
+  controllers.push(mkc({ key: "pco2", lever: "Placenta.mat_tco2", lo: 14, hi: 30, sign: +1, gain: 0.15, value: P.mat_tco2, set: (v) => { P.mat_tco2 = v; } }));
 } else if (has("pco2") && model.models.Breathing) {
   const B = model.models.Breathing;
   const baseMv = B.minute_volume_ref;
   const apply = (mult) => { B.minute_volume_ref = baseMv * mult; };
-  controllers.push(mkc({ key: "pco2", lo: 0.2, hi: 2.5, sign: -1, gain: 0.03, value: 1.0, set: apply }));
+  controllers.push(mkc({ key: "pco2", lever: "spontaneous minute volume x", lo: 0.2, hi: 2.5, sign: -1, gain: 0.03, value: 1.0, set: apply }));
+  // the lever is the spontaneous drive: on a patient that is not breathing it moves nothing
+  if (!B.is_enabled || B.breathing_enabled === false) notes.push("pco2 was targeted but spontaneous breathing is off in this baseline, so its lever (ventilatory drive) cannot move it");
 }
 // BE / pH (metabolic) <- Stewart unmeasured anions uma (↑uma ↓BE/pH -> sign -1)
 if (has("be") || has("ph")) {
@@ -373,7 +429,7 @@ if (has("be") || has("ph")) {
     if (model.models.Blood) model.models.Blood.set_solute("uma", Math.max(0, v));
     restoreMaternalPool(); // set_solute reaches PL_MAT; the mother is not the patient
   };
-  controllers.push(mkc({ key, lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, value: startUma, set: apply }));
+  controllers.push(mkc({ key, lever: "unmeasured anions (uma)", lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, value: startUma, set: apply }));
 }
 
 // ---------------------------------------------------------------------------
@@ -428,7 +484,58 @@ model.description = description;
 model.age = model.age ?? 0;
 serializeState(model);
 
-const out = { ...baseJson, name, description, user: spec.user || "explain-bot", model_definition: model };
+// machine-readable report (the same facts as the stderr report above, plus the levers)
+const atBound = (c) => Math.abs(c.value - c.lo) <= 1e-9 * Math.max(1, Math.abs(c.lo)) || Math.abs(c.value - c.hi) <= 1e-9 * Math.max(1, Math.abs(c.hi));
+const build_report = {
+  version: 1,
+  baseline,
+  profile,
+  fetal: FETAL_MODE,
+  converged: result.converged,
+  iters: it,
+  max_iters: MAX_ITERS,
+  // one row per calibrated target
+  targets: controllers.map((c) => {
+    const value = vf[c.readKey];
+    return {
+      key: c.key,
+      target: c.target,
+      value: round(value, 3),
+      delta: typeof value === "number" ? round(value - c.target, 3) : null,
+      tolerance: c.tol,
+      within: typeof value === "number" && Math.abs(c.target - value) <= c.tol,
+      lever: c.lever ?? null,
+      lever_value: round(c.value, 4),
+      lever_bounds: [c.lo, c.hi],
+      // a lever sitting on its bound could not go further: the target is out of this lever's reach
+      lever_at_bound: atBound(c),
+    };
+  }),
+  // every measured vital with its normal-range flag ("ok" | "LOW" | "HIGH" | "" when not ranged)
+  measured: Object.fromEntries(
+    Object.entries(vf)
+      .filter(([, v]) => typeof v === "number" && isFinite(v))
+      .map(([k, v]) => [k, { value: round(v, 3), flag: flagOf(ranges, k, v) }]),
+  ),
+  structural: Object.fromEntries(
+    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2"].filter(has).map((k) => [k, targets[k]]),
+  ),
+  ignored_targets: ignoredTargets,
+  superseded_targets: supersededTargets,
+  notes,
+};
+
+const out = {
+  ...baseJson,
+  name,
+  description,
+  user: spec.user || "explain-bot",
+  // the baseline's own provenance ("hand-authored", ...) does not describe a fitted patient
+  provenance: "calibrator-fitted",
+  provenance_note: `Built by scripts/build_patient.mjs from baseline "${baseline}"; see build_report.`,
+  build_report,
+  model_definition: model,
+};
 const json = JSON.stringify(out, null, PRETTY ? 1 : 0);
 JSON.parse(json); // fail loudly before emitting if anything is non-serializable
 process.stdout.write(json + "\n");

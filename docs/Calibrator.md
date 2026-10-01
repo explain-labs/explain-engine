@@ -37,13 +37,47 @@ The live levers built by `buildLiveControllers` deliberately use the persistent 
 
 | Target | Lever | Notes |
 |---|---|---|
-| `map` | `Circulation.svr_factor_art` | systemic arteriolar resistance factor; ↑ raises MAP |
+| `map` | `r_factor_ps` on every resistor in `scaler_config.blood_systemic.resistance` (delta-accumulating), plus `BR_MAP.set_value` = target | systemic resistance; ↑ raises MAP. Deliberately **not** `Circulation.svr_factor_art`: the Hormones model (RAAS) overwrites that knob every step, so a write to it does not stick. The baroreflex set-point is moved to the target so the ANS defends the new operating point. |
 | `co` | `LV.el_max_factor_ps` and `RV.el_max_factor_ps` | ventricular contractility; reads `lvo` |
 | `hr` | `Heart.heart_rate_ref` | HR reference setpoint |
 | `po2` / `spo2` | `GASEX_LL.dif_o2_factor_ps` and `GASEX_RL.dif_o2_factor_ps` | alveolar O2 diffusion factor; one controller, reads `po2` or `spo2_pre` |
 | `pco2` | `Breathing.minute_volume_ref` (× multiplier) | spontaneous ventilatory drive; `sign: -1` (↓ drive raises pCO2) |
 | `be` / `ph` | `Blood.set_solute("uma", …)` | Stewart unmeasured anions; `sign: -1` (↑ uma lowers BE/pH) |
 | `blood_volume` | proportional rescale of every blood compartment's `vol`/`u_vol` | custom `step` (not a secant lever): scales by `target/measured` each iteration; converges in 1–2 iters because the body redistributes volume |
+
+## The offline builder (`scripts/build_patient.mjs`)
+
+The builder shares `makeController`/`runCalibration` but has its **own** controllers, because it
+starts from a freshly built baseline rather than a running patient. Two differ from the live table:
+`map` scales the `systemic_resistances` `ModelScaler` group (and `pap_m` the `pulmonary_resistances`
+group), and it adds `cvp` ← venous unstressed volume (`VLB`/`VUB` `u_vol`). On a fetal baseline the
+oxygen and CO2 levers are the placental maternal pool instead (see [fetal_circulation](./fetal_circulation.md)).
+
+Before calibrating it applies the **structural** targets: `weight`, `gestational_age` (a seed bundle),
+`height`, `age`, `hb`/`hb_gdl`, `temp`, `pda` and **`fio2`**.
+
+**`targets.fio2`** (fraction, 0.21–1.0) sets the inspired oxygen the patient breathes, via
+`Gas.set_fio2`, before the loop runs. This matters for what the oxygen lever means: alveolar diffusion
+is fitted to the measured SpO2/PO2 *at that FiO2*. A saturation of 91 % on 40 % oxygen needs much
+worse gas exchange than 91 % in room air; without `fio2` the builder assumes room air and gives a
+baby on oxygen far healthier lungs than it has. Rejected on a fetal baseline and outside 0.21–1.0.
+
+**`build_report`** — the emitted scenario carries a top-level, machine-readable report (stderr keeps
+the human-readable one):
+
+| Field | Meaning |
+|---|---|
+| `converged`, `iters`, `max_iters` | outcome of the loop |
+| `targets[]` | per calibrated target: `target`, `value`, `delta`, `tolerance`, `within`, `lever`, `lever_value`, `lever_bounds`, `lever_at_bound` |
+| `measured` | every measured vital: `{ value, flag }`, flag from the profile's `RANGES` (`ok`/`LOW`/`HIGH`) |
+| `structural` | the structural targets that were applied |
+| `ignored_targets` | `targets` keys the builder does not know. They are **ignored**, so they are listed |
+| `superseded_targets` | `spo2` when `po2` is also given, `ph` when `be` is: one lever each, the first wins |
+| `notes` | e.g. `pco2` targeted while spontaneous breathing is off (its lever cannot move it) |
+
+`lever_at_bound: true` means the lever ran into its limit: the target is out of that lever's reach,
+which is different from "needs more iterations". The scenario's `provenance` is set to
+`"calibrator-fitted"` (it used to inherit the baseline's).
 
 ## Notes / caveats
 
