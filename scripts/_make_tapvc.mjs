@@ -38,7 +38,7 @@ const TAPVC = {
   tapvc: {
     drain_to: "SVC", // supracardiac: pulmonary veins -> SVC -> right atrium
     channel_r: 335, // unobstructed anomalous channel (≈ the normal PV_LA resistance)
-    fo: 6, // open foramen ovale carrying the obligate R->L left-heart filling
+    fo: 8, // open foramen ovale carrying the obligate R->L left-heart filling (8 since the RA merge)
     desc: "term 3.5 kg neonate with (unobstructed, supracardiac) total anomalous pulmonary venous " +
       "connection: all pulmonary venous return drains to the superior vena cava and mixes with systemic " +
       "venous return in the right atrium, and the left heart is filled only by an obligate right-to-left " +
@@ -48,8 +48,8 @@ const TAPVC = {
 
   tapvc_obstructed: {
     drain_to: "SVC",
-    channel_r: 5000, // obstructed anomalous channel -> pulmonary venous hypertension
-    fo: 6,
+    channel_r: 4600, // obstructed anomalous channel -> pulmonary venous hypertension (re-tuned for the RA merge)
+    fo: 8,
     desc: "term 3.5 kg neonate with OBSTRUCTED total anomalous pulmonary venous connection: the anomalous " +
       "channel draining the pulmonary veins to the systemic venous circulation is narrowed, causing severe " +
       "pulmonary venous hypertension and oedema with secondary pulmonary arterial hypertension, profound " +

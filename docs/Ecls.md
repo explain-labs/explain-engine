@@ -354,6 +354,18 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 
 ## Changelog
 
+### Merged right atrium → drainage reaches the whole venous return (2026-10-01)
+
+- The ≈ 0.45 L/min (neonate) / ≈ 2.7 L/min (adult) drainage ceiling noted below was mostly caused by the
+  **split right atrium**. `RAIVCI_RASVC` was closed (`no_flow`) in every scenario, so a `RASVC` cannula
+  could only reach SVC return. Postnatal scenarios now merge the halves (see
+  [HeartChamber](./HeartChamber.md#the-split-right-atrium)).
+- `term_neonate` VA (RASVC → AAR), PediMag: 4000 rpm → ≈ 1.06 L/min (p_ven ≈ −12 mmHg, was 0.45 at −135);
+  5500 rpm → ≈ 1.5 L/min. Native LVO falls toward 0 as ECMO takes over the circulation.
+- Follow-up: with the merged atrium, very high rpm now gives implausibly high flows, e.g. `adult_female`
+  CentriMag ≈ 11 L/min at 5000 rpm. Neither caval/atrial collapse around the cannula (inflow limitation)
+  nor possibly realistic adult cannula resistances are modelled yet.
+
 ### CentriMag H-Q refit to the manufacturer curves (2026-10-01)
 
 - `pumps["Abbott CentriMag"]`: `hq_a` 24 → **23.17**, `hq_b` 11.1 → **0.85**, `hq_c` 0 → **0.38**,
