@@ -89,7 +89,7 @@ The same `calc_model` also accumulates `_t` into `_update_counter` and, once `_u
 - **`AA`** → `preductal_art_bloodgas`
 - **`AD`** → `art_bloodgas`, and `art_solutes = {...AD.solutes}`
 - **`IVCI`** and **`SVC`** → venous solve (composition updated in place)
-- **`RAIVCI`** (if present) → mixed-venous solve. The Monitor reads SvO₂ from `RAIVCI`, so its composition must be solved here or `so2` stays at the `-1` sentinel.
+- **`RAIVCI`** (if present) → mixed-venous solve. The Monitor reads SvO₂ from `RAIVCI`, so its composition must be solved here or `so2` stays at the `-1` sentinel. In postnatal scenarios the RA halves are merged, so this is truly mixed RA blood. In the fetal ones it is IVC-side blood, because the split atrium keeps streaming.
 
 ## Runtime setters
 

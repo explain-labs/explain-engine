@@ -189,3 +189,24 @@ Flow between chambers is handled by separate `Resistor` models (e.g., `LA_LV` fo
 | `RAIVCI` | Right atrium (IVC portion) | Atrial (aaf) |
 | `RASVC` | Right atrium (SVC portion) | Atrial (aaf) |
 | `RV` | Right ventricle | Ventricular (vaf) |
+
+### The split right atrium
+
+The RA is two chambers, `RAIVCI` (IVC return, coronary sinus) and `RASVC` (SVC return). Each has its own
+tricuspid half (`RAIVCI_RV`, `RASVC_RV`) and foramen-ovale half (`LA_RAIVCI`, `LA_RASVC`). They are joined
+by the `RAIVCI_RASVC` resistor (in `Heart.components`):
+
+- **Fetal scenarios** (`fetus_30wk`, `term_fetus`) keep the halves **separate** (`no_flow: true`). The
+  split is what produces preferential streaming: ductus venosus / IVC blood → FO → LA, SVC blood → RV.
+- **All postnatal scenarios** (since 2026-10-01) **merge** them into one atrium. The link is open in both
+  directions (`no_flow: false`, `no_back_flow: false`) with a small resistance
+  `R = max(1, ⌈2·dt·(E₁max + E₂max)⌉)`: 13 mmHg·s/L for the neonatal/CHD set (el_max 6104 each), 1 for
+  the adults. The two halves then sit within ≈ 0.01 mmHg of each other and mix fully.
+  - R must stay above `dt·(E₁+E₂)` (≈ 6 at dt 0.0005) or the explicit integration oscillates
+    (R = 2 runs away at ±350 L/min). The 2× margin covers ANS-raised elastance.
+  - `RAIVCI_RASVC` is not in `scaler_config.heart.resistance`, so weight scaling leaves it alone.
+- Before the merge, every scenario had the halves sealed. That made the SvO₂ readout IVC-only blood
+  (see [Monitor](./Monitor.md)), confined TAPVC's pulmonary venous return to `RASVC`, and kept a `RASVC`
+  ECMO cannula from reaching IVC return (see [Ecls](./Ecls.md)).
+- `scripts/_make_term_fetus.mjs` closes the link explicitly, because it starts from `term_neonate`; the
+  postnatal generators inherit the merged link from `term_neonate`.

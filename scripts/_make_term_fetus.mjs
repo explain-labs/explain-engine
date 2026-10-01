@@ -133,6 +133,14 @@ log.push(`Ventricles: cont_factor_right=${M.Heart.cont_factor_right} (RV-dominan
 M.Ans.components.BR_MAP.set_value = 55;
 log.push(`Ans: BR_MAP set_value=${M.Ans.components.BR_MAP.set_value} (matches the operating MAP)`);
 
+// H2. split right atrium. The postnatal scenarios (and term_neonate, which this script starts from)
+// merge RAIVCI and RASVC into one atrium through a low-resistance RAIVCI_RASVC link. The fetus needs
+// them separate for preferential streaming (ductus venosus / IVC blood -> FO -> LA, SVC blood -> RV),
+// so close the link explicitly.
+const RA_LINK = M.Heart.components.RAIVCI_RASVC;
+Object.assign(RA_LINK, { no_flow: true, no_back_flow: true, r_for: 55, r_back: 55 });
+log.push(`RA: RAIVCI_RASVC no_flow=${RA_LINK.no_flow} (split atrium for preferential streaming)`);
+
 // I. heart_rate_ref left at 145 (gives HR ~145); ANS active.
 // J. AD_PL_UMB_ART stays disabled — umbilical inflow is PL_UMB_ART's own input resistor from AD.
 log.push(`AD_PL_UMB_ART is_enabled=${M.AD_PL_UMB_ART.is_enabled} (kept disabled; inflow via PL_UMB_ART.inputs)`);

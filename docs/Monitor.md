@@ -25,7 +25,7 @@ and venous) — and exposes everything else through three uniform, **JSON-config
 | `etco2` | end-tidal CO₂; mirrored from `Ventilator.etco2` while the ventilator is enabled, otherwise derived from the spontaneous breath (see below) |
 | `temp` | blood temperature (°C), mirrored each step from `AA.temp` (last value kept if AA is absent) |
 | `sao2_pre`, `sao2_post` | pre-/post-ductal arterial O₂ saturation, from `AA.so2` / `AD.so2` |
-| `svo2` | venous O₂ saturation, from the right atrium / IVC (`RAIVCI.so2`) |
+| `svo2` | venous O₂ saturation, from the right atrium (`RAIVCI.so2`): mixed RA blood in postnatal scenarios (merged atrium), IVC-side blood in the fetal ones (split atrium, see [HeartChamber](./HeartChamber.md#the-split-right-atrium)) |
 
 **Heart rate** — on each ventricular beat (`Heart.ncc_ventricular === 1`), the beat-to-beat rate is
 `60 / interval` (interval = time since the previous beat). A running window of the last `hr_avg_beats`
