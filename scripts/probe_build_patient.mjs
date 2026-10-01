@@ -1,0 +1,93 @@
+// Probe the patient builder (scripts/build_patient.mjs) end to end: run it on a few SPECs,
+// reload each emitted scenario in a fresh engine, and check that what the build_report claims
+// is what the reloaded patient actually does.
+//
+// Usage:
+//   node scripts/probe_build_patient.mjs            all cases (each build takes about a minute)
+//   node scripts/probe_build_patient.mjs fio2       only cases whose name contains "fio2"
+//
+// Checks per case:
+//   - the builder exits 0 and emits a scenario with a build_report
+//   - every calibrated target the report calls `within` is still within tolerance after reload
+//   - unknown targets are listed under ignored_targets
+//   - with targets.fio2: the reloaded scenario carries that FiO2, and the same patient put in
+//     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
+// Exits 1 if any check fails.
+
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { createEngine } from "./_harness.mjs";
+import { measureVitals } from "./_probe.mjs";
+
+// createEngine() silences console.log (engine chatter); keep our own handle to stdout
+const print = console.log.bind(console);
+
+const BUILDER = fileURLToPath(new URL("./build_patient.mjs", import.meta.url));
+const READKEY = { co: "lvo", spo2: "spo2_pre" };
+
+const CASES = [
+  {
+    name: "term_room_air",
+    spec: { baseline: "term_neonate", name: "probe_term", targets: { hr: 140, map: 48, spo2: 96, pco2: 42, be: -1 } },
+  },
+  {
+    name: "preterm_fio2",
+    spec: {
+      baseline: "term_neonate", name: "probe_preterm_fio2", max_iters: 10,
+      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, hb: 9.0, fio2: 0.3, not_a_target: 1 },
+    },
+    expectIgnored: ["not_a_target"],
+  },
+];
+
+const only = process.argv[2];
+let failures = 0;
+const check = (ok, label) => {
+  print(`    ${ok ? "ok  " : "FAIL"} ${label}`);
+  if (!ok) failures++;
+};
+
+for (const c of CASES) {
+  if (only && !c.name.includes(only)) continue;
+  print(`\n${c.name}`);
+  const t0 = Date.now();
+  const proc = spawnSync(process.execPath, [BUILDER], { input: JSON.stringify(c.spec), encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
+  check(proc.status === 0, `builder exit 0 (${Math.round((Date.now() - t0) / 1000)} s)`);
+  if (proc.status !== 0) {
+    print(proc.stderr.split("\n").slice(-4).join("\n"));
+    continue;
+  }
+  const scenario = JSON.parse(proc.stdout);
+  const report = scenario.build_report;
+  check(!!report && report.version === 1, "scenario carries build_report v1");
+  if (!report) continue;
+  print(`    ${report.converged ? "CONVERGED" : "INCOMPLETE"} after ${report.iters} iter` +
+    report.targets.filter((t) => t.lever_at_bound).map((t) => ` — ${t.key}: lever at bound`).join(""));
+  check(scenario.provenance === "calibrator-fitted", "provenance is calibrator-fitted");
+  for (const k of c.expectIgnored ?? []) check(report.ignored_targets.includes(k), `unknown target "${k}" reported as ignored`);
+
+  // reload in a fresh engine: the saved state must reproduce the reported operating point
+  const eng = await createEngine();
+  const model = eng.build(scenario.model_definition);
+  eng.calc(120);
+  const v = measureVitals(model, eng.send, { window: 12 });
+  for (const t of report.targets) {
+    if (!t.within) continue;
+    const got = v[READKEY[t.key] ?? t.key];
+    // allow a little drift on top of the tolerance: reload restarts from the saved state
+    check(Math.abs(got - t.target) <= t.tolerance * 1.5, `${t.key} after reload ${got.toFixed(2)} (target ${t.target} ± ${t.tolerance})`);
+  }
+
+  if (c.spec.targets.fio2 != null) {
+    const sites = ["OUT", "MOUTH"].filter((n) => model.models[n]);
+    check(Math.abs(model.models.Gas.fio2 - c.spec.targets.fio2) < 1e-9, `reloaded Gas.fio2 is ${c.spec.targets.fio2}`);
+    const onOxygen = v.spo2_pre;
+    model.models.Gas.set_fio2(0.21, sites);
+    eng.calc(180);
+    const roomAir = measureVitals(model, eng.send, { window: 12 }).spo2_pre;
+    check(roomAir < onOxygen - 3, `desaturates in room air: SpO2 ${onOxygen.toFixed(1)} -> ${roomAir.toFixed(1)}`);
+  }
+}
+
+print(failures ? `\n${failures} check(s) FAILED` : "\nall checks passed");
+process.exit(failures ? 1 : 0);
