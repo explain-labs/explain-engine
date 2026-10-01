@@ -35,6 +35,10 @@
 //       "sys": 48, "dia": 27,  // iterated as a pair: pulse pressure (sys - dia) via large-artery
 //                              //   stiffness, and MAP = dia + (sys - dia)/3 when "map" is absent
 //       "rr": 60,              // iterated: spontaneous respiratory rate via the tidal-volume/rate split
+//       "na": 138, "k": 4.5, "cl": 104, "lactate": 2.5, "glucose": 4.0,  // structural, mmol/L
+//       "albumin": 28,         // structural, g/L. Na/K/Cl/lactate set the strong-ion difference, albumin
+//                              //   the weak acids (Stewart): with them a BE target is fitted by the
+//                              //   remaining unmeasured anions instead of absorbing everything
 //       "spo2": 90, "po2": 55, "pco2": 52, "ph": 7.28, "be": -5, "co": 0.3 // iterated
 //     },
 //     "pathophysiology": { "rds": "moderate", "pvr_scale": 1.7 },         // named modifiers
@@ -163,6 +167,7 @@ const has = (k) => targets[k] != null;
 // silently dropped target looks exactly like one that was applied
 const KNOWN_TARGETS = new Set([
   "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2",
+  "na", "k", "cl", "lactate", "glucose", "albumin",
   "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "spo2", "po2", "pco2", "ph", "be", "co",
 ]);
 const ignoredTargets = Object.keys(targets).filter((k) => targets[k] != null && !KNOWN_TARGETS.has(k));
@@ -317,6 +322,30 @@ if (model.models.Blood && (has("hb") || has("hb_gdl"))) {
   model.models.Blood.set_solute("hemoglobin", hbMmol);
   restoreMaternalPool(); // PL_MAT is the mother's blood — her Hb does not follow the fetus's
   trace(`structural: Hb ${round(hbMmol, 2)} mmol/L${!has("hb") && has("hb_gdl") ? ` (converted from ${targets.hb_gdl} g/dL)` : ""}`);
+}
+
+// plasma solutes (mmol/L; albumin g/L). Written to every blood compartment via Blood.set_solute,
+// which the Stewart acid-base solver reads (BloodComposition: sid = na + k + 2ca + 2mg - cl - lact;
+// albumin and phosphates as weak acids). Two of them are also controller set-points that would
+// otherwise pull the value back: Lactate clears toward lact_baseline (t1/2 ~6 min) and Glucose
+// regulates toward glucose_setpoint, so both are moved with the solute. Kidney filtration lets the
+// others drift only slightly (term neonate: Na 128 -> 128.1 over 4 min); the final values are read
+// back into build_report.solutes.
+const SOLUTE_KEY = { na: "na", k: "k", cl: "cl", lactate: "lact", glucose: "glucose", albumin: "albumin" };
+const soluteTargets = Object.keys(SOLUTE_KEY).filter(has);
+for (const k of soluteTargets) {
+  const v = targets[k];
+  if (typeof v !== "number" || !(v > 0) || !isFinite(v)) {
+    console.error(`build_patient: targets.${k} must be a positive number (got ${JSON.stringify(v)}).`);
+    process.exit(1);
+  }
+}
+if (soluteTargets.length && model.models.Blood) {
+  for (const k of soluteTargets) model.models.Blood.set_solute(SOLUTE_KEY[k], targets[k]);
+  restoreMaternalPool(); // set_solute reaches PL_MAT; the mother is not the patient
+  if (has("lactate") && model.models.Lactate) model.models.Lactate.lact_baseline = targets.lactate;
+  if (has("glucose") && model.models.Glucose) model.models.Glucose.glucose_setpoint = targets.glucose;
+  trace(`structural: solutes ${soluteTargets.map((k) => `${k} ${targets[k]}`).join(", ")}`);
 }
 
 // thermoregulation set-point -> target core/blood temperature
@@ -524,6 +553,11 @@ const result = runCalibration(controllers, {
   log: (line) => trace(`  ${line}`),
 });
 const vf = result.measured;
+// read the solutes back now: serializeState (below) nests compartments back under their owners,
+// so model.models.AA is gone by the time the report is assembled
+const soluteReadback = Object.fromEntries(
+  soluteTargets.map((k) => [k, { set: targets[k], value: round(model.models.AA?.solutes?.[SOLUTE_KEY[k]], 3) }]),
+);
 // a lever combination can push the circulation past the integrator's stability limit; such a
 // patient must never be emitted, however plausible some of its numbers look
 const unstable = ["sys", "dia", "map", "lvo"].filter((k) => typeof vf[k] !== "number" || !isFinite(vf[k]));
@@ -598,8 +632,11 @@ const build_report = {
       .map(([k, v]) => [k, { value: round(v, 3), flag: flagOf(ranges, k, v) }]),
   ),
   structural: Object.fromEntries(
-    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2"].filter(has).map((k) => [k, targets[k]]),
+    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2", ...Object.keys(SOLUTE_KEY)].filter(has).map((k) => [k, targets[k]]),
   ),
+  // each solute that was set, with the arterial (AA) value after calibration: kidney filtration,
+  // and lactate production in a hypoxic patient, can move them
+  solutes: soluteReadback,
   // targets the builder computed from others: pp = sys - dia, and map from sys/dia when absent
   derived_targets: derivedTargets,
   ignored_targets: ignoredTargets,

@@ -13,6 +13,8 @@
 //   - with targets.fio2: the reloaded scenario carries that FiO2, and the same patient put in
 //     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
 //   - with sys/dia: the derived pulse pressure (and MAP, when not given) are in the report
+//   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
+//     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
 // Exits 1 if any check fails.
 
@@ -45,6 +47,16 @@ const CASES = [
     name: "term_bp_rr",
     spec: { baseline: "term_neonate", name: "probe_term_bp_rr", targets: { hr: 140, sys: 68, dia: 40, spo2: 96, pco2: 42, rr: 52 } },
     expectDerived: { pp: 28, map: 49.3 },
+  },
+  {
+    // lactic acidosis with measured electrolytes: the BE target is fitted by the unmeasured
+    // anions left over after Na/K/Cl/lactate/albumin
+    name: "term_lactate_electrolytes",
+    spec: {
+      baseline: "term_neonate", name: "probe_term_lact",
+      targets: { hr: 150, map: 45, spo2: 95, pco2: 40, be: -7, na: 134, k: 4.8, cl: 104, lactate: 4.5, glucose: 3.2, albumin: 24 },
+    },
+    expectSolutes: true,
   },
 ];
 
@@ -90,6 +102,19 @@ for (const c of CASES) {
     const got = v[READKEY[t.key] ?? t.key];
     // allow a little drift on top of the tolerance: reload restarts from the saved state
     check(Math.abs(got - t.target) <= t.tolerance * 1.5, `${t.key} after reload ${got.toFixed(2)} (target ${t.target} ± ${t.tolerance})`);
+  }
+
+  if (c.expectSolutes) {
+    const KEY = { na: "na", k: "k", cl: "cl", lactate: "lact", glucose: "glucose", albumin: "albumin" };
+    for (const [k, sk] of Object.entries(KEY)) {
+      const want = c.spec.targets[k];
+      if (want == null) continue;
+      const rep = report.solutes?.[k];
+      check(!!rep && Math.abs(rep.value - want) <= 0.03 * want, `${k} in report ${rep?.value} (set ${want})`);
+      const got = model.models.AA.solutes[sk];
+      check(Math.abs(got - want) <= 0.03 * want, `${k} after reload ${got.toFixed(2)} (set ${want})`);
+    }
+    print(`    note unmeasured anions (uma) ${model.models.AA.solutes.uma.toFixed(2)} after reload`);
   }
 
   if (c.spec.targets.fio2 != null) {
