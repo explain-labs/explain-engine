@@ -2954,9 +2954,10 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_flip",
+      "type": "outer",
       "width": 7,
-      "color": "#666666"
+      "color": "#666666",
+      "track": 1.68
      },
      "sprite": {
       "color": "#ffffff",
@@ -3154,9 +3155,10 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_flip",
+      "type": "outer",
       "width": 7,
-      "color": "#666666"
+      "color": "#666666",
+      "track": 1.6
      },
      "sprite": {
       "color": "#ffffff",
