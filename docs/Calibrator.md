@@ -60,6 +60,8 @@ Two builder-only targets:
 - **`sys` + `dia`** (a pair; one alone is ignored with a note): the builder derives the pulse pressure `pp = sys − dia` and, if `map` is absent, `map = dia + pp/3` (both listed under `build_report.derived_targets`). MAP keeps its resistance lever; `pp` gets **large-artery stiffness** — `el_base_factor_ps` on `AA`, `AAR`, `AD`, bounds 0.3–1.8. Stiffening raises systolic and lowers diastolic around a nearly unchanged mean, so the two levers barely interact. The upper bound is numerical, not physiological: the integrator goes unstable at about ×2 (term) to ×2.4 (a calibrated 28 wk preterm). In small babies it binds early, because weight scaling shrinks arterial volumes but not their elastance, so their arteries stay as compliant as a term baby's: a 1.08 kg preterm tops out near a pulse pressure of 19 mmHg. As a backstop, a build whose final pressures are non-finite, negative diastolic, systolic above 250 or output above 10 L/min is refused (exit 1) instead of emitted.
 - **`rr`** — spontaneous respiratory rate via `Breathing.vt_rr_ratio_factor`. Breathing sets `rate = √(target minute volume / (ratio × weight))`, so the controller steps in closed form, `f ← f × (measured / target)²`, bounds 0.2–5. Minute volume stays with the pCO2 lever; the two interact only through dead space. Refused (exit 1) when spontaneous breathing is off.
 
+**Plasma solutes** — `na`, `k`, `cl`, `lactate`, `glucose` (mmol/L) and `albumin` (g/L) are structural: written to every blood compartment with `Blood.set_solute` before the loop. They feed the Stewart solver (`sid = na + k + 2ca + 2mg − cl − lact`, albumin as a weak acid), so with them a `be`/`ph` target is fitted by the unmeasured anions (`uma`) *left over* after the measured ions, rather than `uma` absorbing the whole acidosis. Two have their own controllers, which are moved with them: `Lactate.lact_baseline` (clearance target, t½ ≈ 6 min) and `Glucose.glucose_setpoint`. Kidney filtration moves the others only slightly over a build; the final arterial values are read back into `build_report.solutes`. If the measured ions already explain more than the measured acidosis, `uma` hits its floor of 0 and the BE target is reported missed with its lever at bound.
+
 Before calibrating it applies the **structural** targets: `weight`, `gestational_age` (a seed bundle),
 `height`, `age`, `hb`/`hb_gdl`, `temp`, `pda` and **`fio2`**.
 
@@ -79,6 +81,7 @@ the human-readable one):
 | `measured` | every measured vital: `{ value, flag }`, flag from the profile's `RANGES` (`ok`/`LOW`/`HIGH`) |
 | `structural` | the structural targets that were applied |
 | `derived_targets` | `pp` (and `map`) computed from `sys`/`dia` |
+| `solutes` | per solute set: `{ set, value }`, the arterial (AA) value after calibration |
 | `ignored_targets` | `targets` keys the builder does not know. They are **ignored**, so they are listed |
 | `superseded_targets` | `spo2` when `po2` is also given, `ph` when `be` is: one lever each, the first wins |
 | `notes` | e.g. `pco2` targeted while spontaneous breathing is off (its lever cannot move it) |
