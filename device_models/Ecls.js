@@ -93,7 +93,7 @@ export class Ecls extends BaseModelClass {
     // L/min), a real rotodynamic characteristic (afterload/preload sensitive) rather than the old
     // flow-independent -rpm/25. Roller mode is a positive-displacement flow source: an integral
     // controller trims the drive pressure so circuit flow tracks Q_target = roller_ml_per_rev*rpm/1000.
-    this.pump_hq_a = 9.9; // head vs rpm^2 term (mmHg per krpm^2) — default = Abbott PediMag
+    this.pump_hq_a = 17.85; // head vs rpm^2 term (mmHg per krpm^2) — default = Abbott PediMag
     this.pump_hq_b = 30.3; // head falloff vs rpm*flow (mmHg per krpm per L/min) — Euler-slip term
     this.pump_hq_c = 0.0; // head falloff vs flow^2 (mmHg per (L/min)^2); 0 in the datasheet fit
     this.pump_max_rpm = 5500; // informational max rpm of the selected pump
@@ -227,8 +227,10 @@ export class Ecls extends BaseModelClass {
     // than the flat low-flow curve a pure Q^2 term would give. See docs/BloodPump.md for the table/sources.
     this.pumps = {
       "Abbott PediMag": { // pediatric mag-lev centrifugal, ~1.5 L/min max, 14 mL prime
+        // hq_a from the 540 mmHg max outflow pressure at 5500 rpm (540/5.5^2); with hq_b 30.3 it
+        // reproduces the published 0.6 / 0.8 L/min at 2800 / 3200 rpm (10 Fr return cannula)
         type: "centrifugal", max_rpm: 5500, prime: 0.014,
-        hq_a: 9.9, hq_b: 30.3, hq_c: 0.0,
+        hq_a: 17.85, hq_b: 30.3, hq_c: 0.0,
       },
       "Abbott CentriMag": { // adult mag-lev centrifugal, ~9.9 L/min @5000 rpm, 31 mL prime
         type: "centrifugal", max_rpm: 5000, prime: 0.031,
