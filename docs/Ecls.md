@@ -149,8 +149,11 @@ each tick in `calc_model`.
 
 **When `ecls_running` is false:** zero `flow`/`flow_avg`/`p_ven`/`p_int`/`p_art`, reset the four
 moving-average filters and `_blood_comp_counter`, and **disable every circuit sub-model** so a stopped
-circuit no longer conducts passive flow, then return. (Sub-model refs are only non-null once the
-circuit has run.)
+circuit no longer conducts passive flow, then return. The refs are resolved here as well, so a
+circuit that has never run is disabled from the first step (scenarios ship the sub-models with
+`is_enabled: true`). It also zeroes `flow` on the circuit's five blood resistors (both cannulas and the
+three BloodVessel-owned connectors): a disabled Resistor never runs `calc_flow`, so its last flow would
+otherwise linger after a stop.
 
 **When running**, every `_update_interval` (0.015 s):
 
@@ -294,7 +297,7 @@ Device-level fields from `term_neonate.json` (the full block nests eleven `ECLS_
                   "ECLS_OXY": {}, "ECLS_TUBING_OUT": {}, "ECLS_RETURN": {},
                   "ECLS_GAS_SOURCE": {}, "ECLS_GAS_OXY": {}, "ECLS_GAS_OUT": {},
                   "ECLS_GAS_INSP_VALVE": {}, "ECLS_GASEX": {} },
-  "ecls_running": true,
+  "ecls_running": false,
   "ecls_clamped": true,
   "drainage_site": "RASVC",
   "return_site": "AAR",
@@ -311,7 +314,12 @@ Device-level fields from `term_neonate.json` (the full block nests eleven `ECLS_
 }
 ```
 
-Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows until it is unclamped.
+`ecls_running` is the circuit's on/off switch, and every shipped scenario has it **off**
+(`ecls_running: false`, since 2026-10-01). Switching it on at runtime gives a primed but clamped circuit
+(`ecls_clamped: true`), so no blood flows until it is unclamped. Use `ecls_running` rather than the
+model's `is_enabled`: with `is_enabled: false`, `calc_model` never runs, so nothing manages the
+sub-models. On top of that, the DataCollector drops watched props of disabled models after every
+`calculate()`, which silently kills `Ecls.*` UI read-outs.
 
 ## Usage in the model
 
@@ -345,6 +353,15 @@ Note `ecls_clamped: true` ships the circuit on but clamped — no blood flows un
 - **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.
 
 ## Changelog
+
+### Off by default (2026-10-01)
+
+- All 39 scenarios now ship `ecls_running: false`. A clamped circuit is inert, and ECLS volume isn't
+  counted in `Circulation.calc_blood_volumes`, so patient values are unchanged. Checked headlessly on
+  `term_neonate`: HR, MAP, SaO₂, pH and total blood volume are identical at 60 s.
+- The stop branch now resolves its sub-model refs, so the circuit really is disabled from step 1, not
+  only after its first run. It also zeroes the circuit resistors' flows on stop (no stale flow for the
+  monitor or the diagram animation).
 
 An audit of the ECLS model on 2026-07-21 fixed a set of correctness bugs and raised the physiological
 fidelity of the pump, oxygenator, and cannula library. The audit was completed in a single session that

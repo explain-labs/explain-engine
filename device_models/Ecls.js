@@ -5,6 +5,16 @@ import { calc_gas_composition } from "../component_models/GasComposition"
 import { calc_blood_composition } from "../component_models/BloodComposition";
 import RealTimeMovingAverage from "../helpers/RealTimeMovingAverage";
 
+// the blood-side resistors of the circuit: the two cannulas plus the connectors the ECLS
+// BloodVessels create for their inputs (named `<input>_<vessel>`, see BloodVessel.init_model)
+const ECLS_RESISTORS = [
+  "ECLS_DRAINAGE",
+  "ECLS_TUBING_IN_ECLS_PUMP",
+  "ECLS_PUMP_ECLS_OXY",
+  "ECLS_OXY_ECLS_TUBING_OUT",
+  "ECLS_RETURN",
+];
+
 export class Ecls extends BaseModelClass {
   // static properties
   static model_type = "Ecls";
@@ -389,6 +399,23 @@ export class Ecls extends BaseModelClass {
     }
   }
 
+  // (re)resolve the circuit sub-model references from the engine model map
+  _resolve_refs() {
+    const models = this._model_engine.models;
+    this._ecls_drainage = models["ECLS_DRAINAGE"];
+    this._ecls_tubing_in = models["ECLS_TUBING_IN"];
+    this._ecls_pump = models["ECLS_PUMP"];
+    this._ecls_oxy = models["ECLS_OXY"];
+    this._ecls_tubing_out = models["ECLS_TUBING_OUT"];
+    this._ecls_return = models["ECLS_RETURN"];
+    this._ecls_gas_source = models["ECLS_GAS_SOURCE"];
+    this._ecls_gas_oxy = models["ECLS_GAS_OXY"];
+    this._ecls_gas_out = models["ECLS_GAS_OUT"];
+    this._ecls_gas_insp_valve = models["ECLS_GAS_INSP_VALVE"];
+    this._ecls_gas_exp_valve = models["ECLS_GAS_EXP_VALVE"];
+    this._ecls_gasex = models["ECLS_GASEX"];
+  }
+
   calc_model() {
     if (!this.ecls_running) {
       this.flow = 0.0;
@@ -404,14 +431,22 @@ export class Ecls extends BaseModelClass {
       this._pump_flow_ema = 0.0; // clear the pump-control state so a restart begins from rest
       this._roller_drive = 0.0;
 
-      // disable the circuit sub-models so a stopped ECLS no longer conducts (refs are cached once the
-      // circuit has run; they are null before the first run, when the sub-models are already disabled)
+      // disable the circuit sub-models so a stopped ECLS no longer conducts. Resolve the refs here
+      // too: scenarios ship the sub-models enabled, and a circuit that has never run would otherwise
+      // keep them enabled (only their JSON no_flow kept it inert).
+      if (!this._ecls_drainage) this._resolve_refs();
       [this._ecls_drainage, this._ecls_tubing_in, this._ecls_pump, this._ecls_oxy,
        this._ecls_tubing_out, this._ecls_return, this._ecls_gas_source, this._ecls_gas_oxy,
        this._ecls_gas_out, this._ecls_gas_insp_valve, this._ecls_gas_exp_valve,
        this._ecls_gasex].forEach((m) => {
         if (m) m.is_enabled = false;
       });
+      // a disabled Resistor never runs calc_flow, so its last flow would linger — zero the circuit's
+      // resistors (incl. the three owned by the ECLS BloodVessels) so readers see a stopped circuit
+      for (const name of ECLS_RESISTORS) {
+        const r = this._model_engine.models[name];
+        if (r) r.flow = 0.0;
+      }
       // release the heater-cooler so a stopped circuit leaves ECLS_OXY as a neutral blood
       // compartment (Thermoregulation resumes warming it toward core), restoring its original tc
       this._release_heater_cooler();
@@ -455,18 +490,7 @@ export class Ecls extends BaseModelClass {
         }
 
         // get a reference to the associated models
-        this._ecls_drainage = this._model_engine.models["ECLS_DRAINAGE"];
-        this._ecls_tubing_in = this._model_engine.models["ECLS_TUBING_IN"];
-        this._ecls_pump = this._model_engine.models["ECLS_PUMP"];
-        this._ecls_oxy = this._model_engine.models["ECLS_OXY"];
-        this._ecls_tubing_out = this._model_engine.models["ECLS_TUBING_OUT"];
-        this._ecls_return = this._model_engine.models["ECLS_RETURN"];
-        this._ecls_gas_source = this._model_engine.models["ECLS_GAS_SOURCE"];
-        this._ecls_gas_oxy = this._model_engine.models["ECLS_GAS_OXY"];
-        this._ecls_gas_out = this._model_engine.models["ECLS_GAS_OUT"];
-        this._ecls_gas_insp_valve = this._model_engine.models["ECLS_GAS_INSP_VALVE"];
-        this._ecls_gas_exp_valve = this._model_engine.models["ECLS_GAS_EXP_VALVE"];
-        this._ecls_gasex = this._model_engine.models["ECLS_GASEX"];
+        this._resolve_refs();
 
         // skip this tick if the circuit wiring is incomplete (any sub-model missing) rather than
         // dereferencing undefined below

@@ -2560,9 +2560,9 @@
      "sprite": {
       "color": "#000000",
       "pos": {
-       "type": "rel",
+       "type": "bottom",
        "x": 0,
-       "y": 1.1999999999999997,
+       "y": 20,
        "dgs": 0
       },
       "scale": {
@@ -2736,7 +2736,7 @@
     "type": "Compartment",
     "label": "IN",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_TUBING_IN"
     ],
@@ -2758,8 +2758,8 @@
       "color": "#ffffff",
       "pos": {
        "type": "rel",
-       "x": -0.5,
-       "y": 1.15,
+       "x": -0.45,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2770,22 +2770,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.07
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
+      "pos_y": 22,
       "size": 10,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_PUMP": {
     "type": "Compartment",
     "label": "PUMP",
     "picto": "pump.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_PUMP"
     ],
@@ -2808,7 +2810,7 @@
       "pos": {
        "type": "rel",
        "x": -0.15,
-       "y": 1.2,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2819,22 +2821,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.11
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
+      "pos_y": 28,
       "size": 10,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_OXY": {
     "type": "Compartment",
     "label": "OXY",
-    "picto": "container.png",
-    "enabled": false,
+    "picto": "oxygenator.png",
+    "enabled": true,
     "models": [
      "ECLS_OXY"
     ],
@@ -2857,7 +2861,7 @@
       "pos": {
        "type": "rel",
        "x": 0.15,
-       "y": 1.2,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2868,22 +2872,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.13
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
+      "pos_y": 30,
       "size": 10,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_TUBING_OUT": {
     "type": "Compartment",
     "label": "OUT",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_TUBING_OUT"
     ],
@@ -2905,8 +2911,8 @@
       "color": "#ffffff",
       "pos": {
        "type": "rel",
-       "x": 0.5,
-       "y": 1.15,
+       "x": 0.45,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2917,22 +2923,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.07
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
+      "pos_y": 22,
       "size": 10,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_DRAINAGE": {
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_DRAINAGE"
     ],
@@ -2946,9 +2954,10 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "outer",
       "width": 7,
-      "color": "#666666"
+      "color": "#666666",
+      "track": 1.68
      },
      "sprite": {
       "color": "#ffffff",
@@ -2975,13 +2984,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_TUBIN_PUMP": {
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_TUBING_IN_ECLS_PUMP"
     ],
@@ -2995,7 +3005,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "straight",
       "width": 7,
       "color": "#666666"
      },
@@ -3024,13 +3034,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_PUMP_OXY": {
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_PUMP_ECLS_OXY"
     ],
@@ -3073,13 +3084,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_OXY_TUBOUT": {
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_OXY_ECLS_TUBING_OUT"
     ],
@@ -3093,7 +3105,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "straight",
       "width": 7,
       "color": "#666666"
      },
@@ -3122,13 +3134,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_RETURN": {
     "type": "Connector",
     "label": "",
     "picto": "container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_RETURN"
     ],
@@ -3142,9 +3155,10 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "outer",
       "width": 7,
-      "color": "#666666"
+      "color": "#666666",
+      "track": 1.6
      },
      "sprite": {
       "color": "#ffffff",
@@ -3171,7 +3185,8 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "RA": {
     "type": "Compartment",
@@ -5408,10 +5423,10 @@
     "model_type": "Thermoregulation",
     "components": {},
     "thermoregulation_running": true,
-    "env_temp": 32.0,
+    "env_temp": 32,
     "radiant_temp": null,
     "rel_humidity": 0.5,
-    "setpoint_temp": 37.0
+    "setpoint_temp": 37
    },
    "Glucose": {
     "name": "Glucose",
@@ -5422,7 +5437,7 @@
     "glucose_running": true,
     "glu_use_rate": 0.03,
     "hgp_rate": 0.03,
-    "glucose_setpoint": 4.0
+    "glucose_setpoint": 4
    },
    "Lactate": {
     "name": "Lactate",
@@ -5431,7 +5446,7 @@
     "model_type": "Lactate",
     "components": {},
     "lactate_running": true,
-    "lact_baseline": 1.0,
+    "lact_baseline": 1,
     "threshold_frac": 0.5,
     "lact_per_o2_deficit": 0.33,
     "lact_clearance": 0.002
@@ -5500,7 +5515,7 @@
     "kidneys_running": true,
     "kid_cap_name": "KID_CAP",
     "urine_name": "URINE",
-    "kf": 6e-06,
+    "kf": 0.000006,
     "p_bowman": 8,
     "oncotic_base": 18,
     "albumin_ref": 25,
@@ -5574,8 +5589,8 @@
     "brain_running": true,
     "autoregulation_enabled": true,
     "icp_enabled": true,
-    "autoregulation_gain": 1.0,
-    "edema_volume": 0.0
+    "autoregulation_gain": 1,
+    "edema_volume": 0
    },
    "Hormones": {
     "name": "Hormones",
@@ -5953,8 +5968,8 @@
     "to2_min": 0.0002,
     "to2_ref": 0.2,
     "resp_q": 0.1,
-    "bm_vo2_per_g": 3.7e-05,
-    "sw_vo2_per_g": 2e-07,
+    "bm_vo2_per_g": 0.000037,
+    "sw_vo2_per_g": 2e-7,
     "hw_intercept": 7.799,
     "hw_slope": 0.004296,
     "hr_factor": 1,
@@ -5974,7 +5989,7 @@
     "bm_vo2": 0.00085204784,
     "sw_vo2": 0,
     "mob_vo2": 0.00085204784,
-    "mvo2_step": 4.2602392e-07,
+    "mvo2_step": 4.2602392e-7,
     "stroke_work_lv": 0,
     "stroke_work_rv": 0,
     "stroke_work_total": 0,
@@ -6119,8 +6134,8 @@
       "el_k_factor_scaling_ps": 1,
       "vol": 0.26199991554706975,
       "pres": 759.9999045681888,
-      "pres_in": -9.543181119398003e-05,
-      "pres_tm": -9.543181119398003e-05,
+      "pres_in": -0.00009543181119398003,
+      "pres_tm": -0.00009543181119398003,
       "el_eff": 1130,
       "u_vol_eff": 0.262,
       "el_k_eff": 0,
@@ -6134,7 +6149,7 @@
       "cn2": 29.12795934583959,
       "cother": 0,
       "ch2o": 2.403399408291595,
-      "pres_rel": -9.543181124627154e-05,
+      "pres_rel": -0.00009543181124627154,
       "po2": 149.83775761462527,
       "pco2": 0.27969714754730046,
       "pn2": 563.395676736043,
@@ -10189,7 +10204,7 @@
       "dif_co2_step": 0
      }
     },
-    "ecls_running": true,
+    "ecls_running": false,
     "ecls_clamped": true,
     "drainage_res_factor": 1,
     "return_res_factor": 1,
@@ -10633,8 +10648,8 @@
       "dif_co2_factor_ps": 1,
       "dif_o2_factor_scaling": 1,
       "dif_co2_factor_scaling": 1,
-      "flux_o2": -6.418444952623709e-06,
-      "flux_co2": 4.565702539337387e-06,
+      "flux_o2": -0.000006418444952623709,
+      "flux_co2": 0.000004565702539337387,
       "dif_o2_step": 0.001,
       "dif_co2_step": 0.006
      },
@@ -10654,8 +10669,8 @@
       "dif_co2_factor_ps": 1,
       "dif_o2_factor_scaling": 1,
       "dif_co2_factor_scaling": 1,
-      "flux_o2": -6.418444952623709e-06,
-      "flux_co2": 4.565702539337387e-06,
+      "flux_o2": -0.000006418444952623709,
+      "flux_co2": 0.000004565702539337387,
       "dif_o2_step": 0.001,
       "dif_co2_step": 0.006
      }
@@ -15313,7 +15328,7 @@
       "general": {
        "animatedBy": "none",
        "z_index": 10,
-       "alpha": 1,
+       "alpha": 0,
        "tinting": true
       },
       "path": {
@@ -15324,9 +15339,9 @@
       "sprite": {
        "color": "#000000",
        "pos": {
-        "type": "rel",
+        "type": "bottom",
         "x": 0,
-        "y": 1.2,
+        "y": 20,
         "dgs": 0
        },
        "scale": {
@@ -15500,7 +15515,7 @@
      "type": "Compartment",
      "label": "IN",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_TUBING_IN"
      ],
@@ -15522,8 +15537,8 @@
        "color": "#ffffff",
        "pos": {
         "type": "rel",
-        "x": -0.5,
-        "y": 1.15,
+        "x": -0.45,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15534,22 +15549,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.07
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 22,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_PUMP": {
      "type": "Compartment",
      "label": "PUMP",
      "picto": "pump.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_PUMP"
      ],
@@ -15572,7 +15589,7 @@
        "pos": {
         "type": "rel",
         "x": -0.15,
-        "y": 1.2,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15583,22 +15600,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.11
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 28,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_OXY": {
      "type": "Compartment",
      "label": "OXY",
-     "picto": "container.png",
-     "enabled": false,
+     "picto": "oxygenator.png",
+     "enabled": true,
      "models": [
       "ECLS_OXY"
      ],
@@ -15621,7 +15640,7 @@
        "pos": {
         "type": "rel",
         "x": 0.15,
-        "y": 1.2,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15632,22 +15651,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.13
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 30,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_TUBING_OUT": {
      "type": "Compartment",
      "label": "OUT",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_TUBING_OUT"
      ],
@@ -15669,8 +15690,8 @@
        "color": "#ffffff",
        "pos": {
         "type": "rel",
-        "x": 0.5,
-        "y": 1.15,
+        "x": 0.45,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15681,22 +15702,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.07
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 22,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_DRAINAGE": {
      "type": "Connector",
      "label": "",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_DRAINAGE"
      ],
@@ -15710,9 +15733,10 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "outer",
        "width": 7,
-       "color": "#666666"
+       "color": "#666666",
+       "track": 1.68
       },
       "sprite": {
        "color": "#ffffff",
@@ -15739,13 +15763,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_TUBIN_PUMP": {
      "type": "Connector",
      "label": "",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_TUBING_IN_ECLS_PUMP"
      ],
@@ -15759,7 +15784,7 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "straight",
        "width": 7,
        "color": "#666666"
       },
@@ -15788,13 +15813,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_PUMP_OXY": {
      "type": "Connector",
      "label": "",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_PUMP_ECLS_OXY"
      ],
@@ -15837,13 +15863,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_OXY_TUBOUT": {
      "type": "Connector",
      "label": "",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_OXY_ECLS_TUBING_OUT"
      ],
@@ -15857,7 +15884,7 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "straight",
        "width": 7,
        "color": "#666666"
       },
@@ -15886,13 +15913,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_RETURN": {
      "type": "Connector",
      "label": "",
      "picto": "container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_RETURN"
      ],
@@ -15906,9 +15934,10 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "outer",
        "width": 7,
-       "color": "#666666"
+       "color": "#666666",
+       "track": 1.6
       },
       "sprite": {
        "color": "#ffffff",
@@ -15935,7 +15964,8 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "RA": {
      "type": "Compartment",
