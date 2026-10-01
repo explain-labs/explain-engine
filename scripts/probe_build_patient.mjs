@@ -12,6 +12,8 @@
 //   - unknown targets are listed under ignored_targets
 //   - with targets.fio2: the reloaded scenario carries that FiO2, and the same patient put in
 //     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
+//   - with sys/dia: the derived pulse pressure (and MAP, when not given) are in the report
+// Levers that ended on a bound are printed as notes.
 // Exits 1 if any check fails.
 
 import { spawnSync } from "node:child_process";
@@ -37,6 +39,12 @@ const CASES = [
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, hb: 9.0, fio2: 0.3, not_a_target: 1 },
     },
     expectIgnored: ["not_a_target"],
+  },
+  {
+    // MAP derived from sys/dia; pulse pressure and respiratory rate calibrated
+    name: "term_bp_rr",
+    spec: { baseline: "term_neonate", name: "probe_term_bp_rr", targets: { hr: 140, sys: 68, dia: 40, spo2: 96, pco2: 42, rr: 52 } },
+    expectDerived: { pp: 28, map: 49.3 },
   },
 ];
 
@@ -65,12 +73,18 @@ for (const c of CASES) {
     report.targets.filter((t) => t.lever_at_bound).map((t) => ` — ${t.key}: lever at bound`).join(""));
   check(scenario.provenance === "calibrator-fitted", "provenance is calibrator-fitted");
   for (const k of c.expectIgnored ?? []) check(report.ignored_targets.includes(k), `unknown target "${k}" reported as ignored`);
+  for (const [k, v] of Object.entries(c.expectDerived ?? {})) check(report.derived_targets?.[k] === v, `derived target ${k} = ${v}`);
+  for (const t of report.targets.filter((t) => t.lever_at_bound)) {
+    const atHi = Math.abs(t.lever_value - t.lever_bounds[1]) < 1e-9;
+    print(`    note ${t.key}: ${t.lever} at its ${atHi ? "upper" : "lower"} bound (${t.within ? "target reached" : "target missed"})`);
+  }
 
   // reload in a fresh engine: the saved state must reproduce the reported operating point
   const eng = await createEngine();
   const model = eng.build(scenario.model_definition);
   eng.calc(120);
   const v = measureVitals(model, eng.send, { window: 12 });
+  v.pp = v.sys - v.dia;
   for (const t of report.targets) {
     if (!t.within) continue;
     const got = v[READKEY[t.key] ?? t.key];

@@ -32,6 +32,11 @@ const SLICE = 0.02; // sub-cardiac-cycle sample step for windowed averaging
 //   set     (v) => void   apply the lever value to the model
 //   target  desired measured value
 //   tol     convergence tolerance on the measured value
+//   signGuard  (optional, default false) reject a secant slope whose sign contradicts `sign`
+//              and take the proportional step instead. With several controllers moving at
+//              once, a lever's measured change partly comes from its neighbours (e.g. a rate
+//              change shifting pCO2 and with it SpO2), and the secant can then read a
+//              physically impossible slope and walk its lever to the wrong bound.
 export function makeController(spec) {
   return {
     ...spec,
@@ -54,7 +59,11 @@ export function makeController(spec) {
         Math.abs(this.value - this.prevL) > 1e-12
       ) {
         const slope = (measured - this.prevM) / (this.value - this.prevL);
-        nl = this.value + (this.target - measured) / slope;
+        if (this.signGuard && Math.sign(slope) !== Math.sign(this.sign)) {
+          nl = this.value + this.sign * this.gain * (this.target - measured);
+        } else {
+          nl = this.value + (this.target - measured) / slope;
+        }
       } else {
         nl = this.value + this.sign * this.gain * (this.target - measured);
       }

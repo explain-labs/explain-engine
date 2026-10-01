@@ -32,6 +32,9 @@
 //                             //   Without it SpO2/PO2 are fitted in room air, which gives a baby
 //                             //   on oxygen far healthier lungs than it has.
 //       "hr": 160, "map": 33, "cvp": 4, "pap_m": 28,                      // iterated
+//       "sys": 48, "dia": 27,  // iterated as a pair: pulse pressure (sys - dia) via large-artery
+//                              //   stiffness, and MAP = dia + (sys - dia)/3 when "map" is absent
+//       "rr": 60,              // iterated: spontaneous respiratory rate via the tidal-volume/rate split
 //       "spo2": 90, "po2": 55, "pco2": 52, "ph": 7.28, "be": -5, "co": 0.3 // iterated
 //     },
 //     "pathophysiology": { "rds": "moderate", "pvr_scale": 1.7 },         // named modifiers
@@ -95,7 +98,9 @@ try {
 }
 
 const baseline = spec.baseline || "term_neonate";
-const targets = spec.targets || {};
+// a copy: derived targets (pp, and map from sys/dia) are added below, and the caller's spec must
+// stay what it sent
+const targets = { ...(spec.targets || {}) };
 const patho = spec.pathophysiology || {};
 const MAX_ITERS = Number.isFinite(spec.max_iters) ? spec.max_iters : 12;
 const WARM = Number.isFinite(spec.warm_seconds) ? spec.warm_seconds : 45;
@@ -104,7 +109,7 @@ const FINAL = Number.isFinite(spec.final_seconds) ? spec.final_seconds : 200;
 const WINDOW = Number.isFinite(spec.window_seconds) ? spec.window_seconds : 12;
 
 // default tolerances per vital (clinician-meaningful bands); overridable via spec.tolerance
-const DEFAULT_TOL = { hr: 6, map: 3, cvp: 1.5, pap_m: 3, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
+const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
 const tolOf = (k) => (spec.tolerance && spec.tolerance[k] != null ? spec.tolerance[k] : DEFAULT_TOL[k]);
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -158,16 +163,40 @@ const has = (k) => targets[k] != null;
 // silently dropped target looks exactly like one that was applied
 const KNOWN_TARGETS = new Set([
   "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2",
-  "hr", "map", "cvp", "pap_m", "spo2", "po2", "pco2", "ph", "be", "co",
+  "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "spo2", "po2", "pco2", "ph", "be", "co",
 ]);
 const ignoredTargets = Object.keys(targets).filter((k) => targets[k] != null && !KNOWN_TARGETS.has(k));
 if (ignoredTargets.length) trace(`ignored targets (not known to the builder): ${ignoredTargets.join(", ")}`);
+// drop them, so an internal key (pp) cannot be passed in directly and bypass the sys/dia pairing
+for (const k of ignoredTargets) delete targets[k];
 // po2 wins over spo2 and be over ph (one lever each); the loser is not calibrated
 const supersededTargets = [];
 if (has("po2") && has("spo2")) supersededTargets.push({ key: "spo2", by: "po2" });
 if (has("be") && has("ph")) supersededTargets.push({ key: "ph", by: "be" });
 for (const s of supersededTargets) trace(`target ${s.key} not calibrated: ${s.by} uses the same lever`);
 const notes = []; // things the caller should know that are neither a residual nor an error
+
+// Systolic/diastolic are calibrated as a pair: their mean via the MAP lever (systemic resistance)
+// and their difference, the pulse pressure, via large-artery stiffness. The two are nearly
+// orthogonal (stiffer arteries raise systolic and lower diastolic around an almost unchanged mean).
+// With no measured MAP, the mean is derived the usual clinical way.
+const derivedTargets = {};
+if (has("sys") || has("dia")) {
+  if (!(has("sys") && has("dia"))) {
+    notes.push(`${has("sys") ? "sys" : "dia"} was given without ${has("sys") ? "dia" : "sys"}; blood pressure is calibrated from the pair only, so it was not used`);
+  } else if (!(targets.dia < targets.sys)) {
+    console.error(`build_patient: targets.dia (${targets.dia}) must be below targets.sys (${targets.sys}).`);
+    process.exit(1);
+  } else {
+    targets.pp = round(targets.sys - targets.dia, 2);
+    derivedTargets.pp = targets.pp;
+    if (!has("map")) {
+      targets.map = round(targets.dia + targets.pp / 3, 1);
+      derivedTargets.map = targets.map;
+    }
+    trace(`derived targets: pulse pressure ${targets.pp}${derivedTargets.map != null ? `, MAP ${derivedTargets.map} (dia + pp/3)` : ""}`);
+  }
+}
 
 // fetal vs neonatal baseline. Sniff the baseline JSON (before any structural pass) so the branch
 // is decided up front; an explicit spec.fetal overrides.
@@ -347,7 +376,9 @@ if (FETAL_MODE && seed?.p50 != null && model.models.Blood) {
 // `mkc` injects this build's target + tolerance + the measure-dict key (co reads
 // "lvo", spo2 reads "spo2_pre" from measureVitals).
 const READKEY = { co: "lvo", spo2: "spo2_pre" };
-const mkc = (spec) => makeController({ ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
+// signGuard: a fresh build moves many levers at once, so cross-talk between them must not be
+// read as a slope of the wrong sign (see makeController)
+const mkc = (spec) => makeController({ signGuard: true, ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
 
 const controllers = [];
 
@@ -356,6 +387,20 @@ if (has("map")) {
   let f = seed && seed.svr ? seed.svr : 1.0;
   eng.scale("systemic_resistances", f);
   controllers.push(mkc({ key: "map", lever: "systemic resistance scale", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) }));
+}
+// pulse pressure <- stiffness of the large elastic arteries (AA, AAR, AD: the windkessel).
+// ↑stiffness ↑systolic ↓diastolic, MAP nearly unchanged (term neonate: x1.0 -> pp 26, x1.8 -> 43,
+// x0.3 -> 7 mmHg). The upper bound is a numerical one: stiffer than about x2 the explicit
+// integration of these small compartments goes unstable (pressures swing to hundreds of mmHg;
+// measured: term neonate unstable at x2.0, a calibrated 28 wk preterm at x2.4), so the lever stops
+// at 1.8 and a higher pulse pressure is reported as out of reach instead. In small babies that
+// limit is reached early: weight scaling shrinks arterial volumes but not their elastance, so the
+// arteries of a scaled-down patient stay as compliant as a term baby's.
+if (has("pp")) {
+  const arteries = ["AA", "AAR", "AD"].filter((n) => model.models[n]);
+  const start = model.models[arteries[0]]?.el_base_factor_ps ?? 1.0;
+  const apply = (f) => { for (const n of arteries) model.models[n].el_base_factor_ps = f; };
+  controllers.push(mkc({ key: "pp", lever: "large-artery stiffness x", lo: 0.3, hi: 1.8, sign: +1, gain: 0.03, value: start, set: apply }));
 }
 // PAP mean <- pulmonary vascular resistance scaling (↑PVR ↑PAP)
 if (has("pap_m")) {
@@ -421,6 +466,29 @@ if (has("pco2") && FETAL_MODE) {
   // the lever is the spontaneous drive: on a patient that is not breathing it moves nothing
   if (!B.is_enabled || B.breathing_enabled === false) notes.push("pco2 was targeted but spontaneous breathing is off in this baseline, so its lever (ventilatory drive) cannot move it");
 }
+// RR <- the tidal-volume/rate split of spontaneous breathing (Breathing.vt_rr_ratio_factor).
+// Breathing sets rate = sqrt(target minute volume / (ratio * weight)), so for a given minute volume
+// the factor that hits a rate is closed-form: f_new = f * (measured / target)^2. The minute volume
+// itself stays with the pCO2 lever; the two interact only through dead space (more, shallower
+// breaths ventilate less alveolar space), which the pCO2 controller then makes up for.
+if (has("rr")) {
+  const B = model.models.Breathing;
+  if (FETAL_MODE || !B || !B.is_enabled || B.breathing_enabled === false) {
+    console.error(`build_patient: targets.rr needs spontaneous breathing, which is off in baseline "${baseline}".`);
+    process.exit(1);
+  }
+  const c = mkc({ key: "rr", lever: "Breathing.vt_rr_ratio_factor", lo: 0.2, hi: 5, sign: -1, gain: 0, value: B.vt_rr_ratio_factor ?? 1.0, set: (f) => { B.vt_rr_ratio_factor = f; } });
+  c.step = function (measured) {
+    if (typeof measured !== "number" || !(measured > 0)) return false;
+    if (Math.abs(this.target - measured) <= this.tol) return false;
+    const f = Math.min(this.hi, Math.max(this.lo, this.value * (measured / this.target) ** 2));
+    if (f === this.value) return false; // pinned at a bound: nothing left to move
+    this.value = f;
+    this.set(f);
+    return true;
+  };
+  controllers.push(c);
+}
 // BE / pH (metabolic) <- Stewart unmeasured anions uma (↑uma ↓BE/pH -> sign -1)
 if (has("be") || has("ph")) {
   const key = has("be") ? "be" : "ph";
@@ -443,7 +511,11 @@ trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile $
 // then an equilibrium bake (final) — eng.calc is the model stepper, measureVitals
 // the windowed reader. Returns the final measured vitals + per-target residuals.
 const result = runCalibration(controllers, {
-  measureAll: () => measureVitals(model, eng.send, { window: WINDOW }),
+  measureAll: () => {
+    const v = measureVitals(model, eng.send, { window: WINDOW });
+    v.pp = v.sys - v.dia; // pulse pressure, the second half of the sys/dia pair
+    return v;
+  },
   step: (s) => eng.calc(s),
   settle: SETTLE,
   warm: WARM,
@@ -452,13 +524,21 @@ const result = runCalibration(controllers, {
   log: (line) => trace(`  ${line}`),
 });
 const vf = result.measured;
+// a lever combination can push the circulation past the integrator's stability limit; such a
+// patient must never be emitted, however plausible some of its numbers look
+const unstable = ["sys", "dia", "map", "lvo"].filter((k) => typeof vf[k] !== "number" || !isFinite(vf[k]));
+if (!unstable.length && (vf.dia < 0 || vf.sys > 250 || vf.lvo > 10)) unstable.push("pressures");
+if (unstable.length) {
+  console.error(`build_patient: the calibrated patient is numerically unstable (sys ${round(vf.sys)}, dia ${round(vf.dia)}, CO ${round(vf.lvo)} L/min); not emitted. Relax the blood-pressure targets.`);
+  process.exit(1);
+}
 const it = result.iters;
 
 // ---------------------------------------------------------------------------
 // 5. residual report (stderr)
 // ---------------------------------------------------------------------------
 trace(`\n=== ${spec.name || baseline} — final vitals (profile ${profile}) ===`);
-const REPORT = ["hr", "map", "cvp", "pap_m", "spo2_pre", "po2", "pco2", "ph", "be", "hco3"];
+const REPORT = ["hr", "sys", "dia", "map", ...(has("pp") ? ["pp"] : []), "rr", "cvp", "pap_m", "spo2_pre", "po2", "pco2", "ph", "be", "hco3"];
 for (const k of REPORT) {
   const tk = k === "spo2_pre" ? "spo2" : k;
   const tgt = targets[tk];
@@ -520,6 +600,8 @@ const build_report = {
   structural: Object.fromEntries(
     ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2"].filter(has).map((k) => [k, targets[k]]),
   ),
+  // targets the builder computed from others: pp = sys - dia, and map from sys/dia when absent
+  derived_targets: derivedTargets,
   ignored_targets: ignoredTargets,
   superseded_targets: supersededTargets,
   notes,
