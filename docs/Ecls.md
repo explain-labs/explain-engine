@@ -354,6 +354,26 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 
 ## Changelog
 
+### PediMag head corrected (2026-10-01)
+
+- `pumps["Abbott PediMag"].hq_a` 9.9 → **17.85** mmHg/krpm². The old value assumed a ~300 mmHg deadhead
+  at 5500 rpm; the published maximum outflow pressure is 540 mmHg (Wang et al 2020 *Artif Organs*).
+  `hq_b` is unchanged; with it the corrected head reproduces the published PediVAS operating points
+  (0.6 L/min @ 2800 rpm, 0.8 L/min @ 3200 rpm, 10 Fr return cannula). The class default, the standby
+  `BloodPump` default and the six scenarios that set `pump_hq_a` explicitly were updated too. Those six
+  (`fetus_30wk`, `term_fetus`, `tof*`) also embedded a full copy of the `pumps`/`oxygenators` libraries,
+  which `init_model` copies over the class library and so pinned the old value. The copies were otherwise
+  identical to the class libraries and have been removed, so these scenarios now inherit the library.
+- Effect: in VA mode the centrifugal pump is non-occlusive, so flow reverses (aorta → circuit → RA)
+  below the rpm whose zero-flow head equals the arterial–venous pressure difference:
+  rpm_crossover = 1000·√(ΔP / hq_a). In `term_neonate` (ΔP ≈ 57 mmHg) that moved from ≈ 2400 to
+  ≈ 1750 rpm. (Rotaflow, `hq_a` 28: ≈ 1430 rpm.)
+- Not changed, noted: with drainage from `RASVC`, ECLS flow plateaus around 0.4–0.45 L/min above
+  ≈ 2800 rpm. Native output plus ECLS is then at the venous-return limit (RASVC empties, Pra ≈ −3 mmHg).
+  More flow needs volume, which is realistic for neonatal full VA support. Atrial collapse around the
+  cannula ("chatter") is not modelled, so the venous-line pressure keeps falling with rpm (−150 mmHg at
+  4000, −370 mmHg at 5500) instead of the flow becoming unstable.
+
 ### Off by default (2026-10-01)
 
 - All 39 scenarios now ship `ecls_running: false`. A clamped circuit is inert, and ECLS volume isn't

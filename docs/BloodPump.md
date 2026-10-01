@@ -84,13 +84,18 @@ library carries these per device:
 
 | Pump | `hq_a` | `hq_b` | `hq_c` | deadhead @ max rpm | rated flow |
 |---|---|---|---|---|---|
-| Abbott PediMag | 9.9 | 30.3 | 0 | ~300 mmHg @5500 | ~1.5 L/min |
+| Abbott PediMag | 17.85 | 30.3 | 0 | ~540 mmHg @5500 | ~1.5 L/min |
 | Abbott CentriMag | 24 | 11.1 | 0 | ~600 mmHg @5000 | ~9.9 L/min |
 | Getinge Rotaflow RF-32 | 28 | 13.0 | 0 | ~700 mmHg @5000 | ~10 L/min |
 | Medtronic Bio-Pump BP-50 | 20 | 28.9 | 0 | ~180 mmHg @3000 | neonatal |
 
 The Rotaflow `hq_a` is the strongest anchor: its deadhead is consistent across two independent points
 (~108 mmHg shut-off at 2000 rpm and ~700 mmHg at 5000 rpm), confirming the rpm² scaling. The remaining
+PediMag `hq_a` comes from its published maximum outflow pressure, 540 mmHg at 5500 rpm (Wang et al
+2020). With the unchanged `hq_b = 30.3` it reproduces the independent operating points PediVAS 2800 rpm →
+0.6 L/min and 3200 rpm → 0.8 L/min (10 Fr return cannula). In the Ecls circuit those come out at
+≈ 0.56 / 0.78 L/min against ≈ 57 mmHg afterload. Before 2026-10-01 it was 9.9, fitted to an assumed
+~300 mmHg deadhead, which made the pump about 45% too weak. The remaining
 coefficients are anchored to each pump's published deadhead magnitude and rated flow; they are **not**
 digitized from the full manufacturer H-Q figures (which were not accessible), so the mid-curve shape is
 the theoretical Euler-slip (linear) default. Sources: Wang et al 2020 *Artif Organs*

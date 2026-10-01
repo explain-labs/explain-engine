@@ -10792,7 +10792,7 @@
     "pump_res_for": 50,
     "pump_res_back": 70,
     "pump_vol": 0.031,
-    "pump_hq_a": 9.9,
+    "pump_hq_a": 17.85,
     "pump_hq_b": 30.3,
     "pump_hq_c": 0,
     "pump_max_rpm": 5500,
@@ -10897,79 +10897,7 @@
       "resistance": 1100
      }
     },
-    "pumps": {
-     "Abbott PediMag": {
-      "type": "centrifugal",
-      "max_rpm": 5500,
-      "prime": 0.014,
-      "hq_a": 9.9,
-      "hq_b": 30.3,
-      "hq_c": 0
-     },
-     "Abbott CentriMag": {
-      "type": "centrifugal",
-      "max_rpm": 5000,
-      "prime": 0.031,
-      "hq_a": 24,
-      "hq_b": 11.1,
-      "hq_c": 0
-     },
-     "Getinge Rotaflow RF-32": {
-      "type": "centrifugal",
-      "max_rpm": 5000,
-      "prime": 0.032,
-      "hq_a": 28,
-      "hq_b": 13,
-      "hq_c": 0
-     },
-     "Medtronic Bio-Pump BP-50": {
-      "type": "centrifugal",
-      "max_rpm": 3000,
-      "prime": 0.048,
-      "hq_a": 20,
-      "hq_b": 28.9,
-      "hq_c": 0
-     },
-     "Generic roller pump": {
-      "type": "roller",
-      "max_rpm": 250,
-      "prime": 0.03,
-      "ml_per_rev": 1.5,
-      "roller_kp": 30,
-      "roller_drive_max": 900
-     }
-    },
     "pump_type": "Abbott PediMag",
-    "oxygenators": {
-     "Getinge Quadrox-i Neonatal": {
-      "surface_area": 0.38,
-      "rated_flow": 1.5,
-      "o2_cap": 0.067,
-      "co2_cap": 0.054,
-      "prime": 0.038
-     },
-     "Getinge Quadrox-i Pediatric": {
-      "surface_area": 0.8,
-      "rated_flow": 2.8,
-      "o2_cap": 0.13,
-      "co2_cap": 0.1,
-      "prime": 0.081
-     },
-     "Getinge Quadrox-i Small Adult": {
-      "surface_area": 1.3,
-      "rated_flow": 5,
-      "o2_cap": 0.22,
-      "co2_cap": 0.18,
-      "prime": 0.215
-     },
-     "Medtronic Nautilus (Adult)": {
-      "surface_area": 1.8,
-      "rated_flow": 7,
-      "o2_cap": 0.31,
-      "co2_cap": 0.25,
-      "prime": 0.26
-     }
-    },
     "oxygenator_type": "Getinge Quadrox-i Neonatal",
     "drainage_cannula_type": "Biomedicus venous 12 Fr",
     "return_cannula_type": "Biomedicus arterial 10 Fr",
