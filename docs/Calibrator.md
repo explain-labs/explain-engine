@@ -33,6 +33,8 @@ In the worker, `ModelEngine.tune_model(payload)` performs a live, in-place calib
 
 Each controller couples one **lever** (a model property it writes via `set`) to one **measured quantity** (read by `readKey`). `runCalibration` settles, then repeatedly measures and lets every controller nudge its lever; convergence is "no controller moved this iteration," and per-target success is `|target − measured| ≤ tol`. The first nudge is proportional (seeded by `gain`/`sign`); thereafter each controller estimates local slope from its last two (lever, measurement) samples and takes a secant step, clamped to `[lo, hi]`.
 
+**`signGuard`** (opt-in, off for the live tuner, on in the offline builder): a secant slope whose sign contradicts the controller's `sign` is rejected in favour of the proportional step. All controllers move at once, so part of a vital's change between two samples comes from its neighbours' levers; the secant then attributes it to its own lever and can read a physically impossible slope. Seen in a 7-target preterm build: with the new respiratory-rate lever moving pCO2, the oxygen controller walked alveolar diffusion to its *maximum* while SpO2 sat above target (with the guard it ends at its minimum, as expected on FiO2 0.4).
+
 The live levers built by `buildLiveControllers` deliberately use the persistent **`*_factor_ps`** layer or direct setters — **not `ModelScaler` groups** — so they compose with whatever scaling a loaded patient already baked in (e.g. a preterm's SVR/PVR scaling), instead of overwriting the `*_factor_scaling_ps` layer absolutely the way `ModelScaler` does (see [ModelScaler](./ModelScaler.md) and the factor/`_eff` pattern in [ARCHITECTURE](./ARCHITECTURE.md)):
 
 | Target | Lever | Notes |
@@ -53,6 +55,11 @@ starts from a freshly built baseline rather than a running patient. Two differ f
 group), and it adds `cvp` ← venous unstressed volume (`VLB`/`VUB` `u_vol`). On a fetal baseline the
 oxygen and CO2 levers are the placental maternal pool instead (see [fetal_circulation](./fetal_circulation.md)).
 
+Two builder-only targets:
+
+- **`sys` + `dia`** (a pair; one alone is ignored with a note): the builder derives the pulse pressure `pp = sys − dia` and, if `map` is absent, `map = dia + pp/3` (both listed under `build_report.derived_targets`). MAP keeps its resistance lever; `pp` gets **large-artery stiffness** — `el_base_factor_ps` on `AA`, `AAR`, `AD`, bounds 0.3–1.8. Stiffening raises systolic and lowers diastolic around a nearly unchanged mean, so the two levers barely interact. The upper bound is numerical, not physiological: the integrator goes unstable at about ×2 (term) to ×2.4 (a calibrated 28 wk preterm). In small babies it binds early, because weight scaling shrinks arterial volumes but not their elastance, so their arteries stay as compliant as a term baby's: a 1.08 kg preterm tops out near a pulse pressure of 19 mmHg. As a backstop, a build whose final pressures are non-finite, negative diastolic, systolic above 250 or output above 10 L/min is refused (exit 1) instead of emitted.
+- **`rr`** — spontaneous respiratory rate via `Breathing.vt_rr_ratio_factor`. Breathing sets `rate = √(target minute volume / (ratio × weight))`, so the controller steps in closed form, `f ← f × (measured / target)²`, bounds 0.2–5. Minute volume stays with the pCO2 lever; the two interact only through dead space. Refused (exit 1) when spontaneous breathing is off.
+
 Before calibrating it applies the **structural** targets: `weight`, `gestational_age` (a seed bundle),
 `height`, `age`, `hb`/`hb_gdl`, `temp`, `pda` and **`fio2`**.
 
@@ -71,6 +78,7 @@ the human-readable one):
 | `targets[]` | per calibrated target: `target`, `value`, `delta`, `tolerance`, `within`, `lever`, `lever_value`, `lever_bounds`, `lever_at_bound` |
 | `measured` | every measured vital: `{ value, flag }`, flag from the profile's `RANGES` (`ok`/`LOW`/`HIGH`) |
 | `structural` | the structural targets that were applied |
+| `derived_targets` | `pp` (and `map`) computed from `sys`/`dia` |
 | `ignored_targets` | `targets` keys the builder does not know. They are **ignored**, so they are listed |
 | `superseded_targets` | `spo2` when `po2` is also given, `ph` when `be` is: one lever each, the first wins |
 | `notes` | e.g. `pco2` targeted while spontaneous breathing is off (its lever cannot move it) |
