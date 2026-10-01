@@ -20,11 +20,12 @@
    "pathColor": 4473924,
    "radius": 0.6,
    "xOffset": 0,
-   "yOffset": -10,
+   "yOffset": 0,
    "max_to2": 7.5,
    "shuntOptionsVisible": true,
    "to2_lo": 3,
-   "to2_hi": 6.8
+   "to2_hi": 6.8,
+   "ringMargin": 135
   },
   "components": {
    "LV": {
@@ -2502,7 +2503,7 @@
      "general": {
       "animatedBy": "none",
       "z_index": 10,
-      "alpha": 1,
+      "alpha": 0,
       "tinting": true
      },
      "path": {
@@ -2513,9 +2514,9 @@
      "sprite": {
       "color": "#000000",
       "pos": {
-       "type": "rel",
+       "type": "bottom",
        "x": 0,
-       "y": 1.2,
+       "y": 20,
        "dgs": 0
       },
       "scale": {
@@ -2531,7 +2532,7 @@
      "label": {
       "pos_x": 0,
       "pos_y": 0,
-      "size": 14,
+      "size": 35,
       "rotation": 0,
       "color": "#ffffff"
      }
@@ -2689,7 +2690,7 @@
     "type": "Compartment",
     "label": "IN",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_TUBING_IN"
     ],
@@ -2711,8 +2712,8 @@
       "color": "#ffffff",
       "pos": {
        "type": "rel",
-       "x": -0.5,
-       "y": 1.15,
+       "x": -0.45,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2723,22 +2724,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.175
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
-      "size": 10,
+      "pos_y": 55,
+      "size": 25,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_PUMP": {
     "type": "Compartment",
     "label": "PUMP",
     "picto": "gfx/pump.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_PUMP"
     ],
@@ -2761,7 +2764,7 @@
       "pos": {
        "type": "rel",
        "x": -0.15,
-       "y": 1.2,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2772,22 +2775,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.275
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
-      "size": 10,
+      "pos_y": 70,
+      "size": 25,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_OXY": {
     "type": "Compartment",
     "label": "OXY",
-    "picto": "gfx/container.png",
-    "enabled": false,
+    "picto": "oxygenator.png",
+    "enabled": true,
     "models": [
      "ECLS_OXY"
     ],
@@ -2810,7 +2815,7 @@
       "pos": {
        "type": "rel",
        "x": 0.15,
-       "y": 1.2,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2821,22 +2826,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.325
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
-      "size": 10,
+      "pos_y": 75,
+      "size": 25,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_TUBING_OUT": {
     "type": "Compartment",
     "label": "OUT",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_TUBING_OUT"
     ],
@@ -2858,8 +2865,8 @@
       "color": "#ffffff",
       "pos": {
        "type": "rel",
-       "x": 0.5,
-       "y": 1.15,
+       "x": 0.45,
+       "y": 1.28,
        "dgs": 0
       },
       "scale": {
@@ -2870,22 +2877,24 @@
        "x": 0.5,
        "y": 0.5
       },
-      "rotation": 0
+      "rotation": 0,
+      "fixed_size": 0.175
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
-      "size": 10,
+      "pos_y": 55,
+      "size": 25,
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_DRAINAGE": {
     "type": "Connector",
     "label": "",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_DRAINAGE"
     ],
@@ -2899,7 +2908,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "arc_flip",
       "width": 12,
       "color": "#666666"
      },
@@ -2928,13 +2937,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_TUBIN_PUMP": {
     "type": "Connector",
     "label": "",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_TUBING_IN_ECLS_PUMP"
     ],
@@ -2948,7 +2958,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "straight",
       "width": 12,
       "color": "#666666"
      },
@@ -2977,13 +2987,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_PUMP_OXY": {
     "type": "Connector",
     "label": "",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_PUMP_ECLS_OXY"
     ],
@@ -3026,13 +3037,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_OXY_TUBOUT": {
     "type": "Connector",
     "label": "",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_OXY_ECLS_TUBING_OUT"
     ],
@@ -3046,7 +3058,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "straight",
       "width": 12,
       "color": "#666666"
      },
@@ -3075,13 +3087,14 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "ECLS_RETURN": {
     "type": "Connector",
     "label": "",
     "picto": "gfx/container.png",
-    "enabled": false,
+    "enabled": true,
     "models": [
      "ECLS_RETURN"
     ],
@@ -3095,7 +3108,7 @@
       "tinting": true
      },
      "path": {
-      "type": "arc_r",
+      "type": "arc_flip",
       "width": 12,
       "color": "#666666"
      },
@@ -3124,7 +3137,8 @@
       "rotation": 0,
       "color": "#ffffff"
      }
-    }
+    },
+    "group": "ecls"
    },
    "RA": {
     "type": "Compartment",
@@ -9776,7 +9790,7 @@
       "dif_co2_step": 0
      }
     },
-    "ecls_running": true,
+    "ecls_running": false,
     "ecls_clamped": true,
     "drainage_res_factor": 1,
     "return_res_factor": 1,
@@ -14931,7 +14945,7 @@
       "general": {
        "animatedBy": "none",
        "z_index": 10,
-       "alpha": 1,
+       "alpha": 0,
        "tinting": true
       },
       "path": {
@@ -14942,9 +14956,9 @@
       "sprite": {
        "color": "#000000",
        "pos": {
-        "type": "rel",
+        "type": "bottom",
         "x": 0,
-        "y": 1.2,
+        "y": 20,
         "dgs": 0
        },
        "scale": {
@@ -14960,7 +14974,7 @@
       "label": {
        "pos_x": 0,
        "pos_y": 0,
-       "size": 14,
+       "size": 21.54,
        "rotation": 0,
        "color": "#ffffff"
       }
@@ -15118,7 +15132,7 @@
      "type": "Compartment",
      "label": "IN",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_TUBING_IN"
      ],
@@ -15140,8 +15154,8 @@
        "color": "#ffffff",
        "pos": {
         "type": "rel",
-        "x": -0.5,
-        "y": 1.15,
+        "x": -0.45,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15152,22 +15166,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.1077
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 33.85,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_PUMP": {
      "type": "Compartment",
      "label": "PUMP",
      "picto": "gfx/pump.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_PUMP"
      ],
@@ -15190,7 +15206,7 @@
        "pos": {
         "type": "rel",
         "x": -0.15,
-        "y": 1.2,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15201,22 +15217,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.1692
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 43.08,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_OXY": {
      "type": "Compartment",
      "label": "OXY",
-     "picto": "gfx/container.png",
-     "enabled": false,
+     "picto": "oxygenator.png",
+     "enabled": true,
      "models": [
       "ECLS_OXY"
      ],
@@ -15239,7 +15257,7 @@
        "pos": {
         "type": "rel",
         "x": 0.15,
-        "y": 1.2,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15250,22 +15268,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.2
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 46.15,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_TUBING_OUT": {
      "type": "Compartment",
      "label": "OUT",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_TUBING_OUT"
      ],
@@ -15287,8 +15307,8 @@
        "color": "#ffffff",
        "pos": {
         "type": "rel",
-        "x": 0.5,
-        "y": 1.15,
+        "x": 0.45,
+        "y": 1.28,
         "dgs": 0
        },
        "scale": {
@@ -15299,22 +15319,24 @@
         "x": 0.5,
         "y": 0.5
        },
-       "rotation": 0
+       "rotation": 0,
+       "fixed_size": 0.1077
       },
       "label": {
        "pos_x": 0,
-       "pos_y": 0,
+       "pos_y": 33.85,
        "size": 10,
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_DRAINAGE": {
      "type": "Connector",
      "label": "",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_DRAINAGE"
      ],
@@ -15328,7 +15350,7 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "arc_flip",
        "width": 12,
        "color": "#666666"
       },
@@ -15357,13 +15379,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_TUBIN_PUMP": {
      "type": "Connector",
      "label": "",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_TUBING_IN_ECLS_PUMP"
      ],
@@ -15377,7 +15400,7 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "straight",
        "width": 12,
        "color": "#666666"
       },
@@ -15406,13 +15429,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_PUMP_OXY": {
      "type": "Connector",
      "label": "",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_PUMP_ECLS_OXY"
      ],
@@ -15455,13 +15479,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_OXY_TUBOUT": {
      "type": "Connector",
      "label": "",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_OXY_ECLS_TUBING_OUT"
      ],
@@ -15475,7 +15500,7 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "straight",
        "width": 12,
        "color": "#666666"
       },
@@ -15504,13 +15529,14 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "ECLS_RETURN": {
      "type": "Connector",
      "label": "",
      "picto": "gfx/container.png",
-     "enabled": false,
+     "enabled": true,
      "models": [
       "ECLS_RETURN"
      ],
@@ -15524,7 +15550,7 @@
        "tinting": true
       },
       "path": {
-       "type": "arc_r",
+       "type": "arc_flip",
        "width": 12,
        "color": "#666666"
       },
@@ -15553,7 +15579,8 @@
        "rotation": 0,
        "color": "#ffffff"
       }
-     }
+     },
+     "group": "ecls"
     },
     "RA": {
      "type": "Compartment",
