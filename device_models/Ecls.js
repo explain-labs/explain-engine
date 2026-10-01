@@ -232,9 +232,12 @@ export class Ecls extends BaseModelClass {
         type: "centrifugal", max_rpm: 5500, prime: 0.014,
         hq_a: 17.85, hq_b: 30.3, hq_c: 0.0,
       },
-      "Abbott CentriMag": { // adult mag-lev centrifugal, ~9.9 L/min @5000 rpm, 31 mL prime
-        type: "centrifugal", max_rpm: 5000, prime: 0.031,
-        hq_a: 24.0, hq_b: 11.1, hq_c: 0.0,
+      "Abbott CentriMag": { // adult mag-lev centrifugal, 0-5500 rpm, 0-10 L/min, 31 mL prime
+        // least-squares fit (rms 4.8 mmHg) to the manufacturer H-Q curves (CentriMag Operation
+        // Manual PL-0047 Rev 11, Fig. 14, pump only): deadhead ~95 mmHg @2000 to ~710 @5500 rpm, and
+        // nearly flat with flow. (The "600 mmHg max pressure head" is a rated limit, not the deadhead.)
+        type: "centrifugal", max_rpm: 5500, prime: 0.031,
+        hq_a: 23.17, hq_b: 0.85, hq_c: 0.38,
       },
       "Getinge Rotaflow RF-32": { // adult centrifugal, ~10 L/min, 32 mL prime; deadhead ~700 mmHg @5000
         type: "centrifugal", max_rpm: 5000, prime: 0.032,

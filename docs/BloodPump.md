@@ -85,12 +85,19 @@ library carries these per device:
 | Pump | `hq_a` | `hq_b` | `hq_c` | deadhead @ max rpm | rated flow |
 |---|---|---|---|---|---|
 | Abbott PediMag | 17.85 | 30.3 | 0 | ~540 mmHg @5500 | ~1.5 L/min |
-| Abbott CentriMag | 24 | 11.1 | 0 | ~600 mmHg @5000 | ~9.9 L/min |
+| Abbott CentriMag | 23.17 | 0.85 | 0.38 | ~710 mmHg @5500 | 10 L/min |
 | Getinge Rotaflow RF-32 | 28 | 13.0 | 0 | ~700 mmHg @5000 | ~10 L/min |
 | Medtronic Bio-Pump BP-50 | 20 | 28.9 | 0 | ~180 mmHg @3000 | neonatal |
 
 The Rotaflow `hq_a` is the strongest anchor: its deadhead is consistent across two independent points
 (~108 mmHg shut-off at 2000 rpm and ~700 mmHg at 5000 rpm), confirming the rpm² scaling. The remaining
+The CentriMag is fitted to the manufacturer's H-Q curves (CentriMag Circulatory Support System Operation
+Manual PL-0047 Rev 11, Fig. 14, pump only, blood analog 4.02 cP), by least squares over points read off
+all eight rpm curves (2000–5500 rpm). The fit is within 4.8 mmHg RMS. The curves are nearly flat with
+flow (≈ −6 mmHg per L/min at 3000 rpm), so `hq_b`/`hq_c` are small. Before 2026-10-01 they were
+`hq_b = 11.1`, `hq_c = 0`, which made the curve 5–7× too steep. The manual's "maximum pressure head of
+600 mmHg" is a rated limit; the 5500 rpm curve starts at ≈ 710 mmHg.
+
 PediMag `hq_a` comes from its published maximum outflow pressure, 540 mmHg at 5500 rpm (Wang et al
 2020). With the unchanged `hq_b = 30.3` it reproduces the independent operating points PediVAS 2800 rpm →
 0.6 L/min and 3200 rpm → 0.8 L/min (10 Fr return cannula). In the Ecls circuit those come out at
