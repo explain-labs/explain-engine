@@ -354,6 +354,22 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 
 ## Changelog
 
+### CentriMag H-Q refit to the manufacturer curves (2026-10-01)
+
+- `pumps["Abbott CentriMag"]`: `hq_a` 24 → **23.17**, `hq_b` 11.1 → **0.85**, `hq_c` 0 → **0.38**,
+  `max_rpm` 5000 → **5500**. This is a least-squares fit to the H-Q curves in the CentriMag Operation
+  Manual (PL-0047 Rev 11, Fig. 14), RMS error 4.8 mmHg; the old coefficients were off by ≈ 216 mmHg
+  RMS. The deadhead was about right (rpm² scaling holds, `hq_a` ≈ 23); the flow falloff was 5–7× too
+  steep.
+- Effect in `adult_female` (VA, RASVC → AAR): the crossover is unchanged at ≈ 2000 rpm. Flow rises much
+  faster with rpm (≈ 2.6 L/min at 3000 vs 1.8 before) and reaches the drainage-limited plateau
+  (≈ 2.7 L/min, RASVC empties) by ≈ 3000 rpm. That plateau is the venous-return / no-atrial-collapse
+  limitation noted under "PediMag head corrected" below, and it is more apparent in the adult.
+- The same manual also states a 540 mmHg "maximum pressure head" for the PediMag, which confirms its
+  `hq_a` source. Since the CentriMag's 600 mmHg figure sits below its actual deadhead, the PediMag
+  deadhead may likewise be somewhat higher than 540. Its `hq_a` is kept at 17.85, which the
+  independent PediVAS operating points support.
+
 ### PediMag head corrected (2026-10-01)
 
 - `pumps["Abbott PediMag"].hq_a` 9.9 → **17.85** mmHg/krpm². The old value assumed a ~300 mmHg deadhead
