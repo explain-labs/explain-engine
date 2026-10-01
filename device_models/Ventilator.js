@@ -133,7 +133,10 @@ export class Ventilator extends BaseModelClass {
     this._pip_max = this.pip_cmh2o_max / 1.35951;
     this._peep = this.peep_cmh2o / 1.35951;
 
-    if (this.synchronized && this.vent_mode !== "CPAP") {
+    // patient-trigger detection: always in PS (pressure support is patient-triggered by
+    // definition, its time-cycled backup only covers apnea), on request (`synchronized`) in the
+    // time-cycled modes, never in CPAP (no mandatory breaths to trigger)
+    if (this.vent_mode === "PS" || (this.synchronized && this.vent_mode !== "CPAP")) {
       this.triggering();
     }
 
@@ -199,7 +202,7 @@ export class Ventilator extends BaseModelClass {
   flow_cycling() {
     // Pressure-support state machine: a patient-triggered, flow-cycled breath (terminates when
     // inspiratory flow decays below 30% of peak), with a time-cycled mandatory backup so the
-    // ventilator still delivers breaths during apnea / when unsynchronized.
+    // ventilator still delivers breaths during apnea. Triggering always runs in PS (calc_model).
     this.exp_time = Math.max(
       60.0 / this.vent_rate - this.insp_time,
       this._min_exp_time

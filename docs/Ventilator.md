@@ -24,9 +24,10 @@ reaches into them by name to set valve states, resistances and reservoir volumes
 - An ET-tube-coupled mechanical ventilator with five modes: pressure control (`PC`), pressure-regulated
   volume control (`PRVC`), volume control (`VC`), pressure support (`PS`), and continuous positive
   airway pressure (`CPAP`).
-- Time-cycled (`PC`/`PRVC`/`VC`) and flow-cycled (`PS`) breath delivery, with optional patient
-  synchronization (trigger detection off the `Breathing` model). `PS` also carries a time-cycled
-  mandatory backup so it delivers breaths during apnea / when unsynchronized.
+- Time-cycled (`PC`/`PRVC`/`VC`) and flow-cycled (`PS`) breath delivery, with patient trigger
+  detection off the `Breathing` model: always on in `PS` (pressure support is patient-triggered),
+  optional (`synchronized`) in the time-cycled modes. `PS` also carries a time-cycled mandatory
+  backup so it delivers breaths during apnea.
 - An optional end-inspiratory pause (`insp_pause`) that produces a plateau pressure, enabling measured
   static compliance and airway resistance.
 - A flow- and diameter-dependent ET-tube resistance (turbulent tube behaviour).
@@ -76,7 +77,7 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `pip_cmh2o_max` | cmH₂O | PIP ceiling for PRVC auto-regulation (default 14) |
 | `peep_cmh2o` | cmH₂O | Positive end-expiratory pressure / CPAP level (default 3) |
 | `trigger_volume_perc` | % | Trigger volume as a percent of `tidal_volume` (default 6) |
-| `synchronized` | bool | Enable patient-trigger detection (default false; ignored in CPAP) |
+| `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` always triggers; ignored in `CPAP` |
 
 ### Computed (dependent) read-outs
 
@@ -118,7 +119,7 @@ cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `
 ## Calculation cycle (`calc_model`)
 
 1. Convert `pip_cmh2o` / `pip_cmh2o_max` / `peep_cmh2o` to mmHg (`÷ 1.35951`) into `_pip`/`_pip_max`/`_peep`.
-2. If `synchronized` **and** not CPAP, run `triggering()`.
+2. If the mode is `PS`, or `synchronized` is set and the mode is not CPAP, run `triggering()`.
 3. Dispatch on `vent_mode`:
    - `PC` / `PRVC` → `time_cycling()` then `pressure_control()`
    - `VC` → `time_cycling()` then `volume_control()`
@@ -170,7 +171,7 @@ Pressure support is patient-triggered and **flow-cycled**: a breath begins on a 
 expiration when flow falls below **30 % of peak**. It also runs a **time-cycled mandatory backup**:
 if no breath has started within `60/vent_rate` (tracked breath-start to breath-start via
 `_breath_interval_counter`), it delivers a mandatory, time-cycled breath (terminated at `insp_time`).
-This makes `PS` usable with `synchronized = false` and provides apnea backup. Peak circuit pressure is
+This provides apnea backup; patient triggers always run in `PS`, whatever `synchronized` says. Peak circuit pressure is
 captured into `_pip_meas` for the mechanics read-outs.
 
 ### `pressure_control`
@@ -223,7 +224,7 @@ start (`Breathing.ncc_insp === 1`); `minute_volume = exp_tidal_volume · Breathi
 At each expiration, nudge `pip_cmh2o` by ±1 cmH₂O toward `tidal_volume` (within `_tv_tolerance`),
 clamped between `peep_cmh2o + 2` and `pip_cmh2o_max`.
 
-### `triggering` (synchronized modes)
+### `triggering` (`PS`, and synchronized time-cycled modes)
 
 Sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` and
 the trigger is not blocked, it arms `_trigger_start` and integrates ET-tube flow; once the integrated
