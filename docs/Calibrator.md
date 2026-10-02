@@ -84,6 +84,8 @@ is fitted to the measured SpO2/PO2 *at that FiO2*. A saturation of 91 % on 40 % 
 worse gas exchange than 91 % in room air; without `fio2` the builder assumes room air and gives a
 baby on oxygen far healthier lungs than it has. Rejected on a fetal baseline and outside 0.21–1.0.
 
+**Oxygen lever below the diffusion floor (builder only).** On high FiO2 the diffusion factor can reach its floor (×0.1) with the baby still saturating above target: a 1.08 kg / 28 wk preterm on 40 % oxygen stopped at SpO2 92.8. The builder's oxygen controller therefore runs on one continuous scale, bounds 0.01–8. Above 0.1 it is the diffusion factor, exactly as before. Below it, diffusion stays at 0.1 and the intrapulmonary shunt opens: `Shunts.ips_res` falls in proportion to the lever, down to a tenth of the patient's starting value (the gestational-age seed's, e.g. 1900 at 28 wk). That is also the clinical picture: a sick preterm's hypoxaemia on oxygen is mostly shunt. On that case, ips_res 1900 → 800 → 300 takes SpO2 from 92.8 to 82.6 and 56, with MAP, PAP and output nearly unchanged and pCO2 a few mmHg higher (the pCO2 lever compensates). A build that opened the shunt says so under `build_report.notes`. Builds whose oxygen lever stays above 0.1 are unchanged. The live tuner (`buildLiveControllers`) still uses diffusion alone.
+
 **`build_report`** — the emitted scenario carries a top-level, machine-readable report (stderr keeps
 the human-readable one):
 

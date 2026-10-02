@@ -17,6 +17,7 @@
 //   - with fo_mm: the reloaded foramen ovale has that diameter
 //   - with ef and co: ef is reported as superseded by co (same lever)
 //   - with only structural targets: the patient is still emitted, with measured vitals and a note
+//   - with an SpO2 out of diffusion's reach on high FiO2: the shunt is opened and noted
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -87,10 +88,21 @@ const CASES = [
     expectSuperseded: [{ key: "ef", by: "co" }],
   },
   {
+    // an SpO2 below what lung diffusion alone can reach on 40 % oxygen: the oxygen lever must
+    // continue into the intrapulmonary shunt
+    name: "preterm_high_fio2_shunt",
+    spec: {
+      baseline: "term_neonate", name: "probe_preterm_shunt", max_iters: 10,
+      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 85, pco2: 51, be: -4.5, fio2: 0.4 },
+    },
+    expectNote: /intrapulmonary shunt was opened/,
+  },
+  {
     // structural targets only: nothing to iterate, but the patient is settled, measured and emitted
     name: "structural_only",
     spec: { baseline: "term_neonate", name: "probe_structural", targets: { weight: 1.35, gestational_age: 30 } },
     expectNote: /no iterated targets/,
+    expectNoTargets: true,
   },
 ];
 
@@ -120,7 +132,7 @@ for (const c of CASES) {
   check(scenario.provenance === "calibrator-fitted", "provenance is calibrator-fitted");
   for (const k of c.expectIgnored ?? []) check(report.ignored_targets.includes(k), `unknown target "${k}" reported as ignored`);
   if (c.expectNote) check(report.notes?.some((n) => c.expectNote.test(n)), `note matching ${c.expectNote}`);
-  if (c.expectNote) check(report.targets.length === 0 && typeof report.measured?.map?.value === "number", "no calibrated targets, vitals measured");
+  if (c.expectNoTargets) check(report.targets.length === 0 && typeof report.measured?.map?.value === "number", "no calibrated targets, vitals measured");
   for (const s of c.expectSuperseded ?? []) check(report.superseded_targets?.some((x) => x.key === s.key && x.by === s.by), `${s.key} reported as superseded by ${s.by}`);
   for (const [k, v] of Object.entries(c.expectDerived ?? {})) check(report.derived_targets?.[k] === v, `derived target ${k} = ${v}`);
   for (const t of report.targets.filter((t) => t.lever_at_bound)) {
