@@ -19,6 +19,7 @@
 //   - with only structural targets: the patient is still emitted, with measured vitals and a note
 //   - with an SpO2 out of diffusion's reach on high FiO2: the shunt is opened and noted
 //   - with a raised PAP: the intrapulmonary shunt fraction stays near the seed's
+//   - a preterm without a pressure pair: pulse pressure in the reference range (size-scaled arteries)
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -47,6 +48,9 @@ const CASES = [
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, hb: 9.0, fio2: 0.3, not_a_target: 1 },
     },
     expectIgnored: ["not_a_target"],
+    // arterial stiffness follows size: without a pressure-pair target, a 28 wk patient's pulse
+    // pressure lands in the reference range (it was ~11 when arteries kept term elastance)
+    expectPpRange: [15, 27],
   },
   {
     // MAP derived from sys/dia; pulse pressure and respiratory rate calibrated
@@ -189,6 +193,11 @@ for (const c of CASES) {
     check(model.models.Shunts.diameter_fo === c.expectFoMm, `foramen ovale ${model.models.Shunts.diameter_fo} mm after reload (set ${c.expectFoMm})`);
     check(report.structural.fo_mm === c.expectFoMm, "fo_mm listed as structural");
     print(`    note foramen ovale shunt ${(v.q_fo * 60000).toFixed(0)} mL/min (+ = left-to-right), LV EF ${v.ef.toFixed(1)} %`);
+  }
+
+  if (c.expectPpRange) {
+    const [lo, hi] = c.expectPpRange;
+    check(v.pp >= lo && v.pp <= hi, `pulse pressure ${v.pp.toFixed(1)} mmHg after reload (reference ${lo}-${hi})`);
   }
 
   if (c.expectMaxShuntFraction != null) {
