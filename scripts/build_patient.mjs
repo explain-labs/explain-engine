@@ -28,10 +28,14 @@
 //       "hb": 9.5,            // hemoglobin in mmol/L (the model's unit)
 //       "hb_gdl": 15.3,       // OR hemoglobin in g/dL — builder converts to mmol/L
 //       "temp": 36.8, "pda": 0.4,                                         // structural
+//       "pda_mm": 1.8,         // structural: echo duct diameter at its narrowest (pulmonary) end, mm;
+//                              //   0 = closed. Takes precedence over the 0..1 "pda" fraction
 //       "fio2": 0.3,          // inspired O2 fraction (0.21-1.0) the patient breathes; structural.
 //                             //   Without it SpO2/PO2 are fitted in room air, which gives a baby
 //                             //   on oxygen far healthier lungs than it has.
 //       "hr": 160, "map": 33, "cvp": 4, "pap_m": 28,                      // iterated
+//       "pap_s": 40,           // iterated: systolic PA pressure (echo TR jet: 4v^2 + RAP), same lever
+//                              //   as pap_m (pulmonary resistance); pap_m wins when both are given
 //       "sys": 48, "dia": 27,  // iterated as a pair: pulse pressure (sys - dia) via large-artery
 //                              //   stiffness, and MAP = dia + (sys - dia)/3 when "map" is absent
 //       "rr": 60,              // iterated: spontaneous respiratory rate via the tidal-volume/rate split
@@ -113,7 +117,7 @@ const FINAL = Number.isFinite(spec.final_seconds) ? spec.final_seconds : 200;
 const WINDOW = Number.isFinite(spec.window_seconds) ? spec.window_seconds : 12;
 
 // default tolerances per vital (clinician-meaningful bands); overridable via spec.tolerance
-const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
+const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, pap_s: 4, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
 const tolOf = (k) => (spec.tolerance && spec.tolerance[k] != null ? spec.tolerance[k] : DEFAULT_TOL[k]);
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -166,9 +170,9 @@ const has = (k) => targets[k] != null;
 // every `targets` key this builder acts on; anything else is ignored — and reported, because a
 // silently dropped target looks exactly like one that was applied
 const KNOWN_TARGETS = new Set([
-  "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2",
+  "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fio2",
   "na", "k", "cl", "lactate", "glucose", "albumin",
-  "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "spo2", "po2", "pco2", "ph", "be", "co",
+  "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "pap_s", "spo2", "po2", "pco2", "ph", "be", "co",
 ]);
 const ignoredTargets = Object.keys(targets).filter((k) => targets[k] != null && !KNOWN_TARGETS.has(k));
 if (ignoredTargets.length) trace(`ignored targets (not known to the builder): ${ignoredTargets.join(", ")}`);
@@ -177,6 +181,8 @@ for (const k of ignoredTargets) delete targets[k];
 // po2 wins over spo2 and be over ph (one lever each); the loser is not calibrated
 const supersededTargets = [];
 if (has("po2") && has("spo2")) supersededTargets.push({ key: "spo2", by: "po2" });
+if (has("pap_m") && has("pap_s")) supersededTargets.push({ key: "pap_s", by: "pap_m" });
+if (has("pda_mm") && has("pda")) supersededTargets.push({ key: "pda", by: "pda_mm" });
 if (has("be") && has("ph")) supersededTargets.push({ key: "ph", by: "be" });
 for (const s of supersededTargets) trace(`target ${s.key} not calibrated: ${s.by} uses the same lever`);
 const notes = []; // things the caller should know that are neither a residual nor an error
@@ -298,8 +304,8 @@ if (FETAL_MODE) {
   // The fetal duct is fully relaxed in utero: diameter_relative is a [0..1] PATENCY fraction and
   // stays 1.0 at every gestation. The SIZE levers are the anatomic millimetres, which no scaler
   // touches — without them a scaled fetus keeps a term-sized duct and foramen.
-  if (has("pda")) {
-    console.error(`build_patient: targets.pda is not a fetal knob — the fetal duct is wide open. Use a named ductal-constriction pathophysiology instead.`);
+  if (has("pda") || has("pda_mm")) {
+    console.error(`build_patient: targets.pda/pda_mm is not a fetal knob — the fetal duct is wide open. Use a named ductal-constriction pathophysiology instead.`);
     process.exit(1);
   }
   const P = model.models.Pda, S = model.models.Shunts;
@@ -310,8 +316,25 @@ if (FETAL_MODE) {
   const PL = model.models.Placenta;
   if (PL && seed?.umb_art_res != null) { PL.umb_art_res = seed.umb_art_res; PL.plf_res = seed.plf_res; PL.dif_o2 = seed.dif_o2; PL.dif_co2 = seed.dif_co2; }
 } else {
-  const pda = has("pda") ? targets.pda : seed ? seed.pda : null;
-  if (pda != null && model.models.Pda) { model.models.Pda.diameter_relative = pda; trace(`structural: PDA diameter_relative ${pda}`); }
+  const P = model.models.Pda;
+  if (has("pda_mm") && P) {
+    // An echo measures the duct's narrowest diameter, at the pulmonary end. The model sizes the
+    // duct as diameter_relative x diameter_pa_max (and x diameter_ao_max at the aortic end), so
+    // the measurement sets the relative opening against the anatomic maximum, widening that
+    // maximum (both ends) when the measured duct is larger than it.
+    const d = targets.pda_mm;
+    if (typeof d !== "number" || !(d >= 0) || d > 10) {
+      console.error(`build_patient: targets.pda_mm must be a diameter in mm between 0 and 10 (got ${JSON.stringify(d)}).`);
+      process.exit(1);
+    }
+    if (d > P.diameter_pa_max) P.diameter_pa_max = d;
+    if (d > P.diameter_ao_max) P.diameter_ao_max = d;
+    P.diameter_relative = d / P.diameter_pa_max;
+    trace(`structural: PDA ${d} mm (diameter_relative ${round(P.diameter_relative, 3)} of ${P.diameter_pa_max} mm)`);
+  } else {
+    const pda = has("pda") ? targets.pda : seed ? seed.pda : null;
+    if (pda != null && P) { P.diameter_relative = pda; trace(`structural: PDA diameter_relative ${pda}`); }
+  }
 }
 
 // hemoglobin — the model's unit is mmol/L. Accept `hb` (mmol/L) directly, or
@@ -406,8 +429,9 @@ if (FETAL_MODE && seed?.p50 != null && model.models.Blood) {
 // "lvo", spo2 reads "spo2_pre" from measureVitals).
 const READKEY = { co: "lvo", spo2: "spo2_pre" };
 // signGuard: a fresh build moves many levers at once, so cross-talk between them must not be
-// read as a slope of the wrong sign (see makeController)
-const mkc = (spec) => makeController({ signGuard: true, ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
+// read as a slope of the wrong sign; maxStepFrac: no lever moves more than half its value in one
+// round, so a slope from a flat region cannot throw it to a bound (see makeController)
+const mkc = (spec) => makeController({ signGuard: true, maxStepFrac: 0.5, ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
 
 const controllers = [];
 
@@ -431,11 +455,12 @@ if (has("pp")) {
   const apply = (f) => { for (const n of arteries) model.models[n].el_base_factor_ps = f; };
   controllers.push(mkc({ key: "pp", lever: "large-artery stiffness x", lo: 0.3, hi: 1.8, sign: +1, gain: 0.03, value: start, set: apply }));
 }
-// PAP mean <- pulmonary vascular resistance scaling (↑PVR ↑PAP)
-if (has("pap_m")) {
+// PAP (mean, or systolic from an echo TR jet) <- pulmonary vascular resistance scaling (↑PVR ↑PAP)
+if (has("pap_m") || has("pap_s")) {
+  const key = has("pap_m") ? "pap_m" : "pap_s";
   let f = patho.pvr_scale || (seed && seed.pvr) || 1.0;
   eng.scale("pulmonary_resistances", f);
-  controllers.push(mkc({ key: "pap_m", lever: "pulmonary resistance scale", lo: 0.3, hi: 12, sign: +1, gain: 0.05, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
+  controllers.push(mkc({ key, lever: "pulmonary resistance scale", lo: 0.3, hi: 12, sign: +1, gain: key === "pap_m" ? 0.05 : 0.04, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
 } else if (patho.pvr_scale || (seed && seed.pvr)) {
   eng.scale("pulmonary_resistances", patho.pvr_scale || seed.pvr); // structural-only PVR
 }
@@ -572,7 +597,7 @@ const it = result.iters;
 // 5. residual report (stderr)
 // ---------------------------------------------------------------------------
 trace(`\n=== ${spec.name || baseline} — final vitals (profile ${profile}) ===`);
-const REPORT = ["hr", "sys", "dia", "map", ...(has("pp") ? ["pp"] : []), "rr", "cvp", "pap_m", "spo2_pre", "po2", "pco2", "ph", "be", "hco3"];
+const REPORT = ["hr", "sys", "dia", "map", ...(has("pp") ? ["pp"] : []), "rr", "cvp", "pap_s", "pap_m", "spo2_pre", "spo2_post", "etco2", "po2", "pco2", "ph", "be", "hco3"];
 for (const k of REPORT) {
   const tk = k === "spo2_pre" ? "spo2" : k;
   const tgt = targets[tk];
@@ -629,10 +654,11 @@ const build_report = {
   measured: Object.fromEntries(
     Object.entries(vf)
       .filter(([, v]) => typeof v === "number" && isFinite(v))
-      .map(([k, v]) => [k, { value: round(v, 3), flag: flagOf(ranges, k, v) }]),
+      // 5 significant digits, not fixed decimals: q_da (ductal flow) is in L/s, ~0.002
+      .map(([k, v]) => [k, { value: Number(v.toPrecision(5)), flag: flagOf(ranges, k, v) }]),
   ),
   structural: Object.fromEntries(
-    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "fio2", ...Object.keys(SOLUTE_KEY)].filter(has).map((k) => [k, targets[k]]),
+    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fio2", ...Object.keys(SOLUTE_KEY)].filter(has).map((k) => [k, targets[k]]),
   ),
   // each solute that was set, with the arterial (AA) value after calibration: kidney filtration,
   // and lactate production in a hypoxic patient, can move them

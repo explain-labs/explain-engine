@@ -37,6 +37,10 @@ const SLICE = 0.02; // sub-cardiac-cycle sample step for windowed averaging
 //              once, a lever's measured change partly comes from its neighbours (e.g. a rate
 //              change shifting pCO2 and with it SpO2), and the secant can then read a
 //              physically impossible slope and walk its lever to the wrong bound.
+//   maxStepFrac (optional) cap one step at this fraction of the lever's current magnitude. A
+//              secant slope measured in a flat region and applied in a steep one overshoots (pCO2
+//              vs ventilatory drive is the typical case: one step from 0.67 to the 0.2 floor), and
+//              once the measurement lands inside its tolerance the lever stays at the extreme.
 export function makeController(spec) {
   return {
     ...spec,
@@ -66,6 +70,10 @@ export function makeController(spec) {
         }
       } else {
         nl = this.value + this.sign * this.gain * (this.target - measured);
+      }
+      if (this.maxStepFrac > 0) {
+        const lim = this.maxStepFrac * Math.max(Math.abs(this.value), 1e-9);
+        nl = Math.min(this.value + lim, Math.max(this.value - lim, nl));
       }
       nl = Math.min(this.hi, Math.max(this.lo, nl));
       this.prevL = this.value;

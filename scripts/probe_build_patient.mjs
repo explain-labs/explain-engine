@@ -13,6 +13,7 @@
 //   - with targets.fio2: the reloaded scenario carries that FiO2, and the same patient put in
 //     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
 //   - with sys/dia: the derived pulse pressure (and MAP, when not given) are in the report
+//   - with pda_mm: the reloaded duct has that diameter at its pulmonary end
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -57,6 +58,15 @@ const CASES = [
       targets: { hr: 150, map: 45, spo2: 95, pco2: 40, be: -7, na: 134, k: 4.8, cl: 104, lactate: 4.5, glucose: 3.2, albumin: 24 },
     },
     expectSolutes: true,
+  },
+  {
+    // echo inputs: a measured duct diameter and a TR-jet systolic PA pressure
+    name: "preterm_echo",
+    spec: {
+      baseline: "term_neonate", name: "probe_preterm_echo", max_iters: 10,
+      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, pda_mm: 2.2, pap_s: 32 },
+    },
+    expectPdaMm: 2.2,
   },
 ];
 
@@ -117,6 +127,14 @@ for (const c of CASES) {
     print(`    note unmeasured anions (uma) ${model.models.AA.solutes.uma.toFixed(2)} after reload`);
   }
 
+  if (c.expectPdaMm != null) {
+    const P = model.models.Pda;
+    const d = P.diameter_relative * P.diameter_pa_max;
+    check(Math.abs(d - c.expectPdaMm) < 1e-6, `duct ${d.toFixed(2)} mm after reload (set ${c.expectPdaMm})`);
+    check(report.structural.pda_mm === c.expectPdaMm, "pda_mm listed as structural");
+    print(`    note ductal shunt ${(v.q_da * 60000).toFixed(0)} mL/min (+ = left-to-right)`);
+  }
+
   if (c.spec.targets.fio2 != null) {
     const sites = ["OUT", "MOUTH"].filter((n) => model.models[n]);
     check(Math.abs(model.models.Gas.fio2 - c.spec.targets.fio2) < 1e-9, `reloaded Gas.fio2 is ${c.spec.targets.fio2}`);
@@ -124,7 +142,9 @@ for (const c of CASES) {
     model.models.Gas.set_fio2(0.21, sites);
     eng.calc(180);
     const roomAir = measureVitals(model, eng.send, { window: 12 }).spo2_pre;
-    check(roomAir < onOxygen - 3, `desaturates in room air: SpO2 ${onOxygen.toFixed(1)} -> ${roomAir.toFixed(1)}`);
+    // the size of the drop depends on where the oxygen lever ends up (and lung uptake is flat
+    // above ~1.5x), so only require a clear fall, not a particular amount
+    check(roomAir < onOxygen - 2, `desaturates in room air: SpO2 ${onOxygen.toFixed(1)} -> ${roomAir.toFixed(1)}`);
   }
 }
 
