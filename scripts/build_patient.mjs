@@ -231,6 +231,13 @@ let seed = null;
 if (FETAL_MODE) {
   seed = FETAL[nearestFetalGa(has("gestational_age") ? targets.gestational_age : 40)];
 } else if (has("gestational_age") && targets.gestational_age < 37) {
+  // the seed is multiplicative (stiff lungs, reduced diffusion, venous trim, cardiac immaturity),
+  // and a preterm baseline already carries it, so seeding again would apply prematurity twice
+  const baseGa = (baseJson.model_definition || baseJson).gestational_age;
+  if (typeof baseGa === "number" && baseGa < 37) {
+    console.error(`build_patient: baseline "${baseline}" is already preterm (${baseGa} wk) and carries the prematurity adjustments; adding gestational_age ${targets.gestational_age} would apply them a second time. Use baseline "term_neonate" with gestational_age, or keep "${baseline}" and leave gestational_age out.`);
+    process.exit(1);
+  }
   seed = PRETERM_SEED[nearestGa(targets.gestational_age)];
 }
 
