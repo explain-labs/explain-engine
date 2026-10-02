@@ -28,8 +28,9 @@ them onto the referenced `Resistor`s; it has no `el_base`/`vol`/`r_for` of its o
 
 The FO and VSD are openings whose resistance follows the **Hagen-Poiseuille** law from their diameter,
 the septal thickness (length), and blood viscosity. Closure is expressed directly via `diameter_fo` /
-`diameter_vsd` (0 mm = closed → `no_flow`). The intrapulmonary shunts are a small *fixed* resistance
-representing anatomic right-to-left lung shunting; they are **not** diameter-driven.
+`diameter_vsd` (0 mm = closed → `no_flow`). The intrapulmonary shunts are a resistance, not
+diameter-driven, carrying pulmonary arterial blood to the pulmonary veins without passing ventilated
+alveoli (see "What the intrapulmonary shunt stands for" below).
 
 ## Properties
 
@@ -44,7 +45,7 @@ representing anatomic right-to-left lung shunting; they are **not** diameter-dri
 | `atrial_septal_width` | `3.0` | mm | FO channel length |
 | `ventricular_septal_width` | `5.0` | mm | VSD channel length |
 | `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
-| `ips_res` | `5000` | mmHg·s/L | fixed intrapulmonary shunt resistance |
+| `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
 | `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula |
 
 ### Computed / reported (outputs)
@@ -143,8 +144,34 @@ From `term_neonate.json` (a healthy term neonate — both septal openings closed
   congenital scenarios open them (e.g. patent foramen ovale, muscular/perimembranous VSD).
 - The fetal scenario keeps the FO open with a high `fo_lr_factor` so it shunts right-to-left, matching
   fetal circulation (see [Placenta](./Placenta.md) and the term-fetus scenario).
-- `IPSL`/`IPSR` provide a small constant anatomic right-to-left lung shunt independent of the septal
-  defects; raising/lowering `ips_res` tunes baseline shunt fraction.
+- `IPSL`/`IPSR` carry the intrapulmonary shunt independent of the septal defects; raising/lowering
+  `ips_res` tunes the shunt fraction. The gestational-age seed and RDS bundles of the patient builder
+  set it (lower in sicker lungs), [Surfactant](./Surfactant.md) modulates it through the resistors'
+  `r_factor_ps`, and the builder's oxygen and pulmonary-resistance levers move it (see
+  [Calibrator](./Calibrator.md)).
+
+## What the intrapulmonary shunt stands for
+
+Mostly **venous admixture from perfused but unventilated lung**: atelectatic, fluid- or
+meconium-filled units in RDS, meconium aspiration or pneumonia. Truly anatomic channels are small
+in a normal lung, but intrapulmonary arteriovenous anastomoses bypassing the capillaries can be
+open in BPD, alveolar capillary dysplasia, CDH and meconium aspiration
+([Galambos et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC3960909)).
+
+Consequences for how it should behave:
+
+- **Pulmonary hypertension on its own does not raise it.** The hypoxaemia of PPHN comes from
+  right-to-left flow across the duct and foramen ovale. In pulmonary vascular disease, inert-gas
+  measurements find little shunt despite very high resistance; hypoxaemia there comes mainly from low
+  mixed-venous oxygen ([Dantzker & Bower, JCI 1979](https://www.jci.org/articles/view/109542)).
+- **Its vessels belong to the same vascular bed and are, if anything, more constricted** (hypoxic
+  vasoconstriction, narrowed extra-alveolar vessels at low lung volume). That is why intravenous
+  vasodilators increase intrapulmonary shunt, while inhaled NO, which reaches only ventilated
+  units, lowers it. So a general change in pulmonary vascular tone should move `IPSL`/`IPSR` along
+  with the bed. The builder's pulmonary-resistance lever does this.
+- **A modest rise at very high pressure is plausible:** raised pulmonary vascular pressure blunts
+  hypoxic vasoconstriction (Benumof & Wahrenbrock, J Appl Physiol 1975). The model does not
+  represent that.
 
 ## Notes & caveats
 

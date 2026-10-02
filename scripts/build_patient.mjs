@@ -490,12 +490,27 @@ if (has("pp")) {
   const apply = (f) => { for (const n of arteries) model.models[n].el_base_factor_ps = f; };
   controllers.push(mkc({ key: "pp", lever: "large-artery stiffness x", lo: 0.3, hi: 1.8, sign: +1, gain: 0.03, value: start, set: apply }));
 }
-// PAP (mean, or systolic from an echo TR jet) <- pulmonary vascular resistance scaling (↑PVR ↑PAP)
+// PAP (mean, or systolic from an echo TR jet) <- pulmonary vascular resistance scaling (↑PVR ↑PAP).
+// The lever moves the intrapulmonary shunt (IPSL/IPSR) with the bed. Those resistors carry the
+// blood that perfuses unventilated lung; their vessels belong to the same bed and constrict with
+// it (hypoxic vasoconstriction, narrowed extra-alveolar vessels), and raised PVR on its own does
+// not create intrapulmonary shunt (inert-gas studies in pulmonary vascular disease: Dantzker &
+// Bower, JCI 1979). So the shunt's share of pulmonary flow stays put and the hypoxaemia of
+// pulmonary hypertension comes from the duct and foramen, as it does clinically. Without it the
+// bed alone stiffened: on a 28 wk build, systolic PAP 36 raised the shunt fraction from 33 to 46 %.
+// The shunt follows the lever RELATIVE to its starting value: the seed's ips_res was calibrated
+// with the seed PVR applied to the bed only, and that operating point must not move. Same scaling
+// layer the ModelScaler group uses; IPSL/IPSR's r_factor_ps stays with Surfactant.
 if (has("pap_m") || has("pap_s")) {
   const key = has("pap_m") ? "pap_m" : "pap_s";
-  let f = patho.pvr_scale || (seed && seed.pvr) || 1.0;
-  eng.scale("pulmonary_resistances", f);
-  controllers.push(mkc({ key, lever: "pulmonary resistance scale", lo: 0.3, hi: 12, sign: +1, gain: key === "pap_m" ? 0.05 : 0.04, value: f, set: (v) => eng.scale("pulmonary_resistances", v) }));
+  const f0 = patho.pvr_scale || (seed && seed.pvr) || 1.0;
+  const ips = ["IPSL", "IPSR"].map((n) => model.models[n]).filter(Boolean);
+  const scalePvr = (f) => {
+    eng.scale("pulmonary_resistances", f);
+    for (const r of ips) r.r_factor_scaling_ps = f / f0;
+  };
+  scalePvr(f0);
+  controllers.push(mkc({ key, lever: "pulmonary resistance scale (incl. intrapulmonary shunt)", lo: 0.3, hi: 12, sign: +1, gain: key === "pap_m" ? 0.05 : 0.04, value: f0, set: scalePvr }));
 } else if (patho.pvr_scale || (seed && seed.pvr)) {
   eng.scale("pulmonary_resistances", patho.pvr_scale || seed.pvr); // structural-only PVR
 }
