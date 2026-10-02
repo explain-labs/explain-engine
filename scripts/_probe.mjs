@@ -36,6 +36,8 @@ export function measureVitals(model, send, { window = 20 } = {}) {
     add("spo2_post", M.sao2_post);
     add("svo2", IVCI?.so2); // already in %
     add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
+    add("q_fo", model.models.Shunts?.flow_fo); // foramen ovale shunt (L/s); +ve = left-to-right (LA -> RA)
+    add("ef", model.models.Heart ? model.models.Heart.lv_ef * 100 : undefined); // LV ejection fraction, % of the last beat
     add("temp", M.temp);
     add("etco2", M.etco2);
     add("lvo", M.flows?.lvo);
