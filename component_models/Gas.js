@@ -252,9 +252,12 @@ export class Gas extends BaseModelClass {
     // make sure sites is an array
     sites = Array.isArray(sites) ? sites : [sites];
 
-    // calculate the gas composition for the gas containing models
+    // calculate the gas composition for the gas containing models. A site the scenario lacks is
+    // skipped: no current scenario has OUT, so the default sites would otherwise throw before
+    // reaching MOUTH
     sites.forEach((site) => {
       let m = this._model_engine.models[site];
+      if (!m) return;
       calc_gas_composition(m, this.fio2, m.temp, m.humidity);
     });
   }
