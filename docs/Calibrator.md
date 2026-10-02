@@ -74,6 +74,8 @@ Known limit of the pulmonary-resistance lever: it scales the `blood_pulmonary.re
 Before calibrating it applies the **structural** targets: `weight`, `gestational_age` (a seed bundle),
 `height`, `age`, `hb`/`hb_gdl`, `temp`, `pda` and **`fio2`**.
 
+The gestational-age seed is for a term baseline. A baseline that is already preterm (`preterm_*wk`, `bischoff_cohort`: its `gestational_age` is below 37) carries the seed's multiplicative adjustments, so a spec that adds `gestational_age` below 37 to it is refused (exit 1) instead of applying prematurity twice. Use `term_neonate` + `gestational_age`, or the preterm baseline without it. Fetal baselines use their own seed table and are exempt.
+
 **`targets.fio2`** (fraction, 0.21–1.0) sets the inspired oxygen the patient breathes, via
 `Gas.set_fio2`, before the loop runs. This matters for what the oxygen lever means: alveolar diffusion
 is fitted to the measured SpO2/PO2 *at that FiO2*. A saturation of 91 % on 40 % oxygen needs much
