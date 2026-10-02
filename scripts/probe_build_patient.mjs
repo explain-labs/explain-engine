@@ -18,6 +18,7 @@
 //   - with ef and co: ef is reported as superseded by co (same lever)
 //   - with only structural targets: the patient is still emitted, with measured vitals and a note
 //   - with an SpO2 out of diffusion's reach on high FiO2: the shunt is opened and noted
+//   - with a raised PAP: the intrapulmonary shunt fraction stays near the seed's
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -96,6 +97,16 @@ const CASES = [
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 85, pco2: 51, be: -4.5, fio2: 0.4 },
     },
     expectNote: /intrapulmonary shunt was opened/,
+  },
+  {
+    // a raised pulmonary pressure: the PAP lever moves the intrapulmonary shunt with the bed, so
+    // the shunt's share of pulmonary flow stays near the seed's (33 % here; 46 % when it did not)
+    name: "preterm_raised_pap",
+    spec: {
+      baseline: "term_neonate", name: "probe_preterm_pap", max_iters: 10,
+      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, pco2: 51, be: -4.5, fio2: 0.3, pap_s: 36 },
+    },
+    expectMaxShuntFraction: 0.37,
   },
   {
     // structural targets only: nothing to iterate, but the patient is settled, measured and emitted
@@ -178,6 +189,14 @@ for (const c of CASES) {
     check(model.models.Shunts.diameter_fo === c.expectFoMm, `foramen ovale ${model.models.Shunts.diameter_fo} mm after reload (set ${c.expectFoMm})`);
     check(report.structural.fo_mm === c.expectFoMm, "fo_mm listed as structural");
     print(`    note foramen ovale shunt ${(v.q_fo * 60000).toFixed(0)} mL/min (+ = left-to-right), LV EF ${v.ef.toFixed(1)} %`);
+  }
+
+  if (c.expectMaxShuntFraction != null) {
+    const M = model.models;
+    let ips = 0, cap = 0;
+    for (let i = 0; i < 300; i++) { eng.send("POST", "calc", 0.02); ips += M.IPSL.flow + M.IPSR.flow; cap += M.LL_CAP.flow + M.RL_CAP.flow; }
+    const sf = ips / (ips + cap);
+    check(sf <= c.expectMaxShuntFraction, `intrapulmonary shunt fraction ${(sf * 100).toFixed(1)} % (at most ${c.expectMaxShuntFraction * 100} %)`);
   }
 
   if (c.spec.targets.fio2 != null) {
