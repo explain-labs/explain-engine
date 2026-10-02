@@ -393,8 +393,8 @@ if (has("fio2")) {
     console.error(`build_patient: baseline "${baseline}" has no Gas model, cannot set fio2.`);
     process.exit(1);
   }
-  // set_fio2's default sites are ["OUT", "MOUTH"] and it does not skip a missing one; the
-  // neonatal scenarios have no OUT compartment, so name the sites that exist
+  // set_fio2 skips a missing site, so check that at least one ambient compartment exists rather
+  // than set Gas.fio2 with nothing breathing it (no current scenario has OUT)
   const sites = ["OUT", "MOUTH"].filter((n) => model.models[n]);
   if (!sites.length) {
     console.error(`build_patient: baseline "${baseline}" has no ambient gas compartment (OUT/MOUTH), cannot set fio2.`);

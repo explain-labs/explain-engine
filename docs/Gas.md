@@ -101,7 +101,8 @@ conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites
 - **`set_fio2(new_fio2, sites = ["OUT", "MOUTH"])`** — set `fio2` (`parseFloat`, to avoid string
   concatenation corrupting the `1 − (fio2 + fico2)` fraction math), then re-derive each site's
   composition via the standalone [`calc_gas_composition`](./GasComposition.md) at that site's current
-  `temp`/`humidity`.
+  `temp`/`humidity`. A site the scenario does not have is skipped (no current scenario has `OUT`, so
+  the default call updates `MOUTH` only).
 - **`set_body_temperature(core_temp)`** — push the body core temperature onto the body-warmed airway
   compartments, the gas counterpart to `Blood.set_temperature`. Called each update by
   [`Thermoregulation`](./Thermoregulation.md). Each such compartment's `target_temp` is set to
