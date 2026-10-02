@@ -16,6 +16,7 @@
 //   - with pda_mm: the reloaded duct has that diameter at its pulmonary end
 //   - with fo_mm: the reloaded foramen ovale has that diameter
 //   - with ef and co: ef is reported as superseded by co (same lever)
+//   - with only structural targets: the patient is still emitted, with measured vitals and a note
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -85,6 +86,12 @@ const CASES = [
     spec: { baseline: "term_neonate", name: "probe_term_co_ef", targets: { hr: 145, map: 45, co: 0.6, ef: 42 } },
     expectSuperseded: [{ key: "ef", by: "co" }],
   },
+  {
+    // structural targets only: nothing to iterate, but the patient is settled, measured and emitted
+    name: "structural_only",
+    spec: { baseline: "term_neonate", name: "probe_structural", targets: { weight: 1.35, gestational_age: 30 } },
+    expectNote: /no iterated targets/,
+  },
 ];
 
 const only = process.argv[2];
@@ -112,6 +119,8 @@ for (const c of CASES) {
     report.targets.filter((t) => t.lever_at_bound).map((t) => ` — ${t.key}: lever at bound`).join(""));
   check(scenario.provenance === "calibrator-fitted", "provenance is calibrator-fitted");
   for (const k of c.expectIgnored ?? []) check(report.ignored_targets.includes(k), `unknown target "${k}" reported as ignored`);
+  if (c.expectNote) check(report.notes?.some((n) => c.expectNote.test(n)), `note matching ${c.expectNote}`);
+  if (c.expectNote) check(report.targets.length === 0 && typeof report.measured?.map?.value === "number", "no calibrated targets, vitals measured");
   for (const s of c.expectSuperseded ?? []) check(report.superseded_targets?.some((x) => x.key === s.key && x.by === s.by), `${s.key} reported as superseded by ${s.by}`);
   for (const [k, v] of Object.entries(c.expectDerived ?? {})) check(report.derived_targets?.[k] === v, `derived target ${k} = ${v}`);
   for (const t of report.targets.filter((t) => t.lever_at_bound)) {

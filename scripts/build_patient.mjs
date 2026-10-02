@@ -613,19 +613,30 @@ trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile $
 // run the shared secant calibration (settle → measure → nudge → warm → repeat),
 // then an equilibrium bake (final) — eng.calc is the model stepper, measureVitals
 // the windowed reader. Returns the final measured vitals + per-target residuals.
-const result = runCalibration(controllers, {
-  measureAll: () => {
-    const v = measureVitals(model, eng.send, { window: WINDOW });
-    v.pp = v.sys - v.dia; // pulse pressure, the second half of the sys/dia pair
-    return v;
-  },
-  step: (s) => eng.calc(s),
-  settle: SETTLE,
-  warm: WARM,
-  maxIters: MAX_ITERS,
-  final: FINAL,
-  log: (line) => trace(`  ${line}`),
-});
+const measureAll = () => {
+  const v = measureVitals(model, eng.send, { window: WINDOW });
+  v.pp = v.sys - v.dia; // pulse pressure, the second half of the sys/dia pair
+  return v;
+};
+let result;
+if (controllers.length) {
+  result = runCalibration(controllers, {
+    measureAll,
+    step: (s) => eng.calc(s),
+    settle: SETTLE,
+    warm: WARM,
+    maxIters: MAX_ITERS,
+    final: FINAL,
+    log: (line) => trace(`  ${line}`),
+  });
+} else {
+  // only structural targets (or none): nothing to iterate, but the patient still has to reach
+  // steady state before it is measured and saved. runCalibration returns early without
+  // measuring when it has no controllers, so settle and bake here
+  eng.calc(SETTLE + FINAL);
+  result = { iters: 0, converged: true, residuals: [], measured: measureAll() };
+  notes.push("no iterated targets: the patient was built from its structural values and settled, nothing was calibrated");
+}
 const vf = result.measured;
 // read the solutes back now: serializeState (below) nests compartments back under their owners,
 // so model.models.AA is gone by the time the report is assembled
@@ -654,7 +665,7 @@ for (const k of REPORT) {
   trace(`  ${k.padEnd(10)} ${String(round(vf[k])).padStart(8)}${tgt != null ? `  (target ${tgt}, Δ ${round(vf[k] - tgt)})` : ""}  [${flag}]`);
 }
 const allWithin = result.converged;
-trace(`  calibration ${allWithin ? "CONVERGED" : "INCOMPLETE"} after ${it} iter — ${result.residuals.filter((r) => !r.within).map((r) => r.key).join(", ") || "all targets met"}`);
+trace(`  calibration ${allWithin ? "CONVERGED" : "INCOMPLETE"} after ${it} iter — ${result.residuals.filter((r) => !r.within).map((r) => r.key).join(", ") || (result.residuals.length ? "all targets met" : "no iterated targets")}`);
 
 // ---------------------------------------------------------------------------
 // 6. serialize and emit the runnable scenario JSON (stdout)
