@@ -468,6 +468,7 @@ const READKEY = { co: "lvo", spo2: "spo2_pre" };
 const mkc = (spec) => makeController({ signGuard: true, maxStepFrac: 0.5, ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
 
 const controllers = [];
+let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary shunt
 
 // MAP  <- systemic vascular resistance scaling (↑SVR ↑MAP)
 if (has("map")) {
@@ -544,8 +545,22 @@ if (has("po2") || has("spo2")) {
     controllers.push(mkc({ key, lever: "Placenta.mat_to2", lo: 4.0, hi: 10.0, sign: +1, gain: key === "po2" ? 0.05 : 0.03,
       value: P.mat_to2, set: (v) => { P.mat_to2 = v; } }));
   } else {
-    const apply = (f) => { for (const n of ["GASEX_LL", "GASEX_RL"]) { const m = model.models[n]; if (m) m.dif_o2_factor_ps = f; } };
-    controllers.push(mkc({ key, lever: "alveolar O2 diffusion x", lo: 0.1, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: 1.0, set: apply }));
+    // One lever on a continuous scale. Above DIF_FLOOR it is the diffusion factor. Below it,
+    // diffusion stays at the floor and the intrapulmonary shunt opens instead: ips_res falls in
+    // proportion, to a tenth of its starting value at the lever's bottom. A baby on high FiO2
+    // still saturating too well with diffusion at its floor desaturates through shunt, which is
+    // also the clinical picture (a sick preterm's hypoxaemia is mostly shunt, not diffusion)
+    const DIF_FLOOR = 0.1;
+    const S = model.models.Shunts;
+    const ips0 = S && S.ips_res > 0 ? S.ips_res : null;
+    const apply = (x) => {
+      const f = Math.max(x, DIF_FLOOR);
+      for (const n of ["GASEX_LL", "GASEX_RL"]) { const m = model.models[n]; if (m) m.dif_o2_factor_ps = f; }
+      if (ips0) S.ips_res = x < DIF_FLOOR ? ips0 * (x / DIF_FLOOR) : ips0;
+    };
+    if (ips0) oxygenShunt = { S, ips0 };
+    controllers.push(mkc({ key, lever: ips0 ? "alveolar O2 diffusion x (below 0.1: intrapulmonary shunt)" : "alveolar O2 diffusion x",
+      lo: ips0 ? DIF_FLOOR / 10 : DIF_FLOOR, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: 1.0, set: apply }));
   }
 }
 // pCO2 <- spontaneous ventilatory drive (Breathing.minute_volume_ref multiplier).
@@ -636,6 +651,10 @@ if (controllers.length) {
   eng.calc(SETTLE + FINAL);
   result = { iters: 0, converged: true, residuals: [], measured: measureAll() };
   notes.push("no iterated targets: the patient was built from its structural values and settled, nothing was calibrated");
+}
+// a lever resting exactly on the floor can sit a rounding error below it, so require a real change
+if (oxygenShunt && oxygenShunt.S.ips_res < 0.99 * oxygenShunt.ips0) {
+  notes.push(`oxygenation: lung oxygen uptake reached its lower limit, so the intrapulmonary shunt was opened (more blood bypasses the ventilated lung) to reach the saturation; Shunts.ips_res ${round(oxygenShunt.ips0, 0)} -> ${round(oxygenShunt.S.ips_res, 0)}`);
 }
 const vf = result.measured;
 // read the solutes back now: serializeState (below) nests compartments back under their owners,
