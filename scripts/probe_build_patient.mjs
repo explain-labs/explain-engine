@@ -14,6 +14,8 @@
 //     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
 //   - with sys/dia: the derived pulse pressure (and MAP, when not given) are in the report
 //   - with pda_mm: the reloaded duct has that diameter at its pulmonary end
+//   - with fo_mm: the reloaded foramen ovale has that diameter
+//   - with ef and co: ef is reported as superseded by co (same lever)
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -68,6 +70,21 @@ const CASES = [
     },
     expectPdaMm: 2.2,
   },
+  {
+    // echo inputs: a measured foramen ovale and a poor LV ejection fraction
+    name: "term_echo_fo_ef",
+    spec: {
+      baseline: "term_neonate", name: "probe_term_fo_ef",
+      targets: { hr: 145, map: 45, spo2: 95, ef: 42, fo_mm: 3 },
+    },
+    expectFoMm: 3,
+  },
+  {
+    // co and ef share the contractility lever: co keeps it and ef is reported as superseded
+    name: "term_co_ef",
+    spec: { baseline: "term_neonate", name: "probe_term_co_ef", targets: { hr: 145, map: 45, co: 0.6, ef: 42 } },
+    expectSuperseded: [{ key: "ef", by: "co" }],
+  },
 ];
 
 const only = process.argv[2];
@@ -95,6 +112,7 @@ for (const c of CASES) {
     report.targets.filter((t) => t.lever_at_bound).map((t) => ` — ${t.key}: lever at bound`).join(""));
   check(scenario.provenance === "calibrator-fitted", "provenance is calibrator-fitted");
   for (const k of c.expectIgnored ?? []) check(report.ignored_targets.includes(k), `unknown target "${k}" reported as ignored`);
+  for (const s of c.expectSuperseded ?? []) check(report.superseded_targets?.some((x) => x.key === s.key && x.by === s.by), `${s.key} reported as superseded by ${s.by}`);
   for (const [k, v] of Object.entries(c.expectDerived ?? {})) check(report.derived_targets?.[k] === v, `derived target ${k} = ${v}`);
   for (const t of report.targets.filter((t) => t.lever_at_bound)) {
     const atHi = Math.abs(t.lever_value - t.lever_bounds[1]) < 1e-9;
@@ -133,6 +151,12 @@ for (const c of CASES) {
     check(Math.abs(d - c.expectPdaMm) < 1e-6, `duct ${d.toFixed(2)} mm after reload (set ${c.expectPdaMm})`);
     check(report.structural.pda_mm === c.expectPdaMm, "pda_mm listed as structural");
     print(`    note ductal shunt ${(v.q_da * 60000).toFixed(0)} mL/min (+ = left-to-right)`);
+  }
+
+  if (c.expectFoMm != null) {
+    check(model.models.Shunts.diameter_fo === c.expectFoMm, `foramen ovale ${model.models.Shunts.diameter_fo} mm after reload (set ${c.expectFoMm})`);
+    check(report.structural.fo_mm === c.expectFoMm, "fo_mm listed as structural");
+    print(`    note foramen ovale shunt ${(v.q_fo * 60000).toFixed(0)} mL/min (+ = left-to-right), LV EF ${v.ef.toFixed(1)} %`);
   }
 
   if (c.spec.targets.fio2 != null) {

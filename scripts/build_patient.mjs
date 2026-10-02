@@ -30,6 +30,7 @@
 //       "temp": 36.8, "pda": 0.4,                                         // structural
 //       "pda_mm": 1.8,         // structural: echo duct diameter at its narrowest (pulmonary) end, mm;
 //                              //   0 = closed. Takes precedence over the 0..1 "pda" fraction
+//       "fo_mm": 3,            // structural: echo foramen ovale / atrial septal opening, mm; 0 = closed
 //       "fio2": 0.3,          // inspired O2 fraction (0.21-1.0) the patient breathes; structural.
 //                             //   Without it SpO2/PO2 are fitted in room air, which gives a baby
 //                             //   on oxygen far healthier lungs than it has.
@@ -44,6 +45,8 @@
 //                              //   the weak acids (Stewart): with them a BE target is fitted by the
 //                              //   remaining unmeasured anions instead of absorbing everything
 //       "spo2": 90, "po2": 55, "pco2": 52, "ph": 7.28, "be": -5, "co": 0.3 // iterated
+//       "ef": 60,              // iterated: echo LV ejection fraction, %, via LV contractility. The
+//                              //   same lever as "co", which wins when both are given
 //     },
 //     "pathophysiology": { "rds": "moderate", "pvr_scale": 1.7 },         // named modifiers
 //     "tolerance": { "map": 3, "pco2": 4 },                               // per-vital override
@@ -117,7 +120,7 @@ const FINAL = Number.isFinite(spec.final_seconds) ? spec.final_seconds : 200;
 const WINDOW = Number.isFinite(spec.window_seconds) ? spec.window_seconds : 12;
 
 // default tolerances per vital (clinician-meaningful bands); overridable via spec.tolerance
-const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, pap_s: 4, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
+const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, pap_s: 4, ef: 5, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
 const tolOf = (k) => (spec.tolerance && spec.tolerance[k] != null ? spec.tolerance[k] : DEFAULT_TOL[k]);
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
@@ -170,9 +173,9 @@ const has = (k) => targets[k] != null;
 // every `targets` key this builder acts on; anything else is ignored — and reported, because a
 // silently dropped target looks exactly like one that was applied
 const KNOWN_TARGETS = new Set([
-  "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fio2",
+  "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fo_mm", "fio2",
   "na", "k", "cl", "lactate", "glucose", "albumin",
-  "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "pap_s", "spo2", "po2", "pco2", "ph", "be", "co",
+  "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "pap_s", "spo2", "po2", "pco2", "ph", "be", "co", "ef",
 ]);
 const ignoredTargets = Object.keys(targets).filter((k) => targets[k] != null && !KNOWN_TARGETS.has(k));
 if (ignoredTargets.length) trace(`ignored targets (not known to the builder): ${ignoredTargets.join(", ")}`);
@@ -183,6 +186,7 @@ const supersededTargets = [];
 if (has("po2") && has("spo2")) supersededTargets.push({ key: "spo2", by: "po2" });
 if (has("pap_m") && has("pap_s")) supersededTargets.push({ key: "pap_s", by: "pap_m" });
 if (has("pda_mm") && has("pda")) supersededTargets.push({ key: "pda", by: "pda_mm" });
+if (has("co") && has("ef")) supersededTargets.push({ key: "ef", by: "co" });
 if (has("be") && has("ph")) supersededTargets.push({ key: "ph", by: "be" });
 for (const s of supersededTargets) trace(`target ${s.key} not calibrated: ${s.by} uses the same lever`);
 const notes = []; // things the caller should know that are neither a residual nor an error
@@ -315,6 +319,10 @@ if (FETAL_MODE) {
     console.error(`build_patient: targets.pda/pda_mm is not a fetal knob — the fetal duct is wide open. Use a named ductal-constriction pathophysiology instead.`);
     process.exit(1);
   }
+  if (has("fo_mm")) {
+    console.error(`build_patient: targets.fo_mm is not a fetal knob — the fetal foramen is sized from the gestational-age seed.`);
+    process.exit(1);
+  }
   const P = model.models.Pda, S = model.models.Shunts;
   if (P && seed?.da_diam != null) { P.diameter_ao_max = seed.da_diam; P.diameter_pa_max = seed.da_diam; P.length = seed.da_len; P.diameter_relative = 1.0; }
   if (S && seed?.fo != null) { S.diameter_fo = seed.fo; S.atrial_septal_width = seed.fo_septum; }
@@ -341,6 +349,25 @@ if (FETAL_MODE) {
   } else {
     const pda = has("pda") ? targets.pda : seed ? seed.pda : null;
     if (pda != null && P) { P.diameter_relative = pda; trace(`structural: PDA diameter_relative ${pda}`); }
+  }
+  const S = model.models.Shunts;
+  if (has("fo_mm")) {
+    // An echo measures the opening in the atrial septum. Shunts sizes the FO resistance from
+    // diameter_fo by Poiseuille and caps it at diameter_fo_max, so widen that cap for a larger
+    // opening. The flap-valve asymmetry (fo_lr_factor) is the baseline's; direction and size of
+    // the shunt are outcomes of the atrial pressures (build_report.measured.q_fo)
+    const d = targets.fo_mm;
+    if (typeof d !== "number" || !(d >= 0) || d > 15) {
+      console.error(`build_patient: targets.fo_mm must be a diameter in mm between 0 and 15 (got ${JSON.stringify(d)}).`);
+      process.exit(1);
+    }
+    if (!S) {
+      console.error(`build_patient: baseline "${baseline}" has no Shunts model, cannot set fo_mm.`);
+      process.exit(1);
+    }
+    if (d > S.diameter_fo_max) S.diameter_fo_max = d;
+    S.diameter_fo = d;
+    trace(`structural: foramen ovale ${d} mm (left-to-right resistance x${S.fo_lr_factor})`);
   }
 }
 
@@ -483,6 +510,21 @@ if (has("hr")) {
   const start = model.models.Heart?.heart_rate_ref ?? targets.hr;
   controllers.push(mkc({ key: "hr", lever: "Heart.heart_rate_ref", lo: 60, hi: 240, sign: +1, gain: 0.8, value: start, set: (v) => { if (model.models.Heart) model.models.Heart.heart_rate_ref = v; } }));
 }
+// LV ejection fraction <- LV contractility (LV only: an echo EF is a left-ventricular measurement).
+// It shares the lever with co, which keeps it when both are given: output is the input that
+// separates flow from resistance, and EF is then reported for comparison
+if (has("ef") && !has("co")) {
+  const LV = model.models.LV;
+  if (!LV || !model.models.Heart) {
+    console.error(`build_patient: baseline "${baseline}" has no LV/Heart model, cannot calibrate ef.`);
+    process.exit(1);
+  }
+  if (typeof targets.ef !== "number" || !(targets.ef > 5 && targets.ef < 95)) {
+    console.error(`build_patient: targets.ef must be an ejection fraction in % between 5 and 95 (got ${JSON.stringify(targets.ef)}).`);
+    process.exit(1);
+  }
+  controllers.push(mkc({ key: "ef", lever: "LV el_max_factor_ps", lo: 0.3, hi: 3, sign: +1, gain: 0.03, value: 1.0, set: (f) => { LV.el_max_factor_ps = f; } }));
+}
 // CO (LV output) <- ventricular contractility (el_max persistent factor)
 if (has("co")) {
   const apply = (f) => { for (const n of ["LV", "RV"]) { const m = model.models[n]; if (m) m.el_max_factor_ps = f; } };
@@ -604,7 +646,7 @@ const it = result.iters;
 // 5. residual report (stderr)
 // ---------------------------------------------------------------------------
 trace(`\n=== ${spec.name || baseline} — final vitals (profile ${profile}) ===`);
-const REPORT = ["hr", "sys", "dia", "map", ...(has("pp") ? ["pp"] : []), "rr", "cvp", "pap_s", "pap_m", "spo2_pre", "spo2_post", "etco2", "po2", "pco2", "ph", "be", "hco3"];
+const REPORT = ["hr", "sys", "dia", "map", ...(has("pp") ? ["pp"] : []), "rr", "cvp", "pap_s", "pap_m", "ef", "spo2_pre", "spo2_post", "etco2", "po2", "pco2", "ph", "be", "hco3"];
 for (const k of REPORT) {
   const tk = k === "spo2_pre" ? "spo2" : k;
   const tgt = targets[tk];
@@ -665,7 +707,7 @@ const build_report = {
       .map(([k, v]) => [k, { value: Number(v.toPrecision(5)), flag: flagOf(ranges, k, v) }]),
   ),
   structural: Object.fromEntries(
-    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fio2", ...Object.keys(SOLUTE_KEY)].filter(has).map((k) => [k, targets[k]]),
+    ["weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fo_mm", "fio2", ...Object.keys(SOLUTE_KEY)].filter(has).map((k) => [k, targets[k]]),
   ),
   // each solute that was set, with the arterial (AA) value after calibration: kidney filtration,
   // and lactate production in a hypoxic patient, can move them
