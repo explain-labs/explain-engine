@@ -256,6 +256,28 @@ if (weightKg != null) {
   model.weight = weightKg;
   trace(`structural: weight -> ${weightKg} kg (allometric volume scaling)`);
 }
+
+// Arterial stiffness with size. weight_scale shrinks arterial volumes but leaves their elastance,
+// which makes a small baby's arteries as compliant as a term baby's: a 1.08 kg preterm then has a
+// pulse pressure of 11 mmHg (reference at 28 wk: 15-27). By Bramwell-Hill, PWV^2 = V*E/rho, and
+// measured aortic PWV falls far less with size than volume does (term ~4.2-4.6 m/s, preterm at 32
+// wk corrected ~3.2 m/s), while preterm arteries are intrinsically stiffer than term ones (Tauzin,
+// Pediatr Res 2006). Elastance x (W/W0)^-0.5 reproduces that PWV ratio (0.74 of term at 1.08 kg)
+// and gives the 28 wk patient a pulse pressure near 20 mmHg. A larger exponent is not reachable:
+// the explicit integration of these compartments goes unstable above about x2 total elastance
+// (shared with the pulse-pressure lever below), so the factor is capped at ARTERIAL_SCALE_MAX.
+// Neonatal baselines only (the PWV data are neonatal); fetal mode keeps its own seed.
+const ARTERIES = ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"].filter((n) => model.models[n]);
+const ARTERIAL_EL_MAX = 2.0; // total arterial elastance multiplier the integrator tolerates (unstable at ~2.17)
+const ARTERIAL_SCALE_MAX = 1.9;
+let arterialScale = 1.0;
+if (!FETAL_MODE && weightKg != null && model._baseline_weight > 0 && weightKg !== model._baseline_weight) {
+  const wanted = Math.pow(weightKg / model._baseline_weight, -0.5);
+  arterialScale = Math.min(wanted, ARTERIAL_SCALE_MAX);
+  for (const n of ARTERIES) model.models[n].el_base_factor_scaling_ps = arterialScale;
+  trace(`structural: arterial elastance x${round(arterialScale, 3)} for size ((W/W0)^-0.5${wanted > ARTERIAL_SCALE_MAX ? `, capped from x${round(wanted, 2)}` : ""})`);
+  if (wanted > ARTERIAL_SCALE_MAX) notes.push(`arterial stiffness for a ${weightKg} kg baby was capped at x${ARTERIAL_SCALE_MAX} (x${round(wanted, 2)} would follow from size) to keep the simulation numerically stable, so its pulse pressure may run low`);
+}
 if (has("height")) model.height = targets.height >= 3 ? targets.height / 100 : targets.height;
 else if (seed) model.height = seed.height;
 if (has("gestational_age")) model.gestational_age = targets.gestational_age;
@@ -481,14 +503,15 @@ if (has("map")) {
 // x0.3 -> 7 mmHg). The upper bound is a numerical one: stiffer than about x2 the explicit
 // integration of these small compartments goes unstable (pressures swing to hundreds of mmHg;
 // measured: term neonate unstable at x2.0, a calibrated 28 wk preterm at x2.4), so the lever stops
-// at 1.8 and a higher pulse pressure is reported as out of reach instead. In small babies that
-// limit is reached early: weight scaling shrinks arterial volumes but not their elastance, so the
-// arteries of a scaled-down patient stay as compliant as a term baby's.
+// at 1.8 and a higher pulse pressure is reported as out of reach instead. The lever multiplies
+// the size scaling above (BloodVessel composes elastance factors multiplicatively), so in a small
+// baby, whose arteries already start stiffer, its upper bound is what is left of ARTERIAL_EL_MAX.
 if (has("pp")) {
   const arteries = ["AA", "AAR", "AD"].filter((n) => model.models[n]);
   const start = model.models[arteries[0]]?.el_base_factor_ps ?? 1.0;
   const apply = (f) => { for (const n of arteries) model.models[n].el_base_factor_ps = f; };
-  controllers.push(mkc({ key: "pp", lever: "large-artery stiffness x", lo: 0.3, hi: 1.8, sign: +1, gain: 0.03, value: start, set: apply }));
+  const hi = Math.min(1.8, ARTERIAL_EL_MAX / arterialScale);
+  controllers.push(mkc({ key: "pp", lever: "large-artery stiffness x", lo: 0.3, hi, sign: +1, gain: 0.03, value: Math.min(start, hi), set: apply }));
 }
 // PAP (mean, or systolic from an echo TR jet) <- pulmonary vascular resistance scaling (↑PVR ↑PAP).
 // The lever moves the intrapulmonary shunt (IPSL/IPSR) with the bed. Those resistors carry the
