@@ -74,7 +74,7 @@ Two builder-only targets:
 Known limit of the pulmonary-resistance lever: it scales the `blood_pulmonary.resistance` group, which does not include the intrapulmonary shunt resistors (`IPSL`/`IPSR`, set by `Shunts.ips_res`). Raising pulmonary pressure therefore also raises the fraction of pulmonary flow that bypasses ventilated alveoli — on a 1.08 kg / 28 wk case, from 33 % to 43 % when systolic PAP is raised to 36 — and saturation falls in a way the diffusion lever cannot correct.
 
 Before calibrating it applies the **structural** targets: `weight`, `gestational_age` (a seed bundle),
-`height`, `age`, `hb`/`hb_gdl`, `temp`, `pda`/`pda_mm`, `fo_mm` and **`fio2`**.
+`height`, `age`, `hb`/`hb_gdl`, `temp`, `pda`/`pda_mm`, `fo_mm` and **`fio2`**. A spec with only structural targets (or none) is still built: there is nothing to iterate, so the patient is settled for `settle_seconds + final_seconds`, measured and emitted with an empty `targets` list and a note saying nothing was calibrated.
 
 The gestational-age seed is for a term baseline. A baseline that is already preterm (`preterm_*wk`, `bischoff_cohort`: its `gestational_age` is below 37) carries the seed's multiplicative adjustments, so a spec that adds `gestational_age` below 37 to it is refused (exit 1) instead of applying prematurity twice. Use `term_neonate` + `gestational_age`, or the preterm baseline without it. Fetal baselines use their own seed table and are exempt.
 
