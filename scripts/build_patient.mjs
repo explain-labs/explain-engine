@@ -51,6 +51,8 @@
 //     "pathophysiology": { "rds": "moderate", "pvr_scale": 1.7 },         // named modifiers
 //     "tolerance": { "map": 3, "pco2": 4 },                               // per-vital override
 //     "profile": "preterm_28",             // normal-range table (else auto from weight/GA)
+//     "postnatal_age_days": 3,             // metadata: picks the age-dependent term-neonate PAP ranges
+//                                          //   (else targets.age, else the baseline's age; none = day 1)
 //     "max_iters": 12, "warm_seconds": 45, "settle_seconds": 90, "final_seconds": 200
 //   }
 //
@@ -81,7 +83,7 @@
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
-import { measureVitals, selectProfile, RANGES, flagOf, isFetal } from "./_probe.mjs";
+import { measureVitals, selectProfile, rangesFor, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
 import { makeController, runCalibration, ARTERIAL_EL_MAX, DIF_O2_FLOOR } from "../helpers/Calibrator.js";
 
@@ -661,7 +663,11 @@ if (has("be") || has("ph")) {
 // 4. calibration loop
 // ---------------------------------------------------------------------------
 const profile = selectProfile({ weight: model.weight, gestational_age: model.gestational_age, profile: spec.profile, fetal: FETAL_MODE });
-const ranges = RANGES[profile] || RANGES.adult;
+// postnatal age (days) for the normal ranges: the term neonate's PAP falls steeply over the first days
+const specAge = Number.isFinite(spec.postnatal_age_days) && spec.postnatal_age_days >= 0 ? spec.postnatal_age_days : null;
+if (specAge != null && !has("age")) model.age = specAge / 365; // metadata (years); no model reads it
+const ageDays = specAge ?? (has("age") ? targets.age * 365 : typeof model.age === "number" ? model.age * 365 : null);
+const ranges = rangesFor(profile, { ageDays });
 trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile ${profile}) — ${controllers.length} target(s)`);
 
 // run the shared secant calibration (settle → measure → nudge → warm → repeat),
@@ -747,6 +753,8 @@ const build_report = {
   version: 1,
   baseline,
   profile,
+  // the postnatal age the normal-range flags assumed (null = day 1)
+  postnatal_age_days: ageDays == null ? null : round(ageDays, 2),
   fetal: FETAL_MODE,
   converged: result.converged,
   iters: it,
