@@ -24,7 +24,7 @@ import DataCollector from "./helpers/DataCollector";
 import { set_model_registry } from "./helpers/ModelRegistry";
 import TaskScheduler from "./helpers/TaskScheduler";
 import ModelScaler from "./helpers/ModelScaler";
-import { buildLiveControllers, runCalibration, measureWindow } from "./helpers/Calibrator";
+import { buildLiveControllers, runCalibration, measureWindow, liveWarm } from "./helpers/Calibrator";
 import ChannelWriter from "./helpers/ChannelWriter";
 import AnimationPacker from "./helpers/AnimationPacker";
 import { RT_MSG } from "./helpers/RealtimeChannels";
@@ -584,7 +584,7 @@ const tune_model = function (payload) {
         measureAll: () => measureWindow(model, stepFn, keys, opts.window ?? 10),
         step: stepFn,
         settle: opts.settle ?? 20,
-        warm: opts.warm ?? 15,
+        warm: opts.warm ?? liveWarm(targets),
         maxIters: opts.maxIters ?? 12,
         final: 0,
         log: () => {},

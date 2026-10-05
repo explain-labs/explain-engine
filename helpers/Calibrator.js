@@ -142,6 +142,13 @@ const LIVE_READ = {
   map: (m) => m.models.Monitor?.minmax?.abp_pre_pres_mean,
   cvp: (m) => m.models.Monitor?.minmax?.cvp_pres_mean,
   pap_m: (m) => m.models.Monitor?.minmax?.pap_pres_mean,
+  pap_s: (m) => m.models.Monitor?.minmax?.pap_pres_max,
+  sys: (m) => m.models.Monitor?.minmax?.abp_pre_pres_max,
+  dia: (m) => m.models.Monitor?.minmax?.abp_pre_pres_min,
+  pp: (m) => {
+    const mm = m.models.Monitor?.minmax;
+    return mm ? mm.abp_pre_pres_max - mm.abp_pre_pres_min : undefined;
+  },
   hr: (m) => m.models.Monitor?.heart_rate,
   lvo: (m) => m.models.Monitor?.flows?.lvo, // cardiac output (L/min)
   spo2_pre: (m) => m.models.Monitor?.sao2_pre,
@@ -168,22 +175,58 @@ export function measureWindow(model, step, keys, window = 12) {
 // Live-tune controller specs (composable levers). Keyed by canonical target name.
 // ---------------------------------------------------------------------------
 export const DEFAULT_TOL = {
-  map: 3, cvp: 1.5, pap_m: 3, hr: 6, co: 0.03, spo2: 2,
+  map: 3, pp: 2, cvp: 1.5, pap_m: 3, pap_s: 4, hr: 6, co: 0.03, spo2: 2,
   po2: 6, pco2: 4, ph: 0.03, be: 1.5, blood_volume: 0.02,
 };
+
+// Shared with the offline builder (scripts/build_patient.mjs):
+// - total arterial elastance multiplier the explicit integrator tolerates (unstable at ~2.17); the
+//   size stiffening (el_base_factor_scaling_ps) and the pulse-pressure lever (el_base_factor_ps)
+//   compose multiplicatively and together must stay below it
+export const ARTERIAL_EL_MAX = 2.0;
+// - the oxygen lever's diffusion floor; below it the intrapulmonary shunt opens instead
+export const DIF_O2_FLOOR = 0.1;
 
 // which monitor key each target reads
 const READ_KEY = { co: "lvo", spo2: "spo2_pre", blood_volume: "total_blood_volume" };
 
+// A setter that scales a resistor's effective resistance by k (relative to now) through one
+// persistent layer, as a delta so other writers of that layer still compose. BloodVessel multiplies
+// its resistance layers, so the layer itself scales by k; a plain Resistor adds them
+// (r_eff = r·(1 + Σ(layer−1))), so the layer moves by (k−1) times its current effective multiplier.
+function effectiveScaler(m, layer) {
+  const multiplicative = (m.model_type || m.constructor?.model_type) === "BloodVessel";
+  const base = multiplicative ? m[layer] : m.r_factor_ps + m.r_factor_scaling_ps - 1;
+  let applied = 0;
+  return (k) => {
+    const want = base * (k - 1);
+    m[layer] += want - applied;
+    applied = want;
+  };
+}
+
 // Build the controllers for a live tune of `targets` (a {name:value} map) on the
 // given live `model`. Levers compose with baked scaling (use *_factor_ps / setters).
 // Returns { controllers, keys } where keys are the measure-dict keys to sample.
-export function buildLiveControllers(model, targets, tolOverrides = {}) {
+export function buildLiveControllers(model, requested, tolOverrides = {}) {
   const controllers = [];
+  // Derived targets, as in the builder: systolic and diastolic are tuned as a pair, through their
+  // difference (pulse pressure) and, unless MAP is given, MAP = dia + pp/3. One alone is ignored.
+  const targets = { ...requested };
+  delete targets.sys;
+  delete targets.dia;
+  if (typeof requested.sys === "number" && typeof requested.dia === "number") {
+    targets.pp = Math.round((requested.sys - requested.dia) * 100) / 100;
+    if (targets.map == null) targets.map = Math.round((requested.dia + targets.pp / 3) * 10) / 10;
+  }
   const tol = (k) => tolOverrides[k] ?? DEFAULT_TOL[k];
+  // Same safeguards as the builder: all controllers move at once, so a secant slope can read a
+  // neighbour's effect as its own and leap (MAP with CO, or with pulse pressure, ran away to
+  // MAP 79 / 650 mmHg without them). signGuard rejects slopes of the wrong sign, maxStepFrac caps
+  // one step at half the lever's current value.
   const mk = (key, spec) =>
     controllers.push(
-      makeController({ key, readKey: READ_KEY[key] ?? key, target: targets[key], tol: tol(key), ...spec }),
+      makeController({ signGuard: true, maxStepFrac: 0.5, key, readKey: READ_KEY[key] ?? key, target: targets[key], tol: tol(key), ...spec }),
     );
 
   // MAP <- systemic arteriolar resistance. Nudge the arterioles' persistent r_factor_ps DIRECTLY
@@ -238,11 +281,61 @@ export function buildLiveControllers(model, targets, tolOverrides = {}) {
     mk("hr", { lo: 60, hi: 240, sign: +1, gain: 0.8, value: model.models.Heart.heart_rate_ref ?? 120,
       set: (v) => (model.models.Heart.heart_rate_ref = v) });
   }
-  // PO2 / SpO2 <- alveolar O2 diffusion persistent factor
+  // PO2 / SpO2 <- one lever on the builder's continuous scale. Above DIF_O2_FLOOR it is the alveolar
+  // O2 diffusion persistent factor. Below it diffusion stays at the floor and the intrapulmonary
+  // shunt opens instead: Shunts.ips_res falls in proportion, to a tenth of its value at the start of
+  // the tune, so a patient on high FiO2 that still saturates too well can be desaturated (through
+  // shunt, as in a sick preterm). The shunt is only ever opened relative to where the tune started.
   if (targets.po2 != null || targets.spo2 != null) {
     const key = targets.po2 != null ? "po2" : "spo2";
-    const set = (v) => { for (const n of ["GASEX_LL", "GASEX_RL"]) { const x = model.models[n]; if (x) x.dif_o2_factor_ps = v; } };
-    mk(key, { lo: 0.1, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: model.models.GASEX_LL?.dif_o2_factor_ps ?? 1, set });
+    const S = model.models.Shunts;
+    const ips0 = S && S.ips_res > 0 ? S.ips_res : null;
+    const set = (x) => {
+      const f = Math.max(x, DIF_O2_FLOOR);
+      for (const n of ["GASEX_LL", "GASEX_RL"]) { const m = model.models[n]; if (m) m.dif_o2_factor_ps = f; }
+      if (ips0) S.ips_res = x < DIF_O2_FLOOR ? ips0 * (x / DIF_O2_FLOOR) : ips0;
+    };
+    const start = Math.max(model.models.GASEX_LL?.dif_o2_factor_ps ?? 1, DIF_O2_FLOOR);
+    mk(key, { lo: ips0 ? DIF_O2_FLOOR / 10 : DIF_O2_FLOOR, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: start, set });
+  }
+  // Pulse pressure (sys/dia pair) <- stiffness of the large elastic arteries (AA, AAR, AD), their
+  // el_base_factor_ps, as in the builder. It multiplies the size stiffening a built small patient
+  // carries in el_base_factor_scaling_ps, and the product must stay below ARTERIAL_EL_MAX or the
+  // integration goes unstable, so the upper bound is what that scaling leaves (and at most 1.8).
+  // The live tuner keeps a 5 % margin below ARTERIAL_EL_MAX: where the edge lies depends on the
+  // operating point (a 28 wk build at HR 170 ran at ×1.96 but blew up at ×1.99 and did not recover
+  // when the factor was set back), and unlike the builder, which refuses a failed build, a live
+  // tune cannot discard one.
+  if (targets.pp != null) {
+    const arteries = ["AA", "AAR", "AD"].map((n) => model.models[n]).filter(Boolean);
+    if (arteries.length) {
+      const scaling = arteries[0].el_base_factor_scaling_ps ?? 1.0;
+      const hi = Math.min(1.8, (0.95 * ARTERIAL_EL_MAX) / scaling);
+      const start = Math.min(arteries[0].el_base_factor_ps ?? 1.0, hi);
+      mk("pp", { lo: 0.3, hi, sign: +1, gain: 0.03, value: start,
+        set: (f) => { for (const a of arteries) a.el_base_factor_ps = f; } });
+    }
+  }
+  // PAP (mean, or systolic from an echo TR jet; mean wins) <- pulmonary vascular resistance, moving
+  // the intrapulmonary shunt (IPSL/IPSR) with the bed as the builder does, so the shunt's share of
+  // pulmonary flow stays put (raised PVR does not create intrapulmonary shunt). The lever is a
+  // multiplier on each resistor's EFFECTIVE resistance relative to the start of the tune, applied as
+  // deltas on a persistent layer so Circulation's own pvr deltas and baked scaling still compose:
+  // the bed (scaler_config.blood_pulmonary.resistance) on r_factor_ps; IPSL/IPSR on
+  // r_factor_scaling_ps, because Surfactant owns their r_factor_ps.
+  if (targets.pap_m != null || targets.pap_s != null) {
+    const key = targets.pap_m != null ? "pap_m" : "pap_s";
+    const bed = (model.scaler_config?.blood_pulmonary?.resistance || model.ModelScaler?._config?.blood_pulmonary?.resistance || [])
+      .map((n) => model.models[n]).filter(Boolean);
+    const ips = ["IPSL", "IPSR"].map((n) => model.models[n]).filter(Boolean);
+    const levers = [
+      ...bed.map((m) => effectiveScaler(m, "r_factor_ps")),
+      ...ips.map((m) => effectiveScaler(m, "r_factor_scaling_ps")),
+    ];
+    if (bed.length) {
+      mk(key, { lo: 0.2, hi: 8, sign: +1, gain: key === "pap_m" ? 0.05 : 0.04, value: 1.0,
+        set: (k) => { for (const l of levers) l(k); } });
+    }
   }
   // pCO2 <- spontaneous ventilatory drive (Breathing.minute_volume_ref, ↓ raises pCO2)
   if (targets.pco2 != null && model.models.Breathing) {
@@ -253,7 +346,8 @@ export function buildLiveControllers(model, targets, tolOverrides = {}) {
   // BE / pH (metabolic) <- Stewart unmeasured anions (uma); ↑ lowers BE/pH
   if ((targets.be != null || targets.ph != null) && model.models.Blood) {
     const key = targets.be != null ? "be" : "ph";
-    mk(key, { lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, value: model.models.AA?.solutes?.uma ?? 0,
+    // no step cap: it is relative to the lever's value, and uma often starts at 0
+    mk(key, { lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, maxStepFrac: 0, value: model.models.AA?.solutes?.uma ?? 0,
       set: (v) => model.models.Blood.set_solute("uma", Math.max(0, v)) });
   }
   // Total blood volume <- direct proportional rescale of every blood compartment.
@@ -283,4 +377,12 @@ export function buildLiveControllers(model, targets, tolOverrides = {}) {
 }
 
 // canonical list of live-tunable targets (for validation / UI / docs)
-export const LIVE_TARGETS = ["map", "co", "hr", "po2", "spo2", "pco2", "be", "ph", "blood_volume"];
+// Seconds to advance between live-tune iterations. Oxygen settles slowest: with 15 s an SpO2 tune
+// was measured mid-fall, stepped too far and ended ~2-3 points under target; 35 s converges on a
+// term neonate (diffusion alone) and on a 28 wk patient on FiO2 0.4 (shunt opened).
+export function liveWarm(targets) {
+  return targets && (targets.spo2 != null || targets.po2 != null) ? 35 : 15;
+}
+
+// (sys and dia only as a pair: they are tuned through the derived pulse pressure, and MAP)
+export const LIVE_TARGETS = ["map", "sys", "dia", "co", "hr", "pap_m", "pap_s", "po2", "spo2", "pco2", "be", "ph", "blood_volume"];

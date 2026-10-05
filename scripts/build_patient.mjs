@@ -83,7 +83,7 @@ import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { measureVitals, selectProfile, RANGES, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
-import { makeController, runCalibration } from "../helpers/Calibrator.js";
+import { makeController, runCalibration, ARTERIAL_EL_MAX, DIF_O2_FLOOR } from "../helpers/Calibrator.js";
 
 // ---------------------------------------------------------------------------
 // 0. read the SPEC (from --spec <file> or stdin)
@@ -269,7 +269,7 @@ if (weightKg != null) {
 // (shared with the pulse-pressure lever below), so the factor is capped at ARTERIAL_SCALE_MAX.
 // Neonatal baselines only (the PWV data are neonatal); fetal mode keeps its own seed.
 const ARTERIES = ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"].filter((n) => model.models[n]);
-const ARTERIAL_EL_MAX = 2.0; // total arterial elastance multiplier the integrator tolerates (unstable at ~2.17)
+// ARTERIAL_EL_MAX (2.0, from Calibrator.js): total arterial elastance multiplier the integrator tolerates (unstable at ~2.17)
 const ARTERIAL_SCALE_MAX = 1.9;
 let arterialScale = 1.0;
 if (!FETAL_MODE && weightKg != null && model._baseline_weight > 0 && weightKg !== model._baseline_weight) {
@@ -589,7 +589,7 @@ if (has("po2") || has("spo2")) {
     // proportion, to a tenth of its starting value at the lever's bottom. A baby on high FiO2
     // still saturating too well with diffusion at its floor desaturates through shunt, which is
     // also the clinical picture (a sick preterm's hypoxaemia is mostly shunt, not diffusion)
-    const DIF_FLOOR = 0.1;
+    const DIF_FLOOR = DIF_O2_FLOOR; // shared with the live tuner (Calibrator.js)
     const S = model.models.Shunts;
     const ips0 = S && S.ips_res > 0 ? S.ips_res : null;
     const apply = (x) => {
