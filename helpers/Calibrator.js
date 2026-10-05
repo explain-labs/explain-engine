@@ -187,6 +187,9 @@ export const ARTERIAL_EL_MAX = 2.0;
 // - the oxygen lever's diffusion floor; below it the intrapulmonary shunt opens instead
 export const DIF_O2_FLOOR = 0.1;
 
+// the large elastic arteries the pulse-pressure lever stiffens (the windkessel)
+const LARGE_ARTERIES = ["AA", "AAR", "AD"];
+
 // which monitor key each target reads
 const READ_KEY = { co: "lvo", spo2: "spo2_pre", blood_volume: "total_blood_volume" };
 
@@ -249,11 +252,16 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
     // arterioles). Nudging only Circulation.systemic_arterioles has weak MAP authority — halving
     // those organ beds barely moves MAP because flow/CO compensates — whereas the full systemic set
     // gives clean bidirectional authority. Fall back to the arterioles if no scaler config is present.
-    const sysRes =
+    // With a pulse-pressure target the large arteries (whose elastance that lever raises) keep their
+    // resistance: explicit integration stability goes roughly with elastance / resistance, so
+    // lowering their resistance while stiffening them blew up a term neonate at ×0.68 resistance
+    // with ×1.63 stiffness, although each alone was stable. MAP then moves through the rest.
+    const sysRes = (
       model.scaler_config?.blood_systemic?.resistance ||
       model.ModelScaler?._config?.blood_systemic?.resistance ||
       model.models.Circulation.systemic_arterioles ||
-      [];
+      []
+    ).filter((n) => targets.pp == null || !LARGE_ARTERIES.includes(n));
     let applied = 1.0;
     const set = (v) => {
       const delta = v - applied;
@@ -307,7 +315,7 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
   // when the factor was set back), and unlike the builder, which refuses a failed build, a live
   // tune cannot discard one.
   if (targets.pp != null) {
-    const arteries = ["AA", "AAR", "AD"].map((n) => model.models[n]).filter(Boolean);
+    const arteries = LARGE_ARTERIES.map((n) => model.models[n]).filter(Boolean);
     if (arteries.length) {
       const scaling = arteries[0].el_base_factor_scaling_ps ?? 1.0;
       const hi = Math.min(1.8, (0.95 * ARTERIAL_EL_MAX) / scaling);
