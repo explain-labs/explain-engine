@@ -354,6 +354,19 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 
 ## Changelog
 
+### Sweep-gas row in the diagram (2026-10-05)
+
+- Every scenario's ECLS diagram block (`group: "ecls"`) gains the gas side: `ECLS_GAS_SOURCE`
+  ("SWEEP"), `ECLS_GAS_OXY` (unlabelled, directly under `ECLS_OXY`) and `ECLS_GAS_OUT` ("EXHAUST"),
+  joined by the connectors `ECLS_SWEEP_IN` (`ECLS_GAS_INSP_VALVE`) and `ECLS_SWEEP_OUT`
+  (`ECLS_GAS_EXP_VALVE`). Sweep runs right to left, **countercurrent** to the blood as in a hollow-fibre
+  oxygenator.
+- Diagram data only. The gas nodes are grey and untinted, like `LUNG`, and their sizes are relative to
+  the scenario's own `ECLS_OXY` (`fixed_size`), so the adult diagram scales them up too. The sweep dots
+  follow the valve flow, so they stop at `gas_flow` 0 and keep moving while the blood side is clamped.
+- To make room, the diagram's `settings.deviceBand` is 0.85 (default 0.5), and the cannula bypass tracks
+  moved from 1.6 / 1.68 to 1.84 / 1.92, so a VV return line passes under the gas row.
+
 ### Merged right atrium → drainage reaches the whole venous return (2026-10-01)
 
 - The ≈ 0.45 L/min (neonate) / ≈ 2.7 L/min (adult) drainage ceiling noted below was mostly caused by the
