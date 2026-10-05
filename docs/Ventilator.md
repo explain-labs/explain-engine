@@ -226,10 +226,14 @@ clamped between `peep_cmh2o + 2` and `pip_cmh2o_max`.
 
 ### `triggering` (`PS`, and synchronized time-cycled modes)
 
-Sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` and
-the trigger is not blocked, it arms `_trigger_start` and integrates ET-tube flow; once the integrated
-volume exceeds `trigger_volume` it forces the breath (`_exp_time_counter = exp_time + 0.1`) and sets
-`triggered_breath = true`.
+Sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` (the
+onset of a patient effort) and the trigger is not blocked, it arms `_trigger_start` with a zeroed
+`_trigger_volume_counter` and integrates **inspiratory** ET-tube flow only (`max(flow, 0)`), so the
+expiratory tail of the previous breath cannot cancel the effort. It disarms (counter back to 0) when
+the patient's inspiration ends or a ventilator inspiration starts, so a missed effort never carries
+over into the next. Once the integrated volume exceeds `trigger_volume` it forces the breath
+(`_exp_time_counter = exp_time + 0.1`) and sets `triggered_breath = true`: at most one trigger per
+effort.
 
 ## Coupling to `Breathing` (active airway inlet)
 
