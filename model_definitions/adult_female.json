@@ -25,7 +25,8 @@
    "shuntOptionsVisible": true,
    "to2_lo": 3,
    "to2_hi": 6.8,
-   "ringMargin": 135
+   "ringMargin": 135,
+   "deviceBand": 0.85
   },
   "components": {
    "LV": {
@@ -2911,7 +2912,7 @@
       "type": "outer",
       "width": 12,
       "color": "#666666",
-      "track": 1.68
+      "track": 1.92
      },
      "sprite": {
       "color": "#ffffff",
@@ -3112,7 +3113,7 @@
       "type": "outer",
       "width": 12,
       "color": "#666666",
-      "track": 1.6
+      "track": 1.84
      },
      "sprite": {
       "color": "#ffffff",
@@ -3290,6 +3291,259 @@
       "color": "#ffffff"
      }
     }
+   },
+   "ECLS_GAS_SOURCE": {
+    "type": "Compartment",
+    "label": "SWEEP",
+    "picto": "gas_container.png",
+    "enabled": true,
+    "models": [
+     "ECLS_GAS_SOURCE"
+    ],
+    "dbcFrom": "",
+    "dbcTo": "",
+    "layout": {
+     "general": {
+      "animatedBy": "vol",
+      "z_index": 10,
+      "alpha": 1,
+      "tinting": false
+     },
+     "path": {
+      "type": "straight",
+      "width": 5,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#777777",
+      "pos": {
+       "type": "rel",
+       "x": 0.37,
+       "y": 1.58,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 1
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0,
+      "fixed_size": 0.15
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 55,
+      "size": 25,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    },
+    "group": "ecls"
+   },
+   "ECLS_GAS_OXY": {
+    "type": "Compartment",
+    "label": "",
+    "picto": "gas_container.png",
+    "enabled": true,
+    "models": [
+     "ECLS_GAS_OXY"
+    ],
+    "dbcFrom": "",
+    "dbcTo": "",
+    "layout": {
+     "general": {
+      "animatedBy": "vol",
+      "z_index": 10,
+      "alpha": 1,
+      "tinting": false
+     },
+     "path": {
+      "type": "straight",
+      "width": 5,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#777777",
+      "pos": {
+       "type": "rel",
+       "x": 0.15,
+       "y": 1.58,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 1
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0,
+      "fixed_size": 0.2
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 55,
+      "size": 25,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    },
+    "group": "ecls"
+   },
+   "ECLS_GAS_OUT": {
+    "type": "Compartment",
+    "label": "EXHAUST",
+    "picto": "gas_container.png",
+    "enabled": true,
+    "models": [
+     "ECLS_GAS_OUT"
+    ],
+    "dbcFrom": "",
+    "dbcTo": "",
+    "layout": {
+     "general": {
+      "animatedBy": "vol",
+      "z_index": 10,
+      "alpha": 1,
+      "tinting": false
+     },
+     "path": {
+      "type": "straight",
+      "width": 5,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#777777",
+      "pos": {
+       "type": "rel",
+       "x": -0.13,
+       "y": 1.58,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 1
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0,
+      "fixed_size": 0.15
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 55,
+      "size": 25,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    },
+    "group": "ecls"
+   },
+   "ECLS_SWEEP_IN": {
+    "type": "Connector",
+    "label": "",
+    "picto": "gfx/container.png",
+    "enabled": true,
+    "models": [
+     "ECLS_GAS_INSP_VALVE"
+    ],
+    "dbcFrom": "ECLS_GAS_SOURCE",
+    "dbcTo": "ECLS_GAS_OXY",
+    "layout": {
+     "general": {
+      "animatedBy": "flow",
+      "z_index": 8,
+      "alpha": 1,
+      "tinting": false
+     },
+     "path": {
+      "type": "straight",
+      "width": 12,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 0,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 2,
+       "y": 4
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 0,
+      "size": 10,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    },
+    "group": "ecls"
+   },
+   "ECLS_SWEEP_OUT": {
+    "type": "Connector",
+    "label": "",
+    "picto": "gfx/container.png",
+    "enabled": true,
+    "models": [
+     "ECLS_GAS_EXP_VALVE"
+    ],
+    "dbcFrom": "ECLS_GAS_OXY",
+    "dbcTo": "ECLS_GAS_OUT",
+    "layout": {
+     "general": {
+      "animatedBy": "flow",
+      "z_index": 8,
+      "alpha": 1,
+      "tinting": false
+     },
+     "path": {
+      "type": "straight",
+      "width": 12,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 0,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 2,
+       "y": 4
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 0,
+      "size": 10,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    },
+    "group": "ecls"
    }
   }
  },
@@ -12469,7 +12723,8 @@
     "xOffset": 0,
     "yOffset": -10,
     "max_to2": 7.5,
-    "shuntOptionsVisible": true
+    "shuntOptionsVisible": true,
+    "deviceBand": 0.85
    },
    "components": {
     "LV": {
@@ -15355,7 +15610,7 @@
        "type": "outer",
        "width": 12,
        "color": "#666666",
-       "track": 1.68
+       "track": 1.92
       },
       "sprite": {
        "color": "#ffffff",
@@ -15556,7 +15811,7 @@
        "type": "outer",
        "width": 12,
        "color": "#666666",
-       "track": 1.6
+       "track": 1.84
       },
       "sprite": {
        "color": "#ffffff",
@@ -15734,6 +15989,259 @@
        "color": "#ffffff"
       }
      }
+    },
+    "ECLS_GAS_SOURCE": {
+     "type": "Compartment",
+     "label": "SWEEP",
+     "picto": "gas_container.png",
+     "enabled": true,
+     "models": [
+      "ECLS_GAS_SOURCE"
+     ],
+     "dbcFrom": "",
+     "dbcTo": "",
+     "layout": {
+      "general": {
+       "animatedBy": "vol",
+       "z_index": 10,
+       "alpha": 1,
+       "tinting": false
+      },
+      "path": {
+       "type": "straight",
+       "width": 5,
+       "color": "#666666"
+      },
+      "sprite": {
+       "color": "#777777",
+       "pos": {
+        "type": "rel",
+        "x": 0.37,
+        "y": 1.58,
+        "dgs": 0
+       },
+       "scale": {
+        "x": 1,
+        "y": 1
+       },
+       "anchor": {
+        "x": 0.5,
+        "y": 0.5
+       },
+       "rotation": 0,
+       "fixed_size": 0.092
+      },
+      "label": {
+       "pos_x": 0,
+       "pos_y": 34,
+       "size": 10,
+       "rotation": 0,
+       "color": "#ffffff"
+      }
+     },
+     "group": "ecls"
+    },
+    "ECLS_GAS_OXY": {
+     "type": "Compartment",
+     "label": "",
+     "picto": "gas_container.png",
+     "enabled": true,
+     "models": [
+      "ECLS_GAS_OXY"
+     ],
+     "dbcFrom": "",
+     "dbcTo": "",
+     "layout": {
+      "general": {
+       "animatedBy": "vol",
+       "z_index": 10,
+       "alpha": 1,
+       "tinting": false
+      },
+      "path": {
+       "type": "straight",
+       "width": 5,
+       "color": "#666666"
+      },
+      "sprite": {
+       "color": "#777777",
+       "pos": {
+        "type": "rel",
+        "x": 0.15,
+        "y": 1.58,
+        "dgs": 0
+       },
+       "scale": {
+        "x": 1,
+        "y": 1
+       },
+       "anchor": {
+        "x": 0.5,
+        "y": 0.5
+       },
+       "rotation": 0,
+       "fixed_size": 0.123
+      },
+      "label": {
+       "pos_x": 0,
+       "pos_y": 34,
+       "size": 10,
+       "rotation": 0,
+       "color": "#ffffff"
+      }
+     },
+     "group": "ecls"
+    },
+    "ECLS_GAS_OUT": {
+     "type": "Compartment",
+     "label": "EXHAUST",
+     "picto": "gas_container.png",
+     "enabled": true,
+     "models": [
+      "ECLS_GAS_OUT"
+     ],
+     "dbcFrom": "",
+     "dbcTo": "",
+     "layout": {
+      "general": {
+       "animatedBy": "vol",
+       "z_index": 10,
+       "alpha": 1,
+       "tinting": false
+      },
+      "path": {
+       "type": "straight",
+       "width": 5,
+       "color": "#666666"
+      },
+      "sprite": {
+       "color": "#777777",
+       "pos": {
+        "type": "rel",
+        "x": -0.13,
+        "y": 1.58,
+        "dgs": 0
+       },
+       "scale": {
+        "x": 1,
+        "y": 1
+       },
+       "anchor": {
+        "x": 0.5,
+        "y": 0.5
+       },
+       "rotation": 0,
+       "fixed_size": 0.092
+      },
+      "label": {
+       "pos_x": 0,
+       "pos_y": 34,
+       "size": 10,
+       "rotation": 0,
+       "color": "#ffffff"
+      }
+     },
+     "group": "ecls"
+    },
+    "ECLS_SWEEP_IN": {
+     "type": "Connector",
+     "label": "",
+     "picto": "gfx/container.png",
+     "enabled": true,
+     "models": [
+      "ECLS_GAS_INSP_VALVE"
+     ],
+     "dbcFrom": "ECLS_GAS_SOURCE",
+     "dbcTo": "ECLS_GAS_OXY",
+     "layout": {
+      "general": {
+       "animatedBy": "flow",
+       "z_index": 8,
+       "alpha": 1,
+       "tinting": false
+      },
+      "path": {
+       "type": "straight",
+       "width": 12,
+       "color": "#666666"
+      },
+      "sprite": {
+       "color": "#ffffff",
+       "pos": {
+        "type": "rel",
+        "x": 0,
+        "y": 0,
+        "dgs": 0
+       },
+       "scale": {
+        "x": 2,
+        "y": 4
+       },
+       "anchor": {
+        "x": 0.5,
+        "y": 0.5
+       },
+       "rotation": 0
+      },
+      "label": {
+       "pos_x": 0,
+       "pos_y": 0,
+       "size": 10,
+       "rotation": 0,
+       "color": "#ffffff"
+      }
+     },
+     "group": "ecls"
+    },
+    "ECLS_SWEEP_OUT": {
+     "type": "Connector",
+     "label": "",
+     "picto": "gfx/container.png",
+     "enabled": true,
+     "models": [
+      "ECLS_GAS_EXP_VALVE"
+     ],
+     "dbcFrom": "ECLS_GAS_OXY",
+     "dbcTo": "ECLS_GAS_OUT",
+     "layout": {
+      "general": {
+       "animatedBy": "flow",
+       "z_index": 8,
+       "alpha": 1,
+       "tinting": false
+      },
+      "path": {
+       "type": "straight",
+       "width": 12,
+       "color": "#666666"
+      },
+      "sprite": {
+       "color": "#ffffff",
+       "pos": {
+        "type": "rel",
+        "x": 0,
+        "y": 0,
+        "dgs": 0
+       },
+       "scale": {
+        "x": 2,
+        "y": 4
+       },
+       "anchor": {
+        "x": 0.5,
+        "y": 0.5
+       },
+       "rotation": 0
+      },
+      "label": {
+       "pos_x": 0,
+       "pos_y": 0,
+       "size": 10,
+       "rotation": 0,
+       "color": "#ffffff"
+      }
+     },
+     "group": "ecls"
     }
    }
   },
