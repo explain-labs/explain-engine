@@ -20,6 +20,8 @@
 //   - with an SpO2 out of diffusion's reach on high FiO2: the shunt is opened and noted
 //   - with a raised PAP: the intrapulmonary shunt fraction stays near the seed's
 //   - a preterm without a pressure pair: pulse pressure in the reference range (size-scaled arteries)
+//   - with postnatal_age_days: the report records it and the term PAP flags follow age (a PAP
+//     that is normal on day 1 is HIGH on day 7)
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
 //     reload (lactate and glucose have their own controllers, which must have been moved with them)
 // Levers that ended on a bound are printed as notes.
@@ -28,7 +30,7 @@
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { createEngine } from "./_harness.mjs";
-import { measureVitals } from "./_probe.mjs";
+import { measureVitals, rangesFor, flagOf } from "./_probe.mjs";
 
 // createEngine() silences console.log (engine chatter); keep our own handle to stdout
 const print = console.log.bind(console);
@@ -85,6 +87,14 @@ const CASES = [
       targets: { hr: 145, map: 45, spo2: 95, ef: 42, fo_mm: 3 },
     },
     expectFoMm: 3,
+  },
+  {
+    // postnatal age picks the term PAP range: systolic 45 is normal on day 1 (28-60) but HIGH on day 7
+    name: "term_day7_pap_flag",
+    spec: { baseline: "term_neonate", name: "probe_term_day7", postnatal_age_days: 7, targets: { pap_s: 45 } },
+    expectAgeDays: 7,
+    expectFlags: { pap_s: "HIGH" },
+    expectDay1Ok: ["pap_s"],
   },
   {
     // co and ef share the contractility lever: co keeps it and ef is reported as superseded
@@ -146,6 +156,12 @@ for (const c of CASES) {
     report.targets.filter((t) => t.lever_at_bound).map((t) => ` — ${t.key}: lever at bound`).join(""));
   check(scenario.provenance === "calibrator-fitted", "provenance is calibrator-fitted");
   for (const k of c.expectIgnored ?? []) check(report.ignored_targets.includes(k), `unknown target "${k}" reported as ignored`);
+  if (c.expectAgeDays != null) check(report.postnatal_age_days === c.expectAgeDays, `report postnatal_age_days ${report.postnatal_age_days} (want ${c.expectAgeDays})`);
+  for (const [k, f] of Object.entries(c.expectFlags ?? {})) check(report.measured?.[k]?.flag === f, `${k} ${report.measured?.[k]?.value} flagged ${report.measured?.[k]?.flag} (want ${f})`);
+  for (const k of c.expectDay1Ok ?? []) {
+    const v = report.measured?.[k]?.value;
+    check(flagOf(rangesFor(report.profile, { ageDays: 1 }), k, v) === "ok", `${k} ${v} would be ok on day 1`);
+  }
   if (c.expectNote) check(report.notes?.some((n) => c.expectNote.test(n)), `note matching ${c.expectNote}`);
   if (c.expectNoTargets) check(report.targets.length === 0 && typeof report.measured?.map?.value === "number", "no calibrated targets, vitals measured");
   for (const s of c.expectSuperseded ?? []) check(report.superseded_targets?.some((x) => x.key === s.key && x.by === s.by), `${s.key} reported as superseded by ${s.by}`);

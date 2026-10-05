@@ -101,8 +101,11 @@ the human-readable one):
 |---|---|
 | `converged`, `iters`, `max_iters` | outcome of the loop |
 | `targets[]` | per calibrated target: `target`, `value`, `delta`, `tolerance`, `within`, `lever`, `lever_value`, `lever_bounds`, `lever_at_bound` |
-| `measured` | every measured vital: `{ value, flag }`, flag from the profile's `RANGES` (`ok`/`LOW`/`HIGH`) |
+| `measured` | every measured vital: `{ value, flag }`, flag from the profile's ranges (`rangesFor`, `ok`/`LOW`/`HIGH`) |
+| `postnatal_age_days` | the postnatal age the flags assumed: `spec.postnatal_age_days`, else `targets.age` × 365, else the baseline's age (term baselines: 0 = day 1) |
 | `structural` | the structural targets that were applied |
+
+**Age-dependent PAP ranges (term neonate).** Pulmonary artery pressure falls steeply over the first days, so the `neonate` profile's `pap_s`/`pap_d`/`pap_m` ranges follow postnatal age (`NEONATE_PAP_BY_AGE` in `_probe.mjs`): under 36 h systolic 28–60, diastolic 5–37, mean 15–54; 36–60 h 22–55, 5–25, 11–41; from 60 h the table's 18–40, 5–20, 12–30. These are mean ± 2 SD of 76 healthy term newborns by echo (Medicine 2016, [PMID 26817918](https://pubmed.ncbi.nlm.nih.gov/26817918/): systolic 43.8 ± 7.9 at 24 h, 38.1 ± 8.3 at 48 h, upper 95 % limit 40 at 72 h). Without them a normal day-1 baby was flagged HIGH: `term_neonate`, described as 24 h old, measures 40/17 (mean 27), and a 3 mm PFO took it to 41.5. Preterm, fetal and adult ranges are not age-dependent. The age is metadata (`spec.postnatal_age_days`, which also sets `model.age` in years when `targets.age` is absent); no model reads it.
 | `derived_targets` | `pp` (and `map`) computed from `sys`/`dia` |
 | `solutes` | per solute set: `{ set, value }`, the arterial (AA) value after calibration |
 | `ignored_targets` | `targets` keys the builder does not know. They are **ignored**, so they are listed |

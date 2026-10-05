@@ -173,6 +173,26 @@ export function selectProfile({ weight, gestational_age, profile, fetal = false 
   return typeof weight === "number" && weight < 10 ? "neonate" : "adult";
 }
 
+// Pulmonary artery pressure falls steeply over the first days, so the term neonate's PAP ranges
+// follow postnatal age. Mean ± 2 SD of healthy term newborns by echo (Medicine 2016, PMID 26817918:
+// systolic 43.8 ± 7.9 at 24 h, 38.1 ± 8.3 at 48 h, upper 95 % limit 40 at 72 h; diastolic
+// 19.7 ± 8.5 and 13.9 ± 5.6; mean 34.4 ± 9.9 and 26.2 ± 7.5), low bounds kept at the table's floors.
+// From 60 h on the `neonate` table's own values apply.
+export const NEONATE_PAP_BY_AGE = [
+  { upToHours: 36, pap_s: [28, 60], pap_d: [5, 37], pap_m: [15, 54] },
+  { upToHours: 60, pap_s: [22, 55], pap_d: [5, 25], pap_m: [11, 41] },
+];
+
+// The range table for a profile at a postnatal age (days; null/undefined = day 1, like the
+// term_neonate baseline). Only the term `neonate` profile is age-dependent, and only its PAP keys.
+export function rangesFor(profile, { ageDays } = {}) {
+  const base = RANGES[profile] || RANGES.adult;
+  if (profile !== "neonate") return base;
+  const hours = 24 * (typeof ageDays === "number" && ageDays >= 0 ? ageDays : 1);
+  const row = NEONATE_PAP_BY_AGE.find((r) => hours < r.upToHours);
+  return row ? { ...base, pap_s: row.pap_s, pap_d: row.pap_d, pap_m: row.pap_m } : base;
+}
+
 export function flagOf(ranges, k, v) {
   const r = ranges?.[k];
   if (!r || typeof v !== "number") return "";
