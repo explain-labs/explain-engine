@@ -263,7 +263,8 @@ if (weightKg != null) {
 // measured aortic PWV falls far less with size than volume does (term ~4.2-4.6 m/s, preterm at 32
 // wk corrected ~3.2 m/s), while preterm arteries are intrinsically stiffer than term ones (Tauzin,
 // Pediatr Res 2006). Elastance x (W/W0)^-0.5 reproduces that PWV ratio (0.74 of term at 1.08 kg)
-// and gives the 28 wk patient a pulse pressure near 20 mmHg. A larger exponent is not reachable:
+// and gives the 28 wk patient a pulse pressure of about 16-18 mmHg (lower at a faster heart rate).
+// A larger exponent is not reachable:
 // the explicit integration of these compartments goes unstable above about x2 total elastance
 // (shared with the pulse-pressure lever below), so the factor is capped at ARTERIAL_SCALE_MAX.
 // Neonatal baselines only (the PWV data are neonatal); fetal mode keeps its own seed.
