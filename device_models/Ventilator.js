@@ -183,12 +183,22 @@ export class Ventilator extends BaseModelClass {
     this.trigger_volume =
       (this.tidal_volume / 100.0) * this.trigger_volume_perc;
 
+    // arm on the onset of a patient effort, with a fresh counter: each effort gets its own trigger
+    // window, so a missed effort (or the ventilator's own expiration) never carries over
     if (this._breathing_model?.ncc_insp === 1 && !this._trigger_blocked) {
       this._trigger_start = true;
+      this._trigger_volume_counter = 0.0;
     }
 
+    // disarm when the effort ends or a ventilator inspiration starts
+    if (!this._breathing_model?._insp_running || this._trigger_blocked) {
+      this._trigger_start = false;
+      this._trigger_volume_counter = 0.0;
+    }
+
+    // count only inspiratory flow: the expiratory tail of the previous breath must not cancel it
     if (this._trigger_start) {
-      this._trigger_volume_counter += this._vent_ettube.flow * this._t;
+      this._trigger_volume_counter += Math.max(this._vent_ettube.flow, 0.0) * this._t;
     }
 
     if (this._trigger_volume_counter > this.trigger_volume) {
