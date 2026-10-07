@@ -17,7 +17,7 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const scenario = argv.find((a, i) => !a.startsWith("-") && !(argv[i - 1] ?? "").startsWith("--")) || "term_neonate";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const SETTLE = opt("--settle", 20); // s before counting
 const WINDOW = opt("--window", 30); // s counted

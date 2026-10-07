@@ -30,7 +30,9 @@ reaches into them by name to set valve states, resistances and reservoir volumes
   backup so it delivers breaths during apnea.
 - An optional end-inspiratory pause (`insp_pause`) that produces a plateau pressure, enabling measured
   static compliance and airway resistance.
-- A flow- and diameter-dependent ET-tube resistance (turbulent tube behaviour).
+- A flow-, diameter- and length-dependent ET-tube resistance (Rohrer form, symmetric in inspiration
+  and expiration, valid from neonatal 2.5 mm to adult 9 mm tubes).
+- A heated humidifier: the fresh gas and the circuit are held at `temp` / `humidity`.
 - Per-breath read-outs: tidal volumes, minute volume, dynamic & static compliance, measured peak /
   plateau pressure and airway resistance, end-tidal CO₂.
 
@@ -64,7 +66,7 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `fio2` | fraction | Fraction of inspired O₂ for the fresh gas (default 0.205) |
 | `humidity` | fraction | Fresh-gas relative humidity (default 1.0) |
 | `temp` | °C | Fresh-gas temperature (default 37) |
-| `ettube_diameter` | mm | ET-tube inner diameter (default 4); drives the `_a`/`_b` resistance coefficients |
+| `ettube_diameter` | mm | ET-tube inner diameter (default 4); drives the `_ett_k1`/`_ett_k2` Rohrer coefficients |
 | `ettube_length` | mm | ET-tube length (default 110); scales resistance by `length/110` |
 | `vent_mode` | string | `PC` / `PRVC` / `VC` / `PS` / `CPAP` (default `PRVC`) |
 | `vent_rate` | breaths/min | Mechanical rate; in `PS` it is the backup/apnea rate (default 40) |
@@ -73,7 +75,8 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
 | `insp_flow` | L/min | Inspiratory flow setting; the delivered flow target in `VC` (default 12) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
-| `pip_cmh2o` | cmH₂O | Peak inspiratory pressure target (default 14) |
+| `pip_cmh2o` | cmH₂O | Peak inspiratory pressure target in `PC` (default 14); not used in `PS` |
+| `ps_cmh2o` | cmH₂O | Pressure support level **above PEEP** in `PS` (default 10); the PS target is `peep_cmh2o + ps_cmh2o` |
 | `pip_cmh2o_max` | cmH₂O | PIP ceiling for PRVC auto-regulation (default 14) |
 | `peep_cmh2o` | cmH₂O | Positive end-expiratory pressure / CPAP level (default 3) |
 | `trigger_volume_perc` | % | Trigger volume as a percent of `tidal_volume` (default 6) |
@@ -88,16 +91,16 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `vol` | mL | Volume integrated from ET-tube flow over the current breath (reset each inspiration) |
 | `exp_time` | s | Expiratory time = `60/vent_rate − insp_time` |
 | `trigger_volume` | L | Trigger threshold = `(tidal_volume/100) · trigger_volume_perc` |
-| `minute_volume` | L/min | `exp_tidal_volume · rate` — the set `vent_rate` for mandatory modes, the *measured* rate in `PS`; CPAP uses the patient's spontaneous rate |
+| `minute_volume` | L/min | `exp_tidal_volume · rate` — the set `vent_rate` for purely mandatory modes; whenever the patient can trigger (`PS`, or `synchronized`) the *measured*, breath-averaged rate; CPAP uses the patient's spontaneous rate |
 | `compliance` | mL/cmH₂O | Dynamic compliance (= `compliance_dynamic`), measured per breath at end-expiration |
 | `compliance_dynamic` | mL/cmH₂O | `Vt / (p_peak − PEEP)` — always available |
 | `compliance_static` | mL/cmH₂O | `Vt / (p_plat − PEEP)` — only when an inspiratory pause produced a plateau (else 0) |
 | `resistance` | cmH₂O/(L/s) | Measured airway resistance `(p_peak − p_plat) / insp_flow` — needs a plateau; `null` when unmeasurable |
-| `p_peak` | cmH₂O | Measured peak inspiratory (circuit) pressure over the breath |
+| `p_peak` | cmH₂O | Measured peak inspiratory (circuit) pressure over the breath (in CPAP: over the spontaneous breath) |
 | `p_plat` | cmH₂O | Measured plateau pressure, sampled during the inspiratory pause |
 | `exp_tidal_volume` | L | Expired tidal volume (per breath) |
 | `insp_tidal_volume` | L | Inspired tidal volume (per breath) |
-| `tv_kg` | mL/kg | Expired tidal volume per kg (`exp_tidal_volume·1000 / weight`) |
+| `tv_kg` | mL/kg | Expired tidal volume per kg (`exp_tidal_volume·1000 / weight`); also in CPAP |
 | `ncc_insp` | counter | Ventilator inspiration step counter (see breath cycle counters) |
 | `ncc_exp` | counter | Ventilator expiration step counter |
 | `etco2` | mmHg | End-tidal CO₂, sampled from `DS.pco2` at each new inspiration |
@@ -106,8 +109,11 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 
 ### Internal (`_`-prefixed)
 
-`_pip`/`_pip_max`/`_peep` are the cmH₂O targets converted to mmHg. `_a`/`_b` are the ET-tube
-resistance coefficients derived from diameter. `_insp_time_counter`/`_exp_time_counter`,
+`_pip`/`_pip_max`/`_peep` are the cmH₂O targets converted to mmHg (in `PS`, `_pip` is
+`peep_cmh2o + ps_cmh2o`). `_ett_k1`/`_ett_k2` are the ET-tube Rohrer coefficients derived from
+diameter. `_rate_avg` is the breath-averaged measured rate (minute volume), `_manual_breath` a
+pending `trigger_breath()` request, and `_humidifier_applied` guards the first-step humidifier
+setup. `_insp_time_counter`/`_exp_time_counter`,
 `_insp_tidal_volume_counter`/`_exp_tidal_volume_counter`, `_trigger_volume_counter`, `_inspiration`,
 `_expiration`, `_peak_flow`, `_prev_et_tube_flow`, `_trigger_blocked`, `_trigger_start`,
 `_tv_tolerance` (0.0005 L), `_et_tube_resistance`, and the `_vent_*` sub-model references back the
@@ -118,7 +124,9 @@ cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `
 
 ## Calculation cycle (`calc_model`)
 
-1. Convert `pip_cmh2o` / `pip_cmh2o_max` / `peep_cmh2o` to mmHg (`÷ 1.35951`) into `_pip`/`_pip_max`/`_peep`.
+1. On the first step, apply the humidifier settings (`_apply_humidifier`, see below). Convert
+   `pip_cmh2o` (in `PS`: `peep_cmh2o + ps_cmh2o`) / `pip_cmh2o_max` / `peep_cmh2o` to mmHg
+   (`÷ 1.35951`) into `_pip`/`_pip_max`/`_peep`.
 2. If the mode is `PS`, or `synchronized` is set and the mode is not CPAP, run `triggering()`.
 3. Dispatch on `vent_mode`:
    - `PC` / `PRVC` → `time_cycling()` then `pressure_control()`
@@ -126,8 +134,8 @@ cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `
    - `PS` → `flow_cycling()` then `pressure_control()`
    - `CPAP` → `cpap_control()`
 4. Publish read-outs: airway `pres`, `flow` (ET-tube flow × 60), integrate `vol`, sample `co2` from
-   `DS`, set `minute_volume` (using the measured rate in `PS`; CPAP reports a spontaneous minute
-   volume), advance the breath-interval counter, and refresh the ET-tube resistance. Compliance and
+   `DS`, set `minute_volume` (using the breath-averaged measured rate whenever the patient can
+   trigger; CPAP reports a spontaneous minute volume), advance the breath-interval counter, and refresh the ET-tube resistance. Compliance and
    resistance are **not** touched here — they are measured once per breath (see
    `calc_measured_mechanics`), so `calc_model` must not clobber them.
 
@@ -168,7 +176,8 @@ During the flow phase the routine also tracks the peak circuit pressure into `_p
 
 Pressure support is patient-triggered and **flow-cycled**: a breath begins on a patient trigger
 (`triggered_breath` with rising ET-tube flow), the routine tracks `_peak_flow`, and cycles to
-expiration when flow falls below **30 % of peak**. It also runs a **time-cycled mandatory backup**:
+expiration when flow falls below **30 % of peak** — or, as a safety limit, when the breath reaches
+`insp_time` (Ti max, for when flow never decays). It also runs a **time-cycled mandatory backup**:
 if no breath has started within `60/vent_rate` (tracked breath-start to breath-start via
 `_breath_interval_counter`), it delivers a mandatory, time-cycled breath (terminated at `insp_time`).
 This provides apnea backup; patient triggers always run in `PS`, whatever `synchronized` says. Peak circuit pressure is
@@ -212,7 +221,8 @@ CPAP holds the circuit at the CPAP level (= `peep_cmh2o`) and lets the patient b
 through the ET tube — **both valves stay open**. The inspiratory valve feeds fresh gas toward the
 CPAP target and shuts off at/above it; the expiratory reservoir is pinned so the circuit floats at
 CPAP. Tidal volumes are accumulated from ET-tube flow and closed out at each spontaneous inspiration
-start (`Breathing.ncc_insp === 1`); `minute_volume = exp_tidal_volume · Breathing.resp_rate`.
+start (`Breathing.ncc_insp === 1`), where `tv_kg` and `p_peak` (peak circuit pressure over that
+spontaneous breath) are latched too; `minute_volume = exp_tidal_volume · Breathing.resp_rate`.
 
 > CPAP only ventilates a *spontaneously breathing* patient: with `Breathing` disabled it holds the
 > pressure but delivers no tidal volume, as in reality. This is the half of the
@@ -247,13 +257,25 @@ during CPAP/PS of an intubated, spontaneously breathing patient.
 ## ET-tube resistance (`calc_ettube_resistance`)
 
 ```
-R = (a·flow + b) · (ettube_length / 110)        floored at 15
-a = −2.375·d + 11.9375
-b = −14.375·d + 65.9374        (d = ettube_diameter, from set_ettube_diameter)
+R  = (K1 + K2·|V̇|) · (ettube_length / 110)      V̇ = ET-tube flow (L/s), R in mmHg·s/L
+K1 = 16.92 · (2.5/d)^4       mmHg·s/L         laminar (Poiseuille) term
+K2 = 513.7 · (2.5/d)^4.75    mmHg·s²/L²       turbulent (Blasius) term   (d = ettube_diameter)
 ```
 
-Resistance is flow- and diameter-dependent (turbulent tube behaviour) and is written onto
-`VENT_ETTUBE.r_for` / `r_back` each step. `set_ettube_diameter` requires `d > 1.5`;
+The pressure drop is the Rohrer form `ΔP = K1·V̇ + K2·V̇²`. It is anchored on in-vitro data for a
+2.5 mm tube (81 and 139 cmH₂O/(L/s) at 5 and 10 L/min) and scaled to other diameters with the
+physical exponents. It reproduces the adult literature (an 8 mm, 27 cm tube ≈ 7 cmH₂O/(L/s) at 1 L/s)
+without a separate fit. With `|V̇|` the tube is symmetric: the previous linear fit used the
+*signed* flow (so expiration always sat at its floor) and went negative above ~4.6 mm.
+
+Effective values at 5 L/min, 110 mm: 2.5 mm ≈ 81, 3.0 mm ≈ 36, 3.5 mm ≈ 18, 4.0 mm ≈ 10
+cmH₂O/(L/s). Measured data show smaller-than-Poiseuille differences between 3.0 and 4.0 mm
+(connector losses), so the 3.5–4.0 mm values are on the low side.
+
+The only floor is numerical: the tube flow is integrated explicitly, so `R` is kept at or above
+`dt·(E_circuit + E_airway)`. Without that floor the circuit and the airway could equilibrate within
+one step, and the pressure would oscillate. Only large adult tubes at low flow reach it. `R` is
+written onto `VENT_ETTUBE.r_for` / `r_back` each step. `set_ettube_diameter` requires `d > 1.5`;
 `set_ettube_length` requires `length ≥ 50`.
 
 ## Factor system
@@ -272,13 +294,13 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_pc(pip, peep, rate, t_in, insp_flow)` | Configure PC mode |
 | `set_prvc(pip_max, peep, rate, tv, t_in, insp_flow)` | Configure PRVC (`tv` in mL → L) |
 | `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
-| `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`rate` = backup rate) |
+| `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`pip` absolute → `ps_cmh2o = pip − peep`; `rate` = backup rate; `t_in` = backup Ti and Ti max) |
 | `set_cpap(cpap, insp_flow)` | Configure CPAP (`cpap` → `peep_cmh2o`) |
 | `set_pause(seconds)` | Set the end-inspiratory hold for any time-cycled mode (clamped `< insp_time`) |
 | `set_fio2(new_fio2)` | Re-derive fresh-gas composition (a fraction ≤ 1, or a percentage > 1) |
 | `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition (both `VENT_GASIN` and `VENT_GASCIRCUIT`), and push the new humidity / temperature onto those compartments — see note below |
 | `set_ettube_diameter(d)` / `set_ettube_length(l)` | Update tube geometry → resistance |
-| `trigger_breath()` | Force the next breath by expiring the current one |
+| `trigger_breath()` | Manual breath: ignored during inspiration, otherwise delivered after the minimal expiratory time (all modes except CPAP) |
 
 > **Why the setters write to the gas compartments directly.** `humidity` and `target_temp` are live
 > targets that [`GasCapacitance`](./GasCapacitance.md) relaxes toward on every step. Setting only the
@@ -287,6 +309,12 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 > `VENT_GASIN.temp`/`target_temp` and `VENT_GASCIRCUIT.target_temp`, and `set_humidity` sets
 > `humidity` on both. Note that `VENT_GASIN` is `fixed_composition`, so `add_heat`/`add_watervapour`
 > skip it entirely and it holds whatever it is given.
+>
+> **Humidifier at start-up.** `Gas.init_model` runs *after* the Ventilator and resets every gas
+> compartment to the ambient temperature. `_apply_humidifier()` (temp, target_temp and humidity on
+> `VENT_GASIN`/`VENT_GASCIRCUIT`, then their composition) therefore runs on the ventilator's first
+> step and on every `switch_ventilator(true)`. Before this fix the circuit sat at the scenario's
+> 20 °C instead of 37 °C.
 
 ## Example definition (JSON)
 
@@ -349,7 +377,8 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
   a null.
 - **Re-enabling is clean.** `switch_ventilator` calls `_reset_state()`, zeroing the internal cycle
   counters/flags so a re-enabled ventilator starts a fresh breath rather than resuming mid-cycle.
-- **`trigger_breath()` takes no arguments**; it only forces the current breath to expire.
+- **`trigger_breath()` takes no arguments.** It is ignored during inspiration (it used to restart
+  the running breath) and works in `PS` too (it used to do nothing there).
 - **`set_fio2` percent/fraction rule**: values ≤ 1 are treated as a fraction, values > 1 as a
   percentage (so `20` → 0.20, `45` → 0.45).
 - **VC delivered volume is servo-trimmed.** `volume_control_servo` converges `exp_tidal_volume` on the

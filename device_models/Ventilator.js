@@ -28,6 +28,7 @@ export class Ventilator extends BaseModelClass {
     this.pip_cmh2o = 14;
     this.pip_cmh2o_max = 14;
     this.peep_cmh2o = 3;
+    this.ps_cmh2o = 10; // pressure support level ABOVE peep (PS mode only)
     this.trigger_volume_perc = 6;
     this.synchronized = false;
     this.components = {}
@@ -67,8 +68,8 @@ export class Ventilator extends BaseModelClass {
     this._pip = 0.0;
     this._pip_max = 0.0;
     this._peep = 0.0;
-    this._a = 0.0;
-    this._b = 0.0;
+    this._ett_k1 = 0.0; // ET-tube Rohrer linear coefficient (mmHg*s/L) at the reference length
+    this._ett_k2 = 0.0; // ET-tube Rohrer flow-dependent coefficient (mmHg*s^2/L^2) at the reference length
     this._insp_time_counter = 0.0;
     this._exp_time_counter = 0.0;
     this._insp_tidal_volume_counter = 0.0;
@@ -88,6 +89,9 @@ export class Ventilator extends BaseModelClass {
     this._mandatory_breath = false;
     this._breath_interval_counter = 0.0;
     this._measured_rate = 0.0;
+    this._rate_avg = 0.0;
+    this._manual_breath = false;
+    this._humidifier_applied = false;
     this._breathing_model = null;
     this._peak_flow = 0.0;
     this._prev_et_tube_flow = 0.0;
@@ -118,18 +122,24 @@ export class Ventilator extends BaseModelClass {
     ];
 
     // calculate the gas composition of the ventilator circuits
-    calc_gas_composition(this._vent_gasin, this.fio2, this.temp, this.humidity);
-    calc_gas_composition(this._vent_gascircuit, this.fio2, this.temp, this.humidity);
+    this._apply_humidifier();
     calc_gas_composition(this._vent_gasout, 0.205, 20.0, 0.5);
 
     // calculate the et-tube diameter and resistance
     this.set_ettube_diameter(this.ettube_diameter);
-    this._et_tube_resistance = this.calc_ettube_resistance(this.flow);
+    this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
   }
 
   calc_model() {
-    // translate the pressures to mmHg
-    this._pip = this.pip_cmh2o / 1.35951;
+    // Gas.init_model runs after this model and resets every gas compartment to the ambient
+    // temperature, so the humidifier settings are (re)applied on the first step
+    if (!this._humidifier_applied) this._apply_humidifier();
+
+    // translate the pressures to mmHg. In PS the inspiratory target is set relative to PEEP.
+    this._pip =
+      this.vent_mode === "PS"
+        ? (this.peep_cmh2o + this.ps_cmh2o) / 1.35951
+        : this.pip_cmh2o / 1.35951;
     this._pip_max = this.pip_cmh2o_max / 1.35951;
     this._peep = this.peep_cmh2o / 1.35951;
 
@@ -167,16 +177,18 @@ export class Ventilator extends BaseModelClass {
     // CPAP reports a spontaneous minute volume from cpap_control (patient's own rate), so don't
     // overwrite it here with the mechanical vent_rate
     if (this.vent_mode !== "CPAP") {
-      // PS is patient/backup-triggered, so its actual rate can differ from the set vent_rate;
-      // report the measured rate there and the set rate for the mandatory time-cycled modes
-      const rate = this.vent_mode === "PS" ? this._measured_rate : this.vent_rate;
+      // whenever the patient can trigger (PS, or a synchronized time-cycled mode) the delivered
+      // rate can differ from the set vent_rate, so report the (breath-averaged) measured rate
+      // there and the set rate for the purely mandatory modes
+      const triggerable = this.vent_mode === "PS" || this.synchronized;
+      const rate = triggerable ? this._rate_avg : this.vent_rate;
       this.minute_volume = this.exp_tidal_volume * rate;
     }
     // compliance and resistance are measured per breath at end-expiration in
     // calc_measured_mechanics(); they are NOT recomputed here (and must not be clobbered to null
     // each step, or the per-breath measurement would never survive)
     this._breath_interval_counter += this._t;
-    this._et_tube_resistance = this.calc_ettube_resistance(this.flow);
+    this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
   }
 
   triggering() {
@@ -225,7 +237,10 @@ export class Ventilator extends BaseModelClass {
       if (this.triggered_breath && this._vent_ettube.flow > 0.0) {
         start = true;
         this._mandatory_breath = false;
-      } else if (this._breath_interval_counter > 60.0 / this.vent_rate) {
+      } else if (
+        this._breath_interval_counter > 60.0 / this.vent_rate ||
+        this._manual_breath_due()
+      ) {
         start = true;
         this._mandatory_breath = true;
         this.triggered_breath = true;
@@ -248,12 +263,13 @@ export class Ventilator extends BaseModelClass {
       const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
       if (p > this._pip_meas) this._pip_meas = p;
 
+      // a patient breath cycles off on flow, but never runs past insp_time (Ti max — the safety
+      // limit real PS modes carry for when flow never decays, e.g. with a leak or active effort)
       const flow_cycled =
         !this._mandatory_breath &&
         this._peak_flow > 0.0 &&
         this._vent_ettube.flow < 0.3 * this._peak_flow;
-      const time_cycled =
-        this._mandatory_breath && this._insp_time_counter > this.insp_time;
+      const time_cycled = this._insp_time_counter > this.insp_time;
 
       if (flow_cycled || time_cycled) {
         this._end_inspiration();
@@ -263,6 +279,7 @@ export class Ventilator extends BaseModelClass {
     }
 
     if (this._expiration) {
+      this._exp_time_counter += this._t;
       this.ncc_exp += 1;
       this._trigger_blocked = false;
     }
@@ -308,8 +325,9 @@ export class Ventilator extends BaseModelClass {
       }
     }
 
-    // end of EXPIRATION -> start a new mechanical breath
-    if (this._exp_time_counter > this.exp_time) {
+    // end of EXPIRATION -> start a new mechanical breath (time-cycled, patient trigger, or a
+    // manual breath)
+    if (this._exp_time_counter > this.exp_time || this._manual_breath_due()) {
       this._exp_time_counter = 0.0;
       this._start_inspiration();
 
@@ -362,8 +380,39 @@ export class Ventilator extends BaseModelClass {
 
     if (this._breath_interval_counter > 0.0) {
       this._measured_rate = 60.0 / this._breath_interval_counter;
+      // breath-averaged rate for the minute volume: average the breath INTERVALS (not the
+      // instantaneous rates, which would over-weight short patient-triggered breaths)
+      const interval_avg =
+        this._rate_avg > 0.0
+          ? 60.0 / this._rate_avg + 0.25 * (this._breath_interval_counter - 60.0 / this._rate_avg)
+          : this._breath_interval_counter;
+      this._rate_avg = 60.0 / interval_avg;
     }
     this._breath_interval_counter = 0.0;
+    this._manual_breath = false;
+  }
+
+  _apply_humidifier() {
+    // the heated humidifier: the fresh gas and the circuit carry their own temperature/humidity
+    // targets (GasCapacitance relaxes toward them every step), so set those as well as the
+    // composition — otherwise the circuit drifts back to the ambient target (as in set_temp)
+    for (const gc of [this._vent_gasin, this._vent_gascircuit]) {
+      gc.temp = this.temp;
+      gc.target_temp = this.temp;
+      gc.humidity = this.humidity;
+      calc_gas_composition(gc, this.fio2, this.temp, this.humidity);
+    }
+    this._humidifier_applied = true;
+  }
+
+  _manual_breath_due() {
+    // a manual breath (trigger_breath) waits out the minimal expiratory time so breaths are never
+    // stacked back to back
+    return (
+      this._manual_breath &&
+      this._expiration &&
+      this._exp_time_counter > this._min_exp_time
+    );
   }
 
   _end_inspiration() {
@@ -372,6 +421,7 @@ export class Ventilator extends BaseModelClass {
     this.insp_tidal_volume = this._insp_tidal_volume_counter;
     this._insp_tidal_volume_counter = 0.0;
     this._insp_time_counter = 0.0;
+    this._exp_time_counter = 0.0;
     this._inspiration = false;
     this._expiration = true;
     this._pause = false;
@@ -528,10 +578,16 @@ export class Ventilator extends BaseModelClass {
     if (this._breathing_model?.ncc_insp === 1) {
       this.exp_tidal_volume = -this._exp_tidal_volume_counter;
       this.insp_tidal_volume = this._insp_tidal_volume_counter;
+      const weight = this._model_engine.weight;
+      this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
+      this.p_peak = this._pip_meas;
+      this._pip_meas = 0.0;
       this._exp_tidal_volume_counter = 0.0;
       this._insp_tidal_volume_counter = 0.0;
       this.vol = 0.0;
     }
+    const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+    if (p > this._pip_meas) this._pip_meas = p;
     if (this._vent_ettube.flow > 0) {
       this._insp_tidal_volume_counter += this._vent_ettube.flow * this._t;
     } else {
@@ -617,6 +673,8 @@ export class Ventilator extends BaseModelClass {
     this._insp_flow_at_pause = 0.0;
     this._breath_interval_counter = 0.0;
     this._measured_rate = 0.0;
+    this._rate_avg = 0.0;
+    this._manual_breath = false;
     this._vc_vol_target = this.tidal_volume;
     this.vol = 0.0;
   }
@@ -624,6 +682,7 @@ export class Ventilator extends BaseModelClass {
   switch_ventilator(state) {
     this.is_enabled = state;
     this._reset_state();
+    if (state) this._apply_humidifier();
     if (!state) {
       this.reset_dependent_properties();
     }
@@ -641,10 +700,21 @@ export class Ventilator extends BaseModelClass {
   }
 
   calc_ettube_resistance(flow) {
+    // Rohrer form R = K1 + K2*|flow| (flow in L/s; the pressure drop K1*V + K2*V^2 is symmetric in
+    // inspiration and expiration), scaled linearly with tube length
     let res =
-      (this._a * flow + this._b) * (this.ettube_length / this._ettube_length_ref);
-    if (res < 15.0) {
-      res = 15;
+      (this._ett_k1 + this._ett_k2 * Math.abs(flow)) *
+      (this.ettube_length / this._ettube_length_ref);
+
+    // numerical floor only: the flow across the tube is integrated explicitly, so it must not
+    // equilibrate the circuit and the airway faster than one step (dt * (E_circuit + E_airway) / R
+    // <= 1), or the airway pressure would oscillate. Only large (adult) tubes at low flow reach it.
+    const e_sum =
+      (this._vent_gascircuit?.el_eff ?? 0.0) +
+      (this._vent_ettube?._comp_to?.el_eff ?? 0.0);
+    const r_min = Math.max(this._t * e_sum, 0.1);
+    if (res < r_min) {
+      res = r_min;
     }
 
     this._vent_ettube.r_for = res;
@@ -662,8 +732,13 @@ export class Ventilator extends BaseModelClass {
   set_ettube_diameter(new_diameter) {
     if (new_diameter > 1.5) {
       this.ettube_diameter = new_diameter;
-      this._a = -2.375 * new_diameter + 11.9375;
-      this._b = -14.375 * new_diameter + 65.9374;
+      // Rohrer coefficients at the reference length (110 mm), anchored on an in-vitro 2.5 mm tube
+      // (81 and 139 cmH2O/(L/s) at 5 and 10 L/min -> K1 23 cmH2O*s/L, K2 698 cmH2O*s^2/L^2) and
+      // scaled to other diameters with the physical exponents: d^-4 for the laminar (Poiseuille)
+      // term and d^-4.75 for the turbulent (Blasius) term. Valid ~2.5 (neonate) to 9 mm (adult).
+      const d_ratio = 2.5 / new_diameter;
+      this._ett_k1 = 16.92 * Math.pow(d_ratio, 4.0); // mmHg*s/L
+      this._ett_k2 = 513.7 * Math.pow(d_ratio, 4.75); // mmHg*s^2/L^2
     }
   }
 
@@ -767,6 +842,9 @@ export class Ventilator extends BaseModelClass {
   }
 
   set_psv(pip = 14.0, peep = 4.0, rate = 40.0, t_in = 0.4, insp_flow = 10.0) {
+    // `pip` is the absolute peak pressure (kept for backward compatibility); the support level is
+    // stored relative to PEEP so a later PEEP change keeps the same pressure support
+    this.ps_cmh2o = Math.max(0.0, pip - peep);
     this.pip_cmh2o = pip;
     this.pip_cmh2o_max = pip;
     this.peep_cmh2o = peep;
@@ -791,7 +869,9 @@ export class Ventilator extends BaseModelClass {
   }
 
   trigger_breath() {
-    // force the current breath to expire so a new mechanical breath starts next step
-    this._exp_time_counter = this.exp_time + 0.1;
+    // manual breath: ignored during inspiration (as on a real ventilator — it used to restart the
+    // running breath), otherwise delivered once the minimal expiratory time has passed. Works in
+    // every mode except CPAP.
+    if (!this._inspiration) this._manual_breath = true;
   }
 }

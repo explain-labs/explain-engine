@@ -21,7 +21,7 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "preterm_28wk";
+const scenario = argv.find((a, i) => !a.startsWith("-") && !(argv[i - 1] ?? "").startsWith("--")) || "preterm_28wk";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const SECONDS = opt("--seconds", 60);   // warm-up; enough for the VC/PRVC servos to settle
 
