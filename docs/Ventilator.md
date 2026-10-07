@@ -193,9 +193,19 @@ captured into `_pip_meas` for the mechanics read-outs.
   The result is a square pressure waveform with decelerating flow, as on a real pressure-controlled
   ventilator. Integrate inspiratory tidal volume from positive ET-tube flow, and record
   `_insp_flow_at_pause` for the resistance measurement.
-- **Expiration** — close `VENT_INSP_VALVE`, open `VENT_EXP_VALVE` (`r_for = 10`), and pin the
-  expiratory reservoir volume to hold PEEP (`vol = _peep/el_base + u_vol`); integrate expiratory tidal
-  volume from negative ET-tube flow.
+- **Expiration** — open `VENT_EXP_VALVE` (`r_for = 10`) and pin the expiratory reservoir volume to
+  hold PEEP (`vol = _peep/el_base + u_vol`). The inspiratory valve runs the pressure servo with PEEP
+  as its target (a demand valve). While the patient exhales the circuit sits above PEEP and the
+  servo stays shut; once the patient inhales it supplies the flow. Integrate expiratory tidal volume
+  from negative ET-tube flow.
+
+  > Before 2026-10, the inspiratory valve was simply shut in expiration. The circuit was then sealed
+  > between ventilator breaths, apart from the one-way exit to the PEEP reservoir. A spontaneously
+  > breathing patient could only draw the ~0.15 L/min that the tubing compliance held, so many
+  > efforts never reached the trigger volume (PS: 24 of 40 triggered) or reached it late (~0.37 s
+  > into a ~0.46 s effort). During CPR, compressions also pumped the lungs empty through that exit,
+  > so rescue breaths reached only about half the set PIP. With the demand valve, PS triggers 34
+  > of 38 efforts at ~0.15–0.2 s, and synchronized PC goes from 10 to 28 triggered breaths/min.
 
 ### `_pressure_servo(target)` (demand valve)
 
@@ -226,7 +236,8 @@ Volume control delivers a roughly **constant inspiratory flow** by re-solving th
 resistance every step — `r_for = (VENT_GASIN.pres − VENT_GASCIRCUIT.pres) / (insp_flow/60)` pins the
 flow near the target while the lung fills — until the delivered volume reaches `_vc_vol_target`, then
 holds (the inspiratory pause, in `time_cycling`) and cycles to expiration. `pip_cmh2o_max` acts as a
-pressure pop-off (shut the valve if the circuit exceeds it). Expiration mirrors `pressure_control`.
+pressure pop-off (shut the valve if the circuit exceeds it). Expiration mirrors `pressure_control`
+(including the PEEP demand valve).
 VC **bypasses** the PRVC PIP servo. Because the compliant circuit stores compression volume that
 dumps into the lung, the delivered tidal volume is trimmed breath-to-breath by
 `volume_control_servo()` (proportional, clamped to `[0.1·Vt, Vt]`) so `exp_tidal_volume` converges on
@@ -270,6 +281,13 @@ the patient's inspiration ends or a ventilator inspiration starts, so a missed e
 over into the next. Once the integrated volume exceeds `trigger_volume` it forces the breath
 (`_exp_time_counter = exp_time + 0.1`) and sets `triggered_breath = true`: at most one trigger per
 effort.
+
+Some efforts are still missed or triggered late, roughly 1 in 10 in PS on `term_neonate`. These all
+start early in the ventilator's expiration, while the patient is still exhaling the previous
+supported breath: the effort first has to stop the expiratory flow before any inspiratory flow
+counts. This is the ineffective/delayed triggering seen clinically at high respiratory rates, and it
+is kept on purpose. `scripts/probe_ventilator_trigger.mjs` counts efforts, blocked efforts,
+triggered and backup breaths per minute.
 
 ## Coupling to `Breathing` (active airway inlet)
 
