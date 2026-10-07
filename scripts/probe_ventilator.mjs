@@ -43,7 +43,7 @@ function run({ fio2 = 0.4, vt = 5, peep = 5, rate = 40, pip_max = 30 } = {}) {
   }
   for (const k in acc) acc[k] /= N;
   acc.vt_ml = Math.abs(V.exp_tidal_volume) * 1000;   // achieved per-breath tidal volume (mL)
-  acc.pip = V.pip_cmh2o;                              // PIP the PRVC servo settled on (cmH2O)
+  acc.pip = V.pip_delivered;                          // PIP the PRVC servo settled on (cmH2O)
   acc.compliance = V.compliance;                     // mL/cmH2O
   return acc;
 }

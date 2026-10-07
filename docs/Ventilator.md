@@ -74,11 +74,12 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `insp_time` | s | Inspiratory time (default 0.4) |
 | `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
 | `insp_flow` | L/min | Maximal flow of the demand valve in `PC`/`PRVC`/`PS`/`CPAP`; the delivered (constant) flow in `VC` (default 12) |
+| `volume_guarantee` | bool | Volume guarantee on top of `PC` (incl. synchronized A/C) or `PS`: the working pressure is servoed breath-to-breath to `tidal_volume`, limited by `pip_cmh2o_max` (default false) |
 | `rise_time` | s | Pressure rise time in `PC`/`PRVC`/`PS`: the target ramps PEEP → PIP over this time (default 0.1; 0 = as fast as `insp_flow` allows) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
 | `pip_cmh2o` | cmH₂O | Peak inspiratory pressure target in `PC` (default 14); not used in `PS` |
 | `ps_cmh2o` | cmH₂O | Pressure support level **above PEEP** in `PS` (default 10); the PS target is `peep_cmh2o + ps_cmh2o` |
-| `pip_cmh2o_max` | cmH₂O | PIP ceiling for PRVC auto-regulation (default 14) |
+| `pip_cmh2o_max` | cmH₂O | Pressure limit of the volume-targeted modes (PRVC, volume guarantee); the VC pop-off (default 14) |
 | `peep_cmh2o` | cmH₂O | Positive end-expiratory pressure / CPAP level (default 3) |
 | `trigger_volume_perc` | % | Trigger volume as a percent of `tidal_volume` (default 6) |
 | `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` always triggers; ignored in `CPAP` |
@@ -107,6 +108,8 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `etco2` | mmHg | End-tidal CO₂, sampled from `DS.pco2` at each new inspiration |
 | `co2` | mmHg | Current dead-space CO₂ (`DS.pco2`) |
 | `triggered_breath` | bool | True once a patient-triggered/synchronized breath has been armed |
+| `pip_delivered` | cmH₂O | The inspiratory pressure target in use: `pip_cmh2o` (PC), `peep + ps_cmh2o` (PS), or the working pressure in PRVC / volume guarantee |
+| `pressure_limited` | bool | Volume-targeted modes: working pressure at `pip_cmh2o_max` while Vt is still below target (the "Vt low / Pmax reached" alarm condition) |
 
 ### Internal (`_`-prefixed)
 
@@ -167,8 +170,10 @@ inspiration). The inspiratory phase is split into a **flow phase** and an option
   pressure and ends inspiration.
 - End of expiration: `_start_inspiration()` opens a new breath — resets `vol`, latches
   `exp_tidal_volume`, samples `etco2`/`tv_kg`, updates the measured rate, and calls
-  `calc_measured_mechanics()` for the breath just completed. In `PRVC` it then calls
-  `pressure_regulated_volume_control()`; in `VC`, `volume_control_servo()`.
+  `calc_measured_mechanics()` for the breath just completed. In the volume-targeted
+  modes (`PRVC`, volume guarantee) `_start_inspiration` calls `pressure_regulated_volume_control()`;
+  in `VC`, `time_cycling` calls `volume_control_servo()`. With volume guarantee the flow phase also
+  ends once 130 % of `tidal_volume` has been delivered.
 
 During the flow phase the routine also tracks the peak circuit pressure into `_pip_meas` (used as
 `p_peak`). The active phase advances its counter each step and toggles `_trigger_blocked`.
@@ -266,10 +271,36 @@ spontaneous breath) are latched too; `minute_volume = exp_tidal_volume · Breath
 > **CPAP/PS-via-ET-tube** coupling owned by the ventilator; the other half lives in `Breathing` (see
 > below).
 
-### `pressure_regulated_volume_control` (PRVC auto-PIP)
+### `pressure_regulated_volume_control` (PRVC and volume guarantee)
 
-At each expiration, nudge `pip_cmh2o` by ±1 cmH₂O toward `tidal_volume` (within `_tv_tolerance`),
-clamped between `peep_cmh2o + 2` and `pip_cmh2o_max`.
+PRVC and volume guarantee (`PC`/`PS` with `volume_guarantee`) share one breath-to-breath controller.
+It runs at every breath start, on the breath just completed, after `calc_measured_mechanics`:
+
+```
+err  = tidal_volume − exp_tidal_volume                       (no change if |err| ≤ _tv_tolerance, 0.5 mL)
+step = clamp( _vt_gain · err / compliance_dynamic , ±_vt_max_step )     _vt_gain 0.5, ±3 cmH₂O/breath
+_pip_working = clamp( _pip_working + step , peep_cmh2o + 2 , pip_cmh2o_max )
+```
+
+`_pip_working` is the inspiratory pressure target in these modes (`pip_delivered`). It starts from
+the set pressure (`pip_cmh2o`, or `peep + ps_cmh2o` in PS) whenever the mode changes or
+`set_volume_guarantee` is called. **The user's `pip_cmh2o` is never written.** The old PRVC moved
+`pip_cmh2o` itself by a fixed ±1 cmH₂O, which limit-cycled between two pressures whenever 1 cmH₂O
+moved Vt by more than the tolerance (neonatal PRVC 15 mL alternated between PIP 8 and 9).
+
+**Volume guarantee** also ends a breath early once it has delivered 130 % of the target
+(`_vg_vt_limit`). This is the volutrauma guard of clinical VG for a sudden compliance rise: it caps
+the breath, and the controller then trims the pressure down. `pressure_limited` flags when the limit
+keeps Vt below target. With a spontaneously breathing patient in PS + VG, the controller withdraws
+support (down to PEEP + 2) as the patient's own effort takes over the volume.
+
+Verified (`term_neonate` unless noted):
+- PC + VG 15 mL converges to 15.3 mL at 8.6 cmH₂O.
+- preterm 28 wk VG 5 mL converges to 5.3 mL at 7.3 cmH₂O.
+- adult VG 450 mL converges to 451 mL at 13.6 cmH₂O.
+- Lung made twice as stiff mid-run: Vt 9.7 recovers to 14.6 mL within about 5 breaths.
+- Lung made twice as soft: Vt is capped at about 19.5 mL (130 %) while the pressure is trimmed
+  down.
 
 ### `triggering` (`PS`, and synchronized time-cycled modes)
 
@@ -339,6 +370,7 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_prvc(pip_max, peep, rate, tv, t_in, insp_flow)` | Configure PRVC (`tv` in mL → L) |
 | `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
 | `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`pip` absolute → `ps_cmh2o = pip − peep`; `rate` = backup rate; `t_in` = backup Ti and Ti max) |
+| `set_volume_guarantee(state, tv, pip_max)` | Volume guarantee on/off for PC/PS; optional target `tv` (mL) and pressure limit `pip_max` (cmH₂O); restarts the working pressure |
 | `set_cpap(cpap, insp_flow)` | Configure CPAP (`cpap` → `peep_cmh2o`) |
 | `set_pause(seconds)` | Set the end-inspiratory hold for any time-cycled mode (clamped `< insp_time`) |
 | `set_fio2(new_fio2)` | Re-derive fresh-gas composition (a fraction ≤ 1, or a percentage > 1) |
