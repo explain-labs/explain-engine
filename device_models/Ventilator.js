@@ -30,6 +30,7 @@ export class Ventilator extends BaseModelClass {
     this.peep_cmh2o = 3;
     this.ps_cmh2o = 10; // pressure support level ABOVE peep (PS mode only)
     this.rise_time = 0.1; // s, PEEP -> PIP ramp of the pressure target in PC/PRVC/PS (0 = fastest)
+    this.leak_size = 0.0; // mm, equivalent diameter of the gap around an uncuffed tube (0 = no leak)
     this.volume_guarantee = false; // PC/PS: servo the working pressure to tidal_volume (limit pip_cmh2o_max)
     this.trigger_volume_perc = 6;
     this.synchronized = false;
@@ -58,6 +59,7 @@ export class Ventilator extends BaseModelClass {
     this.triggered_breath = false;
     this.pip_delivered = 0.0; // cmH2O, the inspiratory pressure target actually in use
     this.pressure_limited = false; // volume-targeted: working pressure at pip_cmh2o_max, Vt below target
+    this.leak_perc = 0.0; // %, per-breath leak (Vti - Vte) / Vti, as a ventilator reports it
 
     // Local properties
     this._vent_gasin = null;
@@ -66,6 +68,8 @@ export class Ventilator extends BaseModelClass {
     this._vent_insp_valve = null;
     this._vent_exp_valve = null;
     this._vent_ettube = null;
+    this._vent_leak = null;
+    this._leak_length = 20; // mm, length of the laryngeal leak channel
     this._ventilator_parts = [];
     this._ettube_length_ref = 110;
     this._min_exp_time = 0.1;
@@ -109,6 +113,27 @@ export class Ventilator extends BaseModelClass {
   }
 
   init_model(args = {}) {
+    // the tube leak is a ventilator-owned resistor from the airway (DS) to the mouth (MOUTH, the
+    // atmospheric reservoir): the route gas takes around an uncuffed tube. Scenarios (and saved
+    // states) that predate it don't declare it, so add its definition before the components are built
+    const comps = args.find((a) => a.key === "components");
+    if (comps && comps.value && !comps.value.VENT_LEAK) {
+      comps.value.VENT_LEAK = {
+        name: "VENT_LEAK",
+        description: "gas resistor model of the leak around an uncuffed endotracheal tube",
+        is_enabled: false,
+        model_type: "Resistor",
+        components: {},
+        r_for: 1000000,
+        r_back: 1000000,
+        r_k: 0,
+        comp_from: "DS",
+        comp_to: "MOUTH",
+        no_flow: true,
+        no_back_flow: false,
+      };
+    }
+
     // initialize the super class
     super.init_model(args);
 
@@ -120,6 +145,7 @@ export class Ventilator extends BaseModelClass {
     this._vent_insp_valve = this._model_engine.models["VENT_INSP_VALVE"];
     this._vent_ettube = this._model_engine.models["VENT_ETTUBE"];
     this._vent_exp_valve = this._model_engine.models["VENT_EXP_VALVE"];
+    this._vent_leak = this._model_engine.models["VENT_LEAK"] ?? null;
 
     // store the models inside a list for easy switching.
     this._ventilator_parts = [
@@ -208,6 +234,40 @@ export class Ventilator extends BaseModelClass {
     // each step, or the per-breath measurement would never survive)
     this._breath_interval_counter += this._t;
     this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
+    this.calc_leak();
+  }
+
+  calc_leak() {
+    // the leak channel uses the ET-tube's Rohrer form for a short (laryngeal) channel of diameter
+    // leak_size, so the leak grows with airway pressure (more in inspiration, a little at PEEP)
+    const leak = this._vent_leak;
+    if (!leak) return;
+    if (!(this.leak_size > 0.0)) {
+      leak.no_flow = true;
+      return;
+    }
+    const d_ratio = 2.5 / this.leak_size;
+    const k1 = 16.92 * Math.pow(d_ratio, 4.0);
+    const k2 = 513.7 * Math.pow(d_ratio, 4.75);
+    let res = (k1 + k2 * Math.abs(leak.flow)) * (this._leak_length / this._ettube_length_ref);
+    // same explicit-integration floor as the ET tube (DS and MOUTH are the coupled compartments)
+    const r_min = Math.max(
+      this._t * ((leak._comp_from?.el_eff ?? 0.0) + (leak._comp_to?.el_eff ?? 0.0)),
+      0.1
+    );
+    if (res < r_min) res = r_min;
+    leak.is_enabled = true;
+    leak.no_flow = false;
+    leak.r_for = res;
+    leak.r_back = res;
+  }
+
+  _calc_leak_perc() {
+    // per-breath leak as a ventilator reports it, from the flow sensor at the tube
+    this.leak_perc =
+      this.insp_tidal_volume > 0.0
+        ? Math.max(0.0, (100.0 * (this.insp_tidal_volume - this.exp_tidal_volume)) / this.insp_tidal_volume)
+        : 0.0;
   }
 
   triggering() {
@@ -390,6 +450,7 @@ export class Ventilator extends BaseModelClass {
     this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
 
     this.calc_measured_mechanics();
+    this._calc_leak_perc();
     // volume-targeted modes: trim the working pressure on the breath just completed
     if (this._volume_targeted()) this.pressure_regulated_volume_control();
 
@@ -599,6 +660,7 @@ export class Ventilator extends BaseModelClass {
       this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
       this.p_peak = this._pip_meas;
       this._pip_meas = 0.0;
+      this._calc_leak_perc();
       this._exp_tidal_volume_counter = 0.0;
       this._insp_tidal_volume_counter = 0.0;
       this.vol = 0.0;
@@ -716,6 +778,7 @@ export class Ventilator extends BaseModelClass {
     this.triggered_breath = false;
     this.pip_delivered = 0.0;
     this.pressure_limited = false;
+    this.leak_perc = 0.0;
   }
 
   _reset_state() {
@@ -765,6 +828,12 @@ export class Ventilator extends BaseModelClass {
 
     const mouth_ds = this._model_engine.models["MOUTH_DS"];
     if (mouth_ds) mouth_ds.no_flow = state;
+
+    // the leak only exists while intubated and with a gap set (calc_leak keeps it in step)
+    if (this._vent_leak) {
+      this._vent_leak.is_enabled = state && this.leak_size > 0.0;
+      this._vent_leak.no_flow = !(state && this.leak_size > 0.0);
+    }
   }
 
   calc_ettube_resistance(flow) {
