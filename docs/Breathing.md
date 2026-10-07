@@ -113,6 +113,7 @@ each contributing 0 when it is disabled, blocked (`no_flow`) or absent:
 ```
 _aw_flow = (MOUTH_DS.flow      if MOUTH_DS exists and !no_flow)
          + (VENT_ETTUBE.flow   if VENT_ETTUBE exists, is_enabled and !no_flow)
+         − (VENT_LEAK.flow     if VENT_LEAK exists, is_enabled and !no_flow)   // tube leak, DS → MOUTH
 ```
 
 This makes the feedback loop route-agnostic: with the ventilator off, `VENT_ETTUBE` is disabled so
