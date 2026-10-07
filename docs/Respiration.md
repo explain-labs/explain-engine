@@ -59,6 +59,18 @@ models, so it composes additively with other writers of that persistent layer.
 | `res_lower_airways_factor` | `1.0` | `set_lower_airway_resistance` | `r_factor_ps` on the lower airways |
 | `gex_factor` | `1.0` | `set_gasexchange` | `dif_o2_factor_ps` **and** `dif_co2_factor_ps` on the exchangers |
 
+### Series dead space (pushed to the `dead_space` compartments every update)
+
+| Property | Default | Drives |
+|---|---|---|
+| `dead_space_segments` | `32` | `series_segments` on each dead-space compartment (1 = classic well-mixed) |
+| `dead_space_dispersion` | `0.015` | `dispersion_coeff` (axial dispersion between the sub-tanks) |
+
+Each update the loop also sets the dead space's `distal_models` to `lungs`, so gas leaves towards the
+alveoli from the distal end of the chain. See
+[GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space) for the model and its
+calibration.
+
 ### Local (internal)
 
 `_update_interval` (0.015 s) / `_update_counter` throttle the loop; `_prev_*` shadow each factor so a
@@ -66,8 +78,9 @@ change can be detected and applied as a delta.
 
 ## Calculation cycle (`calc_model`)
 
-One throttled loop (every 0.015 s) that applies each factor **only when it changed** (guarded by a
-`_prev_*` comparison). Each changed input calls its `set_*` method, then stores the new value into
+One throttled loop (every 0.015 s). It first pushes the series-dead-space configuration onto the
+`dead_space` compartments (cheap, and keeps it live-editable). It then applies each factor **only when
+it changed** (guarded by a `_prev_*` comparison). Each changed input calls its `set_*` method, then stores the new value into
 `_prev_*`.
 
 ## The `set_*` methods — delta application

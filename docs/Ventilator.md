@@ -323,6 +323,15 @@ counts. This is the ineffective/delayed triggering seen clinically at high respi
 is kept on purpose. `scripts/probe_ventilator_trigger.mjs` counts efforts, blocked efforts,
 triggered and backup breaths per minute.
 
+## ET-tube dead space (`_set_tube_dead_space`)
+
+While the ventilator is on, it sets the dead-space compartment's `tube_volume` to the lumen volume
+`π·(d/2)²·L` and its `tube_port_model` to `VENT_GASCIRCUIT`. With series dead space on (the default,
+see [GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)), gas to and from
+the circuit then passes through that rigid lumen, so a longer or wider tube adds dead space. On
+preterm_28wk, a 2.5 mm tube at 200 mm instead of 110 mm (+0.44 mL) raises PaCO₂ 81 → 91. The leak
+and the natural airway bypass the lumen. Switching the ventilator off sets `tube_volume` back to 0.
+
 ## Tube leak (`calc_leak`)
 
 The leak models gas escaping around an uncuffed tube, from the trachea (`DS`) up through the larynx

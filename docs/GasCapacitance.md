@@ -270,6 +270,50 @@ Mixing is **skipped for `fixed_composition`** compartments (an infinite reservoi
 composition and temperature constant) and **guarded against an empty compartment** (`vol <= 0`
 returns early — no division by zero).
 
+## Series dead space
+
+A single well-mixed compartment is a poor dead space. Mixing makes part of it "ventilated", so its
+*effective* dead space saturates near its own volume and barely grows when it gets bigger. It also
+turns oscillatory flow (HFOV) into perfect mixing every cycle. With `series_segments > 1` the
+compartment keeps **one pressure/volume node**, so the network is unchanged, but carries its gas
+**composition** through a chain of sub-tanks, ordered proximal → distal:
+
+```
+[ tube lumen sub-tanks (rigid, only while intubated) ] [ DS sub-tanks (share vol equally) ]
+  ^ tube port (VENT_GASCIRCUIT)                        ^ airway port (MOUTH, leak)   distal port ^ (ALL, ALR)
+```
+
+- **Ports.** A neighbour in `distal_models` connects at the distal end. The `tube_port_model` (the
+  ventilator circuit) connects through the rigid tube-lumen sub-tanks (`tube_volume`, πr²L, set by
+  the Ventilator while intubated). Everything else (mouth, tube leak) connects at the proximal DS
+  end.
+- **Advection.** An inflow of dvol enters its end; every DS sub-tank grows by dvol/n, so the parcel
+  pushes gas along the chain. Outflow leaves from the receiver's end, and the chain shifts towards it.
+  The donor side is handled by `_seg_take(receiver, dvol)`, called at the top of the receiver's
+  `volume_in`, so a resistor needs no changes.
+- **Dispersion.** Neighbouring sub-tanks exchange `e = dispersion_coeff · q² · τ · dt / V_seg` per
+  step. That's the `u²·τ` Taylor-type dispersion written per segment (A·dx = V_seg, so no airway
+  geometry is needed). τ is the time the flow has run one way, capped at `dispersion_tau_max`
+  (0.1 s), so fast oscillation disperses in proportion to f·Vt². The exchange is mass-conserving
+  between unequal sub-tanks.
+- **Bulk consistency.** The bulk concentrations (`co2`, `cco2`, …) are kept equal to the mean of the
+  DS sub-tanks. Heat and water vapour act on the bulk, and the same affine change is replayed on
+  every sub-tank. The partial pressures and fractions report the **airway-opening** sub-tank (what a
+  capnograph samples); the bulk `ctotal` still drives the gas law.
+
+**Calibration** (`scripts/probe_dead_space.mjs`, preterm_28wk, PRVC 5 mL/kg; HFOV with 2.5 mm ETT):
+
+| check | well-mixed (1) | series (32, dispersion 0.015) |
+|---|---|---|
+| PaCO₂, DS +0 / +50 / +100 % | 67 / 70 / 72 | 81 / 98 / 122, as (Vt − VD)·rate predicts |
+| HFOV PaCO₂ 6 / 10 / 15 Hz | 10 / 11 / 11 (no f effect) | f·Vt² law: PaCO₂·DCO₂ = 1955–2290 (±8 %) over 8–15 Hz × amplitude 15–30 |
+| sub-tank count | — | 8 → 16 → 32 still changes HFOV (numerical dispersion), so the count is fixed at 32 and the dispersion term carries the transport |
+| spontaneous baselines, all 39 scenarios | — | PaCO₂ −0.6 … +1.1 mmHg, PaO₂ ±1 (the breathing controller compensates) |
+| runtime | — | +7–9 % |
+
+Turned on for the airway `DS` by [Respiration](./Respiration.md) (`dead_space_segments`,
+`dead_space_dispersion`). The internal `_seg*` state is `_`-prefixed and stays out of state dumps.
+
 ## Example definition (JSON)
 
 A lung alveolar compartment (left lung) — non-fixed composition, warmed and humidified by the

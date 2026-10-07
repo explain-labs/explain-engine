@@ -235,6 +235,17 @@ export class Ventilator extends BaseModelClass {
     this._breath_interval_counter += this._t;
     this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
     this.calc_leak();
+    this._set_tube_dead_space(true);
+  }
+
+  _set_tube_dead_space(intubated) {
+    // the ET-tube lumen is dead space in series with the airway; the dead-space compartment carries
+    // it as rigid composition sub-tanks ahead of the tube port (only with series dead space on)
+    const ds = this._vent_ettube?._comp_to;
+    if (!ds || !("tube_volume" in ds)) return;
+    const r = this.ettube_diameter / 2000.0; // m
+    ds.tube_port_model = this._vent_gascircuit?.name ?? "";
+    ds.tube_volume = intubated ? Math.PI * r * r * (this.ettube_length / 1000.0) * 1000.0 : 0.0; // L
   }
 
   calc_leak() {
@@ -814,6 +825,7 @@ export class Ventilator extends BaseModelClass {
     this.is_enabled = state;
     this._reset_state();
     if (state) this._apply_humidifier();
+    if (!state) this._set_tube_dead_space(false);
     if (!state) {
       this.reset_dependent_properties();
     }

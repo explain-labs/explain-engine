@@ -40,6 +40,11 @@ export class Respiration extends BaseModelClass {
     this.el_lungs_factor = 1.0;
     this.el_thorax_factor = 1.0;
     
+    // series dead space (see GasCapacitance): composition sub-tanks in the dead space so it acts as
+    // plug-flow (Fowler/Bohr) dead space, plus axial dispersion between them. 1 = classic well-mixed.
+    this.dead_space_segments = 32;
+    this.dead_space_dispersion = 0.015;
+
     this.res_upper_airways_factor = 1.0;
     this.res_lower_airways_factor = 1.0;
 
@@ -65,6 +70,16 @@ export class Respiration extends BaseModelClass {
     this._update_counter += this._t;
     if (this._update_counter > this._update_interval) {
       this._update_counter = 0.0;
+
+      // series dead space configuration (live-editable): the dead-space compartments carry their
+      // composition through sub-tanks, with the lungs as their distal end
+      for (const name of this.dead_space) {
+        const ds = this._model_engine.models[name];
+        if (!ds) continue;
+        ds.series_segments = this.dead_space_segments;
+        ds.distal_models = this.lungs;
+        ds.dispersion_coeff = this.dead_space_dispersion;
+      }
 
       if (this._prev_el_lungs_factor !== this.el_lungs_factor) {
         // update the model
