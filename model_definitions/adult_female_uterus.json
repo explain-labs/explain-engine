@@ -6527,7 +6527,7 @@
     "vent_rate": 14,
     "tidal_volume": 0.5,
     "insp_time": 1,
-    "insp_flow": 12,
+    "insp_flow": 60,
     "exp_flow": 3,
     "pip_cmh2o": 20,
     "pip_cmh2o_max": 35,
