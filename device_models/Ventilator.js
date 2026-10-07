@@ -30,6 +30,7 @@ export class Ventilator extends BaseModelClass {
     this.peep_cmh2o = 3;
     this.ps_cmh2o = 10; // pressure support level ABOVE peep (PS mode only)
     this.rise_time = 0.1; // s, PEEP -> PIP ramp of the pressure target in PC/PRVC/PS (0 = fastest)
+    this.volume_guarantee = false; // PC/PS: servo the working pressure to tidal_volume (limit pip_cmh2o_max)
     this.trigger_volume_perc = 6;
     this.synchronized = false;
     this.components = {}
@@ -55,6 +56,8 @@ export class Ventilator extends BaseModelClass {
     this.etco2 = 0.0;
     this.co2 = 0.0;
     this.triggered_breath = false;
+    this.pip_delivered = 0.0; // cmH2O, the inspiratory pressure target actually in use
+    this.pressure_limited = false; // volume-targeted: working pressure at pip_cmh2o_max, Vt below target
 
     // Local properties
     this._vent_gasin = null;
@@ -94,6 +97,11 @@ export class Ventilator extends BaseModelClass {
     this._manual_breath = false;
     this._humidifier_applied = false;
     this._servo_gain = 0.8; // fraction of the circuit pressure error corrected per step
+    this._pip_working = null; // cmH2O, volume-targeted working pressure (PRVC / volume guarantee)
+    this._pip_working_mode = ""; // mode the working pressure was initialised for
+    this._vt_gain = 0.5; // fraction of the tidal-volume error corrected per breath
+    this._vt_max_step = 3.0; // cmH2O, max working-pressure change per breath
+    this._vg_vt_limit = 1.3; // a VG breath ends once it delivers 130 % of the target volume
     this._breathing_model = null;
     this._peak_flow = 0.0;
     this._prev_et_tube_flow = 0.0;
@@ -137,11 +145,20 @@ export class Ventilator extends BaseModelClass {
     // temperature, so the humidifier settings are (re)applied on the first step
     if (!this._humidifier_applied) this._apply_humidifier();
 
-    // translate the pressures to mmHg. In PS the inspiratory target is set relative to PEEP.
-    this._pip =
-      this.vent_mode === "PS"
-        ? (this.peep_cmh2o + this.ps_cmh2o) / 1.35951
-        : this.pip_cmh2o / 1.35951;
+    // translate the pressures to mmHg. In PS the inspiratory target is set relative to PEEP; in the
+    // volume-targeted modes (PRVC, volume guarantee) it is the breath-to-breath working pressure.
+    let pip_cmh2o =
+      this.vent_mode === "PS" ? this.peep_cmh2o + this.ps_cmh2o : this.pip_cmh2o;
+    if (this._volume_targeted()) {
+      if (this._pip_working === null || this._pip_working_mode !== this.vent_mode) {
+        // start from the set pressure, inside the allowed band
+        this._pip_working = this._clamp_working_pressure(pip_cmh2o);
+        this._pip_working_mode = this.vent_mode;
+      }
+      pip_cmh2o = this._pip_working;
+    }
+    this.pip_delivered = pip_cmh2o;
+    this._pip = pip_cmh2o / 1.35951;
     this._pip_max = this.pip_cmh2o_max / 1.35951;
     this._peep = this.peep_cmh2o / 1.35951;
 
@@ -273,7 +290,7 @@ export class Ventilator extends BaseModelClass {
         this._vent_ettube.flow < 0.3 * this._peak_flow;
       const time_cycled = this._insp_time_counter > this.insp_time;
 
-      if (flow_cycled || time_cycled) {
+      if (flow_cycled || time_cycled || this._vg_volume_limit_reached()) {
         this._end_inspiration();
       }
 
@@ -302,8 +319,9 @@ export class Ventilator extends BaseModelClass {
     // end of the inspiratory FLOW phase (time reached, or the VC volume target is met)
     if (this._inspiration && !this._pause) {
       const vol_reached =
-        this.vent_mode === "VC" &&
-        this._insp_tidal_volume_counter >= this._vc_vol_target;
+        (this.vent_mode === "VC" &&
+          this._insp_tidal_volume_counter >= this._vc_vol_target) ||
+        this._vg_volume_limit_reached();
       if (this._insp_time_counter > flow_time || vol_reached) {
         if (this.insp_pause > 0.0) {
           // end-inspiratory hold of a bounded duration (not the remainder of insp_time, which would
@@ -333,9 +351,6 @@ export class Ventilator extends BaseModelClass {
       this._exp_time_counter = 0.0;
       this._start_inspiration();
 
-      if (this.vent_mode === "PRVC") {
-        this.pressure_regulated_volume_control();
-      }
       if (this.vent_mode === "VC") {
         this.volume_control_servo();
       }
@@ -375,6 +390,8 @@ export class Ventilator extends BaseModelClass {
     this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
 
     this.calc_measured_mechanics();
+    // volume-targeted modes: trim the working pressure on the breath just completed
+    if (this._volume_targeted()) this.pressure_regulated_volume_control();
 
     this._exp_tidal_volume_counter = 0.0;
     this._pip_meas = 0.0;
@@ -623,21 +640,43 @@ export class Ventilator extends BaseModelClass {
   }
 
   pressure_regulated_volume_control() {
-    if (this.exp_tidal_volume < this.tidal_volume - this._tv_tolerance) {
-      this.pip_cmh2o += 1.0;
+    // Breath-to-breath volume targeting (PRVC, and volume guarantee in PC/PS): move the working
+    // pressure by the pressure the measured dynamic compliance says the volume error needs,
+    // a fraction (_vt_gain) of it at a time and at most _vt_max_step per breath, within
+    // [peep + 2, pip_cmh2o_max]. The user's pip_cmh2o is never touched — the working pressure is
+    // reported as pip_delivered. (This replaced a fixed ±1 cmH2O step, which limit-cycled
+    // between two pressures when 1 cmH2O moved Vt by more than the tolerance.)
+    const err = this.tidal_volume - this.exp_tidal_volume; // L
+    // the "Vt low / pressure limit reached" condition a real ventilator alarms on
+    this.pressure_limited =
+      err > this._tv_tolerance && this._pip_working >= this.pip_cmh2o_max - 1e-9;
+    if (Math.abs(err) <= this._tv_tolerance || this.exp_tidal_volume <= 0.0) return;
 
-      if (this.pip_cmh2o > this.pip_cmh2o_max) {
-        this.pip_cmh2o = this.pip_cmh2o_max;
-      }
-    }
+    const c = this.compliance_dynamic; // mL/cmH2O, measured on this breath
+    let step = c > 0.0 ? (this._vt_gain * err * 1000.0) / c : Math.sign(err);
+    step = Math.max(-this._vt_max_step, Math.min(this._vt_max_step, step));
+    this._pip_working = this._clamp_working_pressure(this._pip_working + step);
+  }
 
-    if (this.exp_tidal_volume > this.tidal_volume + this._tv_tolerance) {
-      this.pip_cmh2o -= 1.0;
+  _volume_targeted() {
+    return (
+      this.vent_mode === "PRVC" ||
+      (this.volume_guarantee && (this.vent_mode === "PC" || this.vent_mode === "PS"))
+    );
+  }
 
-      if (this.pip_cmh2o < this.peep_cmh2o + 2.0) {
-        this.pip_cmh2o = this.peep_cmh2o + 2.0;
-      }
-    }
+  _clamp_working_pressure(p) {
+    return Math.max(this.peep_cmh2o + 2.0, Math.min(this.pip_cmh2o_max, p));
+  }
+
+  _vg_volume_limit_reached() {
+    // volume guarantee's volutrauma guard: end the breath once it has delivered 130 % of the
+    // target (e.g. after a sudden compliance rise), instead of waiting for the next breath's trim
+    return (
+      this.volume_guarantee &&
+      (this.vent_mode === "PC" || this.vent_mode === "PS") &&
+      this._insp_tidal_volume_counter > this._vg_vt_limit * this.tidal_volume
+    );
   }
 
   volume_control_servo() {
@@ -675,6 +714,8 @@ export class Ventilator extends BaseModelClass {
     this.etco2 = 0.0;
     this.co2 = 0.0;
     this.triggered_breath = false;
+    this.pip_delivered = 0.0;
+    this.pressure_limited = false;
   }
 
   _reset_state() {
@@ -701,6 +742,7 @@ export class Ventilator extends BaseModelClass {
     this._measured_rate = 0.0;
     this._rate_avg = 0.0;
     this._manual_breath = false;
+    this._pip_working = null;
     this._vc_vol_target = this.tidal_volume;
     this.vol = 0.0;
   }
@@ -878,6 +920,15 @@ export class Ventilator extends BaseModelClass {
     this.insp_time = t_in;
     this.insp_flow = insp_flow;
     this.vent_mode = "PS";
+  }
+
+  set_volume_guarantee(state = true, tv = null, pip_max = null) {
+    // volume guarantee on top of PC (incl. synchronized A/C) or PS: tidal_volume (tv in mL) is the
+    // target, pip_cmh2o_max the pressure limit; the working pressure is reported as pip_delivered
+    this.volume_guarantee = state;
+    if (tv !== null) this.tidal_volume = tv / 1000.0;
+    if (pip_max !== null) this.pip_cmh2o_max = pip_max;
+    this._pip_working = null; // restart from the set pressure
   }
 
   set_cpap(cpap = 5.0, insp_flow = 8.0) {
