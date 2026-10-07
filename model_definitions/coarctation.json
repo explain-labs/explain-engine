@@ -4650,7 +4650,7 @@
       "factor": 1,
       "rounding": 0,
       "props": [
-       "Ventilator.pip_cmh2o"
+       "Ventilator.p_peak"
       ],
       "weight_based": false
      },
