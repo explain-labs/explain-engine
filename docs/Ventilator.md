@@ -73,7 +73,8 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `tidal_volume` | L | Target tidal volume for `PRVC` and `VC` (default 0.015) |
 | `insp_time` | s | Inspiratory time (default 0.4) |
 | `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
-| `insp_flow` | L/min | Inspiratory flow setting; the delivered flow target in `VC` (default 12) |
+| `insp_flow` | L/min | Maximal flow of the demand valve in `PC`/`PRVC`/`PS`/`CPAP`; the delivered (constant) flow in `VC` (default 12) |
+| `rise_time` | s | Pressure rise time in `PC`/`PRVC`/`PS`: the target ramps PEEP → PIP over this time (default 0.1; 0 = as fast as `insp_flow` allows) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
 | `pip_cmh2o` | cmH₂O | Peak inspiratory pressure target in `PC` (default 14); not used in `PS` |
 | `ps_cmh2o` | cmH₂O | Pressure support level **above PEEP** in `PS` (default 10); the PS target is `peep_cmh2o + ps_cmh2o` |
@@ -187,13 +188,37 @@ captured into `_pip_meas` for the mechanics read-outs.
 
 - **Pause** — if `_pause` is set, shut **both** valves so the circuit equilibrates with the lung
   (plateau), and return.
-- **Inspiration** — close `VENT_EXP_VALVE`, open `VENT_INSP_VALVE` with
-  `r_for = (VENT_GASIN.pres + _pip − pres_atm − _peep) / (insp_flow/60)`; shut the inspiratory valve
-  again once `VENT_GASCIRCUIT.pres` exceeds PIP; integrate inspiratory tidal volume from positive
-  ET-tube flow and record `_insp_flow_at_pause` for the resistance measurement.
+- **Inspiration** — close `VENT_EXP_VALVE` and drive `VENT_INSP_VALVE` with the pressure servo
+  (`_pressure_servo`, below). Its target ramps from PEEP to PIP over `rise_time` and is then held.
+  The result is a square pressure waveform with decelerating flow, as on a real pressure-controlled
+  ventilator. Integrate inspiratory tidal volume from positive ET-tube flow, and record
+  `_insp_flow_at_pause` for the resistance measurement.
 - **Expiration** — close `VENT_INSP_VALVE`, open `VENT_EXP_VALVE` (`r_for = 10`), and pin the
   expiratory reservoir volume to hold PEEP (`vol = _peep/el_base + u_vol`); integrate expiratory tidal
   volume from negative ET-tube flow.
+
+### `_pressure_servo(target)` (demand valve)
+
+Meters fresh gas into the circuit so `VENT_GASCIRCUIT` follows `target` (mmHg above atmospheric):
+
+```
+q = clamp( q_out + gain · (target − P_circuit) / (E_circuit · dt) ,  0 , insp_flow/60 )
+r_for(VENT_INSP_VALVE) = (VENT_GASIN.pres − P_circuit) / q        (no_flow when q ≈ 0)
+```
+
+`q_out` is what left the circuit last step (ET tube, plus the expiratory valve when it is open), so
+the valve feeds the patient's demand forward and only corrects the residual pressure error.
+`gain` (`_servo_gain`) is 0.8. A lower gain lags the target, which made the adult circuit
+oscillate; at 1.0 PS starts to dither. The source sits about 400 mmHg above the circuit, so the
+valve is close to an ideal flow source, and the one-step-old circuit pressure the Ventilator sees
+(it steps before its components) is good enough. The valve never sucks gas back (`q ≥ 0`), and it
+is capped at `insp_flow`. A flow-limited breath (small `insp_flow`, large lung) therefore ramps
+instead of squaring, and may not reach PIP within `insp_time`.
+
+This replaced an open–shut valve: fixed `r_for` from `insp_flow`, shut whenever the circuit
+exceeded PIP. That valve chattered around PIP, with 80–700 pressure reversals per breath, and
+CPAP dipped during spontaneous inspiration. Now there are about 2 reversals per breath in the
+pressure modes, and CPAP holds its level.
 
 ### `volume_control` (VC)
 
@@ -218,8 +243,9 @@ L/s). Without a plateau, `compliance_static = 0` and `resistance = null`.
 ### `cpap_control` (CPAP / PS coupling to spontaneous breathing)
 
 CPAP holds the circuit at the CPAP level (= `peep_cmh2o`) and lets the patient breathe spontaneously
-through the ET tube — **both valves stay open**. The inspiratory valve feeds fresh gas toward the
-CPAP target and shuts off at/above it; the expiratory reservoir is pinned so the circuit floats at
+through the ET tube — **both valves stay open**. The inspiratory valve is the pressure servo, with
+the CPAP level as its target, so it delivers the patient's inspiratory demand (up to `insp_flow`)
+instead of letting the pressure dip. The expiratory reservoir is pinned, so the circuit floats at
 CPAP. Tidal volumes are accumulated from ET-tube flow and closed out at each spontaneous inspiration
 start (`Breathing.ncc_insp === 1`), where `tv_kg` and `p_peak` (peak circuit pressure over that
 spontaneous breath) are latched too; `minute_volume = exp_tidal_volume · Breathing.resp_rate`.

@@ -29,6 +29,7 @@ export class Ventilator extends BaseModelClass {
     this.pip_cmh2o_max = 14;
     this.peep_cmh2o = 3;
     this.ps_cmh2o = 10; // pressure support level ABOVE peep (PS mode only)
+    this.rise_time = 0.1; // s, PEEP -> PIP ramp of the pressure target in PC/PRVC/PS (0 = fastest)
     this.trigger_volume_perc = 6;
     this.synchronized = false;
     this.components = {}
@@ -92,6 +93,7 @@ export class Ventilator extends BaseModelClass {
     this._rate_avg = 0.0;
     this._manual_breath = false;
     this._humidifier_applied = false;
+    this._servo_gain = 0.8; // fraction of the circuit pressure error corrected per step
     this._breathing_model = null;
     this._peak_flow = 0.0;
     this._prev_et_tube_flow = 0.0;
@@ -472,15 +474,12 @@ export class Ventilator extends BaseModelClass {
 
     if (this._inspiration) {
       this._vent_exp_valve.no_flow = true;
-      this._vent_insp_valve.no_flow = false;
-      this._vent_insp_valve.no_back_flow = true;
-      this._vent_insp_valve.r_for =
-        (this._vent_gasin.pres + this._pip - this.pres_atm - this._peep) /
-        (this.insp_flow / 60.0);
-
-      if (this._vent_gascircuit.pres > this._pip + this.pres_atm) {
-        this._vent_insp_valve.no_flow = true;
-      }
+      // pressure target: PEEP -> PIP over rise_time, then held at PIP for the rest of the breath.
+      // The servo meters whatever flow that takes (capped at insp_flow), so the pressure is
+      // square and the flow decelerates as the lung fills — as on a real PC/PS ventilator.
+      const ramp =
+        this.rise_time > 0.0 ? Math.min(1.0, this._insp_time_counter / this.rise_time) : 1.0;
+      this._pressure_servo(this._peep + (this._pip - this._peep) * ramp);
 
       if (this._vent_ettube.flow > 0) {
         this._insp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -557,14 +556,9 @@ export class Ventilator extends BaseModelClass {
     // NOTE: CPAP only ventilates a spontaneously breathing patient (Breathing.breathing_enabled);
     // with breathing off it holds pressure but delivers no tidal volume (as in reality).
 
-    // inspiratory valve: feed fresh gas toward the CPAP target, shut off once at/above it
-    this._vent_insp_valve.no_flow = false;
-    this._vent_insp_valve.no_back_flow = true;
-    this._vent_insp_valve.r_for =
-      (this._vent_gasin.pres - this.pres_atm - this._peep) / (this.insp_flow / 60.0);
-    if (this._vent_gascircuit.pres > this._peep + this.pres_atm) {
-      this._vent_insp_valve.no_flow = true;
-    }
+    // inspiratory valve: servo the circuit at the CPAP level, delivering the patient's
+    // inspiratory demand (up to insp_flow) instead of letting the pressure dip
+    this._pressure_servo(this._peep);
 
     // expiratory valve: open, reservoir pinned at CPAP so the circuit floats at CPAP
     this._vent_exp_valve.no_flow = false;
@@ -594,6 +588,32 @@ export class Ventilator extends BaseModelClass {
       this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
     }
     this.minute_volume = this.exp_tidal_volume * (this._breathing_model?.resp_rate ?? 0);
+  }
+
+  _pressure_servo(target) {
+    // Demand valve: meter fresh gas into the circuit so its pressure follows `target` (mmHg above
+    // atmospheric). Needed flow = what leaves the circuit (ET tube + expiratory valve, last step)
+    // plus a proportional correction of the pressure error through the circuit elastance, capped
+    // at insp_flow (the valve's maximal flow) and never negative (it can't suck gas back). The
+    // fresh-gas source is ~400 mmHg above the circuit, so the valve is close to an ideal flow
+    // source and the one-step-old circuit pressure is good enough.
+    const valve = this._vent_insp_valve;
+    const circuit = this._vent_gascircuit;
+    const q_max = this.insp_flow / 60.0; // L/s
+    const p_err = this.pres_atm + target - circuit.pres; // mmHg
+    const e_c = Math.max(circuit.el_eff, 1.0); // mmHg/L
+    const q_out =
+      this._vent_ettube.flow + (this._vent_exp_valve.no_flow ? 0.0 : this._vent_exp_valve.flow);
+    const q = Math.min(q_max, q_out + (this._servo_gain * p_err) / (e_c * this._t));
+
+    const dp_valve = this._vent_gasin.pres - circuit.pres;
+    valve.no_back_flow = true;
+    if (q > 1e-6 && dp_valve > 0.0) {
+      valve.no_flow = false;
+      valve.r_for = dp_valve / q;
+    } else {
+      valve.no_flow = true;
+    }
   }
 
   pressure_regulated_volume_control() {
