@@ -489,12 +489,15 @@ export class Ventilator extends BaseModelClass {
     }
 
     if (this._expiration) {
-      this._vent_insp_valve.no_flow = true;
+      // the expiratory valve opens to the PEEP reservoir and the demand valve holds PEEP, so a
+      // spontaneously breathing patient can inhale between ventilator breaths (and trigger them).
+      // While the patient exhales the circuit sits above PEEP and the servo stays shut.
       this._vent_exp_valve.no_flow = false;
       this._vent_exp_valve.no_back_flow = true;
       this._vent_exp_valve.r_for = 10;
       this._vent_gasout.vol =
         this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+      this._pressure_servo(this._peep);
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -537,12 +540,15 @@ export class Ventilator extends BaseModelClass {
     }
 
     if (this._expiration) {
-      this._vent_insp_valve.no_flow = true;
+      // the expiratory valve opens to the PEEP reservoir and the demand valve holds PEEP, so a
+      // spontaneously breathing patient can inhale between ventilator breaths (and trigger them).
+      // While the patient exhales the circuit sits above PEEP and the servo stays shut.
       this._vent_exp_valve.no_flow = false;
       this._vent_exp_valve.no_back_flow = true;
       this._vent_exp_valve.r_for = 10;
       this._vent_gasout.vol =
         this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+      this._pressure_servo(this._peep);
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;

@@ -56,7 +56,7 @@ function run({ breathing = true, setup }) {
   const pm = 60 / WINDOW;
   return {
     efforts: efforts * pm, blocked: blocked * pm, triggered: triggered * pm, backup: backup * pm,
-    rate: V._measured_rate, vt: (V.exp_tidal_volume ?? 0) * 1000,
+    rate: V._rate_avg, vt: (V.exp_tidal_volume ?? 0) * 1000,
     spo2: m.models.Monitor?.sao2_pre, pco2: m.models.AA?.pco2,
   };
 }
