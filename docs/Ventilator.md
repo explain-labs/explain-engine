@@ -4,7 +4,7 @@ The `Ventilator` device model simulates a **mechanical ventilator** that drives 
 through an endotracheal (ET) tube. It owns a small gas circuit — a fresh-gas reservoir, the patient
 circuit, an expiratory (PEEP) reservoir, and the inspiratory/expiratory valves plus the ET-tube
 resistor — and modulates those parts every step to deliver the configured ventilation mode (`PC`,
-`PRVC`, `VC`, `PS`, or `CPAP`). Pressures are entered in cmH₂O and converted to the engine's mmHg
+`PRVC`, `VC`, `PS`, `CPAP`, or `HFOV`). Pressures are entered in cmH₂O and converted to the engine's mmHg
 internally.
 
 ## Inheritance
@@ -21,9 +21,9 @@ reaches into them by name to set valve states, resistances and reservoir volumes
 
 ## What it models
 
-- An ET-tube-coupled mechanical ventilator with five modes: pressure control (`PC`), pressure-regulated
-  volume control (`PRVC`), volume control (`VC`), pressure support (`PS`), and continuous positive
-  airway pressure (`CPAP`).
+- An ET-tube-coupled mechanical ventilator with six modes: pressure control (`PC`), pressure-regulated
+  volume control (`PRVC`), volume control (`VC`), pressure support (`PS`), continuous positive
+  airway pressure (`CPAP`), and high-frequency oscillation (`HFOV`).
 - Time-cycled (`PC`/`PRVC`/`VC`) and flow-cycled (`PS`) breath delivery, with patient trigger
   detection off the `Breathing` model: always on in `PS` (pressure support is patient-triggered),
   optional (`synchronized`) in the time-cycled modes. `PS` also carries a time-cycled mandatory
@@ -69,7 +69,12 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `temp` | °C | Fresh-gas temperature (default 37) |
 | `ettube_diameter` | mm | ET-tube inner diameter (default 4); drives the `_ett_k1`/`_ett_k2` Rohrer coefficients |
 | `ettube_length` | mm | ET-tube length (default 110); scales resistance by `length/110` |
-| `vent_mode` | string | `PC` / `PRVC` / `VC` / `PS` / `CPAP` (default `PRVC`) |
+| `vent_mode` | string | `PC` / `PRVC` / `VC` / `PS` / `CPAP` / `HFOV` (default `PRVC`) |
+| `hfo_map_cmh2o` | cmH₂O | HFOV mean airway pressure (default 10) |
+| `hfo_amplitude_cmh2o` | cmH₂O | HFOV peak-to-peak circuit pressure swing (default 25) |
+| `hfo_freq` | Hz | HFOV frequency (default 10) |
+| `hfo_insp_fraction` | fraction | HFOV inspiratory fraction of the cycle: 0.33 = I:E 1:2 (default), 0.5 = 1:1 |
+| `hfo_bias_flow` | L/min | HFOV continuous fresh-gas (bias) flow (default 10) |
 | `vent_rate` | breaths/min | Mechanical rate; in `PS` it is the backup/apnea rate (default 40) |
 | `tidal_volume` | L | Target tidal volume for `PRVC` and `VC` (default 0.015) |
 | `insp_time` | s | Inspiratory time (default 0.4) |
@@ -323,6 +328,41 @@ counts. This is the ineffective/delayed triggering seen clinically at high respi
 is kept on purpose. `scripts/probe_ventilator_trigger.mjs` counts efforts, blocked efforts,
 triggered and backup breaths per minute.
 
+## High-frequency oscillation (`hfov_control`)
+
+`HFOV` replaces breath cycling with an oscillation of the circuit pressure around a mean.
+
+- **Waveform.** The target is `MAP + w(t)`. `w` is a positive half-sine of amplitude `A·(1 − fi)`
+  for the first `fi` of the cycle, then a negative half-sine of amplitude `A·fi` for the rest.
+  The mean is therefore exactly MAP at any I:E, and the peak-to-peak is exactly `A`.
+- **Active expiration.** `_bidirectional_servo` computes the net flow the circuit needs: the
+  ET-tube flow plus the proportional pressure correction (gain 0.8, as `_pressure_servo`). A
+  positive need is pushed in by the inspiratory valve. A negative need is pulled out through the
+  expiratory valve, into `VENT_GASOUT` pinned 10 cmH₂O below the trough (the piston's pull). The
+  bias flow runs through both valves on top, so the net is unchanged.
+- **Read-outs, per cycle at the tube:**
+  - `hfo_tidal_volume` (also `insp_/exp_tidal_volume` and `tv_kg`)
+  - `hfo_dco2 = f·Vt²` (mL²/s)
+  - `hfo_map_meas` and `hfo_amplitude_meas`
+  - `p_peak`, `pip_delivered`, and `minute_volume = Vt·f·60`
+- **Not applicable.** There is no triggering, no VG, and no breath counters in HFOV. The leak and
+  the tube dead space still apply.
+- **Stepsize.** 0.5 ms gives ≥ 130 steps per cycle up to 15 Hz.
+
+**CO₂ clearance comes from the airway, not the device.** It relies on the series dead space with
+axial dispersion ([GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)). With
+the old well-mixed dead space, PaCO₂ sat at 10–14 mmHg at any frequency. Now, on preterm_28wk with a
+2.5 mm ETT, `PaCO₂·DCO₂` stays constant within about ±8 % over 8–15 Hz × amplitude 15–30. That is
+the clinical relationship: CO₂ elimination ∝ f·Vt², so **raising the frequency reduces CO₂
+clearance** (smaller Vt), and raising the amplitude increases it. The pressure swing is damped from
+the circuit to the trachea and the alveoli. Oxygenation follows MAP through lung volume and
+recruitment. `scripts/probe_hfov.mjs` prints all of these.
+
+Limitations:
+- The ET tube is resistive only. At 10–15 Hz, inertance adds about ωI ≈ 2 cmH₂O/(L/s) to a
+  neonatal tube; this is neglected.
+- Absolute PaCO₂ inherits the scenario's lung calibration (see the dead-space follow-up note).
+
 ## ET-tube dead space (`_set_tube_dead_space`)
 
 While the ventilator is on, it sets the dead-space compartment's `tube_volume` to the lumen volume
@@ -428,6 +468,7 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_prvc(pip_max, peep, rate, tv, t_in, insp_flow)` | Configure PRVC (`tv` in mL → L) |
 | `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
 | `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`pip` absolute → `ps_cmh2o = pip − peep`; `rate` = backup rate; `t_in` = backup Ti and Ti max) |
+| `set_hfov(map, amplitude, freq, insp_fraction, bias_flow)` | Configure HFOV (cmH₂O, cmH₂O peak-to-peak, Hz, fraction, L/min) |
 | `set_volume_guarantee(state, tv, pip_max)` | Volume guarantee on/off for PC/PS; optional target `tv` (mL) and pressure limit `pip_max` (cmH₂O); restarts the working pressure |
 | `set_cpap(cpap, insp_flow)` | Configure CPAP (`cpap` → `peep_cmh2o`) |
 | `set_pause(seconds)` | Set the end-inspiratory hold for any time-cycled mode (clamped `< insp_time`) |
