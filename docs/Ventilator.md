@@ -53,8 +53,9 @@ VENT_GASIN ──[VENT_INSP_VALVE]──► VENT_GASCIRCUIT ──[VENT_ETTUBE]�
 | `VENT_INSP_VALVE` | Resistor | Inspiratory valve (`VENT_GASIN → VENT_GASCIRCUIT`) |
 | `VENT_ETTUBE` | Resistor | ET tube (`VENT_GASCIRCUIT → DS`); its `r_for`/`r_back` are driven by `calc_ettube_resistance` |
 | `VENT_EXP_VALVE` | Resistor | Expiratory valve (`VENT_GASCIRCUIT → VENT_GASOUT`) |
+| `VENT_LEAK` | Resistor | Leak around an uncuffed tube (`DS → MOUTH`), driven by `leak_size`. Added by `init_model` when a scenario does not declare it. |
 
-References to all six are cached in `init_model` and held in `_ventilator_parts` for batch enable/disable.
+References to the first six are cached in `init_model` and held in `_ventilator_parts` for batch enable/disable. `VENT_LEAK` is handled separately: it is only open while the ventilator is on **and** `leak_size > 0`.
 
 ## Properties
 
@@ -74,6 +75,7 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `insp_time` | s | Inspiratory time (default 0.4) |
 | `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
 | `insp_flow` | L/min | Maximal flow of the demand valve in `PC`/`PRVC`/`PS`/`CPAP`; the delivered (constant) flow in `VC` (default 12) |
+| `leak_size` | mm | Equivalent diameter of the gap around an uncuffed tube; 0 = no leak (default). Useful range ≈ 0.5–1.25 mm neonatal, 1–3 mm adult — see *Tube leak* |
 | `volume_guarantee` | bool | Volume guarantee on top of `PC` (incl. synchronized A/C) or `PS`: the working pressure is servoed breath-to-breath to `tidal_volume`, limited by `pip_cmh2o_max` (default false) |
 | `rise_time` | s | Pressure rise time in `PC`/`PRVC`/`PS`: the target ramps PEEP → PIP over this time (default 0.1; 0 = as fast as `insp_flow` allows) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
@@ -109,6 +111,7 @@ References to all six are cached in `init_model` and held in `_ventilator_parts`
 | `co2` | mmHg | Current dead-space CO₂ (`DS.pco2`) |
 | `triggered_breath` | bool | True once a patient-triggered/synchronized breath has been armed |
 | `pip_delivered` | cmH₂O | The inspiratory pressure target in use: `pip_cmh2o` (PC), `peep + ps_cmh2o` (PS), or the working pressure in PRVC / volume guarantee |
+| `leak_perc` | % | Per-breath leak at the tube flow sensor, `(Vti − Vte)/Vti` |
 | `pressure_limited` | bool | Volume-targeted modes: working pressure at `pip_cmh2o_max` while Vt is still below target (the "Vt low / Pmax reached" alarm condition) |
 
 ### Internal (`_`-prefixed)
@@ -320,13 +323,59 @@ counts. This is the ineffective/delayed triggering seen clinically at high respi
 is kept on purpose. `scripts/probe_ventilator_trigger.mjs` counts efforts, blocked efforts,
 triggered and backup breaths per minute.
 
+## Tube leak (`calc_leak`)
+
+The leak models gas escaping around an uncuffed tube, from the trachea (`DS`) up through the larynx
+to the mouth (`MOUTH`, the scenario's atmospheric reservoir). It is its own resistor, `VENT_LEAK`,
+and it does not borrow `MOUTH_DS`, because `Respiration` (upper-airway resistance factor) and `Apnea`
+(obstructive occlusion) already drive that one. `init_model` adds the `VENT_LEAK` definition to the
+ventilator's components when a scenario or saved state does not declare it, so every scenario
+supports a leak without being edited.
+
+Its resistance uses the ET tube's Rohrer form for a short channel of diameter `leak_size` (length
+20 mm), with the same numerical floor:
+
+```
+R_leak = (K1(leak_size) + K2(leak_size)·|V̇_leak|) · 20/110          (K1 ∝ d⁻⁴, K2 ∝ d⁻⁴·⁷⁵, as the ET tube)
+```
+
+The leak therefore grows with airway pressure: it is largest at PIP, and smaller but continuous at
+PEEP. Because conductance scales with d⁴, the useful range is narrow:
+
+| leak_size | term_neonate PC 20/5 (3.5 mm tube) | adult_female PC 20/5 (7.5 mm tube) |
+|---|---|---|
+| 0.5 mm | 7 % | — |
+| 0.75 mm | 23 % | — |
+| 1.0 mm | 45 % | 14 % |
+| 1.25 mm | 65 % | — |
+| 2.0 mm | ~100 % | 57 % |
+| 3.0 mm | — | 88 % |
+
+`leak_perc` is measured the way a ventilator reports it, at the tube flow sensor:
+`(Vti − Vte)/Vti` per breath. It is computed at each breath start, and in CPAP at each spontaneous
+breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mjs`):
+
+- **PC/PS compensate.** The pressure servo makes up the leaked gas, so the lung Vt barely drops.
+  Vti rises and Vte falls. With term_neonate PC 20/5 at 1 mm: Vti 61, Vte 34, lung 48.5 mL.
+- **Volume guarantee over-delivers.** It regulates on Vte, so once the leak passes ~30 % it drives
+  the pressure to its limit. The lung then gets *more* than the target (18 mL against 15), bounded
+  only by the 130 % inspired-volume guard. This is the clinical reason VG is unreliable with large
+  leaks.
+- **PS cycles on Ti max.** The leak keeps inspiratory flow from decaying to 30 % of peak.
+- **Dead-space flush.** The continuous leak flow through `DS` washes out CO₂, which lowers PaCO₂
+  a little, much like tracheal gas insufflation.
+- **VC is not compensated.** Leaked gas is lost from the set volume.
+
+`Breathing` subtracts the leak flow from the airway-opening flow (see below), because gas that
+escapes around the tube never reaches the lungs.
+
 ## Coupling to `Breathing` (active airway inlet)
 
 `Breathing` measures airway-opening flow **route-agnostically**: it sums `MOUTH_DS.flow` (natural
 airway) and `VENT_ETTUBE.flow` (ET tube), each only when that inlet is enabled and not blocked. With
 the ventilator off, `VENT_ETTUBE` is disabled so the sum collapses to `MOUTH_DS` (the spontaneous
 baseline). When the ventilator is on, `switch_ventilator(true)` blocks `MOUTH_DS` (`no_flow = true`),
-so `Breathing` reads `VENT_ETTUBE` instead — which is why the tidal-volume feedback loop keeps working
+so `Breathing` reads `VENT_ETTUBE` instead (minus `VENT_LEAK` when a leak is open) — which is why the tidal-volume feedback loop keeps working
 during CPAP/PS of an intubated, spontaneously breathing patient.
 
 ## ET-tube resistance (`calc_ettube_resistance`)

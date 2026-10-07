@@ -121,6 +121,10 @@ export class Breathing extends BaseModelClass {
     let _aw_flow = 0.0;
     if (mouth_ds && !mouth_ds.no_flow) _aw_flow += mouth_ds.flow;
     if (ettube && ettube.is_enabled && !ettube.no_flow) _aw_flow += ettube.flow;
+    // gas leaking around an uncuffed tube (DS -> MOUTH, positive = out of the airway) entered
+    // through the tube but never reaches the lungs
+    const leak = this._model_engine.models["VENT_LEAK"];
+    if (leak && leak.is_enabled && !leak.no_flow) _aw_flow -= leak.flow;
 
     if (this._insp_running) {
       this._insp_timer += this._t;
