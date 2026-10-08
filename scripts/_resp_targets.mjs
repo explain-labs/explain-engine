@@ -99,12 +99,10 @@ export const RESPONSE_TARGETS = {
 export const KNOWN_FAILURES = {
   // the rate rises with stiffer lungs only through the chemoreflex; the vagal (stretch / J-receptor)
   // rate response is not modelled
-  "term.stiff.rr_ratio": "no vagal rate response to stiff lungs; the rate follows the chemoreflex only",
   "adult.stiff.rr_ratio": "no vagal rate response to stiff lungs; the rate follows the chemoreflex only",
   // no Hering-Breuer inspiratory inhibition: the neural inspiration does not shorten when pressure
   // support inflates the lung, so infants take the full support on top of their own effort
   "preterm.ps.vt_ratio": "no Hering-Breuer reflex; preterm compliance high (recalibration)",
-  "term.ps.vt_ratio": "no Hering-Breuer reflex: neural Ti does not shorten under support",
   // a 1 kg preterm intubated with the scenario's 3.5 mm tube (clinically 2.5 mm)
   "preterm.cpap.paco2_delta": "3.5 mm ETT on a 1 kg preterm; dead-space compliance (recalibration)",
   // the same high compliance makes every supported or mandatory breath ~30 mL/kg: PaCO2 falls and
