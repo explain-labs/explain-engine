@@ -15,7 +15,7 @@ BaseModelClass
 ```
 
 Extends `BaseModelClass` directly. It owns no volume/pressure; instead `calc_model()` runs a breath
-state machine and writes its effort onto `THORAX.el_base_factor` each step.
+state machine and applies its effort to the `THORAX` each step (as a pleural pressure referenced to the patient's own FRC).
 
 ## What it models
 
@@ -24,7 +24,7 @@ minute volume target  ──Mecklenburgh──►  resp_rate + tidal volume
         │                                        │
         │                              breath phase state machine (insp / exp)
         ▼                                        ▼
-   resp-muscle pressure waveform  ──►  THORAX.el_base_factor  ──►  thoracic recoil  ──►  lung volume change
+   resp-muscle pressure waveform  ──►  THORAX.pres_ext (FRC-referenced) ──►  thoracic recoil  ──►  lung volume change
                                                                           ▲
                                               adaptive rmp_gain ◄── tidal-volume feedback
 ```
@@ -60,6 +60,7 @@ minute volume target  ──Mecklenburgh──►  resp_rate + tidal volume
 | `exp_tidal_volume` | L | integrated expiratory volume of the last breath (negative inflow) |
 | `resp_muscle_pressure` | mmHg/L | current muscle-effort applied to the thorax |
 | `rmp_gain` | mmHg/L | adaptive effort gain (tidal-volume feedback) |
+| `muscle_dv_ref` | L | thorax excursion below its unstressed volume at the patient's own FRC; pins the baseline of the muscle pressure (see *Coupling to the thorax*) |
 | `ncc_insp` / `ncc_exp` | steps | inspiration / expiration step counters |
 
 ### Local (internal)
@@ -132,13 +133,32 @@ the same sign convention (positive = inspiration), so the sum collapses to the s
 
 ### Coupling to the thorax (important)
 
-The effort is applied as `THORAX.el_base_factor += resp_muscle_pressure` each step (a non-persistent
-factor, reset to 1.0 by the Container every step). This **modulates thoracic elastance**, not an
-external pressure. It produces inspiration because the `THORAX` operates **below its unstressed
-volume** (`vol < u_vol`): there `(vol − u_vol) < 0`, so raising the elastance makes the recoil
-pressure *more negative*, increasing the suction transmitted to the lungs and drawing air in. (An
-older external-pressure form, `THORAX.pres_ext += −resp_muscle_pressure`, is left commented out for
-reference.)
+`rmp_gain` is expressed as a thoracic **elastance change** (mmHg/L). The `THORAX` operates below its
+unstressed volume (`vol < u_vol`), so an elastance increase there is a more negative recoil pressure,
+`ΔP = mp · el_base · (vol − u_vol)`, which is transmitted to the lungs as inspiratory suction.
+
+The effort is applied as that pressure (`THORAX.pres_ext`), with the volume term split in two:
+
+```
+vol − u_vol = (EELV − u_vol) + (vol − EELV)
+ΔP = mp · el_base · ( muscle_dv_ref + (vol − EELV) )        (capped at 0)
+```
+
+- **Within-breath term `(vol − EELV)`** — kept. The effort fades as the chest fills, which is the
+  physiological brake on tidal volume.
+- **Baseline term** — pinned to `muscle_dv_ref`, the patient's own FRC excursion `(EELV − u_vol)`.
+  It is taken provisionally from the loaded state on the first step (scenario snapshots are breathing
+  states), then refined once at the first end-expiration on the natural airway.
+
+At the natural FRC this is identical to the old form, `THORAX.el_base_factor += mp`, which is still
+used until a reference exists. That old form scaled the effort with the *current* lung volume, so
+anything that raised FRC weakened the diaphragm: CPAP, PEEP, air trapping. CPAP 5 through an ET
+tube halved the pleural swing (4.8 → 2.4 cmH₂O) and Vt (17 → 10 mL) at the same drive. The chemoreflex
+then raised the rate, Vt fell further, and an intubated term neonate on CPAP decompensated:
+`rmp_gain` pinned at 100, RR ~100, PaCO₂ 59 after 15 min (`probe_cpap --cpap 900`). With the FRC
+reference it holds Vt (~22 mL, RR 52, PaCO₂ 42, stable). Every scenario baseline stays within
+±1 mmHg PaCO₂. `_v_eelv` (the last end-expiratory thorax volume) is internal and is re-taken on the
+first step after a reload.
 
 ## Adaptive gain (tidal-volume feedback)
 
