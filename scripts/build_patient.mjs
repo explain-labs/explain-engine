@@ -165,6 +165,10 @@ if (!model || !model.models) {
   console.error(`build_patient: build failed for baseline "${baseline}".`);
   process.exit(1);
 }
+// the structural pass changes the weight and the lung mechanics, so the baseline's calibrated
+// breathing effort (Breathing.rmp_gain, mmHg per litre of tidal volume) no longer fits: recalibrate
+// it during the warm-up, starting from the baseline's value (docs/Breathing.md, Calibration)
+if (model.models.Breathing) model.models.Breathing.rmp_calibrated = false;
 
 // ---------------------------------------------------------------------------
 // 2. structural pass (applied ONCE, not iterated)

@@ -5652,7 +5652,8 @@
     "resp_muscle_pressure": 0.20025574609736885,
     "ncc_insp": 847,
     "ncc_exp": 1081,
-    "rmp_gain": 2.1,
+    "rmp_gain": 355.44,
+    "rmp_calibrated": true,
     "debug_factor1": 0,
     "thorax": [
      "THORAX"

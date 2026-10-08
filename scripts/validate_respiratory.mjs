@@ -56,7 +56,8 @@ async function runChild(scenario) {
   const out = { scenario, cls, weight: def.weight, cases: {} };
   const want = (c) => !ONLY || ONLY.includes(c);
 
-  const build = () => eng.build(def);
+  // a fresh deep copy per case: the engine keeps references into the definition and mutates them
+  const build = () => eng.build(structuredClone(def));
 
   // per-breath statistics over WINDOW seconds of spontaneous breathing
   function spont(m) {

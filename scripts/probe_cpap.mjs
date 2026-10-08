@@ -1,10 +1,9 @@
 // CPAP-mode probe for the Explain engine.
 //
-// Reproduces and verifies the fix for the "Ventilator on CPAP" bug. The Breathing controller used
-// to measure spontaneous tidal volume only from MOUTH_DS.flow; switching the Ventilator on blocks
-// MOUTH_DS (no_flow=true) and routes gas through VENT_ETTUBE, so the controller read ~0 tidal
-// volume, ramped rmp_gain to its ceiling, and the patient under-ventilated (pCO2 ~85). The fix
-// (Breathing.js) measures the active airway inlet instead, so CPAP now ventilates correctly.
+// Verifies that a spontaneously breathing patient keeps ventilating on CPAP. Historically the
+// Breathing controller measured tidal volume only from MOUTH_DS.flow, read ~0 once the Ventilator
+// blocked MOUTH_DS, and under-ventilated the patient (pCO2 ~85). Breathing now measures tidal volume
+// at the lungs, independent of the airway route.
 //
 // This probe builds a scenario headless (same global-shim trick as headless.mjs / probe_vitals.mjs),
 // records a spontaneous-breathing baseline, then switches the Ventilator into CPAP and re-measures.
@@ -73,8 +72,8 @@ function measure() {
     add("ph", AA?.ph); add("pco2", AA?.pco2); add("po2", AA?.po2);
     add("rr", M?.resp_rate ?? Breathing.resp_rate);
     add("spo2", M?.sao2_pre);
-    last.rmp_gain = Breathing.rmp_gain;
-    last.b_etv = Breathing.exp_tidal_volume;          // L (negative by convention)
+    last.pmus = Breathing.pmus_max;
+    last.b_etv = Breathing.exp_tidal_volume;          // L
     last.b_ttv = Breathing.target_tidal_volume;       // L
     last.v_etv = Vent.exp_tidal_volume;               // L
     last.v_mv = Vent.minute_volume;                   // L/min
@@ -109,24 +108,24 @@ console.log(row("Arterial pO2", "po2", 1, "mmHg"));
 console.log(row("Arterial pH", "ph", 3, ""));
 console.log(row("SpO2 (pre-ductal)", "spo2", 1, "%"));
 console.log(row("Resp rate", "rr", 1, "/min"));
-console.log(row("Breathing.rmp_gain", "rmp_gain", 1, `(max ${RMP_MAX})`));
+console.log(row("Breathing.pmus_max", "pmus", 1, `mmHg (max ${RMP_MAX})`));
 console.log(`${"Breathing exp TV".padEnd(24)} ${fmt((base.b_etv ?? 0) * 1000, 2)}  ->  ${fmt((cpap.b_etv ?? 0) * 1000, 2)}   mL`);
 console.log(`${"Breathing target TV".padEnd(24)} ${fmt((base.b_ttv ?? 0) * 1000, 2)}  ->  ${fmt((cpap.b_ttv ?? 0) * 1000, 2)}   mL`);
 console.log(`${"Ventilator exp TV".padEnd(24)} ${"   --   "}  ->  ${fmt((cpap.v_etv ?? 0) * 1000, 2)}   mL`);
 console.log(`${"Ventilator minute vol".padEnd(24)} ${"   --   "}  ->  ${fmt(cpap.v_mv, 3)}   L/min`);
 
 // --- pass/fail summary ---
-const pinned = cpap.rmp_gain >= RMP_MAX - 0.5;
+const pinned = cpap.pmus >= RMP_MAX - 0.5;
 const hypercarbic = !(cpap.pco2 < 60);
 const noTV = !(Math.abs(cpap.b_etv ?? 0) > 1e-6);
 const fails = [];
-if (pinned) fails.push(`rmp_gain pinned at ceiling (${round(cpap.rmp_gain, 1)})`);
+if (pinned) fails.push(`muscle pressure pinned at its maximum (${round(cpap.pmus, 1)} mmHg)`);
 if (hypercarbic) fails.push(`pCO2 not controlled (${round(cpap.pco2, 1)} mmHg)`);
 if (noTV) fails.push("Breathing measures ~0 tidal volume on CPAP");
 
 console.log("");
 if (fails.length === 0) {
-  console.log(`PASS — CPAP ventilates: pCO2 ${round(cpap.pco2, 1)} mmHg, rmp_gain ${round(cpap.rmp_gain, 1)}/${RMP_MAX}, exp TV ${round((cpap.b_etv ?? 0) * 1000, 2)} mL\n`);
+  console.log(`PASS — CPAP ventilates: pCO2 ${round(cpap.pco2, 1)} mmHg, Pmus ${round(cpap.pmus, 1)}/${RMP_MAX} mmHg, exp TV ${round((cpap.b_etv ?? 0) * 1000, 2)} mL\n`);
 } else {
   console.log(`FAIL — ${fails.join("; ")}\n`);
   process.exitCode = 1;

@@ -92,21 +92,18 @@ export const RESPONSE_TARGETS = {
 // check id -> reason. A listed check that fails is reported as XFAIL (exit 0); a listed check that
 // passes is reported as XPASS so the entry can be removed. Keys are "<class>.<check>" or "*.<check>".
 export const KNOWN_FAILURES = {
-  // Breathing defends a fixed target Vt (rmp_gain +-0.1/breath) and sets the rate from minute volume
-  // alone, so stiffer lungs never change the breathing pattern (Breathing redesign)
-  "*.stiff.vt_ratio": "Breathing holds a fixed target Vt; mechanics do not shape the pattern",
-  "*.stiff.rr_ratio": "Breathing sets the rate from minute volume only",
-  // the expiratory valve is fixed at 10 mmHg·s/L in every mode: adult exhalation is back-pressured,
-  // breaths stack, PaCO2 rises and the slow rmp_gain controller lets the patient go rapid-shallow
-  "adult.cpap.vt_ratio": "fixed 10 mmHg·s/L expiratory valve back-pressures adult exhalation",
+  // the rate rises with stiffer lungs only through the chemoreflex; the vagal (stretch / J-receptor)
+  // rate response is not modelled
+  "term.stiff.rr_ratio": "no vagal rate response to stiff lungs; the rate follows the chemoreflex only",
+  "adult.stiff.rr_ratio": "no vagal rate response to stiff lungs; the rate follows the chemoreflex only",
+  // no Hering-Breuer inspiratory inhibition: the neural inspiration does not shorten when pressure
+  // support inflates the lung, so infants take the full support on top of their own effort
+  "preterm.ps.vt_ratio": "no Hering-Breuer reflex; preterm compliance high (recalibration)",
+  "term.ps.vt_ratio": "no Hering-Breuer reflex: neural Ti does not shorten under support",
+  // the expiratory valve is fixed at 10 mmHg·s/L in every mode and back-pressures adult exhalation
   "adult.cpap.paco2_delta": "fixed 10 mmHg·s/L expiratory valve back-pressures adult exhalation",
-  "adult.ps.ppl_swing_ratio": "reference is the failing adult CPAP case",
   // a 1 kg preterm intubated with the scenario's 3.5 mm tube (clinically 2.5 mm)
   "preterm.cpap.paco2_delta": "3.5 mm ETT on a 1 kg preterm; dead-space compliance (recalibration)",
-  // after minutes on PS the effort rate rises and every other effort fails to trigger although none
-  // falls in a ventilator inspiration (probe_ventilator_trigger.mjs --settle 200 shows it too)
-  "preterm.ps.trigger_frac": "every other effort misses the trigger after minutes on PS",
-  "term.ps.trigger_frac": "every other effort misses the trigger after minutes on PS",
   // preterm_28wk respiratory system compliance is high for RDS
   "preterm.cstat.cstat_kg": "preterm compliance ~2.4 mL/cmH2O/kg, high for RDS (recalibration)",
 };
