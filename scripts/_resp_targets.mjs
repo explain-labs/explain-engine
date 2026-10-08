@@ -100,15 +100,7 @@ export const KNOWN_FAILURES = {
   // the rate rises with stiffer lungs only through the chemoreflex; the vagal (stretch / J-receptor)
   // rate response is not modelled
   "adult.stiff.rr_ratio": "no vagal rate response to stiff lungs; the rate follows the chemoreflex only",
-  // no Hering-Breuer inspiratory inhibition: the neural inspiration does not shorten when pressure
-  // support inflates the lung, so infants take the full support on top of their own effort
-  "preterm.ps.vt_ratio": "no Hering-Breuer reflex; preterm compliance high (recalibration)",
-  // a 1 kg preterm intubated with the scenario's 3.5 mm tube (clinically 2.5 mm)
-  "preterm.cpap.paco2_delta": "3.5 mm ETT on a 1 kg preterm; dead-space compliance (recalibration)",
-  // the same high compliance makes every supported or mandatory breath ~30 mL/kg: PaCO2 falls and
-  // the efforts left are too weak to reach a flow trigger (peak effort flow ~0.5 L/min at the tube)
-  "preterm.flowtrig.trigger_frac": "preterm compliance high: supported breaths ~30 mL/kg suppress the drive (recalibration)",
-  "preterm.simv.supported_frac": "preterm compliance high: mandatory breaths ~30 mL/kg leave no efforts between them (recalibration)",
-  // preterm_28wk respiratory system compliance is high for RDS
-  "preterm.cstat.cstat_kg": "preterm compliance ~2.4 mL/cmH2O/kg, high for RDS (recalibration)",
+  // intubated CPAP on a 1 kg preterm: the 3.0 x 110 mm tube adds ~0.8 mL dead space (~18 % of a
+  // 4.3 mL breath; a preterm tube is cut shorter) and the dead-space compartment stretches at PEEP
+  "preterm.cpap.paco2_delta": "ETT dead space ~18 % of Vt on a 1 kg preterm (uncut 110 mm tube); dead-space compliance",
 };
