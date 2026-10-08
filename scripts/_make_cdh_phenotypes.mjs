@@ -42,13 +42,15 @@ import { setDiagramTitle } from "./_titles.mjs";
 const PHENO = {
   cdh_severe: {
     // ipsilateral (left) lung severely hypoplastic + stiff; right involved via mediastinal shift
-    lungs: { ALL: [0.010, 450], ALR: [0.026, 260], GASEX_LL: [0.0005, 0.003], GASEX_RL: [0.0008, 0.0045] },
+    // lungs: el_base x1.7846 with term_neonate's 2026-10-08 recalibration (Cstat 1.5 -> 1.0 mL/cmH2O/kg);
+    // PIP raised to restore the previous PaCO2 on the stiffer lungs (engine PR fix/lung-compliance-derived)
+    lungs: { ALL: [0.010, 803.07], ALR: [0.026, 464], GASEX_LL: [0.0005, 0.003], GASEX_RL: [0.0008, 0.0045] },
     // suprasystemic PVR, left bed worst; reduced left vascular bed volume
     pvr: { PAAL: 7000, LL_ART: 7000, LL_CAP: 1500, PAAR: 4000, RL_ART: 4000, RL_CAP: 1000 },
     leftBedVolFactor: 0.6,
     shunts: { pda: 1.0, fo: 4, ips_res: 2000 },
     lv: { cont_left: 0.8, relax_left: 1.2, pc_el: 1.2, u_vol: 0.0005, el_min: 1500 },
-    vent: { fio2: 1.0, pip: 16, peep: 5, rate: 26 },
+    vent: { fio2: 1.0, pip: 21, peep: 5, rate: 26 },
     desc: "term 3.5 kg neonate with severe left-sided congenital diaphragmatic hernia, pre-capillary " +
       "(PVR-dominant) phenotype: marked asymmetric pulmonary hypoplasia (left>right), suprasystemic " +
       "pulmonary vascular resistance with dominant right-to-left ductal and atrial shunting and " +
@@ -56,13 +58,13 @@ const PHENO = {
   },
   cdh_moderate: {
     // milder hypoplasia, better gas-exchange surface
-    lungs: { ALL: [0.018, 300], ALR: [0.032, 220], GASEX_LL: [0.0008, 0.0045], GASEX_RL: [0.0009, 0.005] },
+    lungs: { ALL: [0.018, 535.38], ALR: [0.032, 392.61], GASEX_LL: [0.0008, 0.0045], GASEX_RL: [0.0009, 0.005] },
     // PVR elevated toward ~systemic, not suprasystemic
     pvr: { PAAL: 4000, LL_ART: 4000, LL_CAP: 900, PAAR: 2500, RL_ART: 2500, RL_CAP: 700 },
     leftBedVolFactor: 0.8,
     shunts: { pda: 0.6, fo: 3, ips_res: 3000 },
     lv: { cont_left: 0.95, relax_left: 1.05, pc_el: 1.05, u_vol: 0.000733, el_min: 1137 }, // ~baseline LV
-    vent: { fio2: 0.5, pip: 14, peep: 5, rate: 26 },
+    vent: { fio2: 0.5, pip: 18, peep: 5, rate: 26 },
     desc: "term 3.5 kg neonate with moderate left-sided congenital diaphragmatic hernia: milder " +
       "asymmetric pulmonary hypoplasia, pulmonary vascular resistance elevated toward systemic with a " +
       "small bidirectional ductal shunt; oxygenates on moderate FiO2 and is potentially weanable — the " +
@@ -70,7 +72,7 @@ const PHENO = {
   },
   cdh_lv_dysfunction: {
     // moderate lungs / PVR — the defining lesion is the LEFT HEART, not the pulmonary bed
-    lungs: { ALL: [0.014, 360], ALR: [0.030, 240], GASEX_LL: [0.0007, 0.004], GASEX_RL: [0.0009, 0.005] },
+    lungs: { ALL: [0.014, 642.46], ALR: [0.030, 428.3], GASEX_LL: [0.0007, 0.004], GASEX_RL: [0.0009, 0.005] },
     pvr: { PAAL: 4500, LL_ART: 4500, LL_CAP: 1000, PAAR: 3000, RL_ART: 3000, RL_CAP: 800 },
     leftBedVolFactor: 0.7,
     shunts: { pda: 1.0, fo: 4, ips_res: 2500 }, // R->L ductal offloads the RV; atrial shunt emerges L->R
@@ -78,7 +80,7 @@ const PHENO = {
     // small ventricle -> high LVEDP -> high LA -> pulmonary venous hypertension), with only mild systolic
     // depression so forward output stays survivable (not cardiogenic shock).
     lv: { cont_left: 0.82, relax_left: 1.45, pc_el: 1.2, u_vol: 0.0005, el_min: 1800 },
-    vent: { fio2: 0.7, pip: 16, peep: 5, rate: 26 },
+    vent: { fio2: 0.7, pip: 21, peep: 5, rate: 26 },
     desc: "term 3.5 kg neonate with left-sided congenital diaphragmatic hernia, post-capillary " +
       "(LV-dominant) phenotype: left ventricular hypoplasia and dysfunction with elevated end-diastolic " +
       "pressure drive pulmonary venous hypertension; the atrial shunt runs left-to-right (high left " +
