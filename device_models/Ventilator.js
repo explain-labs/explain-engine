@@ -39,6 +39,10 @@ export class Ventilator extends BaseModelClass {
     this.exp_valve_resistance = 0.0; // mmHg·s/L, expiratory limb + valve (0 = auto, by circuit size)
     this.volume_guarantee = false; // PC/PS: servo the working pressure to tidal_volume (limit pip_cmh2o_max)
     this.trigger_volume_perc = 6;
+    this.trigger_mode = "volume"; // "volume": trigger_volume_perc of the set Vt during a patient effort; "flow": trigger_flow at the tube
+    this.trigger_flow = 0.6; // L/min, flow-trigger threshold (inspiratory flow at the tube during expiration)
+    this.term_sens_perc = 30; // %, a PS breath cycles off when inspiratory flow decays below this % of its peak
+    this.backup_rate = 0; // /min, CPAP apnoea backup: a time-cycled breath at PIP/insp_time after 60/backup_rate s without an effort (0 = off)
     this.synchronized = false;
     this.components = {}
 
@@ -70,6 +74,13 @@ export class Ventilator extends BaseModelClass {
     this.hfo_dco2 = 0.0; // mL^2/s, HFOV gas transport coefficient f * Vt^2
     this.hfo_map_meas = 0.0; // cmH2O, measured mean circuit pressure in HFOV
     this.hfo_amplitude_meas = 0.0; // cmH2O, measured peak-to-peak circuit pressure in HFOV
+    this.map_meas = 0.0; // cmH2O, mean circuit pressure over the last breath (or 3 s block without breaths)
+    this.ti_meas = 0.0; // s, measured inspiratory time of the last ventilator breath
+    this.te_meas = 0.0; // s, measured expiratory time before the last ventilator breath
+    this.ie_ratio_meas = 0.0; // Te/Ti of the last breath (displayed as 1:x)
+    this.rr_meas = 0.0; // /min, breath-averaged delivered rate (ventilator breaths)
+    this.trig_per_min = 0; // patient-triggered ventilator breaths over the last 60 s
+    this.r_dyn = 0.0; // cmH2O/(L/s), (peak pressure - PEEP) / peak expiratory flow of the last breath
 
     // Local properties
     this._vent_gasin = null;
@@ -126,6 +137,15 @@ export class Ventilator extends BaseModelClass {
     this._peak_flow = 0.0;
     this._prev_et_tube_flow = 0.0;
     this._et_tube_resistance = 40.0;
+    this._te_counter = 0.0; // s since the end of the last ventilator inspiration
+    this._peak_exp_flow = 0.0; // L/s, peak expiratory flow at the tube in the current expiration
+    this._map_sum = 0.0;
+    this._map_time = 0.0;
+    this._trig_times = []; // model times of patient-triggered breath starts (last 60 s)
+    this._ps_breath = false; // SIMV: the breath in progress is a pressure-supported spontaneous breath
+    this._simv_window_counter = 0.0; // SIMV: time into the current mandatory-breath window
+    this._simv_breath_given = false; // SIMV: this window's mandatory (or synchronised) breath was delivered
+    this._apnea_counter = 0.0; // CPAP: time since the last spontaneous effort or backup breath
   }
 
   init_model(args = {}) {
@@ -209,6 +229,7 @@ export class Ventilator extends BaseModelClass {
     // time-cycled modes, never in CPAP (no mandatory breaths to trigger)
     if (
       this.vent_mode === "PS" ||
+      this.vent_mode === "SIMV" ||
       (this.synchronized && this.vent_mode !== "CPAP" && this.vent_mode !== "HFOV")
     ) {
       this.triggering();
@@ -230,8 +251,20 @@ export class Ventilator extends BaseModelClass {
       this.pressure_control();
     }
 
+    if (this.vent_mode === "SIMV") {
+      this.simv_cycling();
+      if (this._ps_breath) {
+        // a supported spontaneous breath: PS above PEEP, never above the mandatory pressure (with
+        // volume guarantee the working pressure, so support can't out-ventilate the volume target)
+        const ps = Math.min(this.peep_cmh2o + this.ps_cmh2o, pip_cmh2o);
+        this.pip_delivered = ps;
+        this._pip = ps / 1.35951;
+      }
+      this.pressure_control();
+    }
+
     if (this.vent_mode === "CPAP") {
-      this.cpap_control();
+      this.cpap_cycling();
     }
 
     if (this.vent_mode === "HFOV") {
@@ -248,7 +281,8 @@ export class Ventilator extends BaseModelClass {
       // whenever the patient can trigger (PS, or a synchronized time-cycled mode) the delivered
       // rate can differ from the set vent_rate, so report the (breath-averaged) measured rate
       // there and the set rate for the purely mandatory modes
-      const triggerable = this.vent_mode === "PS" || this.synchronized;
+      const triggerable =
+        this.vent_mode === "PS" || this.vent_mode === "SIMV" || this.synchronized;
       const rate = triggerable ? this._rate_avg : this.vent_rate;
       this.minute_volume = this.exp_tidal_volume * rate;
     }
@@ -259,6 +293,32 @@ export class Ventilator extends BaseModelClass {
     this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
     this.calc_leak();
     this._set_tube_dead_space(true);
+    this._calc_monitoring();
+  }
+
+  _calc_monitoring() {
+    // generic monitored values a ventilator displays, gathered every step
+    if (this._expiration) {
+      this._te_counter += this._t;
+      this._peak_exp_flow = Math.max(this._peak_exp_flow, -this._vent_ettube.flow);
+    }
+    // mean airway pressure per breath (closed at each breath start); without breaths (CPAP,
+    // HFOV, apnoea) per 3 s block
+    this._map_sum += this.pres * this._t;
+    this._map_time += this._t;
+    if (this._map_time >= 3.0) this._close_map_block();
+    // in CPAP the patient sets the rate; backup breaths only come during apnoea
+    const spont = this._breathing_model?.breathing_enabled ? this._breathing_model.resp_rate : 0.0;
+    this.rr_meas = this.vent_mode === "CPAP" && spont > 0.0 ? spont : this._rate_avg;
+    const now = this._model_engine.model_time_total ?? 0.0;
+    while (this._trig_times.length && now - this._trig_times[0] > 60.0) this._trig_times.shift();
+    this.trig_per_min = this._trig_times.length;
+  }
+
+  _close_map_block() {
+    if (this._map_time > 0.0) this.map_meas = this._map_sum / this._map_time;
+    this._map_sum = 0.0;
+    this._map_time = 0.0;
   }
 
   _set_tube_dead_space(intubated) {
@@ -305,6 +365,10 @@ export class Ventilator extends BaseModelClass {
   }
 
   triggering() {
+    if (this.trigger_mode === "flow") {
+      this.flow_triggering();
+      return;
+    }
     this.trigger_volume =
       (this.tidal_volume / 100.0) * this.trigger_volume_perc;
 
@@ -334,9 +398,110 @@ export class Ventilator extends BaseModelClass {
     }
   }
 
+  flow_triggering() {
+    // flow trigger, as on a ventilator with a proximal flow sensor: patient inspiratory flow at the
+    // tube above trigger_flow (L/min) during expiration starts a breath. Armed once the minimal
+    // expiratory time has passed, so the end of the previous breath can't re-trigger.
+    if (this._trigger_blocked || !this._expiration || this._te_counter < this._min_exp_time) return;
+    if (this._vent_ettube.flow * 60.0 > this.trigger_flow) {
+      this._exp_time_counter = this.exp_time + 0.1;
+      this.triggered_breath = true;
+    }
+  }
+
+  simv_cycling() {
+    // Synchronised intermittent mandatory ventilation. The mandatory rate divides time into
+    // windows of 60/vent_rate. Each window opens with an assist window: the first patient trigger
+    // gets a synchronised mandatory breath (PIP, insp_time) and closes it until the next window. If
+    // no trigger comes by the mandatory breath point (window - insp_time) a mandatory breath is
+    // delivered. Triggers after the window's breath get pressure support (ps_cmh2o above PEEP,
+    // flow-cycled at term_sens_perc, Ti max insp_time), or none when ps_cmh2o is 0.
+    const window = 60.0 / this.vent_rate;
+    this.exp_time = Math.max(window - this.insp_time, this._min_exp_time);
+    this._simv_window_counter += this._t;
+    if (this._simv_window_counter >= window) {
+      this._simv_window_counter -= window;
+      this._simv_breath_given = false;
+    }
+
+    if (this._expiration) {
+      let type = null;
+      if (this._manual_breath_due()) {
+        type = "mandatory";
+      } else if (this.triggered_breath && this._vent_ettube.flow > 0.0) {
+        if (!this._simv_breath_given) type = "sync";
+        else if (this.ps_cmh2o > 0.0) type = "ps";
+        else this.triggered_breath = false; // unsupported spontaneous breath on PEEP
+      } else if (
+        !this._simv_breath_given &&
+        this._simv_window_counter >= window - this.insp_time
+      ) {
+        type = "mandatory";
+      }
+      if (type) {
+        this._start_inspiration();
+        this._ps_breath = type === "ps";
+        this._mandatory_breath = type === "mandatory";
+        if (type !== "ps") this._simv_breath_given = true;
+        this._peak_flow = 0.0;
+      }
+    }
+
+    if (this._inspiration) {
+      this._insp_time_counter += this._t;
+      this.ncc_insp += 1;
+      this._trigger_blocked = true;
+      if (this._vent_ettube.flow > this._peak_flow) this._peak_flow = this._vent_ettube.flow;
+      const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+      if (p > this._pip_meas) this._pip_meas = p;
+
+      const flow_cycled =
+        this._ps_breath &&
+        this._peak_flow > 0.0 &&
+        this._vent_ettube.flow < (this.term_sens_perc / 100.0) * this._peak_flow;
+      const time_cycled = this._insp_time_counter > this.insp_time;
+      const vol_limit = !this._ps_breath && this._vg_volume_limit_reached();
+      if (flow_cycled || time_cycled || vol_limit) this._end_inspiration();
+    }
+
+    if (this._expiration) {
+      this._exp_time_counter += this._t;
+      this.ncc_exp += 1;
+      this._trigger_blocked = false;
+    }
+  }
+
+  cpap_cycling() {
+    // CPAP with an optional apnoea backup: after 60/backup_rate s without a spontaneous effort (or
+    // on a manual breath) a time-cycled breath at PIP for insp_time, then back to CPAP
+    // the apnoea time runs from the start of the last breath, so backup breaths come at backup_rate
+    this._apnea_counter += this._t;
+    if (this._inspiration) {
+      this._insp_time_counter += this._t;
+      this.ncc_insp += 1;
+      const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+      if (p > this._pip_meas) this._pip_meas = p;
+      if (this._insp_time_counter > this.insp_time) this._end_inspiration();
+      this.pressure_control();
+      return;
+    }
+    if (this._breathing_model?.ncc_insp === 1 && this._breathing_model?.breathing_enabled) {
+      this._apnea_counter = 0.0;
+    }
+    const backup_due = this.backup_rate > 0.0 && this._apnea_counter > 60.0 / this.backup_rate;
+    if (backup_due || this._manual_breath_due()) {
+      this._apnea_counter = 0.0;
+      this._start_inspiration();
+      this._mandatory_breath = true;
+      this.pressure_control();
+      return;
+    }
+    this.cpap_control();
+  }
+
   flow_cycling() {
     // Pressure-support state machine: a patient-triggered, flow-cycled breath (terminates when
-    // inspiratory flow decays below 30% of peak), with a time-cycled mandatory backup so the
+    // inspiratory flow decays below term_sens_perc of peak), with a time-cycled mandatory backup so the
     // ventilator still delivers breaths during apnea. Triggering always runs in PS (calc_model).
     this.exp_time = Math.max(
       60.0 / this.vent_rate - this.insp_time,
@@ -381,7 +546,7 @@ export class Ventilator extends BaseModelClass {
       const flow_cycled =
         !this._mandatory_breath &&
         this._peak_flow > 0.0 &&
-        this._vent_ettube.flow < 0.3 * this._peak_flow;
+        this._vent_ettube.flow < (this.term_sens_perc / 100.0) * this._peak_flow;
       const time_cycled = this._insp_time_counter > this.insp_time;
 
       if (flow_cycled || time_cycled || this._vg_volume_limit_reached()) {
@@ -485,8 +650,18 @@ export class Ventilator extends BaseModelClass {
 
     this.calc_measured_mechanics();
     this._calc_leak_perc();
-    // volume-targeted modes: trim the working pressure on the breath just completed
-    if (this._volume_targeted()) this.pressure_regulated_volume_control();
+    // volume-targeted modes: trim the working pressure on the breath just completed (in SIMV only
+    // on mandatory breaths: a supported spontaneous breath has its own, capped, pressure)
+    if (this._volume_targeted() && !this._ps_breath) this.pressure_regulated_volume_control();
+    this._ps_breath = false;
+
+    // timing of the breath just completed, and the start of this one
+    this.te_meas = this._te_counter;
+    this.ie_ratio_meas = this.ti_meas > 0.0 ? this.te_meas / this.ti_meas : 0.0;
+    this._close_map_block();
+    if (this.triggered_breath && !this._mandatory_breath && !this._manual_breath) {
+      this._trig_times.push(this._model_engine.model_time_total ?? 0.0);
+    }
 
     this._exp_tidal_volume_counter = 0.0;
     this._pip_meas = 0.0;
@@ -525,7 +700,7 @@ export class Ventilator extends BaseModelClass {
     return (
       this._manual_breath &&
       this._expiration &&
-      this._exp_time_counter > this._min_exp_time
+      this._te_counter > this._min_exp_time
     );
   }
 
@@ -534,6 +709,9 @@ export class Ventilator extends BaseModelClass {
     // latching the delivered inspiratory volume here is correct for both the paused and no-pause path.
     this.insp_tidal_volume = this._insp_tidal_volume_counter;
     this._insp_tidal_volume_counter = 0.0;
+    this.ti_meas = this._insp_time_counter;
+    this._te_counter = 0.0;
+    this._peak_exp_flow = 0.0;
     this._insp_time_counter = 0.0;
     this._exp_time_counter = 0.0;
     this._inspiration = false;
@@ -554,6 +732,12 @@ export class Ventilator extends BaseModelClass {
     if (this.exp_tidal_volume > 0 && drive_dyn > 0) {
       this.compliance_dynamic = vt_ml / drive_dyn; // mL/cmH2O
       this.compliance = this.compliance_dynamic; // keep the legacy field = dynamic
+    }
+
+    // dynamic resistance as a neonatal ventilator reports it: the applied pressure change over the
+    // peak expiratory flow (passive expiration drives that flow through the same pressure)
+    if (this._peak_exp_flow > 0.0 && drive_dyn > 0) {
+      this.r_dyn = drive_dyn / this._peak_exp_flow; // cmH2O/(L/s)
     }
 
     // static compliance + airway resistance need a plateau, i.e. a real end-inspiratory hold
@@ -854,7 +1038,8 @@ export class Ventilator extends BaseModelClass {
   _volume_targeted() {
     return (
       this.vent_mode === "PRVC" ||
-      (this.volume_guarantee && (this.vent_mode === "PC" || this.vent_mode === "PS"))
+      (this.volume_guarantee &&
+        (this.vent_mode === "PC" || this.vent_mode === "PS" || this.vent_mode === "SIMV"))
     );
   }
 
@@ -867,7 +1052,7 @@ export class Ventilator extends BaseModelClass {
     // target (e.g. after a sudden compliance rise), instead of waiting for the next breath's trim
     return (
       this.volume_guarantee &&
-      (this.vent_mode === "PC" || this.vent_mode === "PS") &&
+      (this.vent_mode === "PC" || this.vent_mode === "PS" || this.vent_mode === "SIMV") &&
       this._insp_tidal_volume_counter > this._vg_vt_limit * this.tidal_volume
     );
   }
@@ -914,6 +1099,13 @@ export class Ventilator extends BaseModelClass {
     this.hfo_dco2 = 0.0;
     this.hfo_map_meas = 0.0;
     this.hfo_amplitude_meas = 0.0;
+    this.map_meas = 0.0;
+    this.ti_meas = 0.0;
+    this.te_meas = 0.0;
+    this.ie_ratio_meas = 0.0;
+    this.rr_meas = 0.0;
+    this.trig_per_min = 0;
+    this.r_dyn = 0.0;
   }
 
   _reset_state() {
@@ -947,6 +1139,15 @@ export class Ventilator extends BaseModelClass {
     this._hfo_p_sum = 0.0;
     this._hfo_n = 0;
     this._vc_vol_target = this.tidal_volume;
+    this._te_counter = 0.0;
+    this._peak_exp_flow = 0.0;
+    this._map_sum = 0.0;
+    this._map_time = 0.0;
+    this._trig_times = [];
+    this._ps_breath = false;
+    this._simv_window_counter = 0.0;
+    this._simv_breath_given = false;
+    this._apnea_counter = 0.0;
     this.vol = 0.0;
   }
 
@@ -1152,8 +1353,23 @@ export class Ventilator extends BaseModelClass {
     this.vent_mode = "PS";
   }
 
+  set_simv(pip = 15.0, peep = 5.0, rate = 20.0, t_in = 0.4, ps = 0.0, insp_flow = 10.0) {
+    // SIMV: mandatory breaths at `pip` and `rate`, spontaneous breaths between them supported by
+    // `ps` above PEEP (0 = unsupported)
+    this.pip_cmh2o = pip;
+    this.pip_cmh2o_max = Math.max(this.pip_cmh2o_max, pip);
+    this.peep_cmh2o = peep;
+    this.vent_rate = rate;
+    this.insp_time = t_in;
+    this.ps_cmh2o = Math.max(0.0, ps);
+    this.insp_flow = insp_flow;
+    this._simv_window_counter = 0.0;
+    this._simv_breath_given = false;
+    this.vent_mode = "SIMV";
+  }
+
   set_volume_guarantee(state = true, tv = null, pip_max = null) {
-    // volume guarantee on top of PC (incl. synchronized A/C) or PS: tidal_volume (tv in mL) is the
+    // volume guarantee on top of PC (incl. synchronized A/C), PS or SIMV: tidal_volume (tv in mL) is the
     // target, pip_cmh2o_max the pressure limit; the working pressure is reported as pip_delivered
     this.volume_guarantee = state;
     if (tv !== null) this.tidal_volume = tv / 1000.0;
@@ -1171,9 +1387,13 @@ export class Ventilator extends BaseModelClass {
     this.vent_mode = "HFOV";
   }
 
-  set_cpap(cpap = 5.0, insp_flow = 8.0) {
+  set_cpap(cpap = 5.0, insp_flow = 8.0, backup_rate = null) {
+    // `backup_rate` (/min, 0 = off) delivers time-cycled breaths at pip_cmh2o/insp_time in apnoea;
+    // left as it is when not given
     this.peep_cmh2o = cpap;
     this.insp_flow = insp_flow;
+    if (backup_rate !== null) this.backup_rate = Math.max(0.0, backup_rate);
+    this._apnea_counter = 0.0;
     this.vent_mode = "CPAP";
   }
 

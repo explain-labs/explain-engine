@@ -82,6 +82,11 @@ export const RESPONSE_TARGETS = {
   ps_ppl_swing_ratio: [null, 0.80],   // effort falls
   ps_paco2_delta: [null, 2],
   ps_trigger_frac: [0.80, 1.0],       // triggered breaths / efforts outside ventilator inspiration
+  flowtrig_trigger_frac: [0.80, 1.0], // the same with a 0.6 L/min flow trigger
+  // SIMV at half the spontaneous rate with PS 5: one synchronised or mandatory breath per window
+  // (window edges in a 20 s count allow one breath either way), the other efforts supported
+  simv_window_breath_ratio: [0.85, 1.15],
+  simv_supported_frac: [0.80, 1.0],
   // drive off (central apnea / CPR)
   apnea_effort: [null, 0.01],         // cmH2O pleural swing driven by the muscle
   // HFOV CO2 elimination ~ f·Vt² [Lucking]
@@ -102,6 +107,10 @@ export const KNOWN_FAILURES = {
   "term.ps.vt_ratio": "no Hering-Breuer reflex: neural Ti does not shorten under support",
   // a 1 kg preterm intubated with the scenario's 3.5 mm tube (clinically 2.5 mm)
   "preterm.cpap.paco2_delta": "3.5 mm ETT on a 1 kg preterm; dead-space compliance (recalibration)",
+  // the same high compliance makes every supported or mandatory breath ~30 mL/kg: PaCO2 falls and
+  // the efforts left are too weak to reach a flow trigger (peak effort flow ~0.5 L/min at the tube)
+  "preterm.flowtrig.trigger_frac": "preterm compliance high: supported breaths ~30 mL/kg suppress the drive (recalibration)",
+  "preterm.simv.supported_frac": "preterm compliance high: mandatory breaths ~30 mL/kg leave no efforts between them (recalibration)",
   // preterm_28wk respiratory system compliance is high for RDS
   "preterm.cstat.cstat_kg": "preterm compliance ~2.4 mL/cmH2O/kg, high for RDS (recalibration)",
 };
