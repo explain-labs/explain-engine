@@ -98,7 +98,34 @@ Common flags seen across the vitals/brain/pda probes: `--seconds N` (warm-up), `
 
 ## Important: probes are not CI gates
 
-Probes are **interactive verification tools, not pass/fail test cases.** They print verdicts (labelled lines flagged `ok`/`LOW`/`HIGH`, or a `console.table`) and you read the result. A failed physiological assertion does **not** make the process exit non-zero — the only thing that exits `1` is a **build failure** (no `model`, missing required model). Do not wire them into a CI green/red check expecting a non-zero exit on a bad number; they will exit `0` while printing `HIGH`. There is no `npm test` and no aggregate runner — run the relevant probe by hand and inspect its output.
+Probes are **interactive verification tools, not pass/fail test cases.** They print verdicts (labelled lines flagged `ok`/`LOW`/`HIGH`, or a `console.table`) and you read the result. A failed physiological assertion does **not** make the process exit non-zero — the only thing that exits `1` is a **build failure** (no `model`, missing required model). Do not wire them into a CI green/red check expecting a non-zero exit on a bad number; they will exit `0` while printing `HIGH`. Run the relevant probe by hand and inspect its output. The one exception is the respiratory suite below.
+
+## The respiratory validation suite
+
+`npm run validate:resp` (`scripts/validate_respiratory.mjs`) **is** a pass/fail gate: it exits `1` when a
+check fails. It runs a fixed battery on preterm_28wk, term_neonate and adult_female, one child process per
+scenario, and checks each result against clinical ranges per patient class in
+`scripts/_resp_targets.mjs` (each range carries its literature source; the ranges are not fitted to the
+model). The battery:
+
+| case | what it does | checks |
+|---|---|---|
+| `base` | spontaneous steady state | RR, Vt/kg, MV/kg, PaCO2, pH, SpO2, pleural swing |
+| `co2` | ventilatory drive cut to 70 % | chemoreflex gain: ventilation recovered per mmHg PaCO2 rise |
+| `res_load` | lower-airway resistance ×3 | PaCO2 rise, Vt kept |
+| `stiff` | lung elastance ×2 | rapid shallow breathing: Vt down, RR up |
+| `cpap` | intubated, CPAP 5 | Vt and PaCO2 close to baseline |
+| `ps` | intubated, PS 10 above PEEP 5 | Vt up, effort down, triggered fraction of efforts |
+| `apnea` | drive off | no muscle pressure |
+| `cstat` | drive off, PC 15/5 with a pause | static compliance per kg |
+| `hfov` | preterm only: f 8/10/12 Hz, amplitude 20 → 30 | PaCO2·DCO2 constant, PaCO2 falls with amplitude |
+
+Volumes are measured at the lungs (ALL + ALR swing per breath) and effort as the THORAX pressure swing,
+so the suite does not depend on how Breathing or the Ventilator measure their own tidal volume.
+
+Known model failures are listed with their reason in `KNOWN_FAILURES`; they report as `XFAIL` and do not
+fail the run. One that starts passing reports `XPASS`: remove its entry. Options: a scenario list,
+`--quick` (shorter settling), `--only base,ps`, `--json`. A full run takes about 10 minutes.
 
 ## Probe inventory
 
