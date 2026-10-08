@@ -30,6 +30,11 @@ export class Ventilator extends BaseModelClass {
     this.peep_cmh2o = 3;
     this.ps_cmh2o = 10; // pressure support level ABOVE peep (PS mode only)
     this.rise_time = 0.1; // s, PEEP -> PIP ramp of the pressure target in PC/PRVC/PS (0 = fastest)
+    this.hfo_map_cmh2o = 10; // HFOV mean airway pressure
+    this.hfo_amplitude_cmh2o = 25; // HFOV peak-to-peak pressure swing at the circuit
+    this.hfo_freq = 10; // HFOV frequency (Hz)
+    this.hfo_insp_fraction = 0.33; // HFOV inspiratory fraction of the cycle (0.33 = I:E 1:2, 0.5 = 1:1)
+    this.hfo_bias_flow = 10; // HFOV continuous fresh-gas (bias) flow (L/min)
     this.leak_size = 0.0; // mm, equivalent diameter of the gap around an uncuffed tube (0 = no leak)
     this.volume_guarantee = false; // PC/PS: servo the working pressure to tidal_volume (limit pip_cmh2o_max)
     this.trigger_volume_perc = 6;
@@ -60,6 +65,10 @@ export class Ventilator extends BaseModelClass {
     this.pip_delivered = 0.0; // cmH2O, the inspiratory pressure target actually in use
     this.pressure_limited = false; // volume-targeted: working pressure at pip_cmh2o_max, Vt below target
     this.leak_perc = 0.0; // %, per-breath leak (Vti - Vte) / Vti, as a ventilator reports it
+    this.hfo_tidal_volume = 0.0; // L, HFOV volume delivered per oscillation (at the tube)
+    this.hfo_dco2 = 0.0; // mL^2/s, HFOV gas transport coefficient f * Vt^2
+    this.hfo_map_meas = 0.0; // cmH2O, measured mean circuit pressure in HFOV
+    this.hfo_amplitude_meas = 0.0; // cmH2O, measured peak-to-peak circuit pressure in HFOV
 
     // Local properties
     this._vent_gasin = null;
@@ -106,6 +115,12 @@ export class Ventilator extends BaseModelClass {
     this._vt_gain = 0.5; // fraction of the tidal-volume error corrected per breath
     this._vt_max_step = 3.0; // cmH2O, max working-pressure change per breath
     this._vg_vt_limit = 1.3; // a VG breath ends once it delivers 130 % of the target volume
+    this._hfo_phase = 0.0; // position in the current oscillation (0..1)
+    this._hfo_p_max = -1e9;
+    this._hfo_p_min = 1e9;
+    this._hfo_p_sum = 0.0;
+    this._hfo_n = 0;
+    this._hfo_sink_margin = 10.0; // cmH2O, expiratory sink held this far below the trough
     this._breathing_model = null;
     this._peak_flow = 0.0;
     this._prev_et_tube_flow = 0.0;
@@ -191,7 +206,10 @@ export class Ventilator extends BaseModelClass {
     // patient-trigger detection: always in PS (pressure support is patient-triggered by
     // definition, its time-cycled backup only covers apnea), on request (`synchronized`) in the
     // time-cycled modes, never in CPAP (no mandatory breaths to trigger)
-    if (this.vent_mode === "PS" || (this.synchronized && this.vent_mode !== "CPAP")) {
+    if (
+      this.vent_mode === "PS" ||
+      (this.synchronized && this.vent_mode !== "CPAP" && this.vent_mode !== "HFOV")
+    ) {
       this.triggering();
     }
 
@@ -215,13 +233,17 @@ export class Ventilator extends BaseModelClass {
       this.cpap_control();
     }
 
+    if (this.vent_mode === "HFOV") {
+      this.hfov_control();
+    }
+
     this.pres = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
     this.flow = this._vent_ettube.flow * 60.0;
     this.vol += this._vent_ettube.flow * 1000 * this._t;
     this.co2 = this._model_engine.models["DS"]?.pco2 ?? this.co2;
     // CPAP reports a spontaneous minute volume from cpap_control (patient's own rate), so don't
     // overwrite it here with the mechanical vent_rate
-    if (this.vent_mode !== "CPAP") {
+    if (this.vent_mode !== "CPAP" && this.vent_mode !== "HFOV") {
       // whenever the patient can trigger (PS, or a synchronized time-cycled mode) the delivered
       // rate can differ from the set vent_rate, so report the (breath-averaged) measured rate
       // there and the set rate for the purely mandatory modes
@@ -712,6 +734,100 @@ export class Ventilator extends BaseModelClass {
     }
   }
 
+  hfov_control() {
+    // High-frequency oscillation: the circuit pressure follows MAP plus an oscillation of
+    // peak-to-peak hfo_amplitude_cmh2o at hfo_freq. The positive half-sine lasts hfo_insp_fraction of
+    // the cycle with amplitude A*(1 - fi), the negative one the rest with amplitude A*fi, so the mean
+    // is exactly MAP at any I:E. Expiration is ACTIVE (an oscillator pulls gas out): the expiratory
+    // valve opens to a sink held below the trough, and a continuous bias flow washes the circuit.
+    const f = Math.max(this.hfo_freq, 0.5);
+    const fi = Math.min(Math.max(this.hfo_insp_fraction, 0.2), 0.8);
+    const a = Math.max(this.hfo_amplitude_cmh2o, 0.0);
+
+    this._hfo_phase += this._t * f;
+    if (this._hfo_phase >= 1.0) {
+      this._hfo_phase -= 1.0;
+      this._hfo_cycle_end(f);
+    }
+    const th = this._hfo_phase;
+    const w =
+      th < fi
+        ? a * (1.0 - fi) * Math.sin((Math.PI * th) / fi)
+        : -a * fi * Math.sin((Math.PI * (th - fi)) / (1.0 - fi));
+    const target = (this.hfo_map_cmh2o + w) / 1.35951; // mmHg above atmospheric
+    this.pip_delivered = this.hfo_map_cmh2o + a * (1.0 - fi);
+
+    // expiratory sink (the piston's pull), below the trough of the waveform
+    const sink = (this.hfo_map_cmh2o - a * fi - this._hfo_sink_margin) / 1.35951;
+    this._vent_gasout.vol = sink / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+    this._bidirectional_servo(target, this.pres_atm + sink, this.hfo_bias_flow / 60.0);
+
+    // per-cycle measurements at the tube / circuit
+    const q = this._vent_ettube.flow;
+    if (q > 0) this._insp_tidal_volume_counter += q * this._t;
+    else this._exp_tidal_volume_counter += q * this._t;
+    const p = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
+    if (p > this._hfo_p_max) this._hfo_p_max = p;
+    if (p < this._hfo_p_min) this._hfo_p_min = p;
+    this._hfo_p_sum += p;
+    this._hfo_n += 1;
+  }
+
+  _hfo_cycle_end(f) {
+    this.insp_tidal_volume = this._insp_tidal_volume_counter;
+    this.exp_tidal_volume = -this._exp_tidal_volume_counter;
+    this.hfo_tidal_volume = this.insp_tidal_volume;
+    const vt_ml = this.hfo_tidal_volume * 1000.0;
+    this.hfo_dco2 = f * vt_ml * vt_ml;
+    const weight = this._model_engine.weight;
+    this.tv_kg = weight > 0 ? vt_ml / weight : 0.0;
+    this.minute_volume = this.exp_tidal_volume * f * 60.0;
+    if (this._hfo_n > 0) {
+      this.hfo_map_meas = this._hfo_p_sum / this._hfo_n;
+      this.hfo_amplitude_meas = this._hfo_p_max - this._hfo_p_min;
+      this.p_peak = this._hfo_p_max;
+    }
+    this._insp_tidal_volume_counter = 0.0;
+    this._exp_tidal_volume_counter = 0.0;
+    this._hfo_p_max = -1e9;
+    this._hfo_p_min = 1e9;
+    this._hfo_p_sum = 0.0;
+    this._hfo_n = 0;
+  }
+
+  _bidirectional_servo(target, sink_abs, q_bias) {
+    // Two-sided pressure servo (HFOV): the net flow the circuit needs is what left it towards the
+    // patient (last step) plus the proportional pressure correction. A positive need is pushed in
+    // by the inspiratory valve, a negative one pulled out through the expiratory valve, and the
+    // bias flow runs through both on top, so the net is unchanged.
+    const circuit = this._vent_gascircuit;
+    const p_err = this.pres_atm + target - circuit.pres; // mmHg
+    const e_c = Math.max(circuit.el_eff, 1.0);
+    const need = this._vent_ettube.flow + (this._servo_gain * p_err) / (e_c * this._t);
+    const q_in = q_bias + Math.max(need, 0.0);
+    const q_out = q_bias + Math.max(-need, 0.0);
+
+    const insp = this._vent_insp_valve;
+    const dp_in = this._vent_gasin.pres - circuit.pres;
+    insp.no_back_flow = true;
+    if (q_in > 1e-6 && dp_in > 0.0) {
+      insp.no_flow = false;
+      insp.r_for = dp_in / q_in;
+    } else {
+      insp.no_flow = true;
+    }
+
+    const exp = this._vent_exp_valve;
+    const dp_out = circuit.pres - sink_abs;
+    exp.no_back_flow = true;
+    if (q_out > 1e-6 && dp_out > 0.0) {
+      exp.no_flow = false;
+      exp.r_for = dp_out / q_out;
+    } else {
+      exp.no_flow = true;
+    }
+  }
+
   pressure_regulated_volume_control() {
     // Breath-to-breath volume targeting (PRVC, and volume guarantee in PC/PS): move the working
     // pressure by the pressure the measured dynamic compliance says the volume error needs,
@@ -790,6 +906,10 @@ export class Ventilator extends BaseModelClass {
     this.pip_delivered = 0.0;
     this.pressure_limited = false;
     this.leak_perc = 0.0;
+    this.hfo_tidal_volume = 0.0;
+    this.hfo_dco2 = 0.0;
+    this.hfo_map_meas = 0.0;
+    this.hfo_amplitude_meas = 0.0;
   }
 
   _reset_state() {
@@ -817,6 +937,11 @@ export class Ventilator extends BaseModelClass {
     this._rate_avg = 0.0;
     this._manual_breath = false;
     this._pip_working = null;
+    this._hfo_phase = 0.0;
+    this._hfo_p_max = -1e9;
+    this._hfo_p_min = 1e9;
+    this._hfo_p_sum = 0.0;
+    this._hfo_n = 0;
     this._vc_vol_target = this.tidal_volume;
     this.vol = 0.0;
   }
@@ -1010,6 +1135,16 @@ export class Ventilator extends BaseModelClass {
     if (tv !== null) this.tidal_volume = tv / 1000.0;
     if (pip_max !== null) this.pip_cmh2o_max = pip_max;
     this._pip_working = null; // restart from the set pressure
+  }
+
+  set_hfov(map = 10.0, amplitude = 25.0, freq = 10.0, insp_fraction = 0.33, bias_flow = 10.0) {
+    this.hfo_map_cmh2o = map;
+    this.hfo_amplitude_cmh2o = amplitude;
+    this.hfo_freq = freq;
+    this.hfo_insp_fraction = insp_fraction;
+    this.hfo_bias_flow = bias_flow;
+    this._hfo_phase = 0.0;
+    this.vent_mode = "HFOV";
   }
 
   set_cpap(cpap = 5.0, insp_flow = 8.0) {
