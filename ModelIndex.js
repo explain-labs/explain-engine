@@ -53,3 +53,4 @@ export { Ecls } from "./device_models/Ecls";
 export { Monitor } from "./device_models/Monitor";
 export { Resuscitation } from "./device_models/Resuscitation";
 export { Ventilator } from "./device_models/Ventilator";
+export { Sle6000 } from "./device_models/Sle6000";

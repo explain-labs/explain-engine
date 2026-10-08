@@ -1408,7 +1408,7 @@ export class Ventilator extends BaseModelClass {
   trigger_breath() {
     // manual breath: ignored during inspiration (as on a real ventilator — it used to restart the
     // running breath), otherwise delivered once the minimal expiratory time has passed. Works in
-    // every mode except CPAP.
+    // every mode except HFOV (in CPAP as a time-cycled breath at PIP, see cpap_cycling).
     if (!this._inspiration) this._manual_breath = true;
   }
 }
