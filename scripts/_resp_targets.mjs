@@ -100,8 +100,6 @@ export const KNOWN_FAILURES = {
   // support inflates the lung, so infants take the full support on top of their own effort
   "preterm.ps.vt_ratio": "no Hering-Breuer reflex; preterm compliance high (recalibration)",
   "term.ps.vt_ratio": "no Hering-Breuer reflex: neural Ti does not shorten under support",
-  // the expiratory valve is fixed at 10 mmHg·s/L in every mode and back-pressures adult exhalation
-  "adult.cpap.paco2_delta": "fixed 10 mmHg·s/L expiratory valve back-pressures adult exhalation",
   // a 1 kg preterm intubated with the scenario's 3.5 mm tube (clinically 2.5 mm)
   "preterm.cpap.paco2_delta": "3.5 mm ETT on a 1 kg preterm; dead-space compliance (recalibration)",
   // preterm_28wk respiratory system compliance is high for RDS
