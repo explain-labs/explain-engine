@@ -36,6 +36,7 @@ export class Ventilator extends BaseModelClass {
     this.hfo_insp_fraction = 0.33; // HFOV inspiratory fraction of the cycle (0.33 = I:E 1:2, 0.5 = 1:1)
     this.hfo_bias_flow = 10; // HFOV continuous fresh-gas (bias) flow (L/min)
     this.leak_size = 0.0; // mm, equivalent diameter of the gap around an uncuffed tube (0 = no leak)
+    this.exp_valve_resistance = 0.0; // mmHg·s/L, expiratory limb + valve (0 = auto, by circuit size)
     this.volume_guarantee = false; // PC/PS: servo the working pressure to tidal_volume (limit pip_cmh2o_max)
     this.trigger_volume_perc = 6;
     this.synchronized = false;
@@ -605,7 +606,7 @@ export class Ventilator extends BaseModelClass {
       // While the patient exhales the circuit sits above PEEP and the servo stays shut.
       this._vent_exp_valve.no_flow = false;
       this._vent_exp_valve.no_back_flow = true;
-      this._vent_exp_valve.r_for = 10;
+      this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
       this._vent_gasout.vol =
         this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
       this._pressure_servo(this._peep);
@@ -656,7 +657,7 @@ export class Ventilator extends BaseModelClass {
       // While the patient exhales the circuit sits above PEEP and the servo stays shut.
       this._vent_exp_valve.no_flow = false;
       this._vent_exp_valve.no_back_flow = true;
-      this._vent_exp_valve.r_for = 10;
+      this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
       this._vent_gasout.vol =
         this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
       this._pressure_servo(this._peep);
@@ -680,7 +681,7 @@ export class Ventilator extends BaseModelClass {
     // expiratory valve: open, reservoir pinned at CPAP so the circuit floats at CPAP
     this._vent_exp_valve.no_flow = false;
     this._vent_exp_valve.no_back_flow = true;
-    this._vent_exp_valve.r_for = 10;
+    this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
     this._vent_gasout.vol =
       this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
 
@@ -974,6 +975,26 @@ export class Ventilator extends BaseModelClass {
       this._vent_leak.is_enabled = state && this.leak_size > 0.0;
       this._vent_leak.no_flow = !(state && this.leak_size > 0.0);
     }
+  }
+
+  calc_exp_valve_resistance() {
+    // the expiratory limb and valve of the circuit. Auto (exp_valve_resistance 0) picks the circuit
+    // that goes with the tube size: ISO 80601-2-12 allows at most 6 cmH2O expiratory pressure drop at
+    // 5 L/min (neonatal), 30 L/min (paediatric) and 60 L/min (adult) circuits; real circuits sit well
+    // below that, about 14, 5 and 3 cmH2O/(L/s). A single neonatal value for every patient
+    // back-pressured adult exhalation (CPAP 0.5 rose to ~3 cmH2O in every expiration).
+    let res = this.exp_valve_resistance;
+    if (!(res > 0.0)) {
+      if (this.ettube_diameter < 4.5) res = 10.0; // neonatal circuit, ~14 cmH2O/(L/s)
+      else if (this.ettube_diameter < 6.0) res = 4.0; // paediatric, ~5 cmH2O/(L/s)
+      else res = 2.0; // adult, ~3 cmH2O/(L/s)
+    }
+    // the same explicit-integration floor as the ET tube (circuit and PEEP reservoir are coupled)
+    const r_min = Math.max(
+      this._t * ((this._vent_gascircuit?.el_eff ?? 0.0) + (this._vent_gasout?.el_eff ?? 0.0)),
+      0.1
+    );
+    return Math.max(res, r_min);
   }
 
   calc_ettube_resistance(flow) {

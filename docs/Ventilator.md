@@ -81,6 +81,7 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
 | `insp_flow` | L/min | Maximal flow of the demand valve in `PC`/`PRVC`/`PS`/`CPAP`; the delivered (constant) flow in `VC` (default 12) |
 | `leak_size` | mm | Equivalent diameter of the gap around an uncuffed tube; 0 = no leak (default). Useful range ≈ 0.5–1.25 mm neonatal, 1–3 mm adult — see *Tube leak* |
+| `exp_valve_resistance` | mmHg·s/L | Expiratory limb + valve; 0 = auto by circuit size (default) — see *Expiratory valve* |
 | `volume_guarantee` | bool | Volume guarantee on top of `PC` (incl. synchronized A/C) or `PS`: the working pressure is servoed breath-to-breath to `tidal_volume`, limited by `pip_cmh2o_max` (default false) |
 | `rise_time` | s | Pressure rise time in `PC`/`PRVC`/`PS`: the target ramps PEEP → PIP over this time (default 0.1; 0 = as fast as `insp_flow` allows) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
@@ -206,7 +207,7 @@ captured into `_pip_meas` for the mechanics read-outs.
   The result is a square pressure waveform with decelerating flow, as on a real pressure-controlled
   ventilator. Integrate inspiratory tidal volume from positive ET-tube flow, and record
   `_insp_flow_at_pause` for the resistance measurement.
-- **Expiration** — open `VENT_EXP_VALVE` (`r_for = 10`) and pin the expiratory reservoir volume to
+- **Expiration** — open `VENT_EXP_VALVE` (`r_for` from `calc_exp_valve_resistance`, see *Expiratory valve*) and pin the expiratory reservoir volume to
   hold PEEP (`vol = _peep/el_base + u_vol`). The inspiratory valve runs the pressure servo with PEEP
   as its target (a demand valve). While the patient exhales the circuit sits above PEEP and the
   servo stays shut; once the patient inhales it supplies the flow. Integrate expiratory tidal volume
@@ -372,6 +373,27 @@ the circuit then passes through that rigid lumen, so a longer or wider tube adds
 preterm_28wk, a 2.5 mm tube at 200 mm instead of 110 mm (+0.44 mL) raises PaCO₂ 81 → 91. The leak
 and the natural airway bypass the lumen. Switching the ventilator off sets `tube_volume` back to 0.
 
+## Expiratory valve
+
+`VENT_EXP_VALVE` stands for the expiratory limb and valve. `calc_exp_valve_resistance()` sets its
+`r_for` whenever the valve opens (PC/PRVC/VC/PS expiration and CPAP). With `exp_valve_resistance = 0`
+(auto) it follows the circuit that goes with the tube size:
+
+| ET tube | circuit | r_for (mmHg·s/L) | ≈ cmH₂O/(L/s) |
+|---|---|---|---|
+| < 4.5 mm | neonatal | 10 | 14 |
+| 4.5–6 mm | paediatric | 4 | 5 |
+| ≥ 6 mm | adult | 2 | 3 |
+
+ISO 80601-2-12 caps the expiratory pressure drop at 6 cmH₂O at 5, 30 and 60 L/min for the three
+circuit classes; real circuits sit well below that. A positive `exp_valve_resistance` overrides the
+auto value. The result is kept above the explicit-integration floor `dt · (E_circuit + E_reservoir)`,
+like the ET tube.
+
+> Before 2026-10 the valve was fixed at 10 mmHg·s/L for every patient. For an adult that is about
+> 14 cmH₂O/(L/s): on CPAP 0.5 the circuit rose to ~3.3 cmH₂O in every exhalation, breaths stacked
+> and PaCO₂ rose (`validate_respiratory`, `adult.cpap.paco2_delta`).
+
 ## Tube leak (`calc_leak`)
 
 The leak models gas escaping around an uncuffed tube, from the trachea (`DS`) up through the larynx
@@ -418,14 +440,12 @@ breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mj
 `Breathing` subtracts the leak flow from the airway-opening flow (see below), because gas that
 escapes around the tube never reaches the lungs.
 
-## Coupling to `Breathing` (active airway inlet)
+## Coupling to `Breathing`
 
-`Breathing` measures airway-opening flow **route-agnostically**: it sums `MOUTH_DS.flow` (natural
-airway) and `VENT_ETTUBE.flow` (ET tube), each only when that inlet is enabled and not blocked. With
-the ventilator off, `VENT_ETTUBE` is disabled so the sum collapses to `MOUTH_DS` (the spontaneous
-baseline). When the ventilator is on, `switch_ventilator(true)` blocks `MOUTH_DS` (`no_flow = true`),
-so `Breathing` reads `VENT_ETTUBE` instead (minus `VENT_LEAK` when a leak is open) — which is why the tidal-volume feedback loop keeps working
-during CPAP/PS of an intubated, spontaneously breathing patient.
+`Breathing` measures its tidal volume at the lungs (see [Breathing](./Breathing.md)), so it does not
+depend on the airway route: natural airway, ET tube or a tube leak. The Ventilator reads the
+spontaneous phase from `Breathing`: the patient trigger arms on `ncc_insp === 1` and disarms when
+`insp_running` ends, and CPAP closes out a spontaneous breath on `ncc_insp === 1`.
 
 ## ET-tube resistance (`calc_ettube_resistance`)
 
