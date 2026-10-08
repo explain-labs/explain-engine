@@ -315,7 +315,7 @@ export class Ventilator extends BaseModelClass {
     }
 
     // disarm when the effort ends or a ventilator inspiration starts
-    if (!this._breathing_model?._insp_running || this._trigger_blocked) {
+    if (!this._breathing_model?.insp_running || this._trigger_blocked) {
       this._trigger_start = false;
       this._trigger_volume_counter = 0.0;
     }
