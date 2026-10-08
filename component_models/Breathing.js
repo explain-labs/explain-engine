@@ -32,6 +32,10 @@ export class Breathing extends BaseModelClass {
     this.ncc_insp = 0; // inspiratory counter
     this.ncc_exp = 0; // expiratory counter
     this.rmp_gain = 9.5; // elastance change gain (mmHg/L)
+    this.muscle_dv_ref = 0.0; // L, thorax volume minus its unstressed volume at the patient's own FRC
+    // (captured once, breathing through the natural airway); 0 = not captured yet
+    this._v_eelv = 0.0; // thorax volume at the last end-expiration (L)
+    this._dv_provisional = false; // muscle_dv_ref taken from the loaded state, refined at the first breath
 
     // local properties
     this._eMin4 = Math.pow(Math.E, -4); // constant for Mecklenburgh function
@@ -54,6 +58,20 @@ export class Breathing extends BaseModelClass {
 
   calc_model() {
     const _weight = this._model_engine.weight;
+
+    // provisional FRC reference from the loaded state (scenario snapshots are breathing states), so a
+    // patient intubated before its first natural breath still gets one; refined at that first breath
+    if (this._v_eelv <= 0.0) {
+      const thorax = this._model_engine.models["THORAX"];
+      this._v_eelv = thorax.vol;
+      if (!(this.muscle_dv_ref < 0.0)) {
+        const dv = thorax.vol - (thorax.u_vol_eff ?? thorax.u_vol);
+        if (dv < -0.0001) {
+          this.muscle_dv_ref = dv;
+          this._dv_provisional = true;
+        }
+      }
+    }
 
     // calculate the target minute volume
     const _minute_volume_ref = this.minute_volume_ref * this.minute_volume_ref_factor * this.minute_volume_ref_scaling_factor * _weight;
@@ -92,6 +110,8 @@ export class Breathing extends BaseModelClass {
       this._exp_running = false;
       this._temp_insp_volume = 0.0;
       this.exp_tidal_volume = -this._temp_exp_volume;
+      this._capture_muscle_reference();
+      this._v_eelv = this._model_engine.models["THORAX"].vol;
 
       if (this.breathing_enabled) {
         if (Math.abs(this.exp_tidal_volume) < this.target_tidal_volume) {
@@ -167,8 +187,35 @@ export class Breathing extends BaseModelClass {
     this._rr_counter += this._t
 
 
-    //this._model_engine.models["THORAX"].pres_ext += -this.resp_muscle_pressure
-    this._model_engine.models["THORAX"].el_base_factor += this.resp_muscle_pressure
+    // The muscles act on the thorax as an elastance change (rmp_gain, mmHg/L), i.e. a pleural pressure
+    // rmp * el_base * (V - u_vol). Split V - u_vol = (EELV - u_vol) + (V - EELV): the within-breath part
+    // (V - EELV) is the physiological brake (effort fades as the chest fills) and is kept; the
+    // baseline part (EELV - u_vol) is pinned to the patient's own FRC (muscle_dv_ref). Taken literally
+    // the baseline part shrank whenever lung volume rose (CPAP, PEEP, air trapping), silently weakening
+    // the diaphragm: CPAP 5 halved the pleural swing and Vt at the same drive and sent an intubated CPAP
+    // patient into a rapid-shallow spiral. At the natural FRC this is identical to the elastance form,
+    // which is kept until the reference is known (and for a patient never seen on the natural airway).
+    const thorax = this._model_engine.models["THORAX"];
+    if (this.muscle_dv_ref < 0.0) {
+      const dv = Math.min(this.muscle_dv_ref + (thorax.vol - this._v_eelv), 0.0);
+      thorax.pres_ext += this.resp_muscle_pressure * thorax.el_base * dv;
+    } else {
+      thorax.el_base_factor += this.resp_muscle_pressure;
+    }
+  }
+
+  _capture_muscle_reference() {
+    // the reference is the end-expiratory thorax volume while breathing spontaneously through the
+    // natural airway (not on a ventilator, which shifts FRC), taken once
+    if ((this.muscle_dv_ref < 0.0 && !this._dv_provisional) || !this.breathing_enabled) return;
+    const mouth_ds = this._model_engine.models["MOUTH_DS"];
+    if (!mouth_ds || mouth_ds.no_flow) return;
+    const thorax = this._model_engine.models["THORAX"];
+    const dv = thorax.vol - (thorax.u_vol_eff ?? thorax.u_vol);
+    if (dv < -0.0001) {
+      this.muscle_dv_ref = dv;
+      this._dv_provisional = false;
+    }
   }
 
   vt_rr_controller(_weight) {
