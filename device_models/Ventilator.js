@@ -789,6 +789,9 @@ export class Ventilator extends BaseModelClass {
     }
     this._insp_tidal_volume_counter = 0.0;
     this._exp_tidal_volume_counter = 0.0;
+    // the volume trace restarts each oscillation, as it does at each breath in the other modes;
+    // without it the bias-flow offset makes the integrated volume drift away
+    this.vol = 0.0;
     this._hfo_p_max = -1e9;
     this._hfo_p_min = 1e9;
     this._hfo_p_sum = 0.0;
