@@ -10,8 +10,10 @@
 //   cpap      intubated, CPAP 5
 //   ps        intubated, PS 10 above PEEP 5 (also counts triggering)
 //   flowtrig  as ps, with a flow trigger instead of the volume trigger (0.6 L/min; 0.3 below 2 kg,
-//             where clinicians set the most sensitive setting that doesn't auto-trigger)
-//   simv      SIMV at half the spontaneous rate, PS 5, flow trigger: the mandatory rate holds and
+//             where clinicians set the most sensitive setting that doesn't auto-trigger) and 5 %
+//             termination: in a short-time-constant (RDS) lung 30 % ends the breath well inside the
+//             neural inspiration and the ongoing effort triggers a second breath (double triggering)
+//   simv      SIMV at half the spontaneous rate, PS 5, flow trigger, 5 % termination: the mandatory rate holds and
 //             the efforts between mandatory breaths are supported
 //   apnea     drive off: no muscle effort
 //   cstat     drive off, PC 15/5 with a 0.2 s pause: static compliance per kg
@@ -149,7 +151,9 @@ async function runChild(scenario) {
     for (let i = 0; i < Math.round(seconds / dt); i++) {
       eng.calc(dt);
       if (B.ncc_insp === 1) { n.efforts++; if (V._trigger_blocked) n.blocked++; }
-      if (!prevInsp && V._inspiration) {
+      // breaths count from the first effort in the window on, so an effort that started just before
+      // it can't leave a triggered breath without its effort (a one-breath edge effect)
+      if (!prevInsp && V._inspiration && n.efforts > 0) {
         if (V._ps_breath) n.supported++;
         if (V.triggered_breath && !V._mandatory_breath) n.triggered++;
         else n.mandatory++;
@@ -175,6 +179,7 @@ async function runChild(scenario) {
       V.set_psv(15, 5, 10, ownTi(m), flow);
       V.trigger_mode = "flow";
       V.trigger_flow = def.weight < 2 ? 0.3 : 0.6;
+      V.term_sens_perc = 5;
     });
     eng.calc(SETTLE);
     out.cases.flowtrig = { trigger_frac: countBreaths(m, V).trigger_frac };
@@ -188,6 +193,7 @@ async function runChild(scenario) {
       V.ps_cmh2o = 5;
       V.trigger_mode = "flow";
       V.trigger_flow = def.weight < 2 ? 0.3 : 0.6;
+      V.term_sens_perc = 5; // as in flowtrig
     });
     eng.calc(SETTLE);
     // a minute, so the count covers enough windows at an adult's low rate
@@ -197,7 +203,13 @@ async function runChild(scenario) {
     out.cases.simv = {
       rate, ...n,
       window_breath_ratio: (n.triggered - n.supported + n.mandatory) / windows,
-      supported_frac: n.efforts - n.blocked > windows ? n.supported / (n.efforts - n.blocked - windows) : NaN,
+      // efforts left after the synchronised window breaths (each takes one effort; a mandatory,
+      // untriggered window breath takes none). Efforts that start inside a ventilator breath stay in:
+      // with a flow trigger they can still trigger once that breath ends
+      supported_frac:
+        n.efforts - (n.triggered - n.supported) > 0
+          ? n.supported / (n.efforts - (n.triggered - n.supported))
+          : NaN,
     };
   }
   if (want("apnea")) {
