@@ -55,7 +55,9 @@ const cfg = {
   // saturation up while the ductal R->L drives a clear pre-/post-ductal differential; modest
   // intrapulmonary shunt (higher ips_res => less admixture) for a realistic V-Q-mismatch component
   shunts: { pda: 1.0, fo: 2.5, ips_res: 6000 },
-  vent: { fio2: 1.0, pip: 14, peep: 5, rate: 30 },
+  // lungs: el_base x1.7846 with term_neonate's 2026-10-08 recalibration (Cstat 1.5 -> 1.0 mL/cmH2O/kg);
+  // PIP raised to restore the previous PaCO2 on the stiffer lungs (engine PR fix/lung-compliance-derived)
+  vent: { fio2: 1.0, pip: 17, peep: 5, rate: 30 },
   desc:
     "term 3.5 kg neonate with severe idiopathic persistent pulmonary hypertension of the newborn (PPHN): " +
     "a structurally normal heart and near-normal lung parenchyma with a maladapted, remodelled pulmonary " +
