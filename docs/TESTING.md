@@ -116,6 +116,8 @@ model). The battery:
 | `stiff` | lung elastance ×2 | rapid shallow breathing: Vt down, RR up |
 | `cpap` | intubated, CPAP 5 | Vt and PaCO2 close to baseline |
 | `ps` | intubated, PS 10 above PEEP 5 | Vt up, effort down, triggered fraction of efforts |
+| `flowtrig` | as `ps`, flow trigger 0.6 L/min (0.3 below 2 kg) | triggered fraction of efforts |
+| `simv` | SIMV at half the spontaneous rate, PS 5, flow trigger | one mandatory or synchronised breath per window, the other efforts supported |
 | `apnea` | drive off | no muscle pressure |
 | `cstat` | drive off, PC 15/5 with a pause | static compliance per kg |
 | `hfov` | preterm only: f 8/10/12 Hz, amplitude 20 → 30 | PaCO2·DCO2 constant, PaCO2 falls with amplitude |

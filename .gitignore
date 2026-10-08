@@ -7,3 +7,7 @@ node_modules/
 # results and cheap to regenerate; the canonical figure assets live in the
 # thesis repo, which invokes the script with --out.
 scripts/sa/results/figures/
+
+# Vendor manuals used as modelling references (copyrighted, never committed; docs cite page numbers)
+SLE6000_technical.pdf
+*_technical.pdf

@@ -21,20 +21,25 @@ reaches into them by name to set valve states, resistances and reservoir volumes
 
 ## What it models
 
-- An ET-tube-coupled mechanical ventilator with six modes: pressure control (`PC`), pressure-regulated
-  volume control (`PRVC`), volume control (`VC`), pressure support (`PS`), continuous positive
-  airway pressure (`CPAP`), and high-frequency oscillation (`HFOV`).
-- Time-cycled (`PC`/`PRVC`/`VC`) and flow-cycled (`PS`) breath delivery, with patient trigger
-  detection off the `Breathing` model: always on in `PS` (pressure support is patient-triggered),
-  optional (`synchronized`) in the time-cycled modes. `PS` also carries a time-cycled mandatory
-  backup so it delivers breaths during apnea.
+- An ET-tube-coupled mechanical ventilator with seven modes: pressure control (`PC`),
+  pressure-regulated volume control (`PRVC`), volume control (`VC`), pressure support (`PS`),
+  synchronised intermittent mandatory ventilation (`SIMV`, with optional pressure support),
+  continuous positive airway pressure (`CPAP`, with an optional apnoea backup rate), and
+  high-frequency oscillation (`HFOV`).
+- Time-cycled (`PC`/`PRVC`/`VC`) and flow-cycled (`PS`, SIMV support breaths) breath delivery, with
+  patient triggering: always on in `PS` and `SIMV`, optional (`synchronized`) in the time-cycled
+  modes. The trigger is a volume trigger off the `Breathing` effort, or a flow trigger at the tube
+  (`trigger_mode`). `PS` also carries a time-cycled mandatory backup so it delivers breaths during
+  apnea.
 - An optional end-inspiratory pause (`insp_pause`) that produces a plateau pressure, enabling measured
   static compliance and airway resistance.
 - A flow-, diameter- and length-dependent ET-tube resistance (Rohrer form, symmetric in inspiration
   and expiration, valid from neonatal 2.5 mm to adult 9 mm tubes).
 - A heated humidifier: the fresh gas and the circuit are held at `temp` / `humidity`.
 - Per-breath read-outs: tidal volumes, minute volume, dynamic & static compliance, measured peak /
-  plateau pressure and airway resistance, end-tidal CO₂.
+  plateau pressure and airway resistance, end-tidal CO₂, and the monitored values a ventilator
+  screen shows: mean airway pressure, measured Ti / Te / I:E, rate, triggers per minute and
+  dynamic resistance.
 
 ## Gas circuit (owned sub-models)
 
@@ -89,8 +94,12 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `ps_cmh2o` | cmH₂O | Pressure support level **above PEEP** in `PS` (default 10); the PS target is `peep_cmh2o + ps_cmh2o` |
 | `pip_cmh2o_max` | cmH₂O | Pressure limit of the volume-targeted modes (PRVC, volume guarantee); the VC pop-off (default 14) |
 | `peep_cmh2o` | cmH₂O | Positive end-expiratory pressure / CPAP level (default 3) |
-| `trigger_volume_perc` | % | Trigger volume as a percent of `tidal_volume` (default 6) |
-| `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` always triggers; ignored in `CPAP` |
+| `trigger_volume_perc` | % | Trigger volume as a percent of `tidal_volume` (default 6), with `trigger_mode` `"volume"` |
+| `trigger_mode` | string | `"volume"` (default): `trigger_volume_perc` of the set Vt during a patient effort; `"flow"`: `trigger_flow` at the tube |
+| `trigger_flow` | L/min | Flow-trigger threshold: inspiratory flow at the tube during expiration (default 0.6) |
+| `term_sens_perc` | % | Termination sensitivity: a `PS` (or SIMV support) breath cycles off when inspiratory flow falls below this % of its peak (default 30) |
+| `backup_rate` | /min | `CPAP` apnoea backup: a time-cycled breath at `pip_cmh2o`/`insp_time` after `60/backup_rate` s without a spontaneous effort (default 0 = off) |
+| `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` and `SIMV` always trigger; ignored in `CPAP` |
 
 ### Computed (dependent) read-outs
 
@@ -119,6 +128,12 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `pip_delivered` | cmH₂O | The inspiratory pressure target in use: `pip_cmh2o` (PC), `peep + ps_cmh2o` (PS), or the working pressure in PRVC / volume guarantee |
 | `leak_perc` | % | Per-breath leak at the tube flow sensor, `(Vti − Vte)/Vti` |
 | `pressure_limited` | bool | Volume-targeted modes: working pressure at `pip_cmh2o_max` while Vt is still below target (the "Vt low / Pmax reached" alarm condition) |
+| `map_meas` | cmH₂O | Mean airway pressure over the last breath; without breaths (CPAP, HFOV, apnoea) over 3 s blocks |
+| `ti_meas` / `te_meas` | s | Measured inspiratory time of the last breath and the expiratory time before it |
+| `ie_ratio_meas` | – | `te_meas / ti_meas` (shown as 1:x) |
+| `rr_meas` | /min | Breath-averaged delivered rate; in CPAP the patient's rate while breathing |
+| `trig_per_min` | /min | Patient-triggered ventilator breaths over the last 60 s |
+| `r_dyn` | cmH₂O/(L/s) | `(p_peak − PEEP) / peak expiratory flow` of the last breath, the dynamic resistance neonatal ventilators report |
 
 ### Internal (`_`-prefixed)
 
@@ -140,17 +155,22 @@ cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `
 1. On the first step, apply the humidifier settings (`_apply_humidifier`, see below). Convert
    `pip_cmh2o` (in `PS`: `peep_cmh2o + ps_cmh2o`) / `pip_cmh2o_max` / `peep_cmh2o` to mmHg
    (`÷ 1.35951`) into `_pip`/`_pip_max`/`_peep`.
-2. If the mode is `PS`, or `synchronized` is set and the mode is not CPAP, run `triggering()`.
+2. If the mode is `PS` or `SIMV`, or `synchronized` is set and the mode is not CPAP or HFOV, run
+   `triggering()`.
 3. Dispatch on `vent_mode`:
    - `PC` / `PRVC` → `time_cycling()` then `pressure_control()`
    - `VC` → `time_cycling()` then `volume_control()`
    - `PS` → `flow_cycling()` then `pressure_control()`
-   - `CPAP` → `cpap_control()`
+   - `SIMV` → `simv_cycling()` then `pressure_control()`
+   - `CPAP` → `cpap_cycling()` (`cpap_control()`, or a backup/manual breath)
+   - `HFOV` → `hfov_control()`
 4. Publish read-outs: airway `pres`, `flow` (ET-tube flow × 60), integrate `vol`, sample `co2` from
    `DS`, set `minute_volume` (using the breath-averaged measured rate whenever the patient can
    trigger; CPAP reports a spontaneous minute volume), advance the breath-interval counter, and refresh the ET-tube resistance. Compliance and
    resistance are **not** touched here — they are measured once per breath (see
    `calc_measured_mechanics`), so `calc_model` must not clobber them.
+5. `_calc_monitoring()` gathers the monitored values: expiratory time and peak expiratory flow,
+   the mean-pressure integral, `rr_meas` and the 60 s trigger count.
 
 ### Breath cycle counters (`ncc_insp` / `ncc_exp`)
 
@@ -191,7 +211,7 @@ During the flow phase the routine also tracks the peak circuit pressure into `_p
 
 Pressure support is patient-triggered and **flow-cycled**: a breath begins on a patient trigger
 (`triggered_breath` with rising ET-tube flow), the routine tracks `_peak_flow`, and cycles to
-expiration when flow falls below **30 % of peak** — or, as a safety limit, when the breath reaches
+expiration when flow falls below **`term_sens_perc` of peak** (default 30 %) — or, as a safety limit, when the breath reaches
 `insp_time` (Ti max, for when flow never decays). It also runs a **time-cycled mandatory backup**:
 if no breath has started within `60/vent_rate` (tracked breath-start to breath-start via
 `_breath_interval_counter`), it delivers a mandatory, time-cycled breath (terminated at `insp_time`).
@@ -265,6 +285,32 @@ exists (`insp_pause > 0`), `compliance_static = Vt / (p_plat − PEEP)` and
 `resistance = (p_peak − p_plat) / flow` with `flow` the interrupted ET-tube flow (`_insp_flow_at_pause`,
 L/s). Without a plateau, `compliance_static = 0` and `resistance = null`.
 
+### `simv_cycling` (SIMV)
+
+The mandatory rate divides time into windows of `60/vent_rate`. Each window opens with an **assist
+window**: the first patient trigger gets a synchronised mandatory breath (PIP, `insp_time`) and
+closes the assist window until the next window starts. Without a trigger by the **mandatory breath
+point** (`window − insp_time`) a mandatory breath is delivered, so it completes inside its window.
+Later triggers in the same window are spontaneous breaths: with `ps_cmh2o > 0` they get pressure
+support (`peep + ps_cmh2o`, flow-cycled at `term_sens_perc`, Ti max `insp_time`), otherwise the
+patient breathes unsupported on PEEP.
+
+- The support pressure never exceeds the mandatory pressure. With volume guarantee that is the
+  working pressure, so the support can't out-ventilate the volume target.
+- Volume guarantee trims the working pressure on mandatory breaths only.
+- Unsupported spontaneous breaths are not closed out as breaths. Their exhaled volume adds to the
+  Vte of the next mandatory breath, as the expired volume of a whole window. With volume guarantee
+  and no support this under-trims the mandatory pressure.
+
+### `cpap_cycling` (CPAP with apnoea backup)
+
+`cpap_control()` runs unless a backup or manual breath is due. With `backup_rate > 0`, an apnoea
+timer runs from the start of the last breath and restarts on every spontaneous effort
+(`Breathing.ncc_insp === 1`). When it passes `60/backup_rate`, or when a manual breath is due
+(`trigger_breath`), a time-cycled breath is delivered at `pip_cmh2o` for `insp_time` through
+`pressure_control()`, after which CPAP resumes. A backup rate of 30 during apnoea gives 30 breaths
+per minute.
+
 ### `cpap_control` (CPAP / PS coupling to spontaneous breathing)
 
 CPAP holds the circuit at the CPAP level (= `peep_cmh2o`) and lets the patient breathe spontaneously
@@ -311,9 +357,17 @@ Verified (`term_neonate` unless noted):
 - Lung made twice as soft: Vt is capped at about 19.5 mL (130 %) while the pressure is trimmed
   down.
 
-### `triggering` (`PS`, and synchronized time-cycled modes)
+### `triggering` (`PS`, `SIMV`, and synchronized time-cycled modes)
 
-Sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` (the
+**Flow trigger** (`trigger_mode = "flow"`, `flow_triggering()`): inspiratory flow at the tube above
+`trigger_flow` (L/min) during expiration forces the breath, as a ventilator with a proximal flow
+sensor does. It is armed once the minimal expiratory time (`_min_exp_time`) has passed, so the end
+of the previous breath cannot re-trigger. With the 0.6 L/min default it triggers every effort on
+`term_neonate` and `adult_female` in PS (`validate:resp`, case `flowtrig`). A 28-week preterm's
+efforts peak at ~0.5 L/min through the tube on PS, so they need a lower threshold; see the
+suite's known failures.
+
+**Volume trigger** (`trigger_mode = "volume"`, the default) sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` (the
 onset of a patient effort) and the trigger is not blocked, it arms `_trigger_start` with a zeroed
 `_trigger_volume_counter` and integrates **inspiratory** ET-tube flow only (`max(flow, 0)`), so the
 expiratory tail of the previous breath cannot cancel the effort. It disarms (counter back to 0) when
@@ -432,7 +486,8 @@ breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mj
   the pressure to its limit. The lung then gets *more* than the target (18 mL against 15), bounded
   only by the 130 % inspired-volume guard. This is the clinical reason VG is unreliable with large
   leaks.
-- **PS cycles on Ti max.** The leak keeps inspiratory flow from decaying to 30 % of peak.
+- **PS cycles on Ti max.** The leak keeps inspiratory flow from decaying to `term_sens_perc` of
+  peak.
 - **Dead-space flush.** The continuous leak flow through `DS` washes out CO₂, which lowers PaCO₂
   a little, much like tracheal gas insufflation.
 - **VC is not compensated.** Leaked gas is lost from the set volume.
@@ -489,8 +544,9 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
 | `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`pip` absolute → `ps_cmh2o = pip − peep`; `rate` = backup rate; `t_in` = backup Ti and Ti max) |
 | `set_hfov(map, amplitude, freq, insp_fraction, bias_flow)` | Configure HFOV (cmH₂O, cmH₂O peak-to-peak, Hz, fraction, L/min) |
-| `set_volume_guarantee(state, tv, pip_max)` | Volume guarantee on/off for PC/PS; optional target `tv` (mL) and pressure limit `pip_max` (cmH₂O); restarts the working pressure |
-| `set_cpap(cpap, insp_flow)` | Configure CPAP (`cpap` → `peep_cmh2o`) |
+| `set_simv(pip, peep, rate, t_in, ps, insp_flow)` | Configure SIMV: mandatory breaths at `pip`/`rate`/`t_in`, spontaneous breaths supported by `ps` above PEEP (0 = unsupported) |
+| `set_volume_guarantee(state, tv, pip_max)` | Volume guarantee on/off for PC/PS/SIMV; optional target `tv` (mL) and pressure limit `pip_max` (cmH₂O); restarts the working pressure |
+| `set_cpap(cpap, insp_flow, backup_rate)` | Configure CPAP (`cpap` → `peep_cmh2o`; optional apnoea `backup_rate`, /min, 0 = off) |
 | `set_pause(seconds)` | Set the end-inspiratory hold for any time-cycled mode (clamped `< insp_time`) |
 | `set_fio2(new_fio2)` | Re-derive fresh-gas composition (a fraction ≤ 1, or a percentage > 1) |
 | `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition (both `VENT_GASIN` and `VENT_GASCIRCUIT`), and push the new humidity / temperature onto those compartments — see note below |
@@ -559,8 +615,9 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
   `set_psv` / `set_cpap`.
 - The [`Resuscitation`](./Resuscitation.md) model drives the ventilator during CPR (`switch_cpr`
   starts it in PC and pulses `trigger_breath()` for the ventilation pauses).
-- The [`Breathing`](./Breathing.md) model reads `VENT_ETTUBE` as its airway inlet whenever the
-  ventilator has blocked `MOUTH_DS`, so spontaneous tidal-volume feedback continues during CPAP/PS.
+- The [`Breathing`](./Breathing.md) model measures its tidal volume at the lungs, so spontaneous
+  tidal-volume feedback continues during CPAP/PS whatever the airway route (see "Coupling to
+  `Breathing`").
 
 ## Notes & caveats
 

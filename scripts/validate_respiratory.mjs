@@ -9,6 +9,10 @@
 //   stiff     lung elastance x2
 //   cpap      intubated, CPAP 5
 //   ps        intubated, PS 10 above PEEP 5 (also counts triggering)
+//   flowtrig  as ps, with a flow trigger instead of the volume trigger (0.6 L/min; 0.3 below 2 kg,
+//             where clinicians set the most sensitive setting that doesn't auto-trigger)
+//   simv      SIMV at half the spontaneous rate, PS 5, flow trigger: the mandatory rate holds and
+//             the efforts between mandatory breaths are supported
 //   apnea     drive off: no muscle effort
 //   cstat     drive off, PC 15/5 with a 0.2 s pause: static compliance per kg
 //   hfov      (preterm class only) PaCO2·DCO2 over f = 8/10/12 Hz and an amplitude step
@@ -135,26 +139,66 @@ async function runChild(scenario) {
     eng.calc(SLOW);
     out.cases.cpap = spont(m);
   }
-  if (want("ps")) {
-    const m = build();
-    const B = m.models.Breathing;
-    // Ti max at the patient's own inspiratory time, as set clinically; a longer one over-assists and
-    // the patient's next effort falls in the ventilator's expiration (ineffective efforts)
-    const ti = (m.models.Breathing.ie_ratio * 60) / Math.max(m.models.Breathing.resp_rate, 1);
-    const V = intubate(m, (V) => V.set_psv(15, 5, 10, ti, flow));
-    eng.calc(SLOW - 2 * WINDOW);
-    // efforts outside ventilator inspiration and how many became patient-triggered breaths (same
-    // counting as probe_ventilator_trigger.mjs, at step resolution)
-    const dt = m.modeling_stepsize;
-    let efforts = 0, blocked = 0, triggered = 0, prevInsp = V._inspiration;
-    for (let i = 0; i < Math.round(WINDOW / dt); i++) {
+  // efforts outside ventilator inspiration and how the ventilator answered them (same counting as
+  // probe_ventilator_trigger.mjs, at step resolution): triggered = patient-triggered breaths (SIMV
+  // synchronised + supported), mandatory = time-cycled breaths
+  const countBreaths = (m, V, seconds = WINDOW) => {
+    const B = m.models.Breathing, dt = m.modeling_stepsize;
+    const n = { efforts: 0, blocked: 0, triggered: 0, supported: 0, mandatory: 0 };
+    let prevInsp = V._inspiration;
+    for (let i = 0; i < Math.round(seconds / dt); i++) {
       eng.calc(dt);
-      if (B.ncc_insp === 1) { efforts++; if (V._trigger_blocked) blocked++; }
-      if (!prevInsp && V._inspiration && V.triggered_breath && !V._mandatory_breath) triggered++;
+      if (B.ncc_insp === 1) { n.efforts++; if (V._trigger_blocked) n.blocked++; }
+      if (!prevInsp && V._inspiration) {
+        if (V._ps_breath) n.supported++;
+        if (V.triggered_breath && !V._mandatory_breath) n.triggered++;
+        else n.mandatory++;
+      }
       prevInsp = V._inspiration;
     }
-    const ps = spont(m);
-    out.cases.ps = { ...ps, trigger_frac: efforts > blocked ? triggered / (efforts - blocked) : 0 };
+    n.trigger_frac = n.efforts > n.blocked ? n.triggered / (n.efforts - n.blocked) : 0;
+    return n;
+  };
+  // Ti max at the patient's own inspiratory time, as set clinically; a longer one over-assists and
+  // the patient's next effort falls in the ventilator's expiration (ineffective efforts)
+  const ownTi = (m) => (m.models.Breathing.ie_ratio * 60) / Math.max(m.models.Breathing.resp_rate, 1);
+  if (want("ps")) {
+    const m = build();
+    const V = intubate(m, (V) => V.set_psv(15, 5, 10, ownTi(m), flow));
+    eng.calc(SLOW - 2 * WINDOW);
+    const n = countBreaths(m, V);
+    out.cases.ps = { ...spont(m), trigger_frac: n.trigger_frac };
+  }
+  if (want("flowtrig")) {
+    const m = build();
+    const V = intubate(m, (V) => {
+      V.set_psv(15, 5, 10, ownTi(m), flow);
+      V.trigger_mode = "flow";
+      V.trigger_flow = def.weight < 2 ? 0.3 : 0.6;
+    });
+    eng.calc(SETTLE);
+    out.cases.flowtrig = { trigger_frac: countBreaths(m, V).trigger_frac };
+  }
+  if (want("simv")) {
+    const m = build();
+    const rate = Math.max(5, Math.round(m.models.Breathing.resp_rate / 2));
+    const V = intubate(m, (V) => {
+      V.set_pc(15, 5, rate, ownTi(m), flow);
+      V.vent_mode = "SIMV";
+      V.ps_cmh2o = 5;
+      V.trigger_mode = "flow";
+      V.trigger_flow = def.weight < 2 ? 0.3 : 0.6;
+    });
+    eng.calc(SETTLE);
+    // a minute, so the count covers enough windows at an adult's low rate
+    const n = countBreaths(m, V, 60);
+    // every window gets exactly one synchronised or mandatory breath; the rest are supported
+    const windows = rate;
+    out.cases.simv = {
+      rate, ...n,
+      window_breath_ratio: (n.triggered - n.supported + n.mandatory) / windows,
+      supported_frac: n.efforts - n.blocked > windows ? n.supported / (n.efforts - n.blocked - windows) : NaN,
+    };
   }
   if (want("apnea")) {
     const m = build();
@@ -260,6 +304,11 @@ function evaluate(r) {
     add("ps.ppl_swing_ratio", c.ps.ppl_swing / c.cpap.ppl_swing, R.ps_ppl_swing_ratio);
     add("ps.paco2_delta", c.ps.paco2 - c.cpap.paco2, R.ps_paco2_delta);
     add("ps.trigger_frac", c.ps.trigger_frac, R.ps_trigger_frac);
+  }
+  if (c.flowtrig) add("flowtrig.trigger_frac", c.flowtrig.trigger_frac, R.flowtrig_trigger_frac);
+  if (c.simv) {
+    add("simv.window_breath_ratio", c.simv.window_breath_ratio, R.simv_window_breath_ratio);
+    add("simv.supported_frac", c.simv.supported_frac, R.simv_supported_frac);
   }
   if (c.apnea) add("apnea.muscle", Math.abs(c.apnea.rmp), R.apnea_effort);
   if (c.cstat) add("cstat.cstat_kg", c.cstat.cstat_kg, t.cstat_kg);
