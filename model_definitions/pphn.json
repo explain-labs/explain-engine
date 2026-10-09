@@ -6441,6 +6441,7 @@
     "description": "mechanical ventilator model",
     "is_enabled": true,
     "model_type": "Sle6000",
+    "sle_rise": 0.1,
     "sle_mode": "CMV",
     "sle_rr": 30,
     "sle_ti": 0.4,

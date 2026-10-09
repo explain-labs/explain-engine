@@ -3,6 +3,13 @@ import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, sle_defaults, sle_clamp, sle_inte
 
 const MBAR_TO_CMH2O = 1.01972;
 const HFO_BIAS_FLOW = 8.0; // l/min, the continuous flow (p24); an assumption for HFO
+// The response of the delivered (Y-piece) pressure to its target: the jets at the exhalation block
+// and their pressure loop are not instantaneous, and the pressure is read at the Y-piece past the
+// limbs. The manual gives no figure, so this is an assumption, calibrated on a reference PV loop of
+// a healthy 3.5 kg neonate on 14/4 (a first-order response with Rise time 0.1 s):
+//   volume in at 90 % of PIP: 11 % ideal (Rise 0.04) -> ~25 % (reference ~26 %)
+//   volume left when the pressure is back at PEEP + 10 %: 93 % ideal -> ~84 % (reference ~84 %)
+const PRES_RESPONSE_TAU = 0.012; // s
 
 export class Sle6000 extends Ventilator {
   // static properties
@@ -366,6 +373,7 @@ export class Sle6000 extends Ventilator {
     const r_mbar = this.sle_circuit === 15 ? 2.0 : 6.0; // mbar/(l/s)
     this.exp_valve_resistance = (r_mbar * MBAR_TO_CMH2O) / 1.35951; // mmHg·s/L
     this.insp_flow = this.sle_circuit === 15 ? 40.0 : 20.0; // l/min
+    this.pres_response_tau = PRES_RESPONSE_TAU;
   }
 
   _calc_o2_boost() {

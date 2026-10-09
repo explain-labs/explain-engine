@@ -6485,6 +6485,7 @@
     "description": "mechanical ventilator model",
     "is_enabled": false,
     "model_type": "Sle6000",
+    "sle_rise": 0.1,
     "components": {
      "VENT_GASIN": {
       "name": "VENT_GASIN",

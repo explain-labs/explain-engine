@@ -37,7 +37,9 @@ function count(m, V, seconds) {
   for (let i = 0; i < Math.round(seconds / dt); i++) {
     eng.calc(dt);
     if (B.ncc_insp === 1) { n.efforts++; if (V._trigger_blocked) n.blocked++; }
-    if (!prev && V._inspiration) {
+    // a breath counts once an effort has been seen in the window, so a breath triggered by an
+    // effort just before the window doesn't count without its effort (window-edge artefact)
+    if (!prev && V._inspiration && (n.efforts > 0 || !B.breathing_enabled)) {
       if (V._ps_breath) n.supported++;
       if (V.triggered_breath && !V._mandatory_breath) n.triggered++;
       else n.mandatory++;
@@ -154,6 +156,30 @@ function count(m, V, seconds) {
 {
   const { m, V } = start({ mode: "CMV", circuit: 15 });
   check("15 mm circuit compliance (ml/cmH2O)", 1000 / (m.models.VENT_GASCIRCUIT.el_base * 1.35951), 1.0, 1.1);
+}
+
+// 9b. PV-loop shape (CMV 14/4, Rise 0.1, breathing off): the 12 ms pressure response rounds the
+// corners as on a reference loop of a healthy 3.5 kg neonate (~26 % in at 90 % of PIP, ~84 % left
+// when the pressure is back at PEEP + 10 %)
+{
+  const { m, V } = start({ mode: "CMV", pip: 14 / 1.01972, peep: 4 / 1.01972, rr: 40, ti: 0.4, rise: 0.1 }, (m) => m.models.Breathing.switch_breathing(false));
+  eng.calc(30);
+  const dt = m.modeling_stepsize, pts = [];
+  let prev = V._inspiration, started = false;
+  for (let i = 0; i < 4 / dt; i++) {
+    eng.calc(dt);
+    if (!prev && V._inspiration) { if (started) break; started = true; }
+    prev = V._inspiration;
+    if (started) pts.push([V.pres, V.vol]);
+  }
+  const vt = Math.max(...pts.map((p) => p[1]));
+  const pip = Math.max(...pts.map((p) => p[0])), peep = pts.at(-1)[0];
+  const iR = pts.findIndex((p) => p[0] >= peep + 0.9 * (pip - peep));
+  const iMax = pts.findIndex((p) => p[1] === vt);
+  const iF = pts.findIndex((p, i) => i > iMax && p[0] <= peep + 0.1 * (pip - peep));
+  check("PV loop: volume in at 90 % of PIP (%)", (100 * pts[iR][1]) / vt, 18, 35);
+  check("PV loop: volume left back at PEEP + 10 % (%)", (100 * pts[iF][1]) / vt, 75, 90);
+  check("scenario starts with Rise 0.1 s", V.sle_rise, 0.1, 0.1);
 }
 
 // 10. HFOV: MAP, ΔP, frequency and I:E delivered; VTV; settings
