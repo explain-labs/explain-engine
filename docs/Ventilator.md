@@ -86,6 +86,7 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `hfo_freq` | Hz | HFOV frequency (default 10) |
 | `hfo_insp_fraction` | fraction | HFOV inspiratory fraction of the cycle: 0.33 = I:E 1:2 (default), 0.5 = 1:1 |
 | `hfo_bias_flow` | L/min | HFOV continuous fresh-gas (bias) flow (default 10) |
+| `pres_response_tau` | s | First-order response of the delivered pressure to its target in `pressure_control` and `cpap_control` (0 = ideal, the default; the Sle6000 uses 0.012) |
 | `hfo_volume_guarantee` | bool | HFOV volume targeting: servo the amplitude to `hfo_tidal_volume_target` (default false) |
 | `hfo_tidal_volume_target` | L | HFOV expired volume per oscillation to aim for (default 0.002) |
 | `hfo_amplitude_max_cmh2o` | cmH₂O | HFOV volume targeting: the amplitude limit (default 40) |
@@ -254,6 +255,19 @@ captured into `_pip_meas` for the mechanics read-outs.
   > into a ~0.46 s effort). During CPR, compressions also pumped the lungs empty through that exit,
   > so rescue breaths reached only about half the set PIP. With the demand valve, PS triggers 34
   > of 38 efforts at ~0.15–0.2 s, and synchronized PC goes from 10 to 28 triggered breaths/min.
+
+### Pressure response (`_respond`)
+
+With `pres_response_tau > 0`, the pressure target of `pressure_control` (the PEEP to PIP ramp, and
+PEEP in expiration) and the CPAP level pass through a first-order filter before the demand servo
+and the PEEP reservoir see them:
+
+`f += (target − f) · min(1, dt / τ)`
+
+A real ventilator's valves or jets and its pressure loop have a finite speed, and its sensor sits
+at the Y-piece. Without the filter the circuit tracks the target within a step, and the PV loop
+comes out as a sharp-cornered box. VC and HFO do not use it; they reset the filter state. See
+[Sle6000](./Sle6000.md) for the 12 ms value and its calibration.
 
 ### `_pressure_servo(target)` (demand valve)
 

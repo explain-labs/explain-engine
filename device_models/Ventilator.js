@@ -30,6 +30,7 @@ export class Ventilator extends BaseModelClass {
     this.peep_cmh2o = 3;
     this.ps_cmh2o = 10; // pressure support level ABOVE peep (PS mode only)
     this.rise_time = 0.1; // s, PEEP -> PIP ramp of the pressure target in PC/PRVC/PS (0 = fastest)
+    this.pres_response_tau = 0.0; // s, first-order response of the delivered pressure to its target (0 = ideal)
     this.hfo_map_cmh2o = 10; // HFOV mean airway pressure
     this.hfo_amplitude_cmh2o = 25; // HFOV peak-to-peak pressure swing at the circuit
     this.hfo_freq = 10; // HFOV frequency (Hz)
@@ -132,6 +133,7 @@ export class Ventilator extends BaseModelClass {
     this._manual_breath = false;
     this._humidifier_applied = false;
     this._servo_gain = 0.8; // fraction of the circuit pressure error corrected per step
+    this._p_target_f = null; // mmHg, the pressure target after the response filter (pres_response_tau)
     this._pip_working = null; // cmH2O, volume-targeted working pressure (PRVC / volume guarantee)
     this._pip_working_mode = ""; // mode the working pressure was initialised for
     this._vt_gain = 0.5; // fraction of the tidal-volume error corrected per breath
@@ -795,7 +797,7 @@ export class Ventilator extends BaseModelClass {
       // square and the flow decelerates as the lung fills — as on a real PC/PS ventilator.
       const ramp =
         this.rise_time > 0.0 ? Math.min(1.0, this._insp_time_counter / this.rise_time) : 1.0;
-      this._pressure_servo(this._peep + (this._pip - this._peep) * ramp);
+      this._pressure_servo(this._respond(this._peep + (this._pip - this._peep) * ramp));
 
       if (this._vent_ettube.flow > 0) {
         this._insp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -811,9 +813,9 @@ export class Ventilator extends BaseModelClass {
       this._vent_exp_valve.no_flow = false;
       this._vent_exp_valve.no_back_flow = true;
       this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-      this._vent_gasout.vol =
-        this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
-      this._pressure_servo(this._peep);
+      const p_exp = this._respond(this._peep);
+      this._vent_gasout.vol = p_exp / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+      this._pressure_servo(p_exp);
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -821,7 +823,21 @@ export class Ventilator extends BaseModelClass {
     }
   }
 
+  _respond(target) {
+    // the delivered pressure follows its target with a first-order response (pres_response_tau):
+    // a real ventilator's valves or jets and its pressure loop have a finite speed, and its sensor
+    // sits at the Y-piece, past the limbs. This rounds the corners of the pressure waveform (and of
+    // the PV loop) at the start of inspiration and of expiration. 0 keeps the ideal ventilator.
+    if (this._p_target_f === null || !(this.pres_response_tau > 0.0)) {
+      this._p_target_f = target;
+      return target;
+    }
+    this._p_target_f += (target - this._p_target_f) * Math.min(1.0, this._t / this.pres_response_tau);
+    return this._p_target_f;
+  }
+
   volume_control() {
+    this._p_target_f = null; // the pressure response is not used in VC
     // Volume control: deliver a ~constant inspiratory flow by re-solving the insp valve resistance
     // each step (r_for = dP / q_target pins flow while the lung fills), until the set tidal volume
     // is reached; then hold (inspiratory pause, handled in time_cycling) and cycle to expiration.
@@ -879,15 +895,16 @@ export class Ventilator extends BaseModelClass {
     // with breathing off it holds pressure but delivers no tidal volume (as in reality).
 
     // inspiratory valve: servo the circuit at the CPAP level, delivering the patient's
-    // inspiratory demand (up to insp_flow) instead of letting the pressure dip
-    this._pressure_servo(this._peep);
+    // inspiratory demand (up to insp_flow) instead of letting the pressure dip. The level passes
+    // the pressure response, so the circuit settles back to CPAP after a backup breath.
+    const p_cpap = this._respond(this._peep);
+    this._pressure_servo(p_cpap);
 
     // expiratory valve: open, reservoir pinned at CPAP so the circuit floats at CPAP
     this._vent_exp_valve.no_flow = false;
     this._vent_exp_valve.no_back_flow = true;
     this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-    this._vent_gasout.vol =
-      this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+    this._vent_gasout.vol = p_cpap / this._vent_gasout.el_base + this._vent_gasout.u_vol;
 
     // spontaneous-breath monitoring: close out a breath at each spontaneous inspiration start
     // (Breathing.ncc_insp === 1 marks the first step of a new spontaneous inspiration)
@@ -944,6 +961,7 @@ export class Ventilator extends BaseModelClass {
   }
 
   hfov_control() {
+    this._p_target_f = null; // the pressure response is not used in HFO
     // High-frequency oscillation: the circuit pressure follows a base level plus an oscillation of
     // peak-to-peak amplitude at hfo_freq. The positive half-sine lasts hfo_insp_fraction of the
     // cycle with amplitude A*(1 - fi), the negative one the rest with amplitude A*fi, so the mean is
@@ -1310,6 +1328,7 @@ export class Ventilator extends BaseModelClass {
     this._rate_avg = 0.0;
     this._manual_breath = false;
     this._pip_working = null;
+    this._p_target_f = null;
     this._hfo_phase = 0.0;
     this._hfo_p_max = -1e9;
     this._hfo_p_min = 1e9;
