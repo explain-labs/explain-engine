@@ -81,6 +81,8 @@ export class Sle6000 extends Ventilator {
     this._last_mode = "CMV"; // the mode Start/Resume returns to
     this._in_apply = false; // inside sle_apply (its switch-on is not a generic one)
     this._hfo_peak_flow = 0.0; // l/s, peak flow at the tube over the current oscillation
+    this._cmv_p_max = -1e9; // cmH2O, peak pressure of the current HFOV+CMV breath
+    this._cmv_was_insp = false;
   }
 
   init_model(args = {}) {
@@ -401,6 +403,15 @@ export class Sle6000 extends Ventilator {
     this.mon_fg_flow = ema(this.mon_fg_flow, q_fg, 1.0);
     this.mon_rr = this.rr_meas;
     if (this._hfo_mode()) this._hfo_peak_flow = Math.max(this._hfo_peak_flow, Math.abs(this._vent_ettube?.flow ?? 0.0));
+    // HFOV+CMV: PIP is the peak of the CMV breath (its inspiration, oscillation included)
+    if (this.vent_mode === "HFOV_CMV") {
+      if (this._inspiration) this._cmv_p_max = Math.max(this._cmv_p_max, this.pres);
+      else if (this._cmv_was_insp) {
+        this.mon_pip = this._cmv_p_max / MBAR_TO_CMH2O;
+        this._cmv_p_max = -1e9;
+      }
+      this._cmv_was_insp = this._inspiration;
+    }
     this.mon_trig = this.trig_per_min;
 
     // C20/C sample: pressure and inspired volume at 80 % of the set Ti
@@ -475,7 +486,7 @@ export class Sle6000 extends Ventilator {
     const map = this.vent_mode === "HFOV_CMV" ? this.map_meas : this.hfo_map_meas;
     this.mon_map = filt(this.mon_map, map / MBAR_TO_CMH2O, 5);
     this.mon_dp = dp;
-    this.mon_pip = this.p_peak / MBAR_TO_CMH2O;
+    if (this.vent_mode === "HFOV") this.mon_pip = this.p_peak / MBAR_TO_CMH2O;
     this.mon_freq = f;
     this.mon_vmin = (this.mon_vte * f * 60.0) / 1000.0;
     this.mon_leak = filt(this.mon_leak, this.leak_perc, 10);
