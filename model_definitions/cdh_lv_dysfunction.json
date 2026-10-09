@@ -6316,7 +6316,13 @@
     "name": "Ventilator",
     "description": "mechanical ventilator model",
     "is_enabled": true,
-    "model_type": "Ventilator",
+    "model_type": "Sle6000",
+    "sle_mode": "CMV",
+    "sle_rr": 26,
+    "sle_ti": 0.4,
+    "sle_peep": 5,
+    "sle_pip": 21,
+    "sle_o2": 21,
     "components": {
      "VENT_GASIN": {
       "name": "VENT_GASIN",

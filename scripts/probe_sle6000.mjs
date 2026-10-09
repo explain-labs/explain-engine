@@ -1,4 +1,4 @@
-// SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate_sle6000 (CPAP, CMV, PTV,
+// SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the settings validation and the monitored values. See docs/Sle6000.md.
 //
 // Usage: node scripts/probe_sle6000.mjs [--verbose]
@@ -10,7 +10,7 @@ import { createEngine } from "./_harness.mjs";
 const VERBOSE = process.argv.includes("--verbose");
 const eng = await createEngine();
 const log = eng.log;
-const json = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate_sle6000.json", import.meta.url), "utf8"));
+const json = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate.json", import.meta.url), "utf8"));
 const def = json.model_definition;
 
 const checks = [];
