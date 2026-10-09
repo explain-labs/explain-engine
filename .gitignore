@@ -11,3 +11,4 @@ scripts/sa/results/figures/
 # Vendor manuals used as modelling references (copyrighted, never committed; docs cite page numbers)
 SLE6000_technical.pdf
 *_technical.pdf
+SLE6000_*.pdf

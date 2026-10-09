@@ -6,6 +6,9 @@
 //   C. MAP        -> lung volume, PaO2, SpO2         (oxygenation follows mean airway pressure)
 //   D. damping    -> pressure swing at circuit / trachea / alveoli
 //   E. I:E        -> 1:2 vs 1:1
+//   F. volume targeting -> the amplitude servoed on the average expired volume, limit, switch-off
+//   G. sigh / oscillation pause -> held pressure and duration, automatic sigh rate
+//   H. HFOV_CMV   -> CMV breaths with the oscillation in both phases or in expiration only
 //
 // CO2 clearance comes from the series dead space + axial dispersion of the airway (see
 // docs/GasCapacitance.md), not from the device. Interactive verification tool: read the tables, it is
@@ -87,3 +90,76 @@ for (const [label, fi] of [["1:2", 0.33], ["1:1", 0.5]]) {
   log(`${col(label)}${col(f1(r.amp))}${col(f1(r.ds_sw))}${col(f1(r.alv_sw, 2))}${col(f1(r.vt, 2))}${col(f1(r.paco2))}`);
 }
 log("\n  -> PaCO2 * DCO2 roughly constant (CO2 elimination ~ f * Vt^2); the swing is damped from circuit to alveoli");
+
+// F-H use a short warm-up: they check the device behaviour, not the blood gases
+function setup(warm = 20) {
+  const m = eng.build(structuredClone(def));
+  const V = m.models.Ventilator;
+  m.models.Breathing.switch_breathing?.(false);
+  V.switch_ventilator(true);
+  V.set_ettube_diameter(2.5);
+  V.set_hfov(10, 20, 10, 0.33, 10);
+  eng.calc(warm);
+  return [m, V];
+}
+
+log(`\nF. volume targeting (MAP 10, amplitude 20, 10 Hz): working amplitude and Vte`);
+{
+  const [, V] = setup();
+  log(`  start: amplitude 20, Vte ${f1(V.exp_tidal_volume * 1000, 2)} mL`);
+  for (const [vt, max, secs] of [[1.5, 40, 15], [3.0, 40, 15], [6.0, 25, 15]]) {
+    V.set_hfo_volume_guarantee(true, vt, max);
+    eng.calc(secs);
+    log(`  target ${f1(vt)} mL, max ${max}: amplitude ${f1(V.hfo_amplitude_delivered)} -> Vte ${f1(V.exp_tidal_volume * 1000, 2)} mL${V.pressure_limited ? "  (pressure limited)" : ""}`);
+  }
+  V.set_hfo_volume_guarantee(false);
+  eng.calc(2);
+  log(`  off: amplitude back to the set ${f1(V.hfo_amplitude_delivered)}`);
+}
+
+log(`\nG. sigh (20 cmH2O, 1 s) and oscillation pause`);
+{
+  const [, V] = setup();
+  V.hfo_sigh_cmh2o = 20;
+  V.hfo_sigh_time = 1.0;
+  V.hfo_sigh();
+  let t = 0, lo = Infinity, hi = -Infinity;
+  while (V.hfo_sigh_remaining > 0) {
+    eng.calc(0.01);
+    t += 0.01;
+    if (t > 0.5) { lo = Math.min(lo, V.pres); hi = Math.max(hi, V.pres); }
+  }
+  log(`  sigh: ${f1(t, 2)} s, held at ${f1(lo)}-${f1(hi)} cmH2O`);
+  V.hfo_pause();
+  eng.calc(5);
+  log(`  pause: ${f1(V.hfo_pause_remaining)} s left, circuit ${f1(V.pres)} cmH2O (MAP 10)`);
+  V.hfo_pause();
+  eng.calc(0.5);
+  log(`  cancelled: oscillating again, swing ${f1(V.hfo_amplitude_meas)} cmH2O`);
+  V.set_hfo_sigh(6, 0.5, 15);
+  let n = 0, was = false;
+  for (let i = 0; i < 6000; i++) {
+    eng.calc(0.01);
+    const on = V.hfo_sigh_remaining > 0;
+    if (on && !was) n++;
+    was = on;
+  }
+  log(`  automatic sighs at 6/min: ${n} in 60 s`);
+}
+
+log(`\nH. HFOV_CMV (PIP 18, PEEP 5, 30/min, Ti 0.4, amplitude 10, 10 Hz)`);
+log(`${col("activity")}${col("RR")}${col("insp")}${col("swing")}${col("exp")}${col("swing")}`);
+for (const act of ["both", "exp"]) {
+  const [, V] = setup();
+  V.set_hfov_cmv(18, 5, 30, 0.4, 10, 10, act, 10);
+  eng.calc(20);
+  const ins = [], exs = [];
+  for (let i = 0; i < 3000; i++) {
+    eng.calc(0.01);
+    if (V._inspiration && V._insp_time_counter > 0.2 && V._insp_time_counter < 0.35) ins.push(V.pres);
+    if (V._expiration && V._te_counter > 0.5) exs.push(V.pres);
+  }
+  const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  const sw = (a) => Math.max(...a) - Math.min(...a);
+  log(`${col(act)}${col(f1(V.rr_meas))}${col(f1(mean(ins)))}${col(f1(sw(ins)))}${col(f1(mean(exs)))}${col(f1(sw(exs)))}`);
+}
