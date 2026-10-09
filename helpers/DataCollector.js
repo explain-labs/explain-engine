@@ -250,7 +250,9 @@ export default class Datacollector {
             if (parameter.prop2 !== null) {
               v = v ? v[parameter.prop2] || 0 : 0;
             }
-            value = typeof v === "number" ? v : 0;
+            // booleans as 1 / 0 (a flag on a chart, e.g. Ventilator.triggered_breath); other
+            // non-numbers as 0
+            value = typeof v === "number" ? v : typeof v === "boolean" ? (v ? 1 : 0) : 0;
           }
           row[i + 1] = value;
         }
