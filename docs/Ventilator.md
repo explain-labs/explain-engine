@@ -110,6 +110,8 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `trigger_volume_perc` | % | Trigger volume as a percent of `tidal_volume` (default 6), with `trigger_mode` `"volume"` |
 | `trigger_mode` | string | `"volume"` (default): `trigger_volume_perc` of the set Vt during a patient effort; `"flow"`: `trigger_flow` at the tube |
 | `trigger_flow` | L/min | Flow-trigger threshold: inspiratory flow at the tube during expiration (default 0.6) |
+| `leak_compensation` | bool | Flow trigger: subtract the learned baseline leak flow before the threshold (default true) — see *Tube leak* |
+| `leak_comp_max_perc` | % | Compensate only while the leak (3-breath mean of `leak_perc`) is at most this (default 100; the SLE6000 sets 35) |
 | `term_sens_perc` | % | Termination sensitivity: a `PS` (or SIMV support) breath cycles off when inspiratory flow falls below this % of its peak (default 30) |
 | `backup_rate` | /min | `CPAP` apnoea backup: a time-cycled breath at `pip_cmh2o`/`insp_time` after `60/backup_rate` s without a spontaneous effort (default 0 = off) |
 | `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` and `SIMV` always trigger; ignored in `CPAP` |
@@ -140,6 +142,7 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `triggered_breath` | bool | True once a patient-triggered/synchronized breath has been armed |
 | `pip_delivered` | cmH₂O | The inspiratory pressure target in use: `pip_cmh2o` (PC), `peep + ps_cmh2o` (PS), or the working pressure in PRVC / volume guarantee |
 | `leak_perc` | % | Per-breath leak at the tube flow sensor, `(Vti − Vte)/Vti` |
+| `leak_flow_comp` | L/min | Baseline leak flow the flow trigger subtracts at the current pressure (0 = not compensating) |
 | `pressure_limited` | bool | Volume-targeted modes: working pressure at `pip_cmh2o_max` while Vt is still below target (the "Vt low / Pmax reached" alarm condition) |
 | `map_meas` | cmH₂O | Mean airway pressure over the last breath; without breaths (CPAP, HFOV, apnoea) over 3 s blocks |
 | `hfo_amplitude_delivered` | cmH₂O | HFOV amplitude in use: the set one, or the working one with volume targeting |
@@ -544,6 +547,42 @@ breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mj
 - **Dead-space flush.** The continuous leak flow through `DS` washes out CO₂, which lowers PaCO₂
   a little, much like tracheal gas insufflation.
 - **VC is not compensated.** Leaked gas is lost from the set volume.
+
+### Leak and the flow trigger (leak compensation)
+
+During expiration the circuit keeps resupplying the leak through the tube to hold PEEP, so the tube
+flow sensor reads a steady *inspiratory* flow equal to the leak flow at PEEP. Uncompensated, that
+flow crosses `trigger_flow` and every breath auto-triggers once the minimal expiratory time has
+passed: term_neonate in SLE PTV 15/4/30, apnoeic, with a 1 mm leak was cycled at 58/min.
+
+Neonatal ventilators compensate for this, and so does the model. It learns the leak the way the
+device can, from its own sensor only (it never reads `VENT_LEAK`): over a whole breath the lung
+returns to its start volume, so the breath's net volume through the sensor is the leaked volume.
+With the orifice law Q = g·√P (P the circuit pressure),
+
+```
+g_breath = max(∫ flow dt, 0) / ∫ √P dt        (per breath, at the breath start)
+g        ← g + (g_breath − g)/3                 (filtered over ~3 breaths)
+trigger:   flow − g·√P  >  trigger_flow          (leak_flow_comp = g·√P, in L/min)
+```
+
+The first breaths after a leak appears are uncompensated while `g` builds up. Compensation applies
+only while the 3-breath mean of `leak_perc` is at most `leak_comp_max_perc`; above it the leak
+auto-triggers again, as on a device whose compensation range is exceeded. Results with the
+SLE6000 (limit 35 %), PTV 15/4/30, `scripts/probe_sle6000.mjs` section 14:
+
+| leak_size | Leak % | apnoeic: triggered / mandatory per 30 s | breathing: triggers per effort |
+|---|---|---|---|
+| 0 | 0 | 0 / 15 | 1.0 |
+| 0.7 mm | 20 | 0 / 15 | 1.0 |
+| 0.8 mm | 27 | 0 / 15 | 1.0 |
+| 0.9 mm | 36 | 22 / 0 (auto-triggering) | — |
+| 1.5 mm | 80 | 43 / 0 (auto-triggering) | — |
+
+The volume trigger (`trigger_mode "volume"`) needs no compensation: it only arms on a `Breathing`
+effort, so a leak alone never starts a breath. Not modelled: leak-corrected volumes, and the PSV
+termination compensation some devices add (SLE6000 IFU §20.6.4); PS still cycles on Ti max with a
+large leak.
 
 `Breathing` subtracts the leak flow from the airway-opening flow (see below), because gas that
 escapes around the tube never reaches the lungs.

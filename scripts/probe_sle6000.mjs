@@ -1,7 +1,7 @@
 // SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
-// HFOV+CMV), the settings validation, the monitored values and the patient monitor's RR. See
-// docs/Sle6000.md.
+// HFOV+CMV), the settings validation, the monitored values, the patient monitor's RR and the
+// leak-compensated flow trigger. See docs/Sle6000.md.
 //
 // Usage: node scripts/probe_sle6000.mjs [--verbose]
 // Exit code 1 when a check fails.
@@ -298,6 +298,29 @@ function count(m, V, seconds) {
   B.switch_breathing(false);
   eng.calc(60);
   check("Monitor RR decays in apnoea (BPM)", Mo.resp_rate, 0, 10);
+}
+
+// 14. tube leak and the flow trigger: the circuit resupplies the leak through the tube, which the
+// sensor reads as inspiratory flow. Leak compensation (35 %) keeps a leak in range from triggering;
+// a larger leak auto-triggers, as on the device
+{
+  const leakRun = (leak, spont) => {
+    const { m, V, B } = start({ mode: "PTV", rr: 30, ti: 0.4, peep: 4, pip: 15 }, (m) => {
+      if (!spont) m.models.Breathing.switch_breathing(false);
+    });
+    V.leak_size = leak;
+    eng.calc(30); // the leak is learned over the first breaths
+    return { V, n: count(m, V, 30) };
+  };
+  let { V, n } = leakRun(0.8, false);
+  check("leak 0.8 mm: Leak % within compensation", V.mon_leak, 15, 35);
+  check("leak 0.8 mm, apnoea: no auto-triggers", n.triggered, 0, 0);
+  check("leak 0.8 mm, apnoea: mandatory at RR (per 30 s)", n.mandatory, 14, 16);
+  check("leak 0.8 mm: compensated leak flow (l/min)", V.leak_flow_comp, 0.4, 1.5);
+  ({ V, n } = leakRun(0.8, true));
+  check("leak 0.8 mm, breathing: every effort triggers", n.trigger_frac, 0.9, 1.0);
+  ({ V, n } = leakRun(1.5, false));
+  check("leak 1.5 mm (> 35 %): auto-triggers", V.mon_rr, 45, 200);
 }
 
 const f = (x) => (typeof x === "number" ? x.toFixed(3) : String(x));
