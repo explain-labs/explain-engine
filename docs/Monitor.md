@@ -33,9 +33,17 @@ rates is kept (with a running sum) and averaged into `heart_rate`, so it updates
 
 **Respiratory rate** — `calc_resp_rate()` detects a breath when an **active** breathing source reaches
 the start of inspiration (`ncc_insp === 1`): the spontaneous `Breathing` model (when
-`breathing_enabled`) or the `Ventilator` (when `is_enabled`). It keeps a rolling window of
-breath-to-breath intervals spanning ~`rr_avg_time` seconds and reports `breaths / window-time × 60`,
-updated every breath. Both references are optional (`?? null`); a missing source is simply skipped.
+`breathing_enabled`) or the `Ventilator` (when `is_enabled`). One breath counts once: a ventilator
+breath that starts while a spontaneous inspiration is running (`Breathing.insp_running`) is the breath
+that effort triggered or landed on, and an effort that starts during a ventilator inspiration
+(`Ventilator._inspiration`) is fused into it. So in patient-triggered modes (PTV, PSV, synchronised
+SIMV breaths) the rate is the patient's rate, and in unsynchronised CMV it is the set rate plus the
+efforts that fall between the ventilator breaths. It keeps a rolling window of breath-to-breath
+intervals spanning ~`rr_avg_time` seconds and reports `breaths / window-time × 60`, updated every
+breath. When no breath starts for a whole window (apnoea), `resp_rate` follows the open interval
+(`60 / time since the last breath`) and the window restarts with the next breaths; the interval that
+ends the apnoea is not counted. Both references are optional (`?? null`); a missing source is simply
+skipped.
 
 **End-tidal CO₂** — while the `Ventilator` is enabled, `etco2` is mirrored straight from
 `Ventilator.etco2`. Otherwise it is derived from the spontaneous breath: `calc_resp_rate` tracks the
@@ -127,9 +135,10 @@ matching `flow_targets`:
 - **Pure observer.** The Monitor never writes to the models it samples; no model depends on it. The
   `DataCollector` reads its outputs through the watchlist like any other model.
 - **Breath sourcing.** `resp_rate` counts breaths from the spontaneous `Breathing` source *and* the
-  `Ventilator` (each gated by its enable flag). In assisted ventilation, where both are active, both
-  breath types are counted, which can overcount the rate; in purely spontaneous or purely ventilated
-  states it is correct.
+  `Ventilator` (each gated by its enable flag), merging the two onsets of one breath (above). Before
+  the merge, every patient-triggered breath was counted twice (effort onset + triggered ventilator
+  breath), so PTV/PSV showed about double the real rate. An effort during a ventilator inspiration
+  in CMV is not counted (fused breath).
 - **Start-up transient.** The first heart-rate and respiratory-rate windows include the time before
   the first beat/breath, so the very first read-out is slightly off; it settles after one window.
 - **`do2_br` / `do2_lb` need `AA` / `AD`.** The oxygen-delivery metrics read the aortic O₂ content

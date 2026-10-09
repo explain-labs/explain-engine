@@ -1,6 +1,7 @@
 // SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
-// HFOV+CMV), the settings validation and the monitored values. See docs/Sle6000.md.
+// HFOV+CMV), the settings validation, the monitored values and the patient monitor's RR. See
+// docs/Sle6000.md.
 //
 // Usage: node scripts/probe_sle6000.mjs [--verbose]
 // Exit code 1 when a check fails.
@@ -272,6 +273,31 @@ function count(m, V, seconds) {
   eng.calc(20);
   check("back to CMV keeps the conventional settings (PIP)", V.sle_pip, 18, 18);
   check("back to CMV ventilates (Vte ml)", V.mon_vte, 20, 60);
+}
+
+// 13. patient monitor RR: a patient-triggered breath is one breath (the effort and the ventilator
+// breath it starts are not counted twice); asynchronous efforts in CMV add to the rate; apnoea decays
+{
+  const { m, V, B } = start({ mode: "PTV", rr: 30, ti: 0.35, peep: 4, pip: 15 });
+  const Mo = m.models.Monitor;
+  eng.calc(120);
+  check("Monitor RR = SLE RR in PTV (BPM)", Mo.resp_rate, V.mon_rr * 0.9, V.mon_rr * 1.1);
+  V.sle_apply({ mode: "PSV" });
+  eng.calc(60);
+  check("Monitor RR = SLE RR in PSV (BPM)", Mo.resp_rate, V.mon_rr * 0.9, V.mon_rr * 1.1);
+  V.sle_apply({ mode: "SIMV", p_support: 10 });
+  eng.calc(60);
+  check("Monitor RR = efforts in SIMV (BPM)", Mo.resp_rate, B.resp_rate * 0.9, B.resp_rate * 1.1);
+  V.sle_apply({ mode: "CMV" });
+  eng.calc(60);
+  check("Monitor RR in CMV: RR + asynchronous efforts", Mo.resp_rate, V.vent_rate, V.vent_rate + B.resp_rate);
+  V.sle_apply({ mode: "CPAP" });
+  eng.calc(60);
+  check("Monitor RR = SLE RR in CPAP (BPM)", Mo.resp_rate, V.mon_rr * 0.9, V.mon_rr * 1.1);
+  V.sle_standby();
+  B.switch_breathing(false);
+  eng.calc(60);
+  check("Monitor RR decays in apnoea (BPM)", Mo.resp_rate, 0, 10);
 }
 
 const f = (x) => (typeof x === "number" ? x.toFixed(3) : String(x));
