@@ -83,6 +83,7 @@ export class Sle6000 extends Ventilator {
     this._hfo_peak_flow = 0.0; // l/s, peak flow at the tube over the current oscillation
     this._cmv_p_max = -1e9; // cmH2O, peak pressure of the current HFOV+CMV breath
     this._cmv_was_insp = false;
+    this._cycle_crossed = false; // a CMV breath edge fell inside the current oscillation
   }
 
   init_model(args = {}) {
@@ -405,6 +406,7 @@ export class Sle6000 extends Ventilator {
     if (this._hfo_mode()) this._hfo_peak_flow = Math.max(this._hfo_peak_flow, Math.abs(this._vent_ettube?.flow ?? 0.0));
     // HFOV+CMV: PIP is the peak of the CMV breath (its inspiration, oscillation included)
     if (this.vent_mode === "HFOV_CMV") {
+      if (this._inspiration !== this._cmv_was_insp) this._cycle_crossed = true;
       if (this._inspiration) this._cmv_p_max = Math.max(this._cmv_p_max, this.pres);
       else if (this._cmv_was_insp) {
         this.mon_pip = this._cmv_p_max / MBAR_TO_CMH2O;
@@ -474,6 +476,10 @@ export class Sle6000 extends Ventilator {
     // peak-to-peak pressure, R = ΔP / peak flow, C = Vte / ΔP; Vmin from Vte and the frequency
     const peak_flow = this._hfo_peak_flow;
     this._hfo_peak_flow = 0.0;
+    // HFOV+CMV: a cycle across a breath edge carries the PEEP-PIP step, so ΔP, C and R come from
+    // the cycles inside one phase only
+    const clean = !this._cycle_crossed;
+    this._cycle_crossed = false;
     super._hfo_cycle_end(f);
     const first = !this._mon_init;
     const filt = (x, v, n) => (first ? v : x + (v - x) / n);
@@ -485,13 +491,13 @@ export class Sle6000 extends Ventilator {
     // MAP: per oscillation in HFOV, per breath (the CMV breath) in HFOV+CMV
     const map = this.vent_mode === "HFOV_CMV" ? this.map_meas : this.hfo_map_meas;
     this.mon_map = filt(this.mon_map, map / MBAR_TO_CMH2O, 5);
-    this.mon_dp = dp;
+    if (clean) this.mon_dp = dp;
     if (this.vent_mode === "HFOV") this.mon_pip = this.p_peak / MBAR_TO_CMH2O;
     this.mon_freq = f;
     this.mon_vmin = (this.mon_vte * f * 60.0) / 1000.0;
     this.mon_leak = filt(this.mon_leak, this.leak_perc, 10);
-    if (dp > 0.0 && vte > 0.0) this.mon_c = filt(this.mon_c, vte / dp, 3);
-    if (peak_flow > 0.0) this.mon_r = filt(this.mon_r, dp / peak_flow, 3);
+    if (clean && dp > 0.0 && vte > 0.0) this.mon_c = filt(this.mon_c, vte / dp, 3);
+    if (clean && peak_flow > 0.0) this.mon_r = filt(this.mon_r, dp / peak_flow, 3);
     this.mon_ie = this.vent_mode === "HFOV" ? 1.0 / this.hfo_insp_fraction - 1.0 : this.ie_ratio_meas;
     if (this.vent_mode === "HFOV_CMV") {
       this.mon_ti = this.ti_meas;

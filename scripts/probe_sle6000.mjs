@@ -238,6 +238,8 @@ function count(m, V, seconds) {
   const [i2] = phases();
   check("HFO Activity Exp: no oscillation in inspiration", i2, 0, 0.5);
   check("HFOV+CMV MAP is the breath mean (mbar)", V.mon_map, 6.5, 8.5);
+  check("HFOV+CMV measured ΔP is the oscillation, not the breath (mbar)", V.mon_dp, 8, 12);
+  check("HFOV+CMV PIP is the breath peak (mbar)", V.mon_pip, 18, 24);
   V.sle_manual_breath();
   check("Manual breath accepted in HFOV+CMV", V._manual_breath || V._inspiration ? 1 : 0, 1, 1);
   V.sle_apply({ mode: "CMV" });
