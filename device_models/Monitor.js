@@ -234,14 +234,22 @@ export class Monitor extends BaseModelClass {
   }
   calc_resp_rate() {
     // a breath starts when an ACTIVE breathing source reaches the start of inspiration
-    // (ncc_insp === 1); both the spontaneous and the ventilator source are considered
-    const spont = this._breathing && this._breathing.breathing_enabled && this._breathing.ncc_insp === 1;
-    const vent = this._ventilator && this._ventilator.is_enabled && this._ventilator.ncc_insp === 1;
+    // (ncc_insp === 1); both the spontaneous and the ventilator source are considered, but one breath
+    // counts once: a ventilator breath that starts during a spontaneous inspiration is the breath the
+    // effort triggered (or landed on), and an effort that starts during a ventilator inspiration is
+    // fused into it. Efforts between ventilator breaths still count.
+    const vent_on = !!(this._ventilator && this._ventilator.is_enabled);
+    const spont_on = !!(this._breathing && this._breathing.breathing_enabled);
+    const spont_onset = spont_on && this._breathing.ncc_insp === 1;
+    const vent_onset = vent_on && this._ventilator.ncc_insp === 1;
+    const spont = spont_onset && !(vent_on && this._ventilator._inspiration && !vent_onset);
+    const vent = vent_onset && !(spont_on && this._breathing.insp_running && !spont_onset);
 
     if (spont || vent) {
       const interval = this._resp_interval_counter;
       this._resp_interval_counter = 0.0;
-      if (interval > 0) {
+      // the interval that ends an apnoea (longer than the window) is not a breath-to-breath interval
+      if (interval > 0 && interval <= this.rr_avg_time) {
         // rolling window of breath-to-breath intervals spanning ~rr_avg_time seconds
         this._rr_intervals.push(interval);
         this._rr_window_sum += interval;
@@ -258,6 +266,14 @@ export class Monitor extends BaseModelClass {
         this.etco2 = this._etco2_peak;
         this._etco2_peak = 0.0;
       }
+    }
+
+    // apnoea: no breath for a whole averaging window, so the rate falls with the open interval and
+    // the window restarts with the next breaths, instead of holding the last value
+    if (this._resp_interval_counter > this.rr_avg_time) {
+      this.resp_rate = 60.0 / this._resp_interval_counter;
+      this._rr_intervals = [];
+      this._rr_window_sum = 0.0;
     }
 
     // accumulate the per-breath peak airway pCO2 for the spontaneous end-tidal read-out
