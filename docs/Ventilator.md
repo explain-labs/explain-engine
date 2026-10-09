@@ -80,12 +80,18 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `temp` | °C | Fresh-gas temperature (default 37) |
 | `ettube_diameter` | mm | ET-tube inner diameter (default 4); drives the `_ett_k1`/`_ett_k2` Rohrer coefficients |
 | `ettube_length` | mm | ET-tube length (default 110); scales resistance by `length/110` |
-| `vent_mode` | string | `PC` / `PRVC` / `VC` / `PS` / `CPAP` / `HFOV` (default `PRVC`) |
+| `vent_mode` | string | `PC` / `PRVC` / `VC` / `PS` / `SIMV` / `CPAP` / `HFOV` / `HFOV_CMV` (default `PRVC`) |
 | `hfo_map_cmh2o` | cmH₂O | HFOV mean airway pressure (default 10) |
 | `hfo_amplitude_cmh2o` | cmH₂O | HFOV peak-to-peak circuit pressure swing (default 25) |
 | `hfo_freq` | Hz | HFOV frequency (default 10) |
 | `hfo_insp_fraction` | fraction | HFOV inspiratory fraction of the cycle: 0.33 = I:E 1:2 (default), 0.5 = 1:1 |
 | `hfo_bias_flow` | L/min | HFOV continuous fresh-gas (bias) flow (default 10) |
+| `hfo_volume_guarantee` | bool | HFOV volume targeting: servo the amplitude to `hfo_tidal_volume_target` (default false) |
+| `hfo_tidal_volume_target` | L | HFOV expired volume per oscillation to aim for (default 0.002) |
+| `hfo_amplitude_max_cmh2o` | cmH₂O | HFOV volume targeting: the amplitude limit (default 40) |
+| `hfo_sigh_rate` | /min | Automatic HFOV sighs (0 = off) |
+| `hfo_sigh_time` / `hfo_sigh_cmh2o` | s / cmH₂O | Duration and held pressure of an HFOV sigh (default 0.4 s, 10) |
+| `hfo_activity` | string | `HFOV_CMV`: oscillate in `both` phases (default) or in expiration only (`exp`) |
 | `vent_rate` | breaths/min | Mechanical rate; in `PS` it is the backup/apnea rate (default 40) |
 | `tidal_volume` | L | Target tidal volume for `PRVC` and `VC` (default 0.015) |
 | `insp_time` | s | Inspiratory time (default 0.4) |
@@ -135,6 +141,8 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `leak_perc` | % | Per-breath leak at the tube flow sensor, `(Vti − Vte)/Vti` |
 | `pressure_limited` | bool | Volume-targeted modes: working pressure at `pip_cmh2o_max` while Vt is still below target (the "Vt low / Pmax reached" alarm condition) |
 | `map_meas` | cmH₂O | Mean airway pressure over the last breath; without breaths (CPAP, HFOV, apnoea) over 3 s blocks |
+| `hfo_amplitude_delivered` | cmH₂O | HFOV amplitude in use: the set one, or the working one with volume targeting |
+| `hfo_sigh_remaining` / `hfo_pause_remaining` | s | Time left of a running HFOV sigh / oscillation pause (0 = oscillating) |
 | `ti_meas` / `te_meas` | s | Measured inspiratory time of the last breath and the expiratory time before it |
 | `ie_ratio_meas` | – | `te_meas / ti_meas` (shown as 1:x) |
 | `rr_meas` | /min | Breath-averaged delivered rate; in CPAP the patient's rate while breathing |
@@ -169,7 +177,7 @@ cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `
    - `PS` → `flow_cycling()` then `pressure_control()`
    - `SIMV` → `simv_cycling()` then `pressure_control()`
    - `CPAP` → `cpap_cycling()` (`cpap_control()`, or a backup/manual breath)
-   - `HFOV` → `hfov_control()`
+   - `HFOV` / `HFOV_CMV` → `hfov_control()`
 4. Publish read-outs: airway `pres`, `flow` (ET-tube flow × 60), integrate `vol`, sample `co2` from
    `DS`, set `minute_volume` (using the breath-averaged measured rate whenever the patient can
    trigger; CPAP reports a spontaneous minute volume), advance the breath-interval counter, and refresh the ET-tube resistance. Compliance and
@@ -406,8 +414,33 @@ triggered and backup breaths per minute.
   - `hfo_dco2 = f·Vt²` (mL²/s)
   - `hfo_map_meas` and `hfo_amplitude_meas`
   - `p_peak`, `pip_delivered`, and `minute_volume = Vt·f·60`
-- **Not applicable.** There is no triggering, no VG, and no breath counters in HFOV. The leak and
-  the tube dead space still apply.
+- **Not applicable.** There is no triggering and no breath counters in HFOV. The leak (also
+  `leak_perc`, per cycle) and the tube dead space still apply.
+- **Volume targeting** (`hfo_volume_guarantee`, `set_hfo_volume_guarantee`).
+  - Expired volumes vary a lot cycle by cycle. So the working amplitude is trimmed on the
+    **average** expired volume of each 0.5 s block, not on every cycle.
+  - Vt rises roughly in proportion to the amplitude, so each block corrects half of the gap to
+    `amplitude · target / Vte`, by at most 3 cmH₂O.
+  - The working amplitude stays within 4 cmH₂O and `hfo_amplitude_max_cmh2o`; `pressure_limited`
+    flags a target that the limit stops.
+  - The set `hfo_amplitude_cmh2o` is never changed, so switching targeting off returns to it.
+  - On preterm_28wk, targeting converges in about 5 s.
+- **Sighs and oscillation pause** (HFOV only).
+  - `hfo_sigh()` stops the oscillation and holds the circuit at `hfo_sigh_cmh2o` for
+    `hfo_sigh_time`. `hfo_sigh_rate` repeats this automatically.
+  - `hfo_pause()` holds the circuit at MAP for up to 60 s; a second call cancels it.
+  - During a hold the per-cycle measurements are suspended, and the oscillation restarts at the
+    beginning of a cycle.
+- **HFOV_CMV** (`set_hfov_cmv`). The base level is a time-cycled breath instead of MAP: PIP for
+  `insp_time` (reached over `rise_time`), PEEP for the rest of `60/vent_rate`.
+  - The oscillation is added in both phases, or only in expiration with `hfo_activity = "exp"`.
+  - The breath keeps the usual bookkeeping:
+    - the `ncc_insp` / `ncc_exp` counters (Monitor)
+    - `rr_meas`
+    - `ti_meas` / `te_meas`
+    - the per-breath `map_meas`
+  - `trigger_breath()` gives an early breath.
+  - The per-cycle HFO read-outs run as in HFOV.
 - **Stepsize.** 0.5 ms gives ≥ 130 steps per cycle up to 15 Hz.
 
 **CO₂ clearance comes from the airway, not the device.** It relies on the series dead space with
@@ -550,6 +583,9 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
 | `set_psv(pip, peep, rate, t_in, insp_flow)` | Configure PS mode (`pip` absolute → `ps_cmh2o = pip − peep`; `rate` = backup rate; `t_in` = backup Ti and Ti max) |
 | `set_hfov(map, amplitude, freq, insp_fraction, bias_flow)` | Configure HFOV (cmH₂O, cmH₂O peak-to-peak, Hz, fraction, L/min) |
+| `set_hfo_volume_guarantee(state, vt, amp_max)` | HFOV volume targeting on/off; optional target `vt` (mL, expired per oscillation) and amplitude limit (cmH₂O); restarts the working amplitude |
+| `set_hfo_sigh(rate, t, pres)` / `hfo_sigh()` / `hfo_pause(state)` | Automatic HFOV sighs (/min, s, cmH₂O); one sigh now; oscillation pause at MAP (60 s, toggles) |
+| `set_hfov_cmv(pip, peep, rate, t_in, amplitude, freq, activity, bias_flow)` | CMV breaths with HFO superimposed (`activity` `both` or `exp`) |
 | `set_simv(pip, peep, rate, t_in, ps, insp_flow)` | Configure SIMV: mandatory breaths at `pip`/`rate`/`t_in`, spontaneous breaths supported by `ps` above PEEP (0 = unsupported) |
 | `set_volume_guarantee(state, tv, pip_max)` | Volume guarantee on/off for PC/PS/SIMV; optional target `tv` (mL) and pressure limit `pip_max` (cmH₂O); restarts the working pressure |
 | `set_cpap(cpap, insp_flow, backup_rate)` | Configure CPAP (`cpap` → `peep_cmh2o`; optional apnoea `backup_rate`, /min, 0 = off) |
