@@ -1,7 +1,8 @@
 import { Ventilator } from "./Ventilator";
-import { SLE_PARAMS, SLE_MODES, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
+import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
 
 const MBAR_TO_CMH2O = 1.01972;
+const HFO_BIAS_FLOW = 8.0; // l/min, the continuous flow (p24); an assumption for HFO
 
 export class Sle6000 extends Ventilator {
   // static properties
@@ -11,7 +12,8 @@ export class Sle6000 extends Ventilator {
    * The SLE6000 neonatal ventilator (SLE Ltd, IFU V2.0): the generic Ventilator driven through the
    * device's own modes, settings (mbar, with its ranges, resolutions and interlocks), patient
    * circuits and monitored values. Phase 1: the invasive conventional modes CPAP, CMV, PTV, PSV and
-   * SIMV, with volume targeting (VTV). It is the ventilator of every scenario up to 30 kg (the
+   * SIMV, with volume targeting (VTV). Phase 2: the invasive oscillatory modes HFOV (with VTV, sighs
+   * and oscillation pause) and HFOV+CMV. It is the ventilator of every scenario up to 30 kg (the
    * device's range); the scenario keeps the instance name "Ventilator", so the Monitor,
    * Resuscitation and every UI path that reads Ventilator.* keep working. A scenario can start
    * ventilating: is_enabled true plus sle_mode and the sle_* settings.
@@ -20,7 +22,7 @@ export class Sle6000 extends Ventilator {
     super(model_ref, name);
 
     // Independent properties: the device settings, in the device's units (see sle6000_params.js)
-    this.sle_mode = "Standby"; // Standby | CPAP | CMV | PTV | PSV | SIMV
+    this.sle_mode = "Standby"; // Standby | CPAP | CMV | PTV | PSV | SIMV | HFOV | HFOV+CMV
     const d = sle_defaults();
     this.sle_rr = d.rr; // BPM
     this.sle_ti = d.ti; // s (Ti Max in PSV)
@@ -33,6 +35,15 @@ export class Sle6000 extends Ventilator {
     this.sle_p_support = d.p_support; // mbar, SIMV pressure support level (0 = off)
     this.sle_vtv = d.vtv; // ml, volume target (0 = off)
     this.sle_o2 = d.o2; // %
+    this.sle_freq = d.freq; // Hz, HFO frequency
+    this.sle_ie = d.ie; // HFOV I:E, 1:x (1, 2 or 3)
+    this.sle_map = d.map; // mbar, HFOV mean airway pressure
+    this.sle_dp = d.dp; // mbar, HFO Delta P (ΔP Max with VTV on)
+    this.sle_hfo_vtv = d.hfo_vtv; // ml, HFOV volume target (0 = off)
+    this.sle_sigh_rr = d.sigh_rr; // BPM, HFOV sigh rate (0 = off)
+    this.sle_sigh_ti = d.sigh_ti; // s
+    this.sle_sigh_p = d.sigh_p; // mbar
+    this.sle_hfo_activity = d.hfo_activity; // HFOV+CMV: 0 = oscillation in both phases, 1 = expiration only
     this.sle_circuit = 10; // mm, patient circuit BC6188 (10) or BC6198 (15)
     this.sle_o2_boost_inc = 10; // %, O2 Boost increment (factory default, p128)
 
@@ -54,6 +65,9 @@ export class Sle6000 extends Ventilator {
     this.mon_ie = 0.0; // Te/Ti (shown as 1:x)
     this.mon_o2 = 21.0; // %, oxygen cell (first-order, 45 s response)
     this.mon_fg_flow = 0.0; // l/min, fresh gas flow
+    this.mon_dp = 0.0; // mbar, HFO measured Delta P (peak to peak at the proximal airway)
+    this.mon_dco2 = 0.0; // ml^2/s, HFO gas transport coefficient f * Vte^2, tau 3 cycles
+    this.mon_freq = 0.0; // Hz, HFO frequency
     this.o2_boost_remaining = 0.0; // s left of an O2 Boost (0 = none)
 
     // Local properties
@@ -66,6 +80,10 @@ export class Sle6000 extends Ventilator {
     this._c20_v_end = 0.0;
     this._last_mode = "CMV"; // the mode Start/Resume returns to
     this._in_apply = false; // inside sle_apply (its switch-on is not a generic one)
+    this._hfo_peak_flow = 0.0; // l/s, peak flow at the tube over the current oscillation
+    this._cmv_p_max = -1e9; // cmH2O, peak pressure of the current HFOV+CMV breath
+    this._cmv_was_insp = false;
+    this._cycle_crossed = false; // a CMV breath edge fell inside the current oscillation
   }
 
   init_model(args = {}) {
@@ -97,7 +115,7 @@ export class Sle6000 extends Ventilator {
     }
     if (settings.circuit === 10 || settings.circuit === 15) this.sle_circuit = settings.circuit;
     if (mode !== "Standby" && !(mode in SLE_MODES)) return;
-    const s = sle_interlocks(this._settings(), mode);
+    const s = sle_interlocks(this._settings(), mode, Object.keys(settings));
     for (const [k, v] of Object.entries(s)) this[`sle_${k}`] = v;
     this.sle_mode = mode;
     if (mode !== "Standby") this._last_mode = mode;
@@ -159,9 +177,30 @@ export class Sle6000 extends Ventilator {
     if (!this._in_apply) this._sync_from_generic();
   }
 
+  set_hfov(...args) {
+    super.set_hfov(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
+  set_hfov_cmv(...args) {
+    super.set_hfov_cmv(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
   sle_manual_breath() {
-    // one breath at the set PIP and Ti (p155); every phase-1 mode offers it
-    if (this.sle_mode !== "Standby") this.trigger_breath();
+    // one breath at the set PIP and Ti (p155); every mode but HFOV offers it (HFOV has Sigh)
+    if (this.sle_mode !== "Standby" && this.sle_mode !== "HFOV") this.trigger_breath();
+  }
+
+  sle_sigh() {
+    // HFOV Sigh (p155): an oscillatory pause at the set Sigh P for the set Sigh Ti
+    if (this.sle_mode === "HFOV") this.hfo_sigh();
+  }
+
+  sle_osc_pause() {
+    // HFOV Oscillation Pause (p155): oscillation stops at the set MAP for up to 60 s; pressing
+    // again cancels it
+    if (this.sle_mode === "HFOV") this.hfo_pause();
   }
 
   sle_o2_boost(state = true) {
@@ -202,7 +241,7 @@ export class Sle6000 extends Ventilator {
 
     // VTV: PIP becomes PIP Max and the working pressure is servoed on Vte (p126); off restores the
     // set PIP, which the volume targeting never changes
-    const vtv = this.sle_vtv > 0.0 && mode !== "CPAP";
+    const vtv = this.sle_vtv > 0.0 && mode !== "CPAP" && !SLE_HFO_MODES.includes(mode);
     const vg_was = this.volume_guarantee;
     this.volume_guarantee = vtv;
     if (vtv) {
@@ -240,13 +279,60 @@ export class Sle6000 extends Ventilator {
         }
         this.vent_mode = "SIMV";
         break;
+      case "HFOV": {
+        // continuous oscillation around MAP (p77); VTV servoes the working ΔP on the average Vte,
+        // ΔP becoming ΔP Max (p125). The bias flow is the device's continuous flow (p24).
+        this.hfo_map_cmh2o = this.sle_map * MBAR_TO_CMH2O;
+        this.hfo_amplitude_cmh2o = this.sle_dp * MBAR_TO_CMH2O;
+        this.hfo_freq = this.sle_freq;
+        this.hfo_insp_fraction = 1.0 / (1.0 + this.sle_ie);
+        this.hfo_bias_flow = HFO_BIAS_FLOW;
+        const hfo_vtv = this.sle_hfo_vtv > 0.0;
+        const target = this.sle_hfo_vtv / 1000.0;
+        if (hfo_vtv && (!this.hfo_volume_guarantee || Math.abs(this.hfo_tidal_volume_target - target) > 1e-9)) {
+          this.set_hfo_volume_guarantee(true, this.sle_hfo_vtv, this.hfo_amplitude_cmh2o);
+        }
+        this.hfo_volume_guarantee = hfo_vtv;
+        this.hfo_amplitude_max_cmh2o = this.hfo_amplitude_cmh2o;
+        this.hfo_sigh_rate = this.sle_sigh_rr;
+        this.hfo_sigh_time = this.sle_sigh_ti;
+        this.hfo_sigh_cmh2o = this.sle_sigh_p * MBAR_TO_CMH2O;
+        if (this.vent_mode !== "HFOV") this._hfo_start();
+        this.vent_mode = "HFOV";
+        break;
+      }
+      case "HFOV+CMV": {
+        // CMV breaths with the oscillation in both phases or in expiration only (p80, HFO Activity)
+        this.vent_rate = this.sle_rr;
+        this.hfo_amplitude_cmh2o = this.sle_dp * MBAR_TO_CMH2O;
+        this.hfo_freq = this.sle_freq;
+        this.hfo_insp_fraction = 0.5;
+        this.hfo_bias_flow = HFO_BIAS_FLOW;
+        this.hfo_activity = this.sle_hfo_activity === 1 ? "exp" : "both";
+        this.hfo_volume_guarantee = false;
+        if (this.vent_mode !== "HFOV_CMV") this._hfo_start();
+        this.vent_mode = "HFOV_CMV";
+        break;
+      }
     }
+  }
+
+  _hfo_start() {
+    // entering an oscillatory mode: a fresh oscillation and monitor
+    this._hfo_phase = 0.0;
+    this._hfo_breath_t = 0.0;
+    this._hfo_sigh_timer = 0.0;
+    this.hfo_sigh_remaining = 0.0;
+    this.hfo_pause_remaining = 0.0;
+    this._breath_interval_counter = 0.0;
+    this._rate_avg = 0.0;
+    this._reset_monitor();
   }
 
   _sync_from_generic() {
     // mirror the generic mode and settings into the device's, clamped to its ranges; the generic
     // ventilator keeps running as set (no _apply_mode), so a device-range clamp only shows
-    const modes = { PC: this.synchronized ? "PTV" : "CMV", PS: "PSV", SIMV: "SIMV", CPAP: "CPAP" };
+    const modes = { PC: this.synchronized ? "PTV" : "CMV", PS: "PSV", SIMV: "SIMV", CPAP: "CPAP", HFOV: "HFOV", HFOV_CMV: "HFOV+CMV" };
     const mode = modes[this.vent_mode];
     if (!mode || !this.is_enabled) return;
     const set = (k, v) => {
@@ -257,6 +343,15 @@ export class Sle6000 extends Ventilator {
     set("peep", this.peep_cmh2o / MBAR_TO_CMH2O);
     set("pip", (mode === "PSV" ? this.peep_cmh2o + this.ps_cmh2o : this.pip_cmh2o) / MBAR_TO_CMH2O);
     set("o2", this.fio2 * 100.0);
+    if (mode === "HFOV" || mode === "HFOV+CMV") {
+      set("freq", this.hfo_freq);
+      set("dp", this.hfo_amplitude_cmh2o / MBAR_TO_CMH2O);
+    }
+    if (mode === "HFOV") {
+      set("map", this.hfo_map_cmh2o / MBAR_TO_CMH2O);
+      set("ie", 1.0 / Math.max(this.hfo_insp_fraction, 0.01) - 1.0);
+    }
+    if (mode === "HFOV+CMV") this.sle_hfo_activity = this.hfo_activity === "exp" ? 1 : 0;
     this.sle_mode = mode;
     this._last_mode = mode;
   }
@@ -308,6 +403,17 @@ export class Sle6000 extends Ventilator {
     const q_fg = this._vent_insp_valve && !this._vent_insp_valve.no_flow ? this._vent_insp_valve.flow * 60.0 : 0.0;
     this.mon_fg_flow = ema(this.mon_fg_flow, q_fg, 1.0);
     this.mon_rr = this.rr_meas;
+    if (this._hfo_mode()) this._hfo_peak_flow = Math.max(this._hfo_peak_flow, Math.abs(this._vent_ettube?.flow ?? 0.0));
+    // HFOV+CMV: PIP is the peak of the CMV breath (its inspiration, oscillation included)
+    if (this.vent_mode === "HFOV_CMV") {
+      if (this._inspiration !== this._cmv_was_insp) this._cycle_crossed = true;
+      if (this._inspiration) this._cmv_p_max = Math.max(this._cmv_p_max, this.pres);
+      else if (this._cmv_was_insp) {
+        this.mon_pip = this._cmv_p_max / MBAR_TO_CMH2O;
+        this._cmv_p_max = -1e9;
+      }
+      this._cmv_was_insp = this._inspiration;
+    }
     this.mon_trig = this.trig_per_min;
 
     // C20/C sample: pressure and inspired volume at 80 % of the set Ti
@@ -365,6 +471,41 @@ export class Sle6000 extends Ventilator {
     this._mon_init = true;
   }
 
+  _hfo_cycle_end(f) {
+    // HFO monitored values per oscillation (p175): Vte and DCO2 tau 3 cycles, MAP tau 5, ΔP the
+    // peak-to-peak pressure, R = ΔP / peak flow, C = Vte / ΔP; Vmin from Vte and the frequency
+    const peak_flow = this._hfo_peak_flow;
+    this._hfo_peak_flow = 0.0;
+    // HFOV+CMV: a cycle across a breath edge carries the PEEP-PIP step, so ΔP, C and R come from
+    // the cycles inside one phase only
+    const clean = !this._cycle_crossed;
+    this._cycle_crossed = false;
+    super._hfo_cycle_end(f);
+    const first = !this._mon_init;
+    const filt = (x, v, n) => (first ? v : x + (v - x) / n);
+    const vte = Math.max(this.exp_tidal_volume, 0.0) * 1000.0;
+    const dp = this.hfo_amplitude_meas / MBAR_TO_CMH2O;
+    this.mon_vte = filt(this.mon_vte, vte, 3);
+    this.mon_vti = filt(this.mon_vti, this.insp_tidal_volume * 1000.0, 3);
+    this.mon_dco2 = filt(this.mon_dco2, f * vte * vte, 3);
+    // MAP: per oscillation in HFOV, per breath (the CMV breath) in HFOV+CMV
+    const map = this.vent_mode === "HFOV_CMV" ? this.map_meas : this.hfo_map_meas;
+    this.mon_map = filt(this.mon_map, map / MBAR_TO_CMH2O, 5);
+    if (clean) this.mon_dp = dp;
+    if (this.vent_mode === "HFOV") this.mon_pip = this.p_peak / MBAR_TO_CMH2O;
+    this.mon_freq = f;
+    this.mon_vmin = (this.mon_vte * f * 60.0) / 1000.0;
+    this.mon_leak = filt(this.mon_leak, this.leak_perc, 10);
+    if (clean && dp > 0.0 && vte > 0.0) this.mon_c = filt(this.mon_c, vte / dp, 3);
+    if (clean && peak_flow > 0.0) this.mon_r = filt(this.mon_r, dp / peak_flow, 3);
+    this.mon_ie = this.vent_mode === "HFOV" ? 1.0 / this.hfo_insp_fraction - 1.0 : this.ie_ratio_meas;
+    if (this.vent_mode === "HFOV_CMV") {
+      this.mon_ti = this.ti_meas;
+      this.mon_te = this.te_meas;
+    }
+    this._mon_init = true;
+  }
+
   _end_inspiration() {
     // the end-inspiratory pressure and volume for C20/C
     this._c20_p_end = this.pres;
@@ -376,7 +517,7 @@ export class Sle6000 extends Ventilator {
     this._mon_init = false;
     this._leak_hist = [];
     this._vte_hist = [];
-    for (const k of ["mon_pip", "mon_peep", "mon_map", "mon_vte", "mon_vti", "mon_vmin", "mon_leak", "mon_rr", "mon_c", "mon_r", "mon_ti", "mon_te", "mon_ie", "mon_fg_flow"]) this[k] = 0.0;
+    for (const k of ["mon_pip", "mon_peep", "mon_map", "mon_vte", "mon_vti", "mon_vmin", "mon_leak", "mon_rr", "mon_c", "mon_r", "mon_ti", "mon_te", "mon_ie", "mon_fg_flow", "mon_dp", "mon_dco2", "mon_freq"]) this[k] = 0.0;
     this.mon_trig = 0;
     this.mon_c20c = null;
   }
