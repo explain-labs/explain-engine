@@ -1,5 +1,6 @@
 // SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
-// PSV, SIMV with VTV), the settings validation and the monitored values. See docs/Sle6000.md.
+// PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
+// HFOV+CMV), the settings validation and the monitored values. See docs/Sle6000.md.
 //
 // Usage: node scripts/probe_sle6000.mjs [--verbose]
 // Exit code 1 when a check fails.
@@ -153,6 +154,96 @@ function count(m, V, seconds) {
 {
   const { m, V } = start({ mode: "CMV", circuit: 15 });
   check("15 mm circuit compliance (ml/cmH2O)", 1000 / (m.models.VENT_GASCIRCUIT.el_base * 1.35951), 1.0, 1.1);
+}
+
+// 10. HFOV: MAP, ΔP, frequency and I:E delivered; VTV; settings
+{
+  const { m, V } = start({ mode: "HFOV", map: 10, dp: 20, freq: 10, ie: 1 }, (m) => m.models.Breathing.switch_breathing(false));
+  eng.calc(30);
+  check("HFOV MAP (mbar)", V.mon_map, 9.5, 10.5);
+  check("HFOV measured ΔP (mbar)", V.mon_dp, 18, 22);
+  check("HFOV frequency (Hz)", V.mon_freq, 10, 10);
+  check("HFOV DCO2 = f·Vte² (ml²/s)", V.mon_dco2 / (10 * V.mon_vte * V.mon_vte), 0.8, 1.2);
+  // I:E 1:1 -> 1:2: the inspiratory part of the cycle shrinks, so the positive swing grows
+  const swing = () => {
+    let hi = -Infinity, lo = Infinity;
+    for (let i = 0; i < 400; i++) { eng.calc(m.modeling_stepsize); hi = Math.max(hi, V.pres); lo = Math.min(lo, V.pres); }
+    return (hi - 10 * 1.01972) / (hi - lo);
+  };
+  const up11 = swing();
+  V.sle_set("ie", 2);
+  eng.calc(5);
+  const up12 = swing();
+  check("I:E 1:2 moves the swing above MAP (fraction)", up12 - up11, 0.1, 0.3, "1:1 0.5 of the swing, 1:2 two thirds");
+  V.sle_set("hfo_vtv", 2.0);
+  eng.calc(15);
+  check("HFO VTV Vte within 10 % of 2.0 ml", V.mon_vte, 1.8, 2.2);
+  check("HFO VTV working ΔP below ΔP Max (mbar)", V.hfo_amplitude_delivered / 1.01972, 4, 20);
+  V.sle_set("hfo_vtv", 0);
+  eng.calc(5);
+  check("HFO VTV off restores the set ΔP (mbar)", V.mon_dp, 18, 22);
+  V.sle_apply({ freq: 25, dp: 3, map: 50 });
+  check("frequency clamped to 20 Hz", V.sle_freq, 20, 20);
+  check("ΔP clamped to 4 mbar", V.sle_dp, 4, 4);
+  check("MAP clamped to 45 mbar", V.sle_map, 45, 45);
+}
+
+// 11. HFOV sighs and oscillation pause
+{
+  const { m, V } = start({ mode: "HFOV", map: 10, dp: 20, sigh_p: 18, sigh_ti: 1.0 }, (m) => m.models.Breathing.switch_breathing(false));
+  eng.calc(10);
+  V.sle_sigh();
+  let t = 0, p = 0;
+  while (V.hfo_sigh_remaining > 0 && t < 5) { eng.calc(0.01); t += 0.01; if (Math.abs(t - 0.8) < 0.005) p = V.pres / 1.01972; }
+  check("Sigh lasts Sigh Ti (s)", t, 0.98, 1.03);
+  check("Sigh holds Sigh P (mbar)", p, 17, 19);
+  V.sle_osc_pause();
+  eng.calc(10);
+  check("Oscillation Pause holds MAP (mbar)", V.pres / 1.01972, 9.5, 10.5);
+  check("Oscillation Pause counts down from 60 s", V.hfo_pause_remaining, 49, 51);
+  V.sle_osc_pause();
+  eng.calc(1);
+  check("Oscillation Pause cancelled by a second press", V.hfo_pause_remaining, 0, 0);
+  V.sle_apply({ sigh_rr: 6 });
+  let n = 0, was = false;
+  for (let i = 0; i < 6000; i++) { eng.calc(0.01); const on = V.hfo_sigh_remaining > 0; if (on && !was) n++; was = on; }
+  check("Sigh RR 6 gives 6 sighs a minute", n, 6, 6);
+  V.sle_apply({ map: 20 });
+  check("MAP above Sigh P drags Sigh P up", V.sle_sigh_p, 20, 20);
+  V.sle_apply({ sigh_p: 45 });
+  check("Sigh P at most MAP + 15", V.sle_sigh_p, 35, 35);
+  V.sle_apply({ sigh_rr: 150 });
+  check("Sigh RR limited by Sigh Ti", V.sle_sigh_rr, 1, 60 / (V.sle_sigh_ti + 0.1) + 1e-9);
+}
+
+// 12. HFOV+CMV: CMV breaths at RR with the oscillation in both phases or in expiration only
+{
+  const { m, V } = start({ mode: "HFOV+CMV", rr: 30, ti: 0.4, peep: 5, pip: 18, dp: 10, freq: 10 }, (m) => m.models.Breathing.switch_breathing(false));
+  eng.calc(20);
+  const phases = () => {
+    const ins = [], exs = [];
+    for (let i = 0; i < 2000; i++) {
+      eng.calc(0.01);
+      if (V._inspiration && V._insp_time_counter > 0.2 && V._insp_time_counter < 0.35) ins.push(V.pres);
+      if (V._expiration && V._te_counter > 0.5) exs.push(V.pres);
+    }
+    const sw = (a) => Math.max(...a) - Math.min(...a);
+    return [sw(ins), sw(exs)];
+  };
+  check("HFOV+CMV rate (BPM)", V.mon_rr, 29, 31);
+  const [i1, e1] = phases();
+  check("HFOV+CMV oscillates in inspiration (cmH2O)", i1, 8, 12);
+  check("HFOV+CMV oscillates in expiration (cmH2O)", e1, 8, 12);
+  V.sle_set("hfo_activity", 1);
+  const [i2] = phases();
+  check("HFO Activity Exp: no oscillation in inspiration", i2, 0, 0.5);
+  check("HFOV+CMV MAP is the breath mean (mbar)", V.mon_map, 6.5, 8.5);
+  V.sle_manual_breath();
+  check("Manual breath accepted in HFOV+CMV", V._manual_breath || V._inspiration ? 1 : 0, 1, 1);
+  V.sle_apply({ mode: "CMV" });
+  eng.calc(20);
+  check("back to CMV keeps the conventional settings (PIP)", V.sle_pip, 18, 18);
+  check("back to CMV ventilates (Vte ml)", V.mon_vte, 20, 60);
 }
 
 const f = (x) => (typeof x === "number" ? x.toFixed(3) : String(x));
