@@ -11,8 +11,10 @@ export class Sle6000 extends Ventilator {
    * The SLE6000 neonatal ventilator (SLE Ltd, IFU V2.0): the generic Ventilator driven through the
    * device's own modes, settings (mbar, with its ranges, resolutions and interlocks), patient
    * circuits and monitored values. Phase 1: the invasive conventional modes CPAP, CMV, PTV, PSV and
-   * SIMV, with volume targeting (VTV). The scenario keeps the instance name "Ventilator", so the
-   * Monitor, Resuscitation and every UI path that reads Ventilator.* keep working.
+   * SIMV, with volume targeting (VTV). It is the ventilator of every scenario up to 30 kg (the
+   * device's range); the scenario keeps the instance name "Ventilator", so the Monitor,
+   * Resuscitation and every UI path that reads Ventilator.* keep working. A scenario can start
+   * ventilating: is_enabled true plus sle_mode and the sle_* settings.
    */
   constructor(model_ref, name = "") {
     super(model_ref, name);
@@ -63,12 +65,17 @@ export class Sle6000 extends Ventilator {
     this._c20_p_end = 0.0;
     this._c20_v_end = 0.0;
     this._last_mode = "CMV"; // the mode Start/Resume returns to
+    this._in_apply = false; // inside sle_apply (its switch-on is not a generic one)
   }
 
   init_model(args = {}) {
     super.init_model(args);
-    this.mon_o2 = this.fio2 * 100.0;
     this._apply_circuit();
+    // a scenario that starts ventilating: the device settings drive the generic ventilator
+    if (!this.is_enabled) this.sle_mode = "Standby";
+    else if (this.sle_mode in SLE_MODES) this._apply_mode();
+    else this._sync_from_generic();
+    this.mon_o2 = this.fio2 * 100.0;
   }
 
   calc_model() {
@@ -99,7 +106,9 @@ export class Sle6000 extends Ventilator {
       if (this.is_enabled) this.switch_ventilator(false);
       return;
     }
+    this._in_apply = true;
     if (!this.is_enabled) this.switch_ventilator(true);
+    this._in_apply = false;
     this._apply_mode();
   }
 
@@ -116,14 +125,38 @@ export class Sle6000 extends Ventilator {
   }
 
   switch_ventilator(state) {
-    // also reached directly (Resuscitation, the generic panel): off is the device's Standby
+    // also reached directly (Resuscitation): off is the device's Standby, on outside sle_apply shows
+    // what the generic ventilator is doing
     super.switch_ventilator(state);
     if (!state) {
       this.sle_mode = "Standby";
       this.o2_boost_remaining = 0.0;
       this._o2_boost_base = null;
       this._reset_monitor();
+    } else if (!this._in_apply) {
+      this._sync_from_generic();
     }
+  }
+
+  // the generic setters, called directly (Resuscitation, scripts): the device settings follow them
+  set_pc(...args) {
+    super.set_pc(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
+  set_psv(...args) {
+    super.set_psv(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
+  set_simv(...args) {
+    super.set_simv(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
+  set_cpap(...args) {
+    super.set_cpap(...args);
+    if (!this._in_apply) this._sync_from_generic();
   }
 
   sle_manual_breath() {
@@ -208,6 +241,24 @@ export class Sle6000 extends Ventilator {
         this.vent_mode = "SIMV";
         break;
     }
+  }
+
+  _sync_from_generic() {
+    // mirror the generic mode and settings into the device's, clamped to its ranges; the generic
+    // ventilator keeps running as set (no _apply_mode), so a device-range clamp only shows
+    const modes = { PC: this.synchronized ? "PTV" : "CMV", PS: "PSV", SIMV: "SIMV", CPAP: "CPAP" };
+    const mode = modes[this.vent_mode];
+    if (!mode || !this.is_enabled) return;
+    const set = (k, v) => {
+      if (Number.isFinite(v)) this[`sle_${k}`] = sle_clamp(k, v);
+    };
+    set("rr", this.vent_rate);
+    set("ti", this.insp_time);
+    set("peep", this.peep_cmh2o / MBAR_TO_CMH2O);
+    set("pip", (mode === "PSV" ? this.peep_cmh2o + this.ps_cmh2o : this.pip_cmh2o) / MBAR_TO_CMH2O);
+    set("o2", this.fio2 * 100.0);
+    this.sle_mode = mode;
+    this._last_mode = mode;
   }
 
   _apply_circuit() {

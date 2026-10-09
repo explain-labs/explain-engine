@@ -83,6 +83,9 @@ M.Breathing.breathing_enabled = false;
 const V = M.Ventilator;
 Object.assign(V, { is_enabled: true, fio2: 1.0, pip_cmh2o: 21, pip_cmh2o_max: 21,
   peep_cmh2o: 5, vent_rate: 26, vent_mode: "PC", synchronized: false });
+// the SLE6000 starts in CMV with these settings (mbar ~ cmH2O at this resolution); sle_o2 is 21
+// because the fio2 key alone never set the gas, so the calibrated state was always on air
+Object.assign(V, { sle_mode: "CMV", sle_rr: 26, sle_ti: 0.4, sle_peep: 5, sle_pip: 21, sle_o2: 21 });
 for (const part of ["VENT_GASIN", "VENT_GASCIRCUIT", "VENT_GASOUT", "VENT_INSP_VALVE", "VENT_ETTUBE", "VENT_EXP_VALVE"]) {
   V.components[part].is_enabled = true;
   if ("no_flow" in V.components[part]) V.components[part].no_flow = false;

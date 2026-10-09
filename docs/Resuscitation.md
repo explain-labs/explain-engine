@@ -69,6 +69,12 @@ pressure control from `vent_pres_pip` / `vent_pres_peep` / `vent_insp_time`
 (`set_pc(pip, peep, MANUAL_MODE_VENT_BACKUP_RATE, t_in, 5.0)`), switches off spontaneous `Breathing`
 (`switch_breathing(false)`), and sets `cpr_enabled = true`.
 
+On an [SLE6000](./Sle6000.md), the ventilator of every scenario up to 30 kg, these generic calls
+are mirrored into the device settings (`_sync_from_generic`).
+- The device screen shows PTV or CMV at the resuscitation PIP, PEEP and Ti.
+- The rate is clamped to the device's 1/min minimum.
+- It does not show Standby.
+
 Turning it **off** resets the cycle and clears `cpr_enabled`, but **intentionally leaves the
 ventilator running and spontaneous `Breathing` switched off** — this models the post-arrest,
 still-ventilated patient. There is no automatic restore of spontaneous breathing; re-enable it

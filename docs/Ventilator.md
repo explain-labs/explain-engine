@@ -1,5 +1,11 @@
 # Ventilator
 
+> **In the app the ventilator is the [SLE6000](./Sle6000.md).** Every scenario up to 30 kg uses
+> `Sle6000`, a subclass of this model; only the adult scenarios keep `Ventilator` itself.
+> - This class is the physics underneath, and its API is what Resuscitation, the respiratory suite,
+>   the probes and the calibration scripts call.
+> - Its HFOV, VC and PRVC modes have no control in the app.
+
 The `Ventilator` device model simulates a **mechanical ventilator** that drives the patient's lungs
 through an endotracheal (ET) tube. It owns a small gas circuit — a fresh-gas reservoir, the patient
 circuit, an expiratory (PEEP) reservoir, and the inspiratory/expiratory valves plus the ET-tube
