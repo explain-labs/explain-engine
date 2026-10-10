@@ -49,6 +49,8 @@ export class Ventilator extends BaseModelClass {
     this.trigger_volume_perc = 6;
     this.trigger_mode = "volume"; // "volume": trigger_volume_perc of the set Vt during a patient effort; "flow": trigger_flow at the tube
     this.trigger_flow = 0.6; // L/min, flow-trigger threshold (inspiratory flow at the tube during expiration)
+    this.leak_compensation = true; // flow trigger: subtract the learned baseline leak flow before the threshold
+    this.leak_comp_max_perc = 100; // %, compensate only while the (averaged) leak is at most this
     this.term_sens_perc = 30; // %, a PS breath cycles off when inspiratory flow decays below this % of its peak
     this.backup_rate = 0; // /min, CPAP apnoea backup: a time-cycled breath at PIP/insp_time after 60/backup_rate s without an effort (0 = off)
     this.synchronized = false;
@@ -78,6 +80,7 @@ export class Ventilator extends BaseModelClass {
     this.pip_delivered = 0.0; // cmH2O, the inspiratory pressure target actually in use
     this.pressure_limited = false; // volume-targeted: working pressure at pip_cmh2o_max, Vt below target
     this.leak_perc = 0.0; // %, per-breath leak (Vti - Vte) / Vti, as a ventilator reports it
+    this.leak_flow_comp = 0.0; // L/min, baseline leak flow the flow trigger subtracts (0 = not compensating)
     this.hfo_tidal_volume = 0.0; // L, HFOV volume delivered per oscillation (at the tube)
     this.hfo_dco2 = 0.0; // mL^2/s, HFOV gas transport coefficient f * Vt^2
     this.hfo_map_meas = 0.0; // cmH2O, measured mean circuit pressure in HFOV
@@ -164,6 +167,10 @@ export class Ventilator extends BaseModelClass {
     this._map_sum = 0.0;
     this._map_time = 0.0;
     this._trig_times = []; // model times of patient-triggered breath starts (last 60 s)
+    this._leak_net_vol = 0.0; // L, net volume through the tube sensor over the current breath
+    this._leak_sqrtp = 0.0; // √cmH2O·s, integral of √(airway pressure) over the current breath
+    this._leak_g = 0.0; // L/s per √cmH2O, learned leak conductance (orifice law, Q = g·√P)
+    this._leak_perc_avg = 0.0; // %, leak_perc averaged over ~3 breaths (gates the compensation)
     this._ps_breath = false; // SIMV: the breath in progress is a pressure-supported spontaneous breath
     this._simv_window_counter = 0.0; // SIMV: time into the current mandatory-breath window
     this._simv_breath_given = false; // SIMV: this window's mandatory (or synchronised) breath was delivered
@@ -328,6 +335,10 @@ export class Ventilator extends BaseModelClass {
     // HFOV, apnoea) per 3 s block
     this._map_sum += this.pres * this._t;
     this._map_time += this._t;
+    // leak learning: over a whole breath the lung returns to its start volume, so the net volume
+    // through the tube sensor is the volume that left through the leak
+    this._leak_net_vol += this._vent_ettube.flow * this._t;
+    this._leak_sqrtp += Math.sqrt(Math.max(this.pres, 0.0)) * this._t;
     if (this._map_time >= 3.0) this._close_map_block();
     // in CPAP the patient sets the rate; backup breaths only come during apnoea
     const spont = this._breathing_model?.breathing_enabled ? this._breathing_model.resp_rate : 0.0;
@@ -386,6 +397,26 @@ export class Ventilator extends BaseModelClass {
         : 0.0;
   }
 
+  _learn_leak() {
+    // leak compensation, as on a neonatal ventilator: learn the leak from the sensor's own
+    // measurements, breath by breath. The leak is an orifice (Q = g·√P), so the breath's net
+    // volume over its ∫√P dt gives the conductance, filtered over about 3 breaths
+    if (this._leak_sqrtp > 0.0) {
+      const g = Math.max(this._leak_net_vol, 0.0) / this._leak_sqrtp;
+      this._leak_g += (g - this._leak_g) / 3.0;
+      this._leak_perc_avg += (this.leak_perc - this._leak_perc_avg) / 3.0;
+    }
+    this._leak_net_vol = 0.0;
+    this._leak_sqrtp = 0.0;
+  }
+
+  _leak_flow_now() {
+    // L/s, the learned leak flow at the current airway pressure; 0 when not compensating (off,
+    // nothing learned yet, or a leak above what the device compensates)
+    if (!this.leak_compensation || this._leak_perc_avg > this.leak_comp_max_perc) return 0.0;
+    return this._leak_g * Math.sqrt(Math.max(this.pres, 0.0));
+  }
+
   triggering() {
     if (this.trigger_mode === "flow") {
       this.flow_triggering();
@@ -423,9 +454,13 @@ export class Ventilator extends BaseModelClass {
   flow_triggering() {
     // flow trigger, as on a ventilator with a proximal flow sensor: patient inspiratory flow at the
     // tube above trigger_flow (L/min) during expiration starts a breath. Armed once the minimal
-    // expiratory time has passed, so the end of the previous breath can't re-trigger.
+    // expiratory time has passed, so the end of the previous breath can't re-trigger. With a tube
+    // leak the circuit keeps resupplying it through the tube, which the sensor reads as inspiratory
+    // flow: leak compensation subtracts the learned baseline leak flow first, so a leak within the
+    // compensated range doesn't auto-trigger
+    this.leak_flow_comp = this._leak_flow_now() * 60.0;
     if (this._trigger_blocked || !this._expiration || this._te_counter < this._min_exp_time) return;
-    if (this._vent_ettube.flow * 60.0 > this.trigger_flow) {
+    if (this._vent_ettube.flow * 60.0 - this.leak_flow_comp > this.trigger_flow) {
       this._exp_time_counter = this.exp_time + 0.1;
       this.triggered_breath = true;
     }
@@ -672,6 +707,7 @@ export class Ventilator extends BaseModelClass {
 
     this.calc_measured_mechanics();
     this._calc_leak_perc();
+    this._learn_leak();
     // volume-targeted modes: trim the working pressure on the breath just completed (in SIMV only
     // on mandatory breaths: a supported spontaneous breath has its own, capped, pressure)
     if (this._volume_targeted() && !this._ps_breath) this.pressure_regulated_volume_control();
@@ -1346,6 +1382,11 @@ export class Ventilator extends BaseModelClass {
     this._map_sum = 0.0;
     this._map_time = 0.0;
     this._trig_times = [];
+    this._leak_net_vol = 0.0;
+    this._leak_sqrtp = 0.0;
+    this._leak_g = 0.0;
+    this._leak_perc_avg = 0.0;
+    this.leak_flow_comp = 0.0;
     this._ps_breath = false;
     this._simv_window_counter = 0.0;
     this._simv_breath_given = false;

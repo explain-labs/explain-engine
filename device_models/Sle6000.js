@@ -242,6 +242,7 @@ export class Sle6000 extends Ventilator {
     this.rise_time = this.sle_rise;
     this.trigger_mode = "flow";
     this.trigger_flow = this.sle_trig_sens;
+    this.leak_comp_max_perc = 35; // patient leak compensation, 35 % in the conventional modes (p127)
     this.term_sens_perc = this.sle_term_sens;
     this.insp_pause = 0.0;
     if (this._o2_boost_base === null) this.set_fio2(this.sle_o2 / 100.0);
