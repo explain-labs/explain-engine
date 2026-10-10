@@ -74,6 +74,8 @@ export class Capacitance extends BaseModelClass {
         + (this.u_vol_factor - 1) * this.u_vol
         + (this.u_vol_factor_ps - 1) * this.u_vol
         + (this.u_vol_factor_scaling_ps - 1) * this.u_vol
+    // the factor layers add up and can take the sum below zero; an unstressed volume can't be negative
+    if (this.u_vol_eff < 0.0) this.u_vol_eff = 0.0;
 
     // reset the non persistent factors
     this.u_vol_factor = 1.0;

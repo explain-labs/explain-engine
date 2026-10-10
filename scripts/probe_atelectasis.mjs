@@ -109,8 +109,17 @@ const rec = recruitment();
 const cc = (i) => rec[i].collapse;
 check("rec: holds on CMV 20/5 (little drift)", cc(0) > 0.5, `c ${cc(0)}`);
 check("rec: PIP 28 / PEEP 8 recruits", cc(1) < cc(0) - 0.2, `c ${cc(0)} -> ${cc(1)}`);
-check("rec: PEEP 8 holds it open", Math.abs(cc(2) - cc(1)) < 0.05, `c ${cc(2)}`);
-check("rec: PEEP 2 re-collapses more than PEEP 5", cc(4) > cc(3) && cc(4) > cc(2) + 0.1, `c ${cc(3)} / ${cc(4)}`);
+// the PEEP thresholds are calibrated on the term lung; a surfactant-deficient lung (Surfactant
+// model present) needs more PEEP and derecruits as a whole as well, so there only sanity is checked
+const term = !def.models.Surfactant;
+if (term) {
+  check("rec: PEEP 8 holds it open", Math.abs(cc(2) - cc(1)) < 0.05, `c ${cc(2)}`);
+  check("rec: PEEP 2 re-collapses more than PEEP 5", cc(4) > cc(3) && cc(4) > cc(2) + 0.1, `c ${cc(3)} / ${cc(4)}`);
+} else {
+  check("rec (Surfactant lung): low PEEP re-collapses", cc(4) > cc(2) + 0.1, `c ${cc(2)} -> ${cc(4)}`);
+}
+check("rec: blood gases stay physiological", rec.every((x) => x.PaO2 > 10 && x.PaO2 < 150 && x.PaCO2 > 5 && x.PaCO2 < 150),
+  rec.map((x) => `${x.PaO2}/${x.PaCO2}`).join(" "));
 check("rec: HFOV sighs recruit", cc(6) < cc(5) - 0.1, `c ${cc(5)} -> ${cc(6)}`);
 check("rec: off support it re-collapses", cc(7) > cc(6) + 0.1, `c ${cc(7)}`);
 check("rec: c stays within [0, 0.6]", rec.every((x) => x.collapse >= 0 && x.collapse <= 0.6 + 1e-9));

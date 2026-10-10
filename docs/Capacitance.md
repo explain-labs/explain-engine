@@ -73,7 +73,8 @@ Then resets the non-persistent factors `el_base_factor` and `el_k_factor` to `1.
 u_vol_eff = u_vol + (u_vol_factor − 1)·u_vol + (u_vol_factor_ps − 1)·u_vol + (u_vol_factor_scaling_ps − 1)·u_vol
 ```
 
-Then resets the non-persistent factor `u_vol_factor` to `1.0`.
+It is floored at 0. The layers add, so several writers lowering them at once (Surfactant derecruitment
+plus atelectasis) could otherwise produce a negative unstressed volume. Then resets the non-persistent factor `u_vol_factor` to `1.0`.
 
 ### `calc_pressure`
 

@@ -230,6 +230,15 @@ With `atelectasis_recruitable = false` (a mucus plug, resorption atelectasis) th
 pressure. In the preterm scenarios [Surfactant](./Surfactant.md) keeps its own whole-lung
 recruitment on the non-persistent layer. The two run independently and their effects add.
 
+The thresholds are calibrated on the term lung. In `preterm_28wk`, recruitment with PIP 28 or sighs
+works the same way, but PEEP 8 already lets some re-collapse. At PEEP ≤ 5, Surfactant derecruits the
+whole lung as well, so a surfactant-deficient lung needs more PEEP, as at the bedside.
+
+Because the factor layers add up, Surfactant's derecruitment and atelectasis together can take a
+lung's effective unstressed volume or diffusion constant below zero. [Capacitance](./Capacitance.md)
+floors `u_vol_eff` and [GasExchanger](./GasExchanger.md) the diffusion constants at 0. A negative
+diffusion constant would pump gas against its gradient and blow up the blood gases.
+
 ## Example definition (JSON)
 
 From `term_neonate.json`:
