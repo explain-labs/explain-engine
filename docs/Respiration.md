@@ -239,6 +239,28 @@ lung's effective unstressed volume or diffusion constant below zero. [Capacitanc
 floors `u_vol_eff` and [GasExchanger](./GasExchanger.md) the diffusion constants at 0. A negative
 diffusion constant would pump gas against its gradient and blow up the blood gases.
 
+### Bronchus obstruction and resorption
+
+`airway_obstructed_left` / `_right` (setters `set_airway_obstructed_left/right`) close a main
+bronchus (`DS_ALx.no_flow`). This is a mucus plug, or the left bronchus behind a tube in the right
+main bronchus (set by [Ventilator](./Ventilator.md#airway-events)). No gas moves in or out, and the
+trapped gas is absorbed into the blood, so the lung collapses (resorption atelectasis):
+
+```
+c → atelectasis_max    with tau = tau_air + (tau_o2 − tau_air) · (FO₂_trapped − 0.21) / 0.79
+```
+
+Oxygen absorbs fast and nitrogen slowly, so the time constant runs from `atelectasis_resorb_tau_air`
+(1800 s, trapped room air) to `_tau_o2` (240 s, trapped oxygen). `FO₂_trapped` is the lung's `fo2`
+captured at the moment of obstruction. The absorbed gas leaves the lung: each update holds the
+trapped lung at its captured recoil pressure, so it deflates instead of pressurising as it stiffens.
+The collapsed units join the unstable region. While obstructed, pressure recruitment of that lung
+pauses. Once the bronchus is open again, pressure recruits it and PEEP keeps it open.
+
+On term_neonate with a right-mainstem tube on CMV 20/5, the left lung's collapse after 10 minutes is
+0.26 on air and 0.67 on oxygen. A right bronchial plug in a spontaneously breathing baby takes SaO₂
+from 96 to 76 % in 5 minutes.
+
 ## Example definition (JSON)
 
 From `term_neonate.json`:
