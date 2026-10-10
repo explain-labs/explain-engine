@@ -85,6 +85,10 @@ dif_o2_step = dif_o2
             + (dif_o2_factor_scaling  − 1) · dif_o2
 ```
 
+Both constants are floored at 0. The layers add, so several writers lowering them at once (Surfactant
+derecruitment plus atelectasis) could otherwise make one negative. Gas would then be pumped against
+its gradient, and the blood gases would blow up.
+
 ## Calculation cycle (`calc_model`)
 
 1. Resolve `_blood` / `_gas` from `model.models`.

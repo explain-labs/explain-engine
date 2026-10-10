@@ -79,6 +79,12 @@ export class GasExchanger extends BaseModelClass {
         + (this.dif_co2_factor_ps - 1) * this.dif_co2
         + (this.dif_co2_factor_scaling - 1) * this.dif_co2; // apply scaling factor to the diffusion factor
 
+    // the factor layers add up, so several writers lowering them at once (Surfactant derecruitment
+    // plus atelectasis) can take the sum below zero; a negative diffusion constant would pump gas
+    // against its gradient and blow up the blood gases, so floor it at no exchange
+    if (this.dif_o2_step < 0.0) this.dif_o2_step = 0.0;
+    if (this.dif_co2_step < 0.0) this.dif_co2_step = 0.0;
+
 
     // calculate the O2 flux from the blood to the gas compartment.
     // If calc_blood_composition could not resolve po2 it leaves the -1 sentinel (e.g. when an

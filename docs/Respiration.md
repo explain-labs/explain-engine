@@ -68,6 +68,10 @@ models, so it composes additively with other writers of that persistent layer.
 | `atelectasis_left` / `_right` | `0.0` | `set_atelectasis_left` / `_right` | collapsed fraction of that lung, clamped `0..atelectasis_max` |
 | `atelectasis_max` | `0.9` | — | upper clamp (a fully collapsed lung has no aerated volume left to scale) |
 | `atelectasis_hpv` | `0.3` | — | share of the collapsed units' perfusion that hypoxic pulmonary vasoconstriction removes from the lung |
+| `atelectasis_recruitable` | `true` | — | pressure reopens and re-collapses the affected units; `false` = obstructive/resorption atelectasis |
+| `atelectasis_open_pressure` / `_open_sd` | `25` / `3` cmH₂O | — | opening pressures of the collapsed units (normal distribution, on the distending pressure) |
+| `atelectasis_close_pressure` / `_close_sd` | `8.5` / `1.5` cmH₂O | — | closing pressures of the affected units |
+| `atelectasis_tau_open` / `_tau_close` | `3` / `30` s | — | recruitment and derecruitment time constants |
 | `intrapulmonary_shunt_left` / `_right` | `["IPSL"]` / `["IPSR"]` | — | the lung's shunt resistors (art → ven) |
 | `pulmonary_capillaries_left` / `_right` | `["LL_ART_LL_CAP", "LL_CAP_LL_VEN"]` / `["RL_…"]` | — | the lung's gas-exchanging path, in series |
 
@@ -165,8 +169,75 @@ On `term_neonate`, right lung, room air (`scripts/probe_atelectasis.mjs`):
 | 0.6 | 89.6 | 47 | 56 % | 32 % | 23 | 37.8 | 2.52 |
 | 0.9 | 82.2 | 39 | 88 % | 47 % | 6 | 31.2 | 2.08 |
 
-The collapse is **static**: PEEP does not reopen it. Pressure-driven recruitment with hysteresis (the
-approach [Surfactant](./Surfactant.md) takes for the whole preterm lung) is a possible next phase.
+These are the static effects, measured with `atelectasis_recruitable = false`.
+
+### Recruitment
+
+Setting a lung's atelectasis (`set_atelectasis_left/right`, or the prop) defines both the collapsed
+fraction `c` and the **unstable** region `u = c`: the units prone to collapse. Within it, `x = c / u`
+is the share that is collapsed. Healthy lungs (`u = 0`) never derecruit, and setting 0 resolves the
+atelectasis completely. Recruited units **stay unstable**: they keep their closing pressure, so only
+PEEP keeps them open.
+
+Each unit has an opening and a closing pressure, normally distributed (the Hickling picture of
+recruitment). They are evaluated every update (15 ms) on the lung's instantaneous **distending
+pressure** `p = ALx.pres_in` (alveolar recoil = airway − pleural) in cmH₂O:
+
+```
+can_stay_closed = 1 − Φ((p − TOP) / sd_open)      units whose opening pressure is above p
+must_close      = 1 − Φ((p − TCP) / sd_close)     units whose closing pressure is above p
+x > can_stay_closed:  x → can_stay_closed  with tau_open     (recruitment)
+x < must_close:       x → must_close       with tau_close    (derecruitment)
+otherwise:            hold                                    (hysteresis)
+```
+
+Because `p` is instantaneous, recruitment follows the time spent at pressure. A sustained inflation or
+an HFOV sigh opens more than brief breaths at the same peak. Every change of `c` goes through the same
+persistent-layer deltas as a user change, and the perfusion follows it every step.
+
+**Calibration.** At end-expiration the pleural pressure in this model is about −4.5 cmH₂O, so the
+distending pressure sits roughly 5 cmH₂O above the set PEEP. On `term_neonate`, the collapsed lung's
+distending pressure in cmH₂O, min–max:
+
+| | range |
+|---|---|
+| spontaneous | 4–8 |
+| CMV 20/0 | 5–22 |
+| CMV 20/2 | 7–22 |
+| CMV 20/5 | 10–22 |
+| CMV 28/8 | 12–27 |
+
+The closing pressure is 8.5 cmH₂O (about PEEP 4 at the airway), with sd 1.5. So PEEP ≥ 8 holds
+everything, PEEP 5 lets about a fifth of the unstable region re-collapse, and PEEP 2 or no support
+re-collapses most of it.
+
+The opening pressure is 25 cmH₂O (sd 3), the range of a neonatal sustained inflation. CMV 20/5
+recruits only a little (its peak sits in the tail), while PIP 28 or a sigh of 27 mbar opens most of it.
+
+Trace on `term_neonate`, right lung, set to 0.6 on SLE CMV 20/5 (`scripts/probe_atelectasis.mjs`):
+
+| phase | c | SaO₂ | lung Qs | ALR ml |
+|---|---|---|---|---|
+| CMV 20/5, 2 min after setting 0.6 | 0.53 | 91.1 | 49 % | 32 |
+| PIP 28 / PEEP 8, 1 min | 0.29 | 94.3 | 30 % | 52 |
+| PIP 20 / PEEP 8, 2 min (holds) | 0.29 | 94.2 | 29 % | 50 |
+| PEEP 5, 3 min (holds) | 0.29 | 94.7 | 29 % | 47 |
+| PEEP 2, 3 min (re-collapses) | 0.49 | 92.2 | 45 % | 33 |
+| HFOV MAP 12 + 5 sighs 27 mbar × 3 s | 0.19 | 94.7 | 22 % | 57 |
+| Standby, spontaneous, 3 min | 0.55 | 90.6 | 50 % | 26 |
+
+With `atelectasis_recruitable = false` (a mucus plug, resorption atelectasis) the collapse ignores
+pressure. In the preterm scenarios [Surfactant](./Surfactant.md) keeps its own whole-lung
+recruitment on the non-persistent layer. The two run independently and their effects add.
+
+The thresholds are calibrated on the term lung. In `preterm_28wk`, recruitment with PIP 28 or sighs
+works the same way, but PEEP 8 already lets some re-collapse. At PEEP ≤ 5, Surfactant derecruits the
+whole lung as well, so a surfactant-deficient lung needs more PEEP, as at the bedside.
+
+Because the factor layers add up, Surfactant's derecruitment and atelectasis together can take a
+lung's effective unstressed volume or diffusion constant below zero. [Capacitance](./Capacitance.md)
+floors `u_vol_eff` and [GasExchanger](./GasExchanger.md) the diffusion constants at 0. A negative
+diffusion constant would pump gas against its gradient and blow up the blood gases.
 
 ## Example definition (JSON)
 

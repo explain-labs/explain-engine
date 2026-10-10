@@ -1,5 +1,15 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
 
+const MMHG_TO_CMH2O = 1.35951;
+
+// standard normal cumulative distribution (Abramowitz & Stegun 7.1.26 erf, |error| < 1.5e-7)
+function phi(z) {
+  const x = Math.abs(z) / Math.SQRT2;
+  const t = 1.0 / (1.0 + 0.3275911 * x);
+  const erf = 1.0 - ((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t + 0.254829592) * t * Math.exp(-x * x);
+  return z >= 0 ? 0.5 * (1.0 + erf) : 0.5 * (1.0 - erf);
+}
+
 /*
 compliance of the chestwall 4.2 ml/cmH2O/kg => 0.00544 L/mmHg/kg => 0.01904 L/mmHg
 -> elastance = 52.5 mmHg/L
@@ -58,6 +68,18 @@ export class Respiration extends BaseModelClass {
     this.atelectasis_right = 0.0;
     this.atelectasis_hpv = 0.3;
     this.atelectasis_max = 0.9;
+    // recruitment: the collapsed units have normally distributed opening and closing pressures
+    // (cmH2O, on the lung's distending pressure ALx.pres_in). Above its opening pressure a unit
+    // reopens (tau_open), below its closing pressure it collapses again (tau_close); in between
+    // it holds (hysteresis). Recruited units stay unstable: only PEEP keeps them open. Off =
+    // obstructive/resorption atelectasis, which pressure does not reopen.
+    this.atelectasis_recruitable = true;
+    this.atelectasis_open_pressure = 25.0;
+    this.atelectasis_open_sd = 3.0;
+    this.atelectasis_close_pressure = 8.5;
+    this.atelectasis_close_sd = 1.5;
+    this.atelectasis_tau_open = 3.0;
+    this.atelectasis_tau_close = 30.0;
     this.intrapulmonary_shunt_left = ["IPSL"]
     this.intrapulmonary_shunt_right = ["IPSR"]
     this.pulmonary_capillaries_left = ["LL_ART_LL_CAP", "LL_CAP_LL_VEN"]
@@ -79,6 +101,8 @@ export class Respiration extends BaseModelClass {
     this._prev_res_lower_airways_factor = 1.0;
     this._prev_atelectasis_left = 0.0;
     this._prev_atelectasis_right = 0.0;
+    this._unstable_left = 0.0; // fraction of the lung's units prone to collapse (set with the atelectasis)
+    this._unstable_right = 0.0;
   }
 
   calc_model() {
@@ -89,6 +113,7 @@ export class Respiration extends BaseModelClass {
 
     this._update_counter += this._t;
     if (this._update_counter > this._update_interval) {
+      const dt_update = this._update_counter;
       this._update_counter = 0.0;
 
       // series dead space configuration (live-editable): the dead-space compartments carry their
@@ -132,6 +157,11 @@ export class Respiration extends BaseModelClass {
 
       if (this._prev_atelectasis_left !== this.atelectasis_left) this.set_atelectasis_left(this.atelectasis_left);
       if (this._prev_atelectasis_right !== this.atelectasis_right) this.set_atelectasis_right(this.atelectasis_right);
+
+      if (this.atelectasis_recruitable) {
+        if (this._unstable_left > 0) this.recruit_atelectasis("left", dt_update);
+        if (this._unstable_right > 0) this.recruit_atelectasis("right", dt_update);
+      }
     }
   }
 
@@ -201,14 +231,48 @@ export class Respiration extends BaseModelClass {
     this.gex_factor = new_factor;
   }
 
+  // the user entry point: sets the collapsed fraction AND the unstable region it defines, so 0
+  // resolves the atelectasis completely
   set_atelectasis_left(new_fraction) {
     this.atelectasis_left = this._apply_atelectasis_gas("left", new_fraction, this._prev_atelectasis_left);
     this._prev_atelectasis_left = this.atelectasis_left;
+    this._unstable_left = this.atelectasis_left;
   }
 
   set_atelectasis_right(new_fraction) {
     this.atelectasis_right = this._apply_atelectasis_gas("right", new_fraction, this._prev_atelectasis_right);
     this._prev_atelectasis_right = this.atelectasis_right;
+    this._unstable_right = this.atelectasis_right;
+  }
+
+  recruit_atelectasis(side, dt) {
+    // within the unstable region, x = collapsed share. At distending pressure p:
+    //   can_stay_closed = 1 - PHI((p - TOP) / sd_open)    units whose opening pressure is above p
+    //   must_close      = 1 - PHI((p - TCP) / sd_close)   units whose closing pressure is above p
+    // x relaxes down to can_stay_closed (recruitment, tau_open) or up to must_close
+    // (derecruitment, tau_close) and holds in between. The pressure is instantaneous, so the
+    // recruitment follows the time spent at pressure (a sustained inflation beats brief breaths).
+    const unstable = side === "left" ? this._unstable_left : this._unstable_right;
+    const c_prev = side === "left" ? this._prev_atelectasis_left : this._prev_atelectasis_right;
+    const lungs = (side === "left" ? this.left_lung : this.right_lung).map((n) => this._model_engine.models[n]).filter(Boolean);
+    if (lungs.length === 0) return;
+    const p = (lungs.reduce((sum, m) => sum + m.pres_in, 0) / lungs.length) * MMHG_TO_CMH2O;
+
+    const can_stay_closed = 1.0 - phi((p - this.atelectasis_open_pressure) / Math.max(this.atelectasis_open_sd, 0.1));
+    const must_close = 1.0 - phi((p - this.atelectasis_close_pressure) / Math.max(this.atelectasis_close_sd, 0.1));
+    let x = c_prev / unstable;
+    if (x > can_stay_closed) x += (can_stay_closed - x) * Math.min(dt / Math.max(this.atelectasis_tau_open, dt), 1.0);
+    else if (x < must_close) x += (must_close - x) * Math.min(dt / Math.max(this.atelectasis_tau_close, dt), 1.0);
+    else return;
+
+    const c = Math.min(Math.max(x, 0.0), 1.0) * unstable;
+    if (side === "left") {
+      this.atelectasis_left = this._apply_atelectasis_gas("left", c, c_prev);
+      this._prev_atelectasis_left = this.atelectasis_left;
+    } else {
+      this.atelectasis_right = this._apply_atelectasis_gas("right", c, c_prev);
+      this._prev_atelectasis_right = this.atelectasis_right;
+    }
   }
 
   _apply_atelectasis_gas(side, new_fraction, prev_fraction) {
