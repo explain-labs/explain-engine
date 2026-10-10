@@ -60,4 +60,5 @@ for (const [name, setup, spont] of cases) {
   }
 }
 log("\n  -> leak % = (Vti - Vte) / Vti at the tube; PC compensates (lung Vt holds), VG chases the falling");
-log("     Vte up to its pressure limit, PS cycles on Ti max once the leak keeps flow from decaying");
+log("     Vte up to its pressure limit, PS still cycles on flow (leak compensation takes the learned leak");
+log("     flow off the termination; without it PS cycles on Ti max once the leak keeps flow from decaying)");

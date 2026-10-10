@@ -243,6 +243,11 @@ export class Sle6000 extends Ventilator {
     this.trigger_mode = "flow";
     this.trigger_flow = this.sle_trig_sens;
     this.leak_comp_max_perc = 35; // patient leak compensation, 35 % in the conventional modes (p127)
+    // PSV automatic leak compensation (p127): flow cycling compensates leak flows up to 5 l/min or
+    // 50 % of the peak flow, only while the leak is 10-50 %
+    this.leak_term_min_perc = 10;
+    this.leak_term_max_perc = 50;
+    this.leak_term_max_flow = 5;
     this.term_sens_perc = this.sle_term_sens;
     this.insp_pause = 0.0;
     if (this._o2_boost_base === null) this.set_fio2(this.sle_o2 / 100.0);
