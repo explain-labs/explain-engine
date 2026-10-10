@@ -80,6 +80,14 @@ export class Respiration extends BaseModelClass {
     this.atelectasis_close_sd = 1.5;
     this.atelectasis_tau_open = 3.0;
     this.atelectasis_tau_close = 30.0;
+    // bronchus obstruction (a mucus plug, or the left main bronchus behind a right-mainstem tube): no
+    // gas in or out of that lung, and the trapped gas is absorbed into the blood, so the lung collapses
+    // (resorption atelectasis). Oxygen absorbs fast and nitrogen slowly: the time constant runs from
+    // tau_air (trapped room air) to tau_o2 (trapped oxygen) with the trapped gas's O2 fraction.
+    this.airway_obstructed_left = false;
+    this.airway_obstructed_right = false;
+    this.atelectasis_resorb_tau_air = 1800.0;
+    this.atelectasis_resorb_tau_o2 = 240.0;
     this.intrapulmonary_shunt_left = ["IPSL"]
     this.intrapulmonary_shunt_right = ["IPSR"]
     this.pulmonary_capillaries_left = ["LL_ART_LL_CAP", "LL_CAP_LL_VEN"]
@@ -103,6 +111,16 @@ export class Respiration extends BaseModelClass {
     this._prev_atelectasis_right = 0.0;
     this._unstable_left = 0.0; // fraction of the lung's units prone to collapse (set with the atelectasis)
     this._unstable_right = 0.0;
+    this._prev_airway_obstructed_left = false;
+    this._prev_airway_obstructed_right = false;
+    this._tube_block_left = false; // the bronchus is blocked by a misplaced tube (Ventilator), not a plug
+    this._tube_block_right = false;
+    this._closed_left = false; // effective state: plugged or blocked by the tube
+    this._closed_right = false;
+    this._trapped_fo2_left = 0.21; // O2 fraction of the trapped gas, captured at obstruction
+    this._trapped_fo2_right = 0.21;
+    this._trapped_pres_left = 0.0; // recoil pressure of the trapped lung, captured at obstruction (mmHg)
+    this._trapped_pres_right = 0.0;
   }
 
   calc_model() {
@@ -158,10 +176,14 @@ export class Respiration extends BaseModelClass {
       if (this._prev_atelectasis_left !== this.atelectasis_left) this.set_atelectasis_left(this.atelectasis_left);
       if (this._prev_atelectasis_right !== this.atelectasis_right) this.set_atelectasis_right(this.atelectasis_right);
 
-      if (this.atelectasis_recruitable) {
-        if (this._unstable_left > 0) this.recruit_atelectasis("left", dt_update);
-        if (this._unstable_right > 0) this.recruit_atelectasis("right", dt_update);
-      }
+      if (this._prev_airway_obstructed_left !== this.airway_obstructed_left) this.set_airway_obstructed_left(this.airway_obstructed_left);
+      if (this._prev_airway_obstructed_right !== this.airway_obstructed_right) this.set_airway_obstructed_right(this.airway_obstructed_right);
+
+      // an obstructed lung resorbs (pressure can't reach it); an open one recruits under pressure
+      if (this._closed_left) this.resorb_atelectasis("left", dt_update);
+      else if (this.atelectasis_recruitable && this._unstable_left > 0) this.recruit_atelectasis("left", dt_update);
+      if (this._closed_right) this.resorb_atelectasis("right", dt_update);
+      else if (this.atelectasis_recruitable && this._unstable_right > 0) this.recruit_atelectasis("right", dt_update);
     }
   }
 
@@ -243,6 +265,78 @@ export class Respiration extends BaseModelClass {
     this.atelectasis_right = this._apply_atelectasis_gas("right", new_fraction, this._prev_atelectasis_right);
     this._prev_atelectasis_right = this.atelectasis_right;
     this._unstable_right = this.atelectasis_right;
+  }
+
+  // a bronchial plug (the user's): airway_obstructed_left/right
+  set_airway_obstructed_left(state) {
+    this.airway_obstructed_left = !!state;
+    this._prev_airway_obstructed_left = this.airway_obstructed_left;
+    this._update_bronchus("left");
+  }
+
+  set_airway_obstructed_right(state) {
+    this.airway_obstructed_right = !!state;
+    this._prev_airway_obstructed_right = this.airway_obstructed_right;
+    this._update_bronchus("right");
+  }
+
+  // a misplaced tube blocking a main bronchus (set by the Ventilator), kept apart from the plug so
+  // either can be cleared without opening a bronchus the other still blocks
+  set_tube_block(side, state) {
+    if (side === "left") this._tube_block_left = !!state;
+    else this._tube_block_right = !!state;
+    this._update_bronchus(side);
+  }
+
+  _update_bronchus(side) {
+    const closed = side === "left"
+      ? this.airway_obstructed_left || this._tube_block_left
+      : this.airway_obstructed_right || this._tube_block_right;
+    const was_closed = side === "left" ? this._closed_left : this._closed_right;
+    const models = this._model_engine.models;
+    const airways = side === "left" ? this.lower_airways_left : this.lower_airways_right;
+    for (const name of airways) if (models[name]) models[name].no_flow = closed;
+    if (closed && !was_closed) {
+      // capture the trapped gas: its O2 fraction sets the resorption speed, its recoil pressure is held
+      // while the gas is absorbed (the lung deflates instead of pressurising as it stiffens)
+      const lungs = (side === "left" ? this.left_lung : this.right_lung).map((n) => models[n]).filter(Boolean);
+      const n = Math.max(lungs.length, 1);
+      const fo2 = lungs.reduce((sum, m) => sum + (m.fo2 ?? 0.21), 0) / n;
+      const pres = lungs.reduce((sum, m) => sum + (m.pres_in ?? 0), 0) / n;
+      if (side === "left") { this._trapped_fo2_left = fo2; this._trapped_pres_left = pres; }
+      else { this._trapped_fo2_right = fo2; this._trapped_pres_right = pres; }
+    }
+    if (side === "left") this._closed_left = closed;
+    else this._closed_right = closed;
+  }
+
+  resorb_atelectasis(side, dt) {
+    // the trapped gas is absorbed: the collapsed fraction rises toward atelectasis_max. The collapsed
+    // units join the unstable region, so once the bronchus is open again pressure can recruit them.
+    const models = this._model_engine.models;
+    const fo2 = side === "left" ? this._trapped_fo2_left : this._trapped_fo2_right;
+    const share_o2 = Math.min(Math.max((fo2 - 0.21) / 0.79, 0.0), 1.0);
+    const tau = this.atelectasis_resorb_tau_air + (this.atelectasis_resorb_tau_o2 - this.atelectasis_resorb_tau_air) * share_o2;
+    const c_prev = side === "left" ? this._prev_atelectasis_left : this._prev_atelectasis_right;
+    const c = c_prev + (this.atelectasis_max - c_prev) * Math.min(dt / Math.max(tau, dt), 1.0);
+    if (side === "left") {
+      this.atelectasis_left = this._apply_atelectasis_gas("left", c, c_prev);
+      this._prev_atelectasis_left = this.atelectasis_left;
+      this._unstable_left = Math.max(this._unstable_left, this.atelectasis_left);
+    } else {
+      this.atelectasis_right = this._apply_atelectasis_gas("right", c, c_prev);
+      this._prev_atelectasis_right = this.atelectasis_right;
+      this._unstable_right = Math.max(this._unstable_right, this.atelectasis_right);
+    }
+    // the absorbed gas leaves: hold the trapped lung at its captured recoil pressure (alveoli are
+    // linear, el_k = 0), so it deflates as its aerated volume shrinks
+    const p = side === "left" ? this._trapped_pres_left : this._trapped_pres_right;
+    for (const name of side === "left" ? this.left_lung : this.right_lung) {
+      const m = models[name];
+      if (!m || !(m.el_eff > 0)) continue;
+      const excess = m.vol - (m.u_vol_eff + Math.max(p, 0) / m.el_eff);
+      if (excess > 0) m.volume_out(excess);
+    }
   }
 
   recruit_atelectasis(side, dt) {

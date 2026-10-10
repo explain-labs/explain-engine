@@ -44,6 +44,13 @@ export class Ventilator extends BaseModelClass {
     this.hfo_sigh_cmh2o = 10; // cmH2O, pressure held during an HFOV sigh
     this.hfo_activity = "both"; // HFOV_CMV: oscillate in "both" phases or in expiration only ("exp")
     this.leak_size = 0.0; // mm, equivalent diameter of the gap around an uncuffed tube (0 = no leak)
+    // airway events (only while ventilating): where the tube tip sits, and whether the circuit is
+    // attached to the tube. right_main obstructs the left main bronchus; extubated puts the tube tip in
+    // the room and the patient on the natural airway; disconnected opens the circuit's Y-piece and
+    // the tube's proximal end to the room.
+    this.tube_position = "trachea"; // trachea | right_main | extubated
+    this.circuit_connected = true;
+    this.disconnect_resistance = 5.0; // mmHg*s/L, the open Y-piece of a disconnected circuit
     this.exp_valve_resistance = 0.0; // mmHg·s/L, expiratory limb + valve (0 = auto, by circuit size)
     this.volume_guarantee = false; // PC/PS: servo the working pressure to tidal_volume (limit pip_cmh2o_max)
     this.trigger_volume_perc = 6;
@@ -109,6 +116,9 @@ export class Ventilator extends BaseModelClass {
     this._vent_leak = null;
     this._leak_length = 20; // mm, length of the laryngeal leak channel
     this._ventilator_parts = [];
+    this._vent_disconnect = null;
+    this._ett_from = "VENT_GASCIRCUIT"; // the tube's own ends, as defined (captured at init)
+    this._ett_to = "DS";
     this._ettube_length_ref = 110;
     this._min_exp_time = 0.1;
     this._pip = 0.0;
@@ -202,6 +212,25 @@ export class Ventilator extends BaseModelClass {
       };
     }
 
+    // the open Y-piece of a disconnected circuit: a resistor from the circuit to the room, closed
+    // unless the circuit is disconnected (added the same way for scenarios that predate it)
+    if (comps && comps.value && !comps.value.VENT_DISCONNECT) {
+      comps.value.VENT_DISCONNECT = {
+        name: "VENT_DISCONNECT",
+        description: "gas resistor model of the open Y-piece of a disconnected ventilator circuit",
+        is_enabled: false,
+        model_type: "Resistor",
+        components: {},
+        r_for: 1000000,
+        r_back: 1000000,
+        r_k: 0,
+        comp_from: "VENT_GASCIRCUIT",
+        comp_to: "MOUTH",
+        no_flow: true,
+        no_back_flow: false,
+      };
+    }
+
     // initialize the super class
     super.init_model(args);
 
@@ -214,6 +243,11 @@ export class Ventilator extends BaseModelClass {
     this._vent_ettube = this._model_engine.models["VENT_ETTUBE"];
     this._vent_exp_valve = this._model_engine.models["VENT_EXP_VALVE"];
     this._vent_leak = this._model_engine.models["VENT_LEAK"] ?? null;
+    this._vent_disconnect = this._model_engine.models["VENT_DISCONNECT"] ?? null;
+    // a saved state may carry a re-routed tube (an airway event in progress); its own ends are the
+    // circuit and the airway
+    this._ett_from = this._vent_gascircuit?.name ?? "VENT_GASCIRCUIT";
+    this._ett_to = this._vent_ettube.comp_to === "MOUTH" ? "DS" : this._vent_ettube.comp_to;
 
     // store the models inside a list for easy switching.
     this._ventilator_parts = [
@@ -324,7 +358,7 @@ export class Ventilator extends BaseModelClass {
     this._breath_interval_counter += this._t;
     this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
     this.calc_leak();
-    this._set_tube_dead_space(true);
+    this._set_tube_dead_space(this.tube_position !== "extubated");
     this._calc_monitoring();
   }
 
@@ -360,7 +394,7 @@ export class Ventilator extends BaseModelClass {
   _set_tube_dead_space(intubated) {
     // the ET-tube lumen is dead space in series with the airway; the dead-space compartment carries
     // it as rigid composition sub-tanks ahead of the tube port (only with series dead space on)
-    const ds = this._vent_ettube?._comp_to;
+    const ds = this._model_engine.models[this._ett_to];
     if (!ds || !("tube_volume" in ds)) return;
     const r = this.ettube_diameter / 2000.0; // m
     ds.tube_port_model = this._vent_gascircuit?.name ?? "";
@@ -372,7 +406,7 @@ export class Ventilator extends BaseModelClass {
     // leak_size, so the leak grows with airway pressure (more in inspiration, a little at PEEP)
     const leak = this._vent_leak;
     if (!leak) return;
-    if (!(this.leak_size > 0.0)) {
+    if (!(this.leak_size > 0.0) || this.tube_position === "extubated") {
       leak.no_flow = true;
       return;
     }
@@ -1421,6 +1455,11 @@ export class Ventilator extends BaseModelClass {
   }
 
   switch_ventilator(state) {
+    // off = not intubated: the airway events end with it (tube back in place, circuit attached)
+    if (!state) {
+      this.tube_position = "trachea";
+      this.circuit_connected = true;
+    }
     this.is_enabled = state;
     this._reset_state();
     if (state) this._apply_humidifier();
@@ -1444,6 +1483,66 @@ export class Ventilator extends BaseModelClass {
     if (this._vent_leak) {
       this._vent_leak.is_enabled = state && this.leak_size > 0.0;
       this._vent_leak.no_flow = !(state && this.leak_size > 0.0);
+    }
+
+    this._apply_airway_routing();
+  }
+
+  // the airway events exist only while ventilating (a patient off the ventilator is not intubated)
+  set_tube_position(position) {
+    if (!this.is_enabled || !["trachea", "right_main", "extubated"].includes(position)) return;
+    this.tube_position = position;
+    this._apply_airway_routing();
+  }
+
+  set_circuit_connected(state) {
+    if (!this.is_enabled) return;
+    this.circuit_connected = !!state;
+    this._apply_airway_routing();
+  }
+
+  _apply_airway_routing() {
+    // re-route the tube for the current airway events. Resistors look their compartments up by name
+    // every step, so changing comp_from / comp_to takes effect on the next step and restoring the
+    // names restores the circuit exactly.
+    const models = this._model_engine.models;
+    const ett = this._vent_ettube;
+    if (!ett) return;
+    const ventilating = this.is_enabled;
+    const extubated = ventilating && this.tube_position === "extubated";
+    const disconnected = ventilating && !this.circuit_connected;
+
+    // the tube: from the circuit (or the room when disconnected) to the airway (or the room when out)
+    ett.comp_from = disconnected ? "MOUTH" : this._ett_from;
+    ett.comp_to = extubated ? "MOUTH" : this._ett_to;
+    if (ventilating) ett.no_flow = disconnected && extubated; // both ends in the room
+
+    // the open Y-piece
+    const yp = this._vent_disconnect;
+    if (yp) {
+      yp.is_enabled = disconnected;
+      yp.no_flow = !disconnected;
+      if (disconnected) {
+        const r_min = Math.max(this._t * ((this._vent_gascircuit?.el_eff ?? 0.0) + (models["MOUTH"]?.el_eff ?? 0.0)), 0.1);
+        yp.r_for = Math.max(this.disconnect_resistance, r_min);
+        yp.r_back = yp.r_for;
+      }
+    }
+
+    // out of the trachea the patient breathes through the natural airway, without the tube's dead
+    // space or the leak around it
+    const mouth_ds = models["MOUTH_DS"];
+    if (mouth_ds && ventilating) mouth_ds.no_flow = !extubated;
+    if (ventilating) this._set_tube_dead_space(!extubated);
+    if (extubated && this._vent_leak) {
+      this._vent_leak.is_enabled = false;
+      this._vent_leak.no_flow = true;
+    }
+
+    // a tube in the right main bronchus blocks the left one (kept apart from a bronchial plug)
+    const resp = models["Respiration"];
+    if (resp && typeof resp.set_tube_block === "function") {
+      resp.set_tube_block("left", ventilating && this.tube_position === "right_main");
     }
   }
 

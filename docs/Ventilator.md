@@ -65,6 +65,7 @@ VENT_GASIN ──[VENT_INSP_VALVE]──► VENT_GASCIRCUIT ──[VENT_ETTUBE]�
 | `VENT_ETTUBE` | Resistor | ET tube (`VENT_GASCIRCUIT → DS`); its `r_for`/`r_back` are driven by `calc_ettube_resistance` |
 | `VENT_EXP_VALVE` | Resistor | Expiratory valve (`VENT_GASCIRCUIT → VENT_GASOUT`) |
 | `VENT_LEAK` | Resistor | Leak around an uncuffed tube (`DS → MOUTH`), driven by `leak_size`. Added by `init_model` when a scenario does not declare it. |
+| `VENT_DISCONNECT` | Resistor | The open Y-piece of a disconnected circuit (`VENT_GASCIRCUIT → MOUTH`, `disconnect_resistance`), closed unless `circuit_connected` is false. Added by `init_model` when a scenario does not declare it. |
 
 References to the first six are cached in `init_model` and held in `_ventilator_parts` for batch enable/disable. `VENT_LEAK` is handled separately: it is only open while the ventilator is on **and** `leak_size > 0`.
 
@@ -621,6 +622,23 @@ Results with the SLE6000 (5 l/min, 10–50 %), `probe_sle6000.mjs` section 15:
 `Breathing` subtracts the leak flow from the airway-opening flow (see below), because gas that
 escapes around the tube never reaches the lungs.
 
+## Airway events
+
+Three events of the DOPE list, active only while ventilating. `switch_ventilator(false)` ends them:
+the tube goes back to the trachea and the circuit is reconnected. Resistors look their compartments
+up by name on every step, so each event re-routes `comp_from` / `comp_to` and restoring the names
+restores the circuit exactly. The tube's own ends (`VENT_GASCIRCUIT`, `DS`) are captured at init.
+
+| Event | Routing | What it shows |
+|---|---|---|
+| `tube_position = "right_main"` | sets [`Respiration.airway_obstructed_left`](./Respiration.md#bronchus-obstruction-and-resorption): `DS_ALL` closed | All the tidal volume goes to the right lung, so the measured C falls (term_neonate CMV 20/5: 3.1 → 1.9 ml/mbar) and SpO₂ falls. The left lung collapses by resorption, faster on oxygen. Pulling back leaves the collapse for recruitment. |
+| `tube_position = "extubated"` | `VENT_ETTUBE → MOUTH`; `MOUTH_DS` open; leak and tube dead space off | The ventilator blows into the room, so Vte is 0 and the leak 100 %. The patient breathes through the natural airway without PEEP. An apnoeic patient desaturates (60 % after 1 min). |
+| `circuit_connected = false` | `VENT_ETTUBE` from `MOUTH`; `VENT_DISCONNECT` open | Circuit pressure falls to about 2 cmH₂O. The proximal flow sensor stays on the tube and reads only the patient's own breaths. No PEEP. |
+
+The tube's block is kept apart from a bronchial plug (`Respiration.set_tube_block`), so either one
+can be cleared without opening a bronchus the other still blocks. `scripts/probe_airway_events.mjs` checks every
+event, its recovery, and the end of all events on Standby.
+
 ## Coupling to `Breathing`
 
 `Breathing` measures its tidal volume at the lungs (see [Breathing](./Breathing.md)), so it does not
@@ -681,6 +699,8 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 | `set_humidity(new_humidity)` / `set_temp(new_temp)` | Re-derive fresh-gas composition (both `VENT_GASIN` and `VENT_GASCIRCUIT`), and push the new humidity / temperature onto those compartments — see note below |
 | `set_ettube_diameter(d)` / `set_ettube_length(l)` | Update tube geometry → resistance |
 | `trigger_breath()` | Manual breath: ignored during inspiration, otherwise delivered after the minimal expiratory time (all modes except CPAP) |
+| `set_tube_position(pos)` | Airway event: `"trachea"`, `"right_main"` or `"extubated"` (see [Airway events](#airway-events)) |
+| `set_circuit_connected(state)` | Airway event: `false` disconnects the circuit from the tube |
 
 > **Why the setters write to the gas compartments directly.** `humidity` and `target_temp` are live
 > targets that [`GasCapacitance`](./GasCapacitance.md) relaxes toward on every step. Setting only the
