@@ -32,10 +32,12 @@ export default class TaskScheduler {
     new_function_call.type = 2
     new_function_call.stepsize = 0.0;
 
+    // keep the model and method NAMES, not references: the task list is part of the model state
+    // the worker posts to the UI, and a function can't be structured-cloned, so a pending call
+    // would make every GET state fail until it ran. The method is looked up when the task runs.
     let result = new_function_call.func.split(".")
-    // get a reference to the function
-    new_function_call.model = this._model_engine.models[result[0]]
-    new_function_call.func = this._model_engine.models[result[0]][result[1]]
+    new_function_call.model = result[0]
+    new_function_call.func = result[1]
 
     // add the function call to the task list
     this._tasks[id] = new_function_call;
@@ -142,7 +144,10 @@ export default class TaskScheduler {
               remove_task = true;
               break;
             case 2:
-              task.func.apply(task.model, task.args)
+              {
+                const m = this._model_engine.models[task.model];
+                if (typeof m?.[task.func] === "function") m[task.func].apply(m, task.args ?? []);
+              }
               task.completed = true;
               remove_task = true;
               break;
