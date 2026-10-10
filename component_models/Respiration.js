@@ -50,6 +50,19 @@ export class Respiration extends BaseModelClass {
 
     this.gex_factor = 1.0
 
+    // atelectasis: collapsed fraction of each lung (0 = fully aerated, clamped at atelectasis_max).
+    // A collapsed unit loses its aerated volume, its share of the lung's compliance and its gas
+    // exchange surface, while its blood keeps flowing past it unoxygenated (intrapulmonary shunt),
+    // less the share that hypoxic pulmonary vasoconstriction diverts (atelectasis_hpv, 0..1).
+    this.atelectasis_left = 0.0;
+    this.atelectasis_right = 0.0;
+    this.atelectasis_hpv = 0.3;
+    this.atelectasis_max = 0.9;
+    this.intrapulmonary_shunt_left = ["IPSL"]
+    this.intrapulmonary_shunt_right = ["IPSR"]
+    this.pulmonary_capillaries_left = ["LL_ART_LL_CAP", "LL_CAP_LL_VEN"]
+    this.pulmonary_capillaries_right = ["RL_ART_RL_CAP", "RL_CAP_RL_VEN"]
+
 
     // -----------------------------------------------
     // dependent properties
@@ -64,9 +77,16 @@ export class Respiration extends BaseModelClass {
     this._prev_gex_factor = 1.0;
     this._prev_res_upper_airways_factor = 1.0;
     this._prev_res_lower_airways_factor = 1.0;
+    this._prev_atelectasis_left = 0.0;
+    this._prev_atelectasis_right = 0.0;
   }
 
   calc_model() {
+    // the blood side of atelectasis rides on non-persistent resistor factors, so it is re-written
+    // every step (not throttled); it is skipped entirely while both lungs are aerated
+    if (this._prev_atelectasis_left > 0) this.apply_atelectasis_perfusion("left", this._prev_atelectasis_left);
+    if (this._prev_atelectasis_right > 0) this.apply_atelectasis_perfusion("right", this._prev_atelectasis_right);
+
     this._update_counter += this._t;
     if (this._update_counter > this._update_interval) {
       this._update_counter = 0.0;
@@ -109,6 +129,9 @@ export class Respiration extends BaseModelClass {
         this.set_gasexchange(this.gex_factor);
         this._prev_gex_factor = this.gex_factor;
       }
+
+      if (this._prev_atelectasis_left !== this.atelectasis_left) this.set_atelectasis_left(this.atelectasis_left);
+      if (this._prev_atelectasis_right !== this.atelectasis_right) this.set_atelectasis_right(this.atelectasis_right);
     }
   }
 
@@ -178,4 +201,76 @@ export class Respiration extends BaseModelClass {
     this.gex_factor = new_factor;
   }
 
+  set_atelectasis_left(new_fraction) {
+    this.atelectasis_left = this._apply_atelectasis_gas("left", new_fraction, this._prev_atelectasis_left);
+    this._prev_atelectasis_left = this.atelectasis_left;
+  }
+
+  set_atelectasis_right(new_fraction) {
+    this.atelectasis_right = this._apply_atelectasis_gas("right", new_fraction, this._prev_atelectasis_right);
+    this._prev_atelectasis_right = this.atelectasis_right;
+  }
+
+  _apply_atelectasis_gas(side, new_fraction, prev_fraction) {
+    // gas side: with a fraction c of the lung's units collapsed, the aerated volume (u_vol) and the
+    // exchange surface (dif) scale with the open fraction (1 - c), and the elastance with 1 / (1 - c)
+    // (fewer units in parallel). Applied as deltas on the persistent layers, like the other set_*.
+    const c = Math.min(Math.max(Number(new_fraction) || 0, 0), this.atelectasis_max);
+    const open = (f) => 1.0 - f;
+    const d_open = open(c) - open(prev_fraction);
+    const d_el = 1.0 / open(c) - 1.0 / open(prev_fraction);
+    const lungs = side === "left" ? this.left_lung : this.right_lung;
+    const gasex = side === "left" ? this.gas_exchanger_left_lung : this.gas_exchanger_right_lung;
+    lungs.forEach((name) => {
+      const m = this._model_engine.models[name];
+      if (!m) return;
+      m.u_vol_factor_ps = Math.max(m.u_vol_factor_ps + d_open, 0);
+      m.el_base_factor_ps = Math.max(m.el_base_factor_ps + d_el, 0);
+    });
+    gasex.forEach((name) => {
+      const m = this._model_engine.models[name];
+      if (!m) return;
+      m.dif_o2_factor_ps = Math.max(m.dif_o2_factor_ps + d_open, 0);
+      m.dif_co2_factor_ps = Math.max(m.dif_co2_factor_ps + d_open, 0);
+    });
+    return c;
+  }
+
+  apply_atelectasis_perfusion(side, c) {
+    // blood side: the lung's arterial -> venous bed is the capillary path (gas-exchanging) in parallel
+    // with the intrapulmonary shunt. Both see the same pressure drop, so their flow split equals their
+    // conductance split. The collapsed units' perfusion moves to the shunt, except the share hypoxic
+    // vasoconstriction (hpv) removes from the lung altogether:
+    //   G_tot' = G_tot * (1 - c*hpv)
+    //   s'     = s0 + (1 - s0) * c*(1 - hpv) / (1 - c*hpv)      (s0 = shunt share when aerated)
+    // Written on the resistors' non-persistent r_factor (r_factor_ps belongs to Surfactant, the
+    // scaling layer to the Calibrator/ModelScaler), computed against the persistent layers so it
+    // composes with them.
+    const models = this._model_engine.models;
+    const shunts = (side === "left" ? this.intrapulmonary_shunt_left : this.intrapulmonary_shunt_right)
+      .map((n) => models[n]).filter(Boolean);
+    const caps = (side === "left" ? this.pulmonary_capillaries_left : this.pulmonary_capillaries_right)
+      .map((n) => models[n]).filter(Boolean);
+    if (shunts.length === 0 || caps.length === 0) return;
+
+    // effective resistance without the non-persistent layer (Resistor's additive factor composition)
+    const r_base = (r) => r.r_for * (r.r_factor_ps + r.r_factor_scaling_ps - 1.0);
+    const g_ips = shunts.reduce((g, r) => g + (r.no_flow ? 0 : 1.0 / r_base(r)), 0);
+    const r_cap = caps.reduce((sum, r) => sum + r_base(r), 0); // capillary path is in series
+    if (!(r_cap > 0) || !(g_ips >= 0)) return;
+    const g_cap = 1.0 / r_cap;
+    const g_tot = g_ips + g_cap;
+
+    const hpv = Math.min(Math.max(this.atelectasis_hpv, 0), 1);
+    const s0 = g_ips / g_tot;
+    const g_tot_new = g_tot * (1.0 - c * hpv);
+    // without an open shunt path the collapsed units' blood can only be diverted, not shunted
+    const s_new = g_ips > 0 ? s0 + (1.0 - s0) * (c * (1.0 - hpv)) / (1.0 - c * hpv) : 0.0;
+
+    // scale every shunt and capillary resistor by the conductance ratio of its branch
+    const k_ips = g_ips > 0 ? g_ips / (s_new * g_tot_new) : 1.0;
+    const k_cap = g_cap / ((1.0 - s_new) * g_tot_new);
+    if (g_ips > 0) shunts.forEach((r) => { r.r_factor = 1.0 + (k_ips - 1.0) * r_base(r) / r.r_for; });
+    caps.forEach((r) => { r.r_factor = 1.0 + (k_cap - 1.0) * r_base(r) / r.r_for; });
+  }
 }
