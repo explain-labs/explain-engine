@@ -26,6 +26,8 @@ A single set of system-wide multipliers over the respiratory tree:
 - **Lung / chest-wall stiffness** — `el_lungs_factor`, `el_thorax_factor`.
 - **Airway resistance** — `res_upper_airways_factor`, `res_lower_airways_factor`.
 - **Gas-exchange efficiency** — `gex_factor` (drives both O₂ and CO₂ diffusion).
+- **Atelectasis** — `atelectasis_left`, `atelectasis_right`: the collapsed fraction of each lung (see
+  [Atelectasis](#atelectasis)).
 
 Each multiplier is translated into a **delta** on the corresponding `*_factor_ps` of the grouped
 models, so it composes additively with other writers of that persistent layer.
@@ -58,6 +60,16 @@ models, so it composes additively with other writers of that persistent layer.
 | `res_upper_airways_factor` | `1.0` | `set_upper_airway_resistance` | `r_factor_ps` on the upper airways |
 | `res_lower_airways_factor` | `1.0` | `set_lower_airway_resistance` | `r_factor_ps` on the lower airways |
 | `gex_factor` | `1.0` | `set_gasexchange` | `dif_o2_factor_ps` **and** `dif_co2_factor_ps` on the exchangers |
+
+### Atelectasis inputs
+
+| Property | Default | Method | Drives |
+|---|---|---|---|
+| `atelectasis_left` / `_right` | `0.0` | `set_atelectasis_left` / `_right` | collapsed fraction of that lung, clamped `0..atelectasis_max` |
+| `atelectasis_max` | `0.9` | — | upper clamp (a fully collapsed lung has no aerated volume left to scale) |
+| `atelectasis_hpv` | `0.3` | — | share of the collapsed units' perfusion that hypoxic pulmonary vasoconstriction removes from the lung |
+| `intrapulmonary_shunt_left` / `_right` | `["IPSL"]` / `["IPSR"]` | — | the lung's shunt resistors (art → ven) |
+| `pulmonary_capillaries_left` / `_right` | `["LL_ART_LL_CAP", "LL_CAP_LL_VEN"]` / `["RL_…"]` | — | the lung's gas-exchanging path, in series |
 
 ### Series dead space (pushed to the `dead_space` compartments every update)
 
@@ -109,6 +121,53 @@ tier on the grouped models: `el_base_factor_ps` (lungs/thorax), `r_factor_ps` (a
 All factor inputs default to 1.0 (no effect). Disease scenarios raise lung/airway factors (e.g. RDS →
 stiff lungs, bronchospasm → high lower-airway resistance) or lower `gex_factor` (impaired diffusion).
 
+## Atelectasis
+
+A shunt alone is not atelectasis. Lowering the intrapulmonary-shunt resistance reproduces the
+hypoxaemia but leaves the lung fully aerated: FRC, compliance and Vt do not change, so neither the
+ventilator readouts nor PEEP have anything to act on. A collapsed unit loses four things at once, and
+each lung already has a channel for each:
+
+| Collapsed fraction `c` | Channel | Layer |
+|---|---|---|
+| aerated volume ×(1 − c) | `ALL`/`ALR` `u_vol` | `u_vol_factor_ps` (delta) |
+| elastance ×1/(1 − c) (fewer units in parallel) | `ALL`/`ALR` `el_base` | `el_base_factor_ps` (delta) |
+| exchange surface ×(1 − c) | `GASEX_LL`/`GASEX_RL` `dif_o2`, `dif_co2` | `dif_*_factor_ps` (delta) |
+| perfusion of the collapsed units → shunt | `IPSL`/`IPSR` and the capillary resistors | `r_factor` (every step) |
+
+The gas side follows the other `set_*` methods: the change in the target multiplier since the last
+call is added to the persistent layer, so a set-and-clear round trip restores the start values and it
+composes with `el_lungs_factor`, `gex_factor` and Surfactant's non-persistent layer.
+
+**Perfusion.** The capillary path and the intrapulmonary shunt both run from `xL_ART` to `xL_VEN`, so
+they see the same pressure drop and split the lung's blood flow in the ratio of their conductances.
+With `G_ips`, `G_cap` the conductances without the non-persistent layer and `s0 = G_ips / (G_ips + G_cap)`
+the shunt share of the aerated lung:
+
+```
+G_tot' = (G_ips + G_cap) · (1 − c·hpv)                    hypoxic vasoconstriction diverts blood away
+s'     = s0 + (1 − s0) · c·(1 − hpv) / (1 − c·hpv)        the rest of the collapsed units' blood is shunted
+```
+
+Each shunt resistor is scaled by `G_ips / (s'·G_tot')` and each capillary resistor by
+`G_cap / ((1 − s')·G_tot')`, written on the non-persistent `r_factor` every step: `r_factor_ps` on
+`IPSL`/`IPSR` belongs to [Surfactant](./Surfactant.md) and the scaling layer to the Calibrator and
+`ModelScaler`, and the factors are computed against those layers so they compose. Because the split is
+set from conductance ratios, the shunt share does not depend on the scenario's `Shunts.ips_res`
+(preterm 1600–4200, term 5000). With `c = 0` nothing is written.
+
+On `term_neonate`, right lung, room air (`scripts/probe_atelectasis.mjs`):
+
+| c | SaO₂ | PaO₂ | lung Qs | Qs/Qt | ALR ml | CMV 20/5: Vte | C (ml/mbar) |
+|---|---|---|---|---|---|---|---|
+| 0 | 96.3 | 70 | 9 % | 9 % | 53 | 46.6 | 3.10 |
+| 0.3 | 93.7 | 58 | 30 % | 19 % | 39 | 42.9 | 2.86 |
+| 0.6 | 89.6 | 47 | 56 % | 32 % | 23 | 37.8 | 2.52 |
+| 0.9 | 82.2 | 39 | 88 % | 47 % | 6 | 31.2 | 2.08 |
+
+The collapse is **static**: PEEP does not reopen it. Pressure-driven recruitment with hysteresis (the
+approach [Surfactant](./Surfactant.md) takes for the whole preterm lung) is a possible next phase.
+
 ## Example definition (JSON)
 
 From `term_neonate.json`:
@@ -153,7 +212,7 @@ From `term_neonate.json`:
 - **Factors are cumulative and shared.** `*_factor_ps` is written by several models; `Respiration`
   only adds its delta. A factor driven to the 0 clamp stops tracking further decreases until the
   target rises again — inherent to the per-model persistent-factor scheme.
-- **Side- and space-specific lists are reserved.** `pleural_space_left/right`, `intrapulmonary_shunt`,
-  and the `_left`/`_right` airway/lung/exchanger lists are declared but **not** used by any method —
-  hooks for future per-side control.
+- **Side- and space-specific lists.** The `left_lung`/`right_lung` and
+  `gas_exchanger_left_lung`/`_right_lung` lists are used by atelectasis; `pleural_space_left/right`,
+  `intrapulmonary_shunt` and the `_left`/`_right` airway lists are declared but not used by any method.
 - **Group membership is name-based** — a model is only affected if its name is in the relevant list.
