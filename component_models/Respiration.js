@@ -113,6 +113,10 @@ export class Respiration extends BaseModelClass {
     this._unstable_right = 0.0;
     this._prev_airway_obstructed_left = false;
     this._prev_airway_obstructed_right = false;
+    this._tube_block_left = false; // the bronchus is blocked by a misplaced tube (Ventilator), not a plug
+    this._tube_block_right = false;
+    this._closed_left = false; // effective state: plugged or blocked by the tube
+    this._closed_right = false;
     this._trapped_fo2_left = 0.21; // O2 fraction of the trapped gas, captured at obstruction
     this._trapped_fo2_right = 0.21;
     this._trapped_pres_left = 0.0; // recoil pressure of the trapped lung, captured at obstruction (mmHg)
@@ -176,9 +180,9 @@ export class Respiration extends BaseModelClass {
       if (this._prev_airway_obstructed_right !== this.airway_obstructed_right) this.set_airway_obstructed_right(this.airway_obstructed_right);
 
       // an obstructed lung resorbs (pressure can't reach it); an open one recruits under pressure
-      if (this.airway_obstructed_left) this.resorb_atelectasis("left", dt_update);
+      if (this._closed_left) this.resorb_atelectasis("left", dt_update);
       else if (this.atelectasis_recruitable && this._unstable_left > 0) this.recruit_atelectasis("left", dt_update);
-      if (this.airway_obstructed_right) this.resorb_atelectasis("right", dt_update);
+      if (this._closed_right) this.resorb_atelectasis("right", dt_update);
       else if (this.atelectasis_recruitable && this._unstable_right > 0) this.recruit_atelectasis("right", dt_update);
     }
   }
@@ -263,19 +267,36 @@ export class Respiration extends BaseModelClass {
     this._unstable_right = this.atelectasis_right;
   }
 
+  // a bronchial plug (the user's): airway_obstructed_left/right
   set_airway_obstructed_left(state) {
-    this._apply_airway_obstruction("left", !!state);
+    this.airway_obstructed_left = !!state;
+    this._prev_airway_obstructed_left = this.airway_obstructed_left;
+    this._update_bronchus("left");
   }
 
   set_airway_obstructed_right(state) {
-    this._apply_airway_obstruction("right", !!state);
+    this.airway_obstructed_right = !!state;
+    this._prev_airway_obstructed_right = this.airway_obstructed_right;
+    this._update_bronchus("right");
   }
 
-  _apply_airway_obstruction(side, state) {
+  // a misplaced tube blocking a main bronchus (set by the Ventilator), kept apart from the plug so
+  // either can be cleared without opening a bronchus the other still blocks
+  set_tube_block(side, state) {
+    if (side === "left") this._tube_block_left = !!state;
+    else this._tube_block_right = !!state;
+    this._update_bronchus(side);
+  }
+
+  _update_bronchus(side) {
+    const closed = side === "left"
+      ? this.airway_obstructed_left || this._tube_block_left
+      : this.airway_obstructed_right || this._tube_block_right;
+    const was_closed = side === "left" ? this._closed_left : this._closed_right;
     const models = this._model_engine.models;
     const airways = side === "left" ? this.lower_airways_left : this.lower_airways_right;
-    for (const name of airways) if (models[name]) models[name].no_flow = state;
-    if (state) {
+    for (const name of airways) if (models[name]) models[name].no_flow = closed;
+    if (closed && !was_closed) {
       // capture the trapped gas: its O2 fraction sets the resorption speed, its recoil pressure is held
       // while the gas is absorbed (the lung deflates instead of pressurising as it stiffens)
       const lungs = (side === "left" ? this.left_lung : this.right_lung).map((n) => models[n]).filter(Boolean);
@@ -285,8 +306,8 @@ export class Respiration extends BaseModelClass {
       if (side === "left") { this._trapped_fo2_left = fo2; this._trapped_pres_left = pres; }
       else { this._trapped_fo2_right = fo2; this._trapped_pres_right = pres; }
     }
-    if (side === "left") { this.airway_obstructed_left = state; this._prev_airway_obstructed_left = state; }
-    else { this.airway_obstructed_right = state; this._prev_airway_obstructed_right = state; }
+    if (side === "left") this._closed_left = closed;
+    else this._closed_right = closed;
   }
 
   resorb_atelectasis(side, dt) {

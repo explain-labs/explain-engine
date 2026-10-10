@@ -45,6 +45,7 @@ for (const fio2 of [0.21, 1.0]) {
   const s = start({ fio2 });
   const rows = [{ phase: "trachea", ...read(s) }];
   s.V.set_tube_position("right_main");
+  check(`right main (${fio2}): blocks the left bronchus, not as a plug`, s.M.DS_ALL.no_flow && !s.R.airway_obstructed_left);
   eng.calc(60); rows.push({ phase: "right main 1 min", ...read(s) });
   eng.calc(540); rows.push({ phase: "right main 10 min", ...read(s) });
   s.V.set_tube_position("trachea");
@@ -129,13 +130,19 @@ for (const spont of [false, true]) {
     && !s.M.DS_ALL.no_flow && s.M.VENT_DISCONNECT.no_flow && s.M.VENT_ETTUBE.comp_from === "VENT_GASCIRCUIT");
 }
 
-// 6. a plug set before the tube slips survives pulling the tube back
+// 6. the plug and the tube block are independent: either keeps the bronchus closed
 {
   const s = start();
   s.R.set_airway_obstructed_left(true);
   s.V.set_tube_position("right_main");
   s.V.set_tube_position("trachea");
   check("independent plug L survives the tube going back", s.R.airway_obstructed_left && s.M.DS_ALL.no_flow);
+  s.R.set_airway_obstructed_left(false);
+  s.V.set_tube_position("right_main");
+  s.R.set_airway_obstructed_left(false); // clearing a plug that isn't there leaves the tube's block
+  check("clearing the plug keeps the tube's block", s.M.DS_ALL.no_flow);
+  s.V.set_tube_position("trachea");
+  check("pulling the tube back opens the bronchus", !s.M.DS_ALL.no_flow);
 }
 
 table(checks);

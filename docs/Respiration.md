@@ -242,8 +242,9 @@ diffusion constant would pump gas against its gradient and blow up the blood gas
 ### Bronchus obstruction and resorption
 
 `airway_obstructed_left` / `_right` (setters `set_airway_obstructed_left/right`) close a main
-bronchus (`DS_ALx.no_flow`). This is a mucus plug, or the left bronchus behind a tube in the right
-main bronchus (set by [Ventilator](./Ventilator.md#airway-events)). No gas moves in or out, and the
+bronchus (`DS_ALx.no_flow`) with a mucus plug. A tube in the right main bronchus blocks the left one
+through `set_tube_block(side, state)` (called by [Ventilator](./Ventilator.md#airway-events)). That
+block is kept apart from the plug, and the bronchus is closed while either holds. No gas moves in or out, and the
 trapped gas is absorbed into the blood, so the lung collapses (resorption atelectasis):
 
 ```

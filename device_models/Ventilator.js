@@ -119,7 +119,6 @@ export class Ventilator extends BaseModelClass {
     this._vent_disconnect = null;
     this._ett_from = "VENT_GASCIRCUIT"; // the tube's own ends, as defined (captured at init)
     this._ett_to = "DS";
-    this._tube_obstructs_left = false; // the left-bronchus obstruction was set by the tube (right_main)
     this._ettube_length_ref = 110;
     this._min_exp_time = 0.1;
     this._pip = 0.0;
@@ -1540,18 +1539,10 @@ export class Ventilator extends BaseModelClass {
       this._vent_leak.no_flow = true;
     }
 
-    // a tube in the right main bronchus blocks the left one. The tube owns that obstruction only if
-    // it set it, so a bronchial plug set independently survives the tube being pulled back.
+    // a tube in the right main bronchus blocks the left one (kept apart from a bronchial plug)
     const resp = models["Respiration"];
-    if (resp && typeof resp.set_airway_obstructed_left === "function") {
-      const in_right_main = ventilating && this.tube_position === "right_main";
-      if (in_right_main && !resp.airway_obstructed_left) {
-        resp.set_airway_obstructed_left(true);
-        this._tube_obstructs_left = true;
-      } else if (!in_right_main && this._tube_obstructs_left) {
-        resp.set_airway_obstructed_left(false);
-        this._tube_obstructs_left = false;
-      }
+    if (resp && typeof resp.set_tube_block === "function") {
+      resp.set_tube_block("left", ventilating && this.tube_position === "right_main");
     }
   }
 

@@ -635,8 +635,8 @@ restores the circuit exactly. The tube's own ends (`VENT_GASCIRCUIT`, `DS`) are 
 | `tube_position = "extubated"` | `VENT_ETTUBE → MOUTH`; `MOUTH_DS` open; leak and tube dead space off | The ventilator blows into the room, so Vte is 0 and the leak 100 %. The patient breathes through the natural airway without PEEP. An apnoeic patient desaturates (60 % after 1 min). |
 | `circuit_connected = false` | `VENT_ETTUBE` from `MOUTH`; `VENT_DISCONNECT` open | Circuit pressure falls to about 2 cmH₂O. The proximal flow sensor stays on the tube and reads only the patient's own breaths. No PEEP. |
 
-The tube owns the left-bronchus obstruction only when it set it, so a bronchial plug set
-independently survives the tube being pulled back. `scripts/probe_airway_events.mjs` checks every
+The tube's block is kept apart from a bronchial plug (`Respiration.set_tube_block`), so either one
+can be cleared without opening a bronchus the other still blocks. `scripts/probe_airway_events.mjs` checks every
 event, its recovery, and the end of all events on Standby.
 
 ## Coupling to `Breathing`
