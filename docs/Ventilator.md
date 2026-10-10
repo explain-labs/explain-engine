@@ -112,6 +112,8 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `trigger_flow` | L/min | Flow-trigger threshold: inspiratory flow at the tube during expiration (default 0.6) |
 | `leak_compensation` | bool | Flow trigger: subtract the learned baseline leak flow before the threshold (default true) — see *Tube leak* |
 | `leak_comp_max_perc` | % | Compensate only while the leak (3-breath mean of `leak_perc`) is at most this (default 100; the SLE6000 sets 35) |
+| `leak_term_min_perc` / `leak_term_max_perc` | % | Flow cycling: compensate the leak only while it is within this range (default 0–100; the SLE6000 sets 10–50) |
+| `leak_term_max_flow` | L/min | Flow cycling: cap on the compensated leak flow (default 0 = no cap; the SLE6000 sets 5). It is also capped at half the peak flow |
 | `term_sens_perc` | % | Termination sensitivity: a `PS` (or SIMV support) breath cycles off when inspiratory flow falls below this % of its peak (default 30) |
 | `backup_rate` | /min | `CPAP` apnoea backup: a time-cycled breath at `pip_cmh2o`/`insp_time` after `60/backup_rate` s without a spontaneous effort (default 0 = off) |
 | `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` and `SIMV` always trigger; ignored in `CPAP` |
@@ -542,8 +544,10 @@ breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mj
   the pressure to its limit. The lung then gets *more* than the target (18 mL against 15), bounded
   only by the 130 % inspired-volume guard. This is the clinical reason VG is unreliable with large
   leaks.
-- **PS cycles on Ti max.** The leak keeps inspiratory flow from decaying to `term_sens_perc` of
-  peak.
+- **PS cycles on Ti max without leak compensation.** The circuit feeds the leak at the
+  inspiratory pressure, so the inspiratory flow levels off at the leak flow and never decays to
+  `term_sens_perc` of peak. With leak compensation it cycles on flow again (see *Leak and flow
+  cycling* below).
 - **Dead-space flush.** The continuous leak flow through `DS` washes out CO₂, which lowers PaCO₂
   a little, much like tracheal gas insufflation.
 - **VC is not compensated.** Leaked gas is lost from the set volume.
@@ -580,9 +584,39 @@ SLE6000 (limit 35 %), PTV 15/4/30, `scripts/probe_sle6000.mjs` section 14:
 | 1.5 mm | 80 | 43 / 0 (auto-triggering) | — |
 
 The volume trigger (`trigger_mode "volume"`) needs no compensation: it only arms on a `Breathing`
-effort, so a leak alone never starts a breath. Not modelled: leak-corrected volumes, and the PSV
-termination compensation some devices add (SLE6000 IFU §20.6.4); PS still cycles on Ti max with a
-large leak.
+effort, so a leak alone never starts a breath. Not modelled: leak-corrected volumes.
+
+### Leak and flow cycling
+
+A flow-cycled breath (`PS`, and supported breaths in `SIMV`) ends when the inspiratory flow falls
+to `term_sens_perc` of its peak. With a leak the flow levels off at the leak flow at the
+inspiratory pressure instead. Once that is above the termination level, every breath runs to Ti
+max: with SLE PSV 15/4 (Ti Max 0.6 s, Term Sens 5 %) that is every breath from about 0.7 mm
+(20 % leak).
+
+With leak compensation, `_term_flow()` takes the learned leak flow `q = g·√P` off first:
+
+```
+end of breath:   flow − q  <  term_sens · (peak − q)
+```
+
+The breath ends when the patient's own flow has decayed to Term Sens of its peak, just above the
+leak flow level. The SLE6000 IFU (§20.6.4) says a termination level below the leak flow is
+"terminated at the leak flow level". The flow approaches that level from above and never crosses
+it, and the learned leak is about 10 % low at PIP (it is fitted over the whole breath). Ending at
+exactly the leak flow therefore still ran to Ti max, and the form above is used instead.
+
+As on the device:
+- `q` is capped at half the peak flow and at `leak_term_max_flow`;
+- it is applied only while the leak is within `leak_term_min_perc`–`leak_term_max_perc`.
+
+Results with the SLE6000 (5 l/min, 10–50 %), `probe_sle6000.mjs` section 15:
+
+| PSV 15/4, Ti Max 0.6 s | Leak % | breaths ending on Ti Max |
+|---|---|---|
+| 0.8 mm, compensation off | 28 | all |
+| 0.8 mm | 28 | none (mean Ti 0.58 s) |
+| 1.2 mm | 64 | all (above 50 %) |
 
 `Breathing` subtracts the leak flow from the airway-opening flow (see below), because gas that
 escapes around the tube never reaches the lungs.

@@ -1,7 +1,7 @@
 // SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
 // HFOV+CMV), the settings validation, the monitored values, the patient monitor's RR and the
-// leak-compensated flow trigger. See docs/Sle6000.md.
+// leak compensation of the flow trigger and of PSV termination. See docs/Sle6000.md.
 //
 // Usage: node scripts/probe_sle6000.mjs [--verbose]
 // Exit code 1 when a check fails.
@@ -321,6 +321,32 @@ function count(m, V, seconds) {
   check("leak 0.8 mm, breathing: every effort triggers", n.trigger_frac, 0.9, 1.0);
   ({ V, n } = leakRun(1.5, false));
   check("leak 1.5 mm (> 35 %): auto-triggers", V.mon_rr, 45, 200);
+}
+
+// 15. PSV with a tube leak: the inspiratory flow levels off at the leak flow, so without
+// compensation every breath runs to Ti Max. The automatic leak compensation (10-50 % leak) ends
+// the breath on flow again; above 50 % it runs to Ti Max, as on the device
+{
+  const psvLeak = (leak, comp = true) => {
+    const { m, V } = start({ mode: "PSV", rr: 30, ti: 0.6, peep: 4, pip: 15 });
+    V.leak_size = leak;
+    V.leak_compensation = comp;
+    eng.calc(40);
+    const dt = m.modeling_stepsize;
+    let prev = V._inspiration, n = 0, timax = 0;
+    for (let i = 0; i < Math.round(30 / dt); i++) {
+      eng.calc(dt);
+      if (prev && !V._inspiration) {
+        n++;
+        if (V.ti_meas >= V.insp_time - 0.002) timax++;
+      }
+      prev = V._inspiration;
+    }
+    return n ? timax / n : NaN;
+  };
+  check("PSV leak 0.8 mm, compensation off: Ti Max breaths", psvLeak(0.8, false), 0.9, 1.0);
+  check("PSV leak 0.8 mm: flow-cycled (Ti Max fraction)", psvLeak(0.8), 0, 0.1);
+  check("PSV leak 1.2 mm (> 50 %): Ti Max breaths", psvLeak(1.2), 0.9, 1.0);
 }
 
 const f = (x) => (typeof x === "number" ? x.toFixed(3) : String(x));

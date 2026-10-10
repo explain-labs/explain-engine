@@ -51,6 +51,9 @@ export class Ventilator extends BaseModelClass {
     this.trigger_flow = 0.6; // L/min, flow-trigger threshold (inspiratory flow at the tube during expiration)
     this.leak_compensation = true; // flow trigger: subtract the learned baseline leak flow before the threshold
     this.leak_comp_max_perc = 100; // %, compensate only while the (averaged) leak is at most this
+    this.leak_term_min_perc = 0; // %, flow cycling: compensate the leak only while it is at least this
+    this.leak_term_max_perc = 100; // %, ... and at most this
+    this.leak_term_max_flow = 0; // L/min, flow cycling: cap on the compensated leak flow (0 = no cap)
     this.term_sens_perc = 30; // %, a PS breath cycles off when inspiratory flow decays below this % of its peak
     this.backup_rate = 0; // /min, CPAP apnoea backup: a time-cycled breath at PIP/insp_time after 60/backup_rate s without an effort (0 = off)
     this.synchronized = false;
@@ -417,6 +420,29 @@ export class Ventilator extends BaseModelClass {
     return this._leak_g * Math.sqrt(Math.max(this.pres, 0.0));
   }
 
+  _term_flow() {
+    // L/s, the flow at which a flow-cycled breath ends: term_sens_perc of the peak flow. A leak keeps
+    // the inspiratory flow from decaying that far (the circuit feeds the leak at the inspiratory
+    // pressure, so the flow levels off at the leak flow and the breath runs to Ti max). With leak
+    // compensation the learned leak flow q is taken off first: the breath ends when the patient's
+    // own flow (flow - q) falls to term_sens_perc of its peak (peak - q), i.e. just above the leak
+    // flow level, which also tolerates the error in the learned leak. As the SLE6000's PSV
+    // automatic leak compensation (IFU §20.6.4): q at most half the peak flow and
+    // leak_term_max_flow, and only while the leak is within leak_term_min_perc..leak_term_max_perc
+    const t = this.term_sens_perc / 100.0;
+    if (
+      !this.leak_compensation ||
+      this._leak_perc_avg < this.leak_term_min_perc ||
+      this._leak_perc_avg > this.leak_term_max_perc
+    ) {
+      return t * this._peak_flow;
+    }
+    let q = this._leak_g * Math.sqrt(Math.max(this.pres, 0.0));
+    if (this.leak_term_max_flow > 0.0) q = Math.min(q, this.leak_term_max_flow / 60.0);
+    q = Math.min(q, 0.5 * this._peak_flow);
+    return q + t * (this._peak_flow - q);
+  }
+
   triggering() {
     if (this.trigger_mode === "flow") {
       this.flow_triggering();
@@ -515,7 +541,7 @@ export class Ventilator extends BaseModelClass {
       const flow_cycled =
         this._ps_breath &&
         this._peak_flow > 0.0 &&
-        this._vent_ettube.flow < (this.term_sens_perc / 100.0) * this._peak_flow;
+        this._vent_ettube.flow < this._term_flow();
       const time_cycled = this._insp_time_counter > this.insp_time;
       const vol_limit = !this._ps_breath && this._vg_volume_limit_reached();
       if (flow_cycled || time_cycled || vol_limit) this._end_inspiration();
@@ -603,7 +629,7 @@ export class Ventilator extends BaseModelClass {
       const flow_cycled =
         !this._mandatory_breath &&
         this._peak_flow > 0.0 &&
-        this._vent_ettube.flow < (this.term_sens_perc / 100.0) * this._peak_flow;
+        this._vent_ettube.flow < this._term_flow();
       const time_cycled = this._insp_time_counter > this.insp_time;
 
       if (flow_cycled || time_cycled || this._vg_volume_limit_reached()) {
