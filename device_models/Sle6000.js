@@ -1,5 +1,5 @@
 import { Ventilator } from "./Ventilator";
-import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
+import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, SLE_SPO2_TARGETS, SLE_SPO2_AVG, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
 
 const MBAR_TO_CMH2O = 1.01972;
 const HFO_BIAS_FLOW = 8.0; // l/min, the continuous flow (p24); an assumption for HFO
@@ -11,6 +11,23 @@ const HFO_BIAS_FLOW = 8.0; // l/min, the continuous flow (p24); an assumption fo
 //   volume left when the pressure is back at PEEP + 10 %: 93 % ideal -> ~84 % (reference ~84 %)
 const PRES_RESPONSE_TAU = 0.012; // s
 
+// OxyGenie (manual ch. 19, pp 118-121): the closed-loop O2 controller licensed from the University of
+// Tasmania (Gale & Dargaville, VDL1.x). The constants are the example embodiment of patent
+// US11135384B2; see docs/Sle6000.md#oxygenie.
+// Severinghaus compensation: the multiplier of a positive error while the integral term still holds
+// the FiO2 up, from the slope of the PaO2-SpO2 curve (patent, Table 2); 1 at 91 % and below
+const OXY_SEVERINGHAUS = { 92: 1.2, 93: 1.4, 94: 1.7, 95: 2.2, 96: 2.9, 97: 4.4, 98: 7.9, 99: 20.1, 100: 50.0 };
+const OXY_NEG_ERROR_CAP = -13.0; // % SpO2, the proportional term's error floor (SpO2 is unreliable low)
+const OXY_MAX_DELTA = 40.0; // %, the output stays within this of the reference O2 (p118)
+const OXY_REF_LIMIT_CAP = 60.0; // %, the reference used for that limit is capped, so 21 % stays reachable (p118)
+const OXY_REF_INTERVAL = 1800.0; // s, reference O2 update; it averages the last hour (p118)
+const OXY_REF_WINDOW = 3600.0; // s
+const OXY_REF_MAX_STEP = 10.0; // %, per update (patent: within 10 % of the previous value)
+const OXY_OVERRIDE = 30.0; // s, manual override (p119)
+const OXY_FALLBACK_HOLD = 60.0; // s without a valid SpO2 before the O2 drifts to the reference (p119)
+const OXY_FALLBACK_RATE = 1.0 / 30.0; // %/s, that drift ("slowly"; not given, an assumption)
+const OXY_HIGH_O2_DELAY = 10.0; // s, the "O2 > N %" message delay: the SpO2 alarm delay default (p228)
+
 export class Sle6000 extends Ventilator {
   // static properties
   static model_type = "Sle6000";
@@ -20,7 +37,7 @@ export class Sle6000 extends Ventilator {
    * device's own modes, settings (mbar, with its ranges, resolutions and interlocks), patient
    * circuits and monitored values. Phase 1: the invasive conventional modes CPAP, CMV, PTV, PSV and
    * SIMV, with volume targeting (VTV). Phase 2: the invasive oscillatory modes HFOV (with VTV, sighs
-   * and oscillation pause) and HFOV+CMV. It is the ventilator of every scenario up to 30 kg (the
+   * and oscillation pause) and HFOV+CMV. OxyGenie: the closed-loop O2 controller on the device's SpO2. It is the ventilator of every scenario up to 30 kg (the
    * device's range); the scenario keeps the instance name "Ventilator", so the Monitor,
    * Resuscitation and every UI path that reads Ventilator.* keep working. A scenario can start
    * ventilating: is_enabled true plus sle_mode and the sle_* settings.
@@ -53,6 +70,15 @@ export class Sle6000 extends Ventilator {
     this.sle_hfo_activity = d.hfo_activity; // HFOV+CMV: 0 = oscillation in both phases, 1 = expiration only
     this.sle_circuit = 10; // mm, patient circuit BC6188 (10) or BC6198 (15)
     this.sle_o2_boost_inc = 10; // %, O2 Boost increment (factory default, p128)
+    this.sle_spo2_on = true; // SpO2 monitoring (Utilities > Sensors > SpO2, p104)
+    this.sle_spo2_target = "91-95"; // OxyGenie target range, one of SLE_SPO2_TARGETS (default, p104)
+    this.sle_spo2_avg = 8; // s, SpO2 averaging time (default 8 s; fixed at 2-4 s while OxyGenie is on)
+    this.sle_oxy_high_o2 = 60; // %, "O2 > N %" while OxyGenie is on (default 60, p228)
+    this.spo2_probe_attached = true; // the sensor on the patient (an event: a detached probe gives no signal)
+    // OxyGenie gains (patent example embodiment): % O2 per % SpO2 error, per %·s, per %/s
+    this.oxy_kp = -1.0;
+    this.oxy_ki = -0.0125;
+    this.oxy_kd = -1.0;
 
     // Dependent properties: the monitored values, filtered as the device does (p175)
     this.mon_pip = 0.0; // mbar
@@ -76,6 +102,11 @@ export class Sle6000 extends Ventilator {
     this.mon_dco2 = 0.0; // ml^2/s, HFO gas transport coefficient f * Vte^2, tau 3 cycles
     this.mon_freq = 0.0; // Hz, HFO frequency
     this.o2_boost_remaining = 0.0; // s left of an O2 Boost (0 = none)
+    this.mon_spo2 = null; // %, the ventilator's SpO2 (preductal, averaged; null = no valid signal)
+    this.oxy_state = "off"; // OxyGenie: off | auto | fallback (waiting for signal) | override
+    this.oxy_ref_o2 = 21.0; // %, reference O2: the average requirement of the last hour
+    this.oxy_override_remaining = 0.0; // s left of a manual override
+    this.oxy_high_o2_flag = false; // "O2 > N %" shown
 
     // Local properties
     this._mon_init = false;
@@ -91,6 +122,16 @@ export class Sle6000 extends Ventilator {
     this._cmv_p_max = -1e9; // cmH2O, peak pressure of the current HFOV+CMV breath
     this._cmv_was_insp = false;
     this._cycle_crossed = false; // a CMV breath edge fell inside the current oscillation
+    this._spo2_site = null; // the preductal sensor site (AA, as the patient monitor's sao2_pre)
+    this._spo2_timer = 0.0; // s, the sensor and OxyGenie run once a second
+    this._spo2_samples = []; // the last raw 1 Hz readings, for the averaging time
+    this._oxy_sum_e = 0.0; // the integrand (sum of 1 s errors)
+    this._oxy_spo2_hist = []; // the last 5 averaged readings, for the derivative
+    this._oxy_o2_hist = []; // the delivered O2 of the last hour, 1 Hz, for the reference O2
+    this._oxy_ref_timer = 0.0;
+    this._oxy_no_signal = 0.0; // s without a valid SpO2
+    this._oxy_last_spo2 = null; // the last valid reading
+    this._oxy_high_o2_time = 0.0;
   }
 
   init_model(args = {}) {
@@ -104,6 +145,7 @@ export class Sle6000 extends Ventilator {
   }
 
   calc_model() {
+    this._calc_spo2();
     this._calc_o2_boost();
     super.calc_model();
     this._sle_monitoring();
@@ -117,6 +159,11 @@ export class Sle6000 extends Ventilator {
     // given setting, keep the others (parameter memory across modes, p124), apply the interlocks and
     // start (or switch) the mode. `settings` may carry `mode` and `circuit`.
     const mode = settings.mode ?? this.sle_mode;
+    // touching O2 while OxyGenie is on is a manual override: the set O2 for 30 s (p119)
+    if ("o2" in settings && this.oxy_state !== "off") {
+      this.oxy_state = "override";
+      this.oxy_override_remaining = OXY_OVERRIDE;
+    }
     for (const [k, v] of Object.entries(settings)) {
       if (k in SLE_PARAMS) this[`sle_${k}`] = sle_clamp(k, Number(v));
     }
@@ -157,6 +204,7 @@ export class Sle6000 extends Ventilator {
       this.sle_mode = "Standby";
       this.o2_boost_remaining = 0.0;
       this._o2_boost_base = null;
+      this._oxy_stop();
       this._reset_monitor();
     } else if (!this._in_apply) {
       this._sync_from_generic();
@@ -211,9 +259,60 @@ export class Sle6000 extends Ventilator {
   }
 
   sle_o2_boost(state = true) {
-    // O2 Boost: the set O2 plus sle_o2_boost_inc for 2 minutes, then back to the set value (p128)
+    // O2 Boost: the set O2 plus sle_o2_boost_inc for 2 minutes, then back to the set value (p128);
+    // not while OxyGenie is on (p121)
+    if (state && this.oxy_state !== "off") return;
     this.o2_boost_remaining = state ? 120.0 : 0.0;
     if (!state) this._end_o2_boost();
+  }
+
+  sle_oxygenie(state = true) {
+    // OxyGenie on/off (p119): only with SpO2 monitoring on and while ventilating. The O2 set at
+    // activation seeds the reference O2 and so the initial response (p38)
+    if (!state) {
+      this._oxy_stop();
+      return;
+    }
+    if (this.oxy_state !== "off" || !this.sle_spo2_on || !this.is_enabled) return;
+    this.o2_boost_remaining = 0.0;
+    this._end_o2_boost();
+    this.oxy_ref_o2 = this.sle_o2;
+    this._oxy_sum_e = 0.0;
+    this._oxy_spo2_hist = [];
+    this._oxy_o2_hist = [];
+    this._oxy_ref_timer = 0.0;
+    this._oxy_no_signal = 0.0;
+    this._oxy_high_o2_time = 0.0;
+    this._spo2_samples = this._spo2_samples.slice(-this._spo2_avg_n());
+    this.oxy_state = this.mon_spo2 === null ? "fallback" : "auto";
+  }
+
+  sle_set_spo2(settings = {}) {
+    // Utilities > Sensors > SpO2 (p104): monitoring on/off, the OxyGenie target range and the
+    // averaging time. Monitoring off also switches OxyGenie off (it needs the SpO2)
+    if (SLE_SPO2_TARGETS.includes(settings.target)) this.sle_spo2_target = settings.target;
+    if (SLE_SPO2_AVG.includes(Number(settings.avg))) this.sle_spo2_avg = Number(settings.avg);
+    if (typeof settings.on === "boolean") {
+      this.sle_spo2_on = settings.on;
+      if (!settings.on) {
+        this._oxy_stop();
+        this.mon_spo2 = null;
+        this._spo2_samples = [];
+      }
+    }
+  }
+
+  sle_spo2_monitoring(state = true) {
+    this.sle_set_spo2({ on: Boolean(state) });
+  }
+
+  sle_set_spo2_target(range = "91-95") {
+    this.sle_set_spo2({ target: range });
+  }
+
+  set_spo2_probe(attached = true) {
+    // the sensor on (or off) the patient: no valid signal while it is off
+    this.spo2_probe_attached = Boolean(attached);
   }
 
   sle_set_circuit(diameter = 10) {
@@ -380,6 +479,178 @@ export class Sle6000 extends Ventilator {
     this.exp_valve_resistance = (r_mbar * MBAR_TO_CMH2O) / 1.35951; // mmHg·s/L
     this.insp_flow = this.sle_circuit === 15 ? 40.0 : 20.0; // l/min
     this.pres_response_tau = PRES_RESPONSE_TAU;
+  }
+
+  // ------------------------------------------------------------------------------------------------
+  // SpO2 and OxyGenie
+
+  _spo2_avg_n() {
+    return this.oxy_state !== "off" ? 3 : this.sle_spo2_avg;
+  }
+
+  _calc_spo2() {
+    // the sensor reads the preductal saturation once a second (the blood gases update at 1 Hz)
+    // and averages it over the averaging time; OxyGenie runs on each new reading
+    this._spo2_timer += this._t;
+    if (this._spo2_timer < 1.0) return;
+    this._spo2_timer -= 1.0;
+    this._spo2_site ??= this._model_engine.models["AA"] ?? null;
+    const so2 = this._spo2_site?.so2;
+    const valid = this.sle_spo2_on && this.spo2_probe_attached && Number.isFinite(so2) && so2 > 0.0;
+    if (valid) {
+      this._spo2_samples.push(so2);
+      const n = this._spo2_avg_n();
+      if (this._spo2_samples.length > n) this._spo2_samples.splice(0, this._spo2_samples.length - n);
+      this.mon_spo2 = this._spo2_samples.reduce((a, b) => a + b, 0) / this._spo2_samples.length;
+    } else {
+      this._spo2_samples = [];
+      this.mon_spo2 = null;
+    }
+    if (this.oxy_state !== "off") this._calc_oxygenie();
+  }
+
+  _oxy_target() {
+    const [lo, hi] = this.sle_spo2_target.split("-").map(Number);
+    return { lo, hi, mid: (lo + hi) / 2.0 };
+  }
+
+  _calc_oxygenie() {
+    if (!this.is_enabled) {
+      this._oxy_stop();
+      return;
+    }
+    const { lo, hi, mid } = this._oxy_target();
+    const spo2 = this.mon_spo2;
+
+    if (this.oxy_state === "override") {
+      // the user's O2, delivered for 30 s; then Auto resumes from it (bumpless: the integrand is
+      // set so that the output equals the user's O2)
+      this.oxy_override_remaining = Math.max(0.0, this.oxy_override_remaining - 1.0);
+      if (this.oxy_override_remaining === 0.0) {
+        this._oxy_spo2_hist = [];
+        this._oxy_bumpless(spo2 !== null ? spo2 - mid : 0.0);
+        this.oxy_state = spo2 === null ? "fallback" : "auto";
+      }
+    } else if (spo2 === null) {
+      // fallback (p119): hold the last O2 for 60 s; then, by the last valid reading, hold (in the
+      // target range) or move slowly towards the reference O2 (above: down, below: up)
+      this.oxy_state = "fallback";
+      this._oxy_no_signal += 1.0;
+      this._oxy_spo2_hist = [];
+      const last = this._oxy_last_spo2;
+      if (this._oxy_no_signal > OXY_FALLBACK_HOLD && last !== null) {
+        const ref = this.oxy_ref_o2;
+        let o2 = this.sle_o2;
+        if (last > hi && o2 > ref) o2 = Math.max(ref, o2 - OXY_FALLBACK_RATE);
+        else if (last < lo && o2 < ref) o2 = Math.min(ref, o2 + OXY_FALLBACK_RATE);
+        this._oxy_deliver(o2, false);
+      }
+    } else {
+      if (this.oxy_state === "fallback") {
+        // a valid signal again: the requirement from that reading, without the old trend
+        this._oxy_spo2_hist = [];
+        this._oxy_bumpless(spo2 - mid);
+      }
+      this.oxy_state = "auto";
+      this._oxy_no_signal = 0.0;
+      this._oxy_last_spo2 = spo2;
+      this._oxy_pid(spo2, mid, hi);
+    }
+
+    // the delivered O2 of the last hour and the reference O2: its average, updated every 30 min
+    // and by at most 10 % a time
+    this._oxy_o2_hist.push(this.sle_o2);
+    if (this._oxy_o2_hist.length > OXY_REF_WINDOW) this._oxy_o2_hist.shift();
+    this._oxy_ref_timer += 1.0;
+    if (this._oxy_ref_timer >= OXY_REF_INTERVAL) {
+      this._oxy_ref_timer = 0.0;
+      const avg = this._oxy_o2_hist.reduce((a, b) => a + b, 0) / this._oxy_o2_hist.length;
+      const ref = this.oxy_ref_o2;
+      const new_ref = Math.min(ref + OXY_REF_MAX_STEP, Math.max(ref - OXY_REF_MAX_STEP, avg));
+      // the output must not jump: the integrand absorbs the reference change
+      if (this.oxy_state === "auto" && this.oxy_ki !== 0.0) this._oxy_sum_e -= (Math.min(new_ref, OXY_REF_LIMIT_CAP) - Math.min(ref, OXY_REF_LIMIT_CAP)) / this.oxy_ki;
+      this.oxy_ref_o2 = new_ref;
+    }
+
+    // "O2 > N %" (p228): Auto delivering above the set level, after the alarm delay
+    this._oxy_high_o2_time = this.sle_o2 > this.sle_oxy_high_o2 ? this._oxy_high_o2_time + 1.0 : 0.0;
+    this.oxy_high_o2_flag = this._oxy_high_o2_time >= OXY_HIGH_O2_DELAY;
+  }
+
+  _oxy_p(e) {
+    // the proportional term (patent): the error capped below at -13 %, attenuated inside the
+    // target range (x0.25 within 1 % of the midpoint, x0.5 within 2 %) and the gain adapted to the
+    // severity of the lung disease through the reference O2 (x0.5 at 21 % to x1.0 at 40 %)
+    const ep = Math.max(e, OXY_NEG_ERROR_CAP);
+    const ae = Math.abs(e);
+    const kpfm = ae <= 1.0 ? 0.25 : ae <= 2.0 ? 0.5 : 1.0;
+    const ref = Math.min(Math.max(this.oxy_ref_o2, 21.0), 40.0);
+    const adapt = 0.5 + (0.5 * (ref - 21.0)) / 19.0;
+    return this.oxy_kp * adapt * kpfm * ep;
+  }
+
+  _oxy_pid(spo2, mid, hi) {
+    const e = spo2 - mid;
+    const ki = this.oxy_ki;
+
+    // integral: Severinghaus compensation, a positive error weighted by the steepness of the
+    // PaO2-SpO2 curve while the integral term still holds the O2 up; no accumulation of a positive
+    // error at room air (nothing left to wean)
+    // (the compensation lasts until the integral term reaches zero, so it stops there)
+    const holding = e > 0.0 && ki * this._oxy_sum_e > 0.0;
+    const ei = holding ? e * (OXY_SEVERINGHAUS[Math.min(100, Math.round(spo2))] ?? 1.0) : e;
+    if (!(e > 0.0 && this.sle_o2 <= 21.0)) this._oxy_sum_e += ei;
+    if (holding && ki * this._oxy_sum_e < 0.0) this._oxy_sum_e = 0.0;
+    if (ki !== 0.0) {
+      const lim = Math.abs(OXY_MAX_DELTA / ki);
+      this._oxy_sum_e = Math.min(lim, Math.max(-lim, this._oxy_sum_e));
+    }
+
+    // derivative: least-squares slope over the last 5 readings; no rise of the O2 while the
+    // SpO2 falls from above the target range
+    const h = this._oxy_spo2_hist;
+    h.push(spo2);
+    if (h.length > 5) h.shift();
+    let slope = 0.0;
+    if (h.length >= 2) {
+      const n = h.length, xm = (n - 1) / 2.0, ym = h.reduce((a, b) => a + b, 0) / n;
+      let num = 0.0, den = 0.0;
+      for (let i = 0; i < n; i++) {
+        num += (i - xm) * (h[i] - ym);
+        den += (i - xm) * (i - xm);
+      }
+      slope = num / den;
+    }
+    if (slope < 0.0 && h.length === 5 && h.every((v) => v > hi)) slope = 0.0;
+
+    const delta = this._oxy_p(e) + ki * this._oxy_sum_e + this.oxy_kd * slope;
+    const ref = Math.min(this.oxy_ref_o2, OXY_REF_LIMIT_CAP);
+    this._oxy_deliver(ref + Math.min(OXY_MAX_DELTA, Math.max(-OXY_MAX_DELTA, delta)));
+  }
+
+  _oxy_bumpless(e) {
+    // set the integrand so that the controller's output is the O2 delivered now
+    if (this.oxy_ki === 0.0) return;
+    const ref = Math.min(this.oxy_ref_o2, OXY_REF_LIMIT_CAP);
+    const lim = Math.abs(OXY_MAX_DELTA / this.oxy_ki);
+    const sum = (this.sle_o2 - ref - this._oxy_p(e)) / this.oxy_ki;
+    this._oxy_sum_e = Math.min(lim, Math.max(-lim, sum));
+  }
+
+  _oxy_deliver(o2, round = true) {
+    // the blender's O2: 0.5 % steps, 21-100 %, shown on the O2 control (p118)
+    let v = Math.min(100.0, Math.max(21.0, o2));
+    if (round) v = Math.round(v * 2.0) / 2.0;
+    this.sle_o2 = v;
+    this.set_fio2(v / 100.0);
+  }
+
+  _oxy_stop() {
+    // OxyGenie off: the O2 control keeps the last delivered value
+    this.oxy_state = "off";
+    this.oxy_override_remaining = 0.0;
+    this.oxy_high_o2_flag = false;
+    this._oxy_high_o2_time = 0.0;
   }
 
   _calc_o2_boost() {

@@ -61,6 +61,11 @@ export const SLE_MODES = {
 // the oscillatory modes
 export const SLE_HFO_MODES = ["HFOV", "HFOV+CMV"];
 
+// SpO2 (Utilities > Sensors > SpO2, p104): the OxyGenie target ranges, the only ones it may be used
+// with (p118), and the averaging times in s (3 = "2-4", 5 = "4-6"; 8 is the default)
+export const SLE_SPO2_TARGETS = ["90-94", "91-95", "92-96", "94-98"];
+export const SLE_SPO2_AVG = [3, 5, 8, 10, 12, 14, 16];
+
 export const SLE_MODE_NAMES = Object.keys(SLE_MODES);
 
 export function sle_defaults() {

@@ -125,7 +125,7 @@ The reusable physical primitives every component model is built from.
 | Doc | Models |
 |---|---|
 | [Ventilator](./Ventilator.md) | Mechanical ventilator physics (modes incl. CPAP/PS/HFOV via ET tube); the base of Sle6000, and the adults' ventilator. |
-| [Sle6000](./Sle6000.md) | SLE6000 neonatal ventilator, the ventilator of every scenario up to 30 kg: the Ventilator driven through the device's modes, settings, circuits and monitored values. |
+| [Sle6000](./Sle6000.md) | SLE6000 neonatal ventilator, the ventilator of every scenario up to 30 kg: the Ventilator driven through the device's modes, settings, circuits and monitored values, with the OxyGenie closed-loop O2 controller. |
 | [Ecls](./Ecls.md) | Extracorporeal life support (ECMO): pump, oxygenator, cannulae. |
 | [Monitor](./Monitor.md) | Patient monitor; derives displayed vitals from model state. |
 | [Resuscitation](./Resuscitation.md) | Resuscitation interventions (chest compressions). |
