@@ -1,5 +1,5 @@
 import { Ventilator } from "./Ventilator";
-import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
+import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, SLE_SPO2_TARGETS, SLE_SPO2_AVG, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
 
 const MBAR_TO_CMH2O = 1.01972;
 const HFO_BIAS_FLOW = 8.0; // l/min, the continuous flow (p24); an assumption for HFO
@@ -14,8 +14,6 @@ const PRES_RESPONSE_TAU = 0.012; // s
 // OxyGenie (manual ch. 19, pp 118-121): the closed-loop O2 controller licensed from the University of
 // Tasmania (Gale & Dargaville, VDL1.x). The constants are the example embodiment of patent
 // US11135384B2; see docs/Sle6000.md#oxygenie.
-export const SLE_SPO2_TARGETS = ["90-94", "91-95", "92-96", "94-98"]; // the only ranges allowed (p118)
-export const SLE_SPO2_AVG = [3, 5, 8, 10, 12, 14, 16]; // s, averaging time: 2-4, 4-6, 8 (default) .. 16 (p104)
 // Severinghaus compensation: the multiplier of a positive error while the integral term still holds
 // the FiO2 up, from the slope of the PaO2-SpO2 curve (patent, Table 2); 1 at 91 % and below
 const OXY_SEVERINGHAUS = { 92: 1.2, 93: 1.4, 94: 1.7, 95: 2.2, 96: 2.9, 97: 4.4, 98: 7.9, 99: 20.1, 100: 50.0 };
