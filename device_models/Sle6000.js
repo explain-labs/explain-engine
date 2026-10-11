@@ -675,11 +675,15 @@ export class Sle6000 extends Ventilator {
   // monitored values
 
   _start_inspiration() {
-    // the end-expiratory pressure of the breath just completed, before the new breath raises it
-    const peep_meas = this.pres / MBAR_TO_CMH2O;
     super._start_inspiration();
-    this._close_breath(peep_meas);
     this._c20 = { p80: null, v80: null };
+  }
+
+  _breath_closed(spont) {
+    // a breath's measurements are complete (Ventilator): at a breath start, or at the onset of a
+    // spontaneous breath between ventilator breaths. `pres` is still the end-expiratory pressure
+    // of the breath just completed (it is updated later in the step)
+    this._close_breath(this.pres / MBAR_TO_CMH2O, spont);
   }
 
   _sle_monitoring() {
@@ -714,22 +718,30 @@ export class Sle6000 extends Ventilator {
     while (this._vte_hist.length && now - this._vte_hist[0][0] > 60.0) this._vte_hist.shift();
   }
 
-  _close_breath(peep_meas) {
+  _close_breath(peep_meas, spont = false) {
     // per-breath filters (p175): tau 3 breaths for volumes and mechanics, 5 for MAP; leak averaged
-    // over 5 breaths then tau 10
+    // over 5 breaths then tau 10. Vte and the leak take every breath, large and small (p175); an
+    // unsupported spontaneous breath has no applied pressure, so the pressures, mechanics and
+    // timing come from the ventilator breaths only
     const first = !this._mon_init;
     const f = (x, v, n) => (first ? v : x + (v - x) / n);
     const vte = this.exp_tidal_volume * 1000.0;
     const vti = this.insp_tidal_volume * 1000.0;
+    if (spont) {
+      this.mon_vte = f(this.mon_vte, vte, 3);
+      this.mon_vti = f(this.mon_vti, vti, 3);
+      this._push_leak(f);
+      this._vte_hist.push([this._model_engine.model_time_total ?? 0.0, Math.max(0.0, vte)]);
+      this.mon_vmin = this._vte_hist.reduce((a, b) => a + b[1], 0) / 1000.0;
+      this._mon_init = true;
+      return;
+    }
     this.mon_pip = this.p_peak / MBAR_TO_CMH2O;
     this.mon_peep = peep_meas;
     this.mon_map = f(this.mon_map, this.map_meas / MBAR_TO_CMH2O, 5);
     this.mon_vte = f(this.mon_vte, vte, 3);
     this.mon_vti = f(this.mon_vti, vti, 3);
-    this._leak_hist.push(this.leak_perc);
-    if (this._leak_hist.length > 5) this._leak_hist.shift();
-    const leak5 = this._leak_hist.reduce((a, b) => a + b, 0) / this._leak_hist.length;
-    this.mon_leak = f(this.mon_leak, leak5, 10);
+    this._push_leak(f);
     if (this.compliance_dynamic > 0.0) this.mon_c = f(this.mon_c, this.compliance_dynamic * MBAR_TO_CMH2O, 3);
     if (this.r_dyn > 0.0) this.mon_r = f(this.mon_r, this.r_dyn / MBAR_TO_CMH2O, 3);
     this.mon_ti = this.ti_meas;
@@ -754,6 +766,18 @@ export class Sle6000 extends Ventilator {
     this._vte_hist.push([now, Math.max(0.0, vte)]);
     this.mon_vmin = this._vte_hist.reduce((a, b) => a + b[1], 0) / 1000.0;
     this._mon_init = true;
+  }
+
+  _push_leak(f) {
+    // the expired against the inspired volume over the last 5 breaths (p175), from the volumes so a
+    // breath out of step with the ventilator (a large Vti, the patient exhaling most of it in the
+    // next, spontaneous breath) cancels out instead of reading as a leak
+    this._leak_hist.push([this.insp_tidal_volume, this.exp_tidal_volume]);
+    if (this._leak_hist.length > 5) this._leak_hist.shift();
+    let vi = 0.0, ve = 0.0;
+    for (const [i, e] of this._leak_hist) { vi += i; ve += e; }
+    const leak5 = vi > 0.0 ? Math.max(0.0, (100.0 * (vi - ve)) / vi) : 0.0;
+    this.mon_leak = f(this.mon_leak, leak5, 10);
   }
 
   _hfo_cycle_end(f) {

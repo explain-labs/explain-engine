@@ -180,6 +180,16 @@ export class Ventilator extends BaseModelClass {
     this._map_sum = 0.0;
     this._map_time = 0.0;
     this._trig_times = []; // model times of patient-triggered breath starts (last 60 s)
+    // unsupported spontaneous breaths between ventilator breaths (CMV, SIMV without support): the
+    // flow sensor sees each as a small breath of its own (SLE6000 IFU §27.6.5: Vte is the "expired
+    // volume of large and small breaths", RR the "total number of breaths detected")
+    this._spont_open = false; // the breath being measured is such a spontaneous breath
+    this._spont_cut_off = false; // the last closed spontaneous breath was cut off by a ventilator breath
+    this._spont_armed = false; // detector re-armed by expiratory flow since its last detection
+    this._spont_effort = false; // a patient effort was seen during the open spontaneous breath
+    this._vent_vte = 0.0; // L, exhaled volume of the last ventilator breath (minute volume)
+    this._spont_log = []; // [model time, exhaled L] of closed spontaneous breaths (last 60 s)
+    this._mon_time = 0.0; // s of monitoring since the last reset (the 60 s window while it fills)
     this._leak_net_vol = 0.0; // L, net volume through the tube sensor over the current breath
     this._leak_sqrtp = 0.0; // √cmH2O·s, integral of √(airway pressure) over the current breath
     this._leak_g = 0.0; // L/s per √cmH2O, learned leak conductance (orifice law, Q = g·√P)
@@ -337,6 +347,8 @@ export class Ventilator extends BaseModelClass {
       this.hfov_control();
     }
 
+    if (this.vent_mode !== "CPAP" && !this._hfo_mode()) this._detect_spont_breath();
+
     this.pres = (this._vent_gascircuit.pres - this.pres_atm) * 1.35951;
     this.flow = this._vent_ettube.flow * 60.0;
     this.vol += this._vent_ettube.flow * 1000 * this._t;
@@ -350,7 +362,7 @@ export class Ventilator extends BaseModelClass {
       const triggerable =
         this.vent_mode === "PS" || this.vent_mode === "SIMV" || this.synchronized;
       const rate = triggerable ? this._rate_avg : this.vent_rate;
-      this.minute_volume = this.exp_tidal_volume * rate;
+      this.minute_volume = this._vent_vte * rate + this._spont_per_min().vol;
     }
     // compliance and resistance are measured per breath at end-expiration in
     // calc_measured_mechanics(); they are NOT recomputed here (and must not be clobbered to null
@@ -379,8 +391,11 @@ export class Ventilator extends BaseModelClass {
     if (this._map_time >= 3.0) this._close_map_block();
     // in CPAP the patient sets the rate; backup breaths only come during apnoea
     const spont = this._breathing_model?.breathing_enabled ? this._breathing_model.resp_rate : 0.0;
-    this.rr_meas = this.vent_mode === "CPAP" && spont > 0.0 ? spont : this._rate_avg;
+    this._mon_time += this._t;
+    this.rr_meas =
+      this.vent_mode === "CPAP" && spont > 0.0 ? spont : this._rate_avg + this._spont_per_min().n;
     const now = this._model_engine.model_time_total ?? 0.0;
+    while (this._spont_log.length && now - this._spont_log[0][0] > 60.0) this._spont_log.shift();
     while (this._trig_times.length && now - this._trig_times[0] > 60.0) this._trig_times.shift();
     this.trig_per_min = this._trig_times.length;
   }
@@ -760,18 +775,19 @@ export class Ventilator extends BaseModelClass {
     this._inspiration = true;
     this._expiration = false;
 
-    this.exp_tidal_volume = -this._exp_tidal_volume_counter;
-    this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
-    const weight = this._model_engine.weight;
-    this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
-
-    this.calc_measured_mechanics();
-    this._calc_leak_perc();
+    // the breath just completed: a ventilator breath, or a spontaneous breath since one. A
+    // spontaneous breath that is still inhaling becomes this breath (it triggered it, or the SIMV
+    // window opened on it): it is not a breath of its own, the ventilator breath before it was
+    // closed at its onset, and what the patient inhaled so far is part of this breath's Vti. Flow
+    // in without a patient effort (an uncompensated leak refilling the circuit) is not
+    if (this._spont_open) {
+      if (this._exp_tidal_volume_counter < 0.0) this._close_spont_breath(true);
+      else if (!this._spont_effort) this._insp_tidal_volume_counter = 0.0;
+      this._spont_open = false;
+    } else {
+      this._close_vent_breath();
+    }
     this._learn_leak();
-    // volume-targeted modes: trim the working pressure on the breath just completed (in SIMV only
-    // on mandatory breaths: a supported spontaneous breath has its own, capped, pressure)
-    if (this._volume_targeted() && !this._ps_breath) this.pressure_regulated_volume_control();
-    this._ps_breath = false;
 
     // timing of the breath just completed, and the start of this one
     this.te_meas = this._te_counter;
@@ -784,6 +800,7 @@ export class Ventilator extends BaseModelClass {
     this._exp_tidal_volume_counter = 0.0;
     this._pip_meas = 0.0;
     this._had_pause = false;
+    this._spont_armed = false;
 
     if (this._breath_interval_counter > 0.0) {
       this._measured_rate = 60.0 / this._breath_interval_counter;
@@ -797,6 +814,78 @@ export class Ventilator extends BaseModelClass {
     }
     this._breath_interval_counter = 0.0;
     this._manual_breath = false;
+  }
+
+  _close_vent_breath() {
+    // measurements of a ventilator breath, at its end: the next breath start, or the onset of a
+    // spontaneous breath in its expiration
+    this.exp_tidal_volume = -this._exp_tidal_volume_counter;
+    this._vent_vte = this.exp_tidal_volume;
+    this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
+    const weight = this._model_engine.weight;
+    this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
+    this.calc_measured_mechanics();
+    this._calc_leak_perc();
+    // volume-targeted modes: trim the working pressure on the breath just completed (in SIMV only
+    // on mandatory breaths: a supported spontaneous breath has its own, capped, pressure)
+    if (this._volume_targeted() && !this._ps_breath) this.pressure_regulated_volume_control();
+    this._ps_breath = false;
+    this._exp_tidal_volume_counter = 0.0;
+    this._breath_closed(false);
+  }
+
+  _close_spont_breath(cut_off = false) {
+    // an unsupported spontaneous breath: its own volumes and leak, but no mechanics (no applied
+    // pressure) and no volume targeting. A breath cut off by a ventilator breath (CMV) has not
+    // finished exhaling, so its Vti - Vte is not a leak and the leak is left as it was
+    this.exp_tidal_volume = -this._exp_tidal_volume_counter;
+    this.insp_tidal_volume = this._insp_tidal_volume_counter;
+    this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
+    const weight = this._model_engine.weight;
+    this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
+    this._spont_cut_off = cut_off;
+    if (!cut_off) this._calc_leak_perc();
+    this._spont_log.push([this._model_engine.model_time_total ?? 0.0, Math.max(this.exp_tidal_volume, 0.0)]);
+    this._exp_tidal_volume_counter = 0.0;
+    this._insp_tidal_volume_counter = 0.0;
+    this._breath_closed(true);
+  }
+
+  _breath_closed(spont) {
+    // hook: a breath's measurements are complete (Sle6000 updates its monitored values here)
+  }
+
+  _detect_spont_breath() {
+    // the flow sensor sees a patient inspiration in the ventilator's expiration that did not
+    // start a ventilator breath (CMV, or SIMV without pressure support): the breath in progress
+    // ends and a spontaneous breath begins. Same threshold as the flow trigger, net of the learned
+    // leak; re-armed by expiratory flow, so one inspiration is one breath
+    if (!this._expiration) return;
+    const q = this._vent_ettube.flow;
+    if (q < 0.0) this._spont_armed = true;
+    if (this._spont_open && q > 0.0) this._insp_tidal_volume_counter += q * this._t;
+    if (this._spont_open && this._breathing_model?.insp_running) this._spont_effort = true;
+    if (
+      this._spont_armed &&
+      this._te_counter >= this._min_exp_time &&
+      q * 60.0 - this._leak_flow_now() * 60.0 > this.trigger_flow
+    ) {
+      this._spont_armed = false;
+      if (this._spont_open) this._close_spont_breath();
+      else this._close_vent_breath();
+      this._spont_open = true;
+      this._spont_effort = !!this._breathing_model?.insp_running;
+      this._insp_tidal_volume_counter = q * this._t;
+    }
+  }
+
+  _spont_per_min() {
+    // spontaneous breaths and their exhaled volume per minute, over the last 60 s (or the time
+    // monitored so far, while that window fills)
+    const win = Math.min(60.0, Math.max(this._mon_time, 1.0));
+    let vol = 0.0;
+    for (const [, v] of this._spont_log) vol += v;
+    return { n: (this._spont_log.length * 60.0) / win, vol: (vol * 60.0) / win };
   }
 
   _apply_humidifier() {
@@ -1442,6 +1531,12 @@ export class Ventilator extends BaseModelClass {
     this._map_sum = 0.0;
     this._map_time = 0.0;
     this._trig_times = [];
+    this._spont_open = false;
+    this._spont_armed = false;
+    this._spont_effort = false;
+    this._vent_vte = 0.0;
+    this._spont_log = [];
+    this._mon_time = 0.0;
     this._leak_net_vol = 0.0;
     this._leak_sqrtp = 0.0;
     this._leak_g = 0.0;

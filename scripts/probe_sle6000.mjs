@@ -1,7 +1,7 @@
 // SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
-// HFOV+CMV), the settings validation, the monitored values, the patient monitor's RR and the
-// leak compensation of the flow trigger and of PSV termination. See docs/Sle6000.md.
+// HFOV+CMV), the settings validation, the monitored values (also with unsupported spontaneous breaths),
+// the patient monitor's RR and the leak compensation of the flow trigger and of PSV termination. See docs/Sle6000.md.
 //
 // Usage: node scripts/probe_sle6000.mjs [--verbose]
 // Exit code 1 when a check fails.
@@ -119,6 +119,28 @@ function count(m, V, seconds) {
   check("SIMV window breaths per minute", n.triggered - n.supported + n.mandatory, 19, 21);
   check("SIMV supported breaths", n.supported, 1, 1000);
   check("SIMV P Support delivered (mbar above PEEP)", V.ps_cmh2o / 1.01972, 4.9, 5.1);
+}
+
+// 5b. Unsupported spontaneous breaths (SIMV without P Support, CMV with the patient breathing) are
+// breaths of their own (p175): Vte is per breath, not the mandatory breath plus the patient's breaths
+// after it; RR counts every breath; a tube leak shows; no phantom leak from breaths a ventilator
+// breath cuts off
+{
+  const { V, B } = start({ mode: "SIMV", rr: 20, ti: 0.35, peep: 5, pip: 15, p_support: 0 });
+  eng.calc(90);
+  check("SIMV no PS: Vte / Vti", V.mon_vte / V.mon_vti, 0.85, 1.15, `${V.mon_vte.toFixed(1)} / ${V.mon_vti.toFixed(1)} ml`);
+  check("SIMV no PS: RR counts the patient's breaths (/ own rate)", V.mon_rr / B.resp_rate, 0.8, 1.25, `RR ${V.mon_rr.toFixed(0)}, own ${B.resp_rate.toFixed(0)}`);
+  check("SIMV no PS: no leak without a leak (%)", V.mon_leak, 0, 3);
+  V.leak_size = 0.5;
+  eng.calc(120);
+  check("SIMV no PS: a tube leak shows (%)", V.mon_leak, 3, 40);
+}
+{
+  const { V } = start({ mode: "CMV", rr: 20, ti: 0.35, peep: 5, pip: 15 });
+  eng.calc(90);
+  check("CMV breathing: Vte / Vti", V.mon_vte / V.mon_vti, 0.8, 1.2, `${V.mon_vte.toFixed(1)} / ${V.mon_vti.toFixed(1)} ml`);
+  check("CMV breathing: RR above the set rate", V.mon_rr, 30, 80);
+  check("CMV breathing: no phantom leak (%)", V.mon_leak, 0, 5);
 }
 
 // 6. VTV in CMV: converges to the target within 20 breaths; off restores the set PIP

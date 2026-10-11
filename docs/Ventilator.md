@@ -128,15 +128,15 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `vol` | mL | Volume integrated from ET-tube flow over the current breath (reset each inspiration) |
 | `exp_time` | s | Expiratory time = `60/vent_rate − insp_time` |
 | `trigger_volume` | L | Trigger threshold = `(tidal_volume/100) · trigger_volume_perc` |
-| `minute_volume` | L/min | `exp_tidal_volume · rate` — the set `vent_rate` for purely mandatory modes; whenever the patient can trigger (`PS`, or `synchronized`) the *measured*, breath-averaged rate; CPAP uses the patient's spontaneous rate |
+| `minute_volume` | L/min | Ventilator breaths: the last one's Vte · rate (the set `vent_rate` for purely mandatory modes; whenever the patient can trigger (`PS`, or `synchronized`) the *measured*, breath-averaged rate), plus the [unsupported spontaneous breaths](#unsupported-spontaneous-breaths)' exhaled volume per minute; CPAP uses the patient's spontaneous rate |
 | `compliance` | mL/cmH₂O | Dynamic compliance (= `compliance_dynamic`), measured per breath at end-expiration |
 | `compliance_dynamic` | mL/cmH₂O | `Vt / (p_peak − PEEP)` — always available |
 | `compliance_static` | mL/cmH₂O | `Vt / (p_plat − PEEP)` — only when an inspiratory pause produced a plateau (else 0) |
 | `resistance` | cmH₂O/(L/s) | Measured airway resistance `(p_peak − p_plat) / insp_flow` — needs a plateau; `null` when unmeasurable |
 | `p_peak` | cmH₂O | Measured peak inspiratory (circuit) pressure over the breath (in CPAP: over the spontaneous breath) |
 | `p_plat` | cmH₂O | Measured plateau pressure, sampled during the inspiratory pause |
-| `exp_tidal_volume` | L | Expired tidal volume (per breath) |
-| `insp_tidal_volume` | L | Inspired tidal volume (per breath) |
+| `exp_tidal_volume` | L | Expired tidal volume (per breath, an unsupported spontaneous breath included) |
+| `insp_tidal_volume` | L | Inspired tidal volume (per breath, an unsupported spontaneous breath included) |
 | `tv_kg` | mL/kg | Expired tidal volume per kg (`exp_tidal_volume·1000 / weight`); also in CPAP |
 | `ncc_insp` | counter | Ventilator inspiration step counter (see breath cycle counters) |
 | `ncc_exp` | counter | Ventilator expiration step counter |
@@ -152,7 +152,7 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `hfo_sigh_remaining` / `hfo_pause_remaining` | s | Time left of a running HFOV sigh / oscillation pause (0 = oscillating) |
 | `ti_meas` / `te_meas` | s | Measured inspiratory time of the last breath and the expiratory time before it |
 | `ie_ratio_meas` | – | `te_meas / ti_meas` (shown as 1:x) |
-| `rr_meas` | /min | Breath-averaged delivered rate; in CPAP the patient's rate while breathing |
+| `rr_meas` | /min | Breath-averaged ventilator rate plus the unsupported spontaneous breaths per minute; in CPAP the patient's rate while breathing |
 | `trig_per_min` | /min | Patient-triggered ventilator breaths over the last 60 s |
 | `r_dyn` | cmH₂O/(L/s) | `(p_peak − PEEP) / peak expiratory flow` of the last breath, the dynamic resistance neonatal ventilators report |
 
@@ -185,6 +185,9 @@ cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `
    - `SIMV` → `simv_cycling()` then `pressure_control()`
    - `CPAP` → `cpap_cycling()` (`cpap_control()`, or a backup/manual breath)
    - `HFOV` / `HFOV_CMV` → `hfov_control()`
+
+   Outside CPAP and HFO, `_detect_spont_breath()` then closes out an
+   [unsupported spontaneous breath](#unsupported-spontaneous-breaths) at its onset.
 4. Publish read-outs: airway `pres`, `flow` (ET-tube flow × 60), integrate `vol`, sample `co2` from
    `DS`, set `minute_volume` (using the breath-averaged measured rate whenever the patient can
    trigger; CPAP reports a spontaneous minute volume), advance the breath-interval counter, and refresh the ET-tube resistance. Compliance and
@@ -332,9 +335,41 @@ patient breathes unsupported on PEEP.
 - The support pressure never exceeds the mandatory pressure. With volume guarantee that is the
   working pressure, so the support can't out-ventilate the volume target.
 - Volume guarantee trims the working pressure on mandatory breaths only.
-- Unsupported spontaneous breaths are not closed out as breaths. Their exhaled volume adds to the
-  Vte of the next mandatory breath, as the expired volume of a whole window. With volume guarantee
-  and no support this under-trims the mandatory pressure.
+- Unsupported spontaneous breaths are breaths of their own in the monitoring (see
+  [Unsupported spontaneous breaths](#unsupported-spontaneous-breaths)), so volume guarantee trims on
+  the mandatory breath's own Vte.
+
+### Unsupported spontaneous breaths
+
+In CMV, and in SIMV without pressure support, the patient can breathe between ventilator breaths
+without starting one. A flow sensor at the tube sees each of these as a small breath of its own: the
+SLE6000 reports Vte as the "expired volume of large and small breaths" and RR as the "total number of
+breaths detected" (IFU §27.6.5, p175). `_detect_spont_breath()` (every step outside CPAP and HFO)
+models that:
+
+- **Onset.** In the ventilator's expiration, once the minimal expiratory time has passed, tube flow
+  above `trigger_flow` (net of the learned leak flow, as the flow trigger) that did not start a
+  ventilator breath. The detector is re-armed by expiratory flow, so one inspiration is one breath.
+- **At the onset** the breath in progress is closed: the ventilator breath with its full measurements
+  (`_close_vent_breath`: Vte, etCO₂, mechanics, leak, volume-guarantee trim), or the previous
+  spontaneous breath (`_close_spont_breath`: Vte, Vti and leak only, as no pressure was applied).
+- **Volumes.** A spontaneous breath counts its inspiratory and expiratory tube flow in the usual
+  counters until it is closed by the next onset or by the next ventilator breath.
+  - Not yet exhaling when a ventilator breath starts: the effort became that breath (it triggered
+    it, or the SIMV window opened on it) and is not a breath of its own. The volume the patient
+    inhaled so far counts in that breath's Vti, unless no patient effort was seen (flow in from an
+    uncompensated leak refilling the circuit).
+  - Cut off while exhaling (CMV): closed with the volume so far, but its Vti − Vte is not taken as a
+    leak.
+- **Rate and minute volume.** `rr_meas` adds the spontaneous breaths of the last 60 s (scaled while
+  the window fills) to the breath-averaged ventilator rate. `minute_volume` is the last ventilator
+  breath's Vte times its rate plus the spontaneous breaths' exhaled volume per minute.
+- **Hook.** Every closed breath calls `_breath_closed(spont)`; the Sle6000 updates its monitored
+  values there.
+
+Before this the patient's breaths were folded into the ventilator breath's Vte (CMV at a set rate of 20
+with a breathing term neonate: Vte 62 ml against a Vti of 36, C doubled, RR 20 instead of about 60,
+and a tube leak hidden at 0 %).
 
 ### `cpap_cycling` (CPAP with apnoea backup)
 
