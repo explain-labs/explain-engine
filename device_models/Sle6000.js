@@ -302,6 +302,14 @@ export class Sle6000 extends Ventilator {
     }
   }
 
+  sle_spo2_monitoring(state = true) {
+    this.sle_set_spo2({ on: Boolean(state) });
+  }
+
+  sle_set_spo2_target(range = "91-95") {
+    this.sle_set_spo2({ target: range });
+  }
+
   set_spo2_probe(attached = true) {
     // the sensor on (or off) the patient: no valid signal while it is off
     this.spo2_probe_attached = Boolean(attached);
