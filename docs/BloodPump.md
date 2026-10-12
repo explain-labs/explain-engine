@@ -84,7 +84,7 @@ library carries these per device:
 
 | Pump | `hq_a` | `hq_b` | `hq_c` | deadhead @ max rpm | rated flow |
 |---|---|---|---|---|---|
-| Abbott PediMag | 17.85 | 30.3 | 0 | ~540 mmHg @5500 | ~1.5 L/min |
+| Abbott PediMag | 21.16 | 5.2 | 15.4 | ~640 mmHg @5500 | ~1.5 L/min |
 | Abbott CentriMag | 23.17 | 0.85 | 0.38 | ~710 mmHg @5500 | 10 L/min |
 | Getinge Rotaflow RF-32 | 28 | 13.0 | 0 | ~700 mmHg @5000 | ~10 L/min |
 | Medtronic Bio-Pump BP-50 | 20 | 28.9 | 0 | ~180 mmHg @3000 | neonatal |
@@ -98,11 +98,18 @@ flow (≈ −6 mmHg per L/min at 3000 rpm), so `hq_b`/`hq_c` are small. Before 2
 `hq_b = 11.1`, `hq_c = 0`, which made the curve 5–7× too steep. The manual's "maximum pressure head of
 600 mmHg" is a rated limit; the 5500 rpm curve starts at ≈ 710 mmHg.
 
-PediMag `hq_a` comes from its published maximum outflow pressure, 540 mmHg at 5500 rpm (Wang et al
-2020). With the unchanged `hq_b = 30.3` it reproduces the independent operating points PediVAS 2800 rpm →
-0.6 L/min and 3200 rpm → 0.8 L/min (10 Fr return cannula). In the Ecls circuit those come out at
-≈ 0.56 / 0.78 L/min against ≈ 57 mmHg afterload. Before 2026-10-01 it was 9.9, fitted to an assumed
-~300 mmHg deadhead, which made the pump about 45% too weak. The remaining
+PediMag (recalibrated 2026-10-12 together with the ECLS circuit; see
+[Ecls › Circuit calibration](./Ecls.md#circuit-calibration)): no H-Q curve is published.
+- **Deadhead.** ≈ 640 mmHg at 5500 rpm (`hq_a` 21.16). The published 540 mmHg maximum outflow
+  pressure (Wang et al 2020) is read as a rated limit, like the CentriMag's 600 against its 710
+  deadhead.
+- **Shape.** The CentriMag fit scaled to the PediMag's head and flow range (`hq_b` 5.2, `hq_c` 15.4).
+- **Operating point.** In the calibrated circuit this gives ≈ 0.56 L/min at 2800 rpm on VA
+  (`term_neonate`, 12/10 Fr), close to the PediVAS point of 0.6 L/min.
+- **History.** The earlier `hq_a` 17.85 / `hq_b` 30.3 reproduced those operating points only because
+  the steep slip term made up for circuit losses that the old circuit lacked.
+
+The remaining Rotaflow / Bio-Pump
 coefficients are anchored to each pump's published deadhead magnitude and rated flow; they are **not**
 digitized from the full manufacturer H-Q figures (which were not accessible), so the mid-curve shape is
 the theoretical Euler-slip (linear) default. Sources: Wang et al 2020 *Artif Organs*
