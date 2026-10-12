@@ -33,6 +33,16 @@ const CANNULA_FLOW_FLOOR = 0.05;
 // would otherwise fall below it and blow up. 100 mmHg/(L/s) is under 2 mmHg per L/min.
 const CANNULA_RES_MIN = 100.0;
 const MMHG_PER_PA = 1.0 / 133.322;
+const BLOOD_DENSITY = 1060.0; // kg/m^3
+const GRAVITY = 9.81; // m/s^2
+
+// hydrostatic pressure (mmHg) of a blood column height_cm high (~0.78 mmHg per cm). The circuit
+// transducers sit at pump level; with the pump below the patient they read the line pressure plus
+// this column. It is a read-out offset only: in a closed loop the column adds on the drainage limb
+// and subtracts on the return limb, so it does not change the circuit flow.
+function hydrostatic_offset(height_cm) {
+  return BLOOD_DENSITY * GRAVITY * (height_cm / 100.0) * MMHG_PER_PA;
+}
 
 // chord resistance (mmHg/(L/s)) of a cannula/lumen in blood at circuit flow q_lmin, from its
 // water-chart fit dP = dp_a*Q + dp_b*Q^2 (mmHg, Q in L/min)
@@ -102,6 +112,11 @@ export class Ecls extends BaseModelClass {
     this.pump_rpm = 1500.0; // pump speed in rotations per minute
     this.pump_mode = 0; // pump mode (0=centrifugal, 1=roller pump)
     this.pump_pressure =  0.0
+    // height of the pump and its pressure transducers BELOW the patient's heart level (cm; negative =
+    // above). Shifts the measured p_ven/p_int/p_art by the blood column (hydrostatic_offset); flow is
+    // unaffected. 30 cm is an assumed console position, putting neonatal VV p_ven at ~ -13 mmHg
+    // (13 Fr double lumen, 0.44 L/min), inside the -10 to -20 mmHg seen at the bedside.
+    this.pump_height = 30.0;
     this.cannula_sizes_single = [6, 8, 10, 12]; // sizes of the drainage and return cannula in Fr
     this.cannula_size_double = [13, 14, 15]; // sizes of the drainage cannula in Fr for double lumen cannula (the return cannula is always 1 Fr larger than the drainage cannula in this case)
     
@@ -292,6 +307,7 @@ export class Ecls extends BaseModelClass {
     this.p_ven = 0.0; // filtered venous pressure (mmHg)
     this.p_int = 0.0; // filtered pressure at the interface between the drainage cannula and the tubing (mmHg)
     this.p_art = 0.0; // filtered arterial pressure (mmHg)
+    this.p_hydrostatic = 0.0; // hydrostatic offset added to the measured circuit pressures (mmHg)
     this.flow = 0.0; // blood flow through the ECLS circuit (L/s)
     this.flow_avg = 0.0; // moving average of the blood flow through the ECLS circuit (L/s)
     this.sat_ven_o2 = 0.0; // venous oxygen saturation (%)
@@ -692,9 +708,12 @@ export class Ecls extends BaseModelClass {
         }
 
         // get the measured pressures and flow from the associated models
-        const p_ven_raw = this._ecls_tubing_in.pres; // pressure at inlet of drainage cannula
-        const p_int_raw = this._ecls_pump.pres; // pressure at pump interface
-        const p_art_raw = this._ecls_tubing_out.pres; // pressure at outlet of return cannula
+        // as the transducers at pump level read them: the line pressure plus the blood column between
+        // the patient and the pump (pump_height). The compartments themselves stay at patient level.
+        this.p_hydrostatic = hydrostatic_offset(this.pump_height);
+        const p_ven_raw = this._ecls_tubing_in.pres + this.p_hydrostatic; // pressure at inlet of drainage cannula
+        const p_int_raw = this._ecls_pump.pres + this.p_hydrostatic; // pressure at pump interface
+        const p_art_raw = this._ecls_tubing_out.pres + this.p_hydrostatic; // pressure at outlet of return cannula
         this.p_ven = this._p_ven_avg_calculator.addValue(p_ven_raw);
         this.p_int = this._p_int_avg_calculator.addValue(p_int_raw);
         this.p_art = this._p_art_avg_calculator.addValue(p_art_raw);
