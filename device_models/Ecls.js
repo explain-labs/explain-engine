@@ -194,8 +194,9 @@ export class Ecls extends BaseModelClass {
     };
 
     // Double-lumen (VV) cannula library: one device, two lumens, both in the right atrium. Each lumen
-    // has its own water-chart fit (Getinge Avalon Elite bi-caval dual-lumen catheter, 10013-CE /
-    // 10016-CE manufacturer charts). The narrow return (infusion) lumen is the bottleneck of neonatal
+    // has its own water-chart fit: Getinge Avalon Elite bi-caval dual-lumen catheter (10013-CE /
+    // 10016-CE manufacturer charts) and Medtronic Crescent RA jugular dual-lumen catheter (70413 /
+    // 70415 / 70419; digitised from the brochure chart, UC202207936b, water at 21 °C). The narrow return (infusion) lumen is the bottleneck of neonatal
     // VV ECMO: at 0.5 L/min it costs ~110 mmHg in blood, more than an arterial cannula plus the
     // patient's arterial pressure on VA — which is why VV does not run at lower pump speeds.
     this.dl_cannulas = {
@@ -206,6 +207,18 @@ export class Ecls extends BaseModelClass {
       "Avalon Elite 16 Fr": {
         drainage: { dp_a: 6.27, dp_b: 32.1 },
         return: { dp_a: 0.0, dp_b: 168.95 },
+      },
+      "Crescent RA 13 Fr": {
+        drainage: { dp_a: 19.75, dp_b: 57.75 },
+        return: { dp_a: 38.72, dp_b: 228.87 },
+      },
+      "Crescent RA 15 Fr": {
+        drainage: { dp_a: 12.46, dp_b: 25.87 },
+        return: { dp_a: 15.85, dp_b: 109.61 },
+      },
+      "Crescent RA 19 Fr": {
+        drainage: { dp_a: 4.61, dp_b: 9.8 },
+        return: { dp_a: 5.95, dp_b: 40.41 },
       },
     };
     this.cannulation = "VA"; // "VA" (separate drainage + return cannula) or "VV-DL" (one double-lumen cannula)
