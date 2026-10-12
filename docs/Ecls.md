@@ -22,8 +22,12 @@ at build, and reached by name; `Ecls` itself contributes no compartment physics,
 
 - A drainage → pump → oxygenator → return blood circuit wired into two named patient compartments
   (`drainage_site`, `return_site`).
-- A selectable cannula library (real Biomedicus / Medtronic Crescent devices, neonatal 8 Fr through
-  adult 25 Fr venous / 21 Fr arterial) that sets cannula geometry and resistance.
+- VA cannulation (separate drainage and return cannula) or VV cannulation with one double-lumen
+  cannula (`cannulation`), with cannula libraries calibrated to the manufacturers' pressure-drop
+  charts (Bio-Medicus 8–25 Fr, Avalon Elite 13/16 Fr dual-lumen), converted from water to blood.
+- Circuit resistances that scale realistically with flow: nonlinear cannula pressure drops, laminar
+  tubing from its geometry, and a per-device oxygenator pressure drop. See
+  [Circuit calibration](#circuit-calibration).
 - Centrifugal or roller pump drive, applied as an external pressure across the pump or oxygenator.
 - A sweep-gas side feeding the oxygenator's gas exchanger, with adjustable FiO₂/FiCO₂ and diffusion
   constants.
@@ -67,18 +71,20 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 |---|---|---|
 | `ecls_running` | bool | Master on/off for the circuit |
 | `ecls_clamped` | bool | Clamp the blood path (`no_flow` on every blood sub-model; disables the gas exchanger) |
+| `cannulation` | string | `"VA"` (default; separate drainage + return cannula) or `"VV-DL"` (one double-lumen cannula: both lumens in `drainage_site`) |
+| `dl_cannula_type` | string | Key into `dl_cannulas`, used in `VV-DL` (default `Avalon Elite 13 Fr`) |
 | `drainage_site` | string | Patient compartment the drainage cannula drains (default `RA`) |
-| `return_site` | string | Patient compartment the return cannula feeds (default `AAR`) |
-| `drainage_cannula_type` | string | Key into `drainage_cannulas` (default `Biomedicus venous 12 Fr`) |
-| `return_cannula_type` | string | Key into `return_cannulas` (default `Biomedicus arterial 10 Fr`) |
+| `return_site` | string | Patient compartment the return cannula feeds (default `AAR`). In `VV-DL` it is forced to `drainage_site`; the VA site is remembered and restored on the way back to `VA` |
+| `drainage_cannula_type` | string | Key into `drainage_cannulas`, used in `VA` (default `Biomedicus venous 12 Fr`) |
+| `return_cannula_type` | string | Key into `return_cannulas`, used in `VA` (default `Biomedicus arterial 10 Fr`) |
 | `drainage_res_factor` | × | Multiplier on drainage-cannula resistance (default 1.0) |
 | `return_res_factor` | × | Multiplier on return-cannula resistance |
 | `tubing_res_factor` | × | Multiplier on both tubing resistances |
 | `pump_res_factor` | × | Multiplier on pump resistance |
 | `oxy_res_factor` | × | Multiplier on oxygenator resistance |
-| `oxy_res_for` / `oxy_res_back` | mmHg/(L/s) | Oxygenator resistance (default 1500/1500) |
+| `oxy_res_for` / `oxy_res_back` | mmHg/(L/s) | Oxygenator resistance; set from the selected oxygenator's `dp_a` (Quadrox-i Neonatal 2700) whenever `oxygenator_type` is applied, editable in between |
 | `oxy_vol` | L | Oxygenator volume (default 0.09) |
-| `pump_res_for` / `pump_res_back` | mmHg/(L/s) | Pump resistance (default 50/50) |
+| `pump_res_for` / `pump_res_back` | mmHg/(L/s) | Pump internal resistance (default 50/50); the inflow tubing's `tubing_in_res` is added in series on the same resistor |
 | `pump_vol` | L | Pump volume (default 0.031) |
 | `pump_rpm` | rpm | Pump speed — the primary control (default 1500) |
 | `pump_type` | string | Key into `pumps` (default `Abbott PediMag`); selecting it copies the H-Q/roller coefficients and sets `pump_mode` |
@@ -99,12 +105,13 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `oxygenator_type` | string | Key into `oxygenators` (default `Getinge Quadrox-i Neonatal`); copies the membrane transfer caps |
 | `oxy_o2_cap` / `oxy_co2_cap` | mmol/s | Active O₂/CO₂ membrane transfer ceilings, pushed onto `ECLS_GASEX` |
 | `oxy_surface_area` / `oxy_rated_flow` | m², L/min | Selected oxygenator's surface area / rated blood flow (informational) |
-| `oxygenators` | dict | Oxygenator device library (surface area, rated flow, `o2_cap`/`co2_cap`, prime per device) |
+| `oxygenators` | dict | Oxygenator device library (surface area, rated flow, `o2_cap`/`co2_cap`, prime and blood-side pressure drop `dp_a` per device) |
 | `drainage_cannula_diameter` / `_length` | m | Drainage cannula geometry (copied from the selected library entry) |
 | `return_cannula_diameter` / `_length` | m | Return cannula geometry (copied from the selected library entry) |
-| `tubing_in_diameter`/`_length`, `tubing_out_diameter`/`_length` | m | Tubing geometry |
-| `cannula_sizes_single`, `cannula_size_double` | Fr | Available cannula sizes (UI metadata) |
-| `return_cannulas`, `drainage_cannulas` | dict | Cannula library (inner diameter, length, resistance per device) |
+| `tubing_in_diameter`/`_length`, `tubing_out_diameter`/`_length` | m | Tubing geometry; sets the tubing resistances (Poiseuille, blood) |
+| `cannula_sizes_single`, `cannula_size_double` | Fr | Legacy size lists, not used by the engine |
+| `return_cannulas`, `drainage_cannulas` | dict | VA cannula libraries (inner diameter, length, water-chart fit `dp_a`/`dp_b` per device) |
+| `dl_cannulas` | dict | Double-lumen (VV) cannula library: per device a `drainage` and a `return` lumen fit (`dp_a`/`dp_b`) |
 
 ### Computed (dependent) read-outs
 
@@ -119,8 +126,9 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `sat_ven_o2` | % | Venous (pre-oxygenator) O₂ saturation — tapped at the drainage tubing `ECLS_TUBING_IN` |
 | `sat_postoxy_o2` | % | Post-oxygenator O₂ saturation — tapped at the oxygenator blood compartment `ECLS_OXY` |
 | `pco2_postoxy` | mmHg | Post-oxygenator pCO₂ — tapped at `ECLS_OXY` |
-| `drainage_res` / `return_res` | mmHg/(L/s) | Active cannula resistances (from the selected library entry) |
-| `tubing_in_res` / `tubing_out_res` | mmHg/(L/s) | Tubing resistances. `tubing_out_res` drives the `ECLS_OXY → ECLS_TUBING_OUT` resistor; `tubing_in_res` is **vestigial** — it is not applied (see calc-cycle step 5) |
+| `drainage_res` / `return_res` | mmHg/(L/s) | Cannula (or lumen) resistance in blood at the current circuit flow — the chord dP(Q)/Q of the device's pressure-drop curve, before `*_res_factor` |
+| `drainage_dp` / `return_dp` | mmHg | Pressure drop over the drainage / return cannula (lumen) at the current flow, factor included |
+| `tubing_in_res` / `tubing_out_res` | mmHg/(L/s) | Poiseuille tubing resistances (blood) from the tubing geometry, recomputed each update (a scenario value is overwritten). `tubing_out_res` drives the `ECLS_OXY → ECLS_TUBING_OUT` resistor; `tubing_in_res` is added to the pump's inlet resistor |
 | `tubing_in_vol` / `tubing_out_vol` | L | Tubing volumes |
 
 ### Internal (`_`-prefixed) and moving averages
@@ -134,16 +142,86 @@ size the four [`RealTimeMovingAverage`](./RealTimeMovingAverage.md) filters
 
 ## Cannula library
 
-`drainage_cannulas` / `return_cannulas` are dictionaries of real devices (Biomedicus venous 8–25 Fr /
-arterial 8–21 Fr, Medtronic Crescent dual-lumen), each with an `inner_diameter` (m), `length` (m) and
-measured `resistance` (mmHg/(L/s)). Keys use the `Biomedicus` spelling that `drainage_cannula_type` /
+`drainage_cannulas` / `return_cannulas` (VA) are dictionaries of real devices (Biomedicus venous
+8–25 Fr / arterial 8–21 Fr), each with an `inner_diameter` (m), `length` (m) and the fit
+`dP = dp_a·Q + dp_b·Q²` (mmHg, Q in L/min) of its manufacturer pressure-drop chart, measured in water.
+`dl_cannulas` (VV) holds double-lumen devices (Avalon Elite 13 / 16 Fr), with a separate fit for the
+drainage and the return lumen. Keys use the `Biomedicus` spelling that `drainage_cannula_type` /
 `return_cannula_type` reference, so a selection resolves. The **constructor is the single source of
-truth** for the catalogue (neonatal 8 Fr through adult 25 Fr venous / 21 Fr arterial) — scenario
-definitions no longer embed their own `drainage_cannulas` / `return_cannulas` snapshot, so every scenario
-sees the full catalogue and any cannula (neonatal or adult) can be selected in any scenario.
-Setting `drainage_cannula_type` / `return_cannula_type` copies the matching entry's geometry and
-resistance into the active `*_cannula_*` / `*_res` parameters — once in the constructor, and re-checked
-each tick in `calc_model`.
+truth** for the catalogue: scenario definitions do not embed their own copy (the last eight that did
+were cleaned up on 2026-10-12), so every scenario sees the full catalogue and any cannula can be
+selected in any scenario. Each update, `calc_model` copies the selected VA cannulas' geometry into
+`*_cannula_diameter`/`_length` and turns the selected fits into the live resistances (next section).
+
+## Circuit calibration
+
+The circuit was recalibrated on 2026-10-12 so that the pump speed needed for a given flow comes out of
+realistic circuit losses. Before, the whole neonatal circuit cost only ≈ 31 mmHg at 0.47 L/min, so the
+patient's arterial pressure dominated the pump head on VA. VV (no arterial afterload) then needed
+≈ 35 % fewer rpm than VA, which bedside practice does not show. With the calibration below, a 13 Fr
+double-lumen VV run needs about the same or slightly more rpm than 12/10 Fr VA. That is because the
+narrow return lumen costs more than the arterial cannula plus the arterial pressure.
+
+**Cannulas: manufacturer charts, converted to blood.** Each chart was fitted (non-negative least
+squares) as `dP = dp_a·Q + dp_b·Q²`. Cannula pressure drop is mostly inertial (entrance and exit
+losses), so the quadratic term dominates and the drop rises steeply with flow. The charts are measured
+in water at room temperature. Blood (≈ 3 cP at 37 °C and Hct 30–35 %, 1.06 kg/L) is handled by scaling
+the linear term by `BLOOD_VISCOSITY_RATIO` (3.0) and the quadratic term by `BLOOD_DENSITY_RATIO` (1.06).
+At neonatal flows that puts blood 30–60 % above the water chart. This is inside the 10–80 % excess
+Broman et al measured in blood (*Perfusion* 2020, doi:10.1177/0267659120926009).
+
+| Library entry | Chart used (water) | `dp_a` | `dp_b` | blood dP @ 0.5 L/min |
+|---|---|---|---|---|
+| Biomedicus arterial 8 / 10 / 12 Fr | Medtronic DLP pediatric one-piece arterial 77008 / 77010 / 77012 (proxy: the Bio-Medicus neck cannula's chart is not published as data) | 19.84 / 4.20 / 8.74 | 162.87 / 59.62 / 17.96 | 73 / 22 / 18 mmHg |
+| Biomedicus arterial 15 / 17 / 19 / 21 Fr | Bio-Medicus NextGen femoral arterial | 0 / 0 / 0 / 0.39 | 11.35 / 6.08 / 3.45 / 2.07 | — (adult) |
+| Biomedicus venous 10 / 12 / 14 Fr | Bio-Medicus NextGen pediatric venous 96830-110 / 112 / 114 | 10.78 / 6.61 / 4.79 | 47.42 / 17.08 / 9.27 | 29 / 14 / 10 mmHg |
+| Biomedicus venous 8 Fr | none published; 10 Fr scaled by (ID 2.7/2.1 mm)⁴ | 29.4 | 129.5 | 78 mmHg |
+| Biomedicus venous 21 / 23 / 25 Fr | Bio-Medicus NextGen femoral bi-caval venous 96670-121 / 123 / 125 | 3.09 / 2.91 / 1.90 | 2.52 / 1.71 / 1.18 | — (adult) |
+| Avalon Elite 13 Fr, drainage / return lumen | Getinge Avalon Elite 10013-CE | 15.18 / 13.74 | 81.78 / 342.83 | 44 / 112 mmHg |
+| Avalon Elite 16 Fr, drainage / return lumen | Getinge Avalon Elite 10016-CE | 6.27 / 0 | 32.10 / 168.95 | 18 / 45 mmHg |
+
+The digitised chart points came from the open `perfusion-tools` cannula pressure-drop dataset
+(github.com/IMhongkeun/perfusion-tools, `data/cannula-pressure-drop.json`). That dataset digitises the
+Medtronic cannulae catalog, the Bio-Medicus NextGen brochure and the Getinge Avalon Elite charts. An
+independent blood data point supports the steep return lumen: an OriGen 13 Fr VV catheter costs
+275 mmHg at 500 mL/min in lambs. The Medtronic Crescent RA entries (13/15 Fr) were dropped, because
+their charts are not available as data.
+
+**How the nonlinearity is applied.** The engine's `Resistor.r_k` term is explicit (lagged by one step).
+With these stiff curves it would oscillate. Instead `calc_model` writes the **chord resistance**
+`R = (dp_a·3.0 + dp_b·1.06·|Q|)·60` (mmHg/(L/s)) each update, with Q the pump's flow EMA (time
+constant 0.3 s, which damps the feedback). Q is held at `CANNULA_FLOW_FLOOR` (0.05 L/min) and above,
+and R at `CANNULA_RES_MIN` (100 mmHg/(L/s)) and above. That second floor is for numerical stability,
+not physiology: the stiff ECLS compartments (elastance ≈ 50 000 mmHg/L) need R ≥ ≈ 25 at the 0.5 ms
+step, and large adult cannulas at near-zero flow would otherwise fall below it.
+
+**Tubing.** Poiseuille with blood viscosity `BLOOD_VISCOSITY` 0.003 Pa·s from `tubing_*_diameter`/
+`_length`: 1/4″ × 1 m ≈ 564 mmHg/(L/s) (was a fixed 50).
+
+**Oxygenator.** `dp_a` in the oxygenator library, in mmHg per L/min of blood, linear because hollow
+fibre is laminar. Quadrox-i Neonatal 45: ≈ 8 mmHg at 0.2 and ≈ 65 at 1.5 L/min (manufacturer figures
+as cited in US patents 11759558 / 12296080), and clinically 53 ± 15 mmHg per L/min (*Perfusion* 2013,
+seven patients). The larger devices have no figure at hand. They are assumed to cost the same ≈ 65 mmHg
+at their own rated flow (`dp_a = 65 / rated_flow`). Selecting the oxygenator writes
+`oxy_res_for/back = dp_a·60`. It was a fixed 1500 mmHg/(L/s), about 25 per L/min.
+
+**PediMag H-Q.** No H-Q curve is published. See [Pump device library](#pump-device-library).
+
+**Result, `term_neonate`** (PediMag, Quadrox-i Neonatal, 1 m + 1 m of 1/4″ tubing; 40 s warm-up):
+
+| rpm | VA 12 Fr venous / 10 Fr arterial → AAR: flow, P_ven, P_pre-oxy | VV Avalon 13 Fr → RA: flow, P_ven, P_pre-oxy |
+|---|---|---|
+| 2000 | 0.18 L/min, −3, 77 mmHg | 0.29 L/min, −18, 59 mmHg |
+| 2400 | 0.38, −10, 102 | 0.37, −26, 85 |
+| 2800 | 0.56, −17, 130 | 0.45, −36, 116 |
+| 3200 | 0.75, −26, 162 | 0.53, −46, 152 |
+| 3600 | 0.93, −36, 197 | 0.61, −58, 193 |
+
+Before, the same VA run gave 0.47 L/min at 2800 rpm. VV with two single-lumen cannulas gave 0.47 L/min
+at ≈ 1800 rpm. At ≈ 0.45 L/min VV now needs ≈ 10 % more rpm than VA, and ≈ 20 % more at 0.6 L/min.
+Adult (`adult_female`, CentriMag, 25/19 Fr): 4000 rpm → 4.0 L/min (was 6.6), 5000 rpm → 6.0 (was 10.9).
+The realistic adult cannula losses also remove most of the implausibly high adult flows noted on
+2026-10-01.
 
 ## Calculation cycle (`calc_model`)
 
@@ -162,15 +240,19 @@ otherwise linger after a stop.
 2. Resolve the `ECLS_*` sub-model references; **skip the tick** if any of the eleven required ones is
    missing (`ECLS_GAS_EXP_VALVE` is resolved too, but its use is individually guarded rather than
    gating the tick).
-3. Apply `drainage_site` / `return_site` to the cannula resistors, and copy the selected cannula
-   geometry/resistance from the library.
+3. Apply `drainage_site` / `return_site` to the cannula resistors. Then take the pressure-drop fits
+   of the selected cannulas: both lumens of `dl_cannula_type` in `VV-DL`, or the two VA cannulas.
+   Turn them into the chord resistances `drainage_res`/`return_res` at the current flow, and compute
+   the Poiseuille `tubing_in_res`/`tubing_out_res` ([Circuit calibration](#circuit-calibration)).
+   (Before every tick, running or not, `_apply_cannulation` forces `return_site = drainage_site` in
+   `VV-DL`, or restores the remembered VA return site.)
 4. Sync every sub-model's `is_enabled` to `ecls_running` (including both sweep-gas valves); set
    `no_flow = ecls_clamped` on all blood sub-models; enable `ECLS_GASEX` only when **unclamped**
    (`is_enabled = !ecls_clamped`); block back-flow on `ECLS_GAS_EXP_VALVE`.
 5. Push resistances onto each sub-model: drainage/return cannula, pump, oxygenator and outlet-tubing
-   resistance × its `*_res_factor`. (The inlet segment's resistance is the pump's own inlet resistor;
-   `tubing_in_res` is **not** applied — `ECLS_TUBING_IN` is a bare `BloodCapacitance` that owns no
-   resistor, so writing `r_for` onto it would do nothing.)
+   resistance × its `*_res_factor`. `ECLS_TUBING_IN` is a bare `BloodCapacitance` that owns no
+   resistor, so the inflow tubing's `tubing_in_res × tubing_res_factor` is added in series to the
+   pump's own inlet resistor.
 6. Recompute the sweep-gas composition when `gas_fio2`/`gas_fico2` changed; size the inspiratory-valve
    resistance each update so sweep flow tracks `gas_flow` (see below).
 7. Update `ECLS_GASEX.dif_o2` / `dif_co2` and the membrane transfer ceilings `o2_cap` / `co2_cap`
@@ -228,7 +310,17 @@ or roller parameters (`ml_per_rev`/`roller_kp`/`roller_drive_max`), `type` (`cen
 fields and sets `pump_mode` from `type` (in the constructor, and re-applied each update when `pump_type`
 changes). `pump_rpm` remains the control.
 
-The H-Q coefficients are **fit to published pump characteristics** (`head = hq_a·(rpm/1000)² −
+The PediMag has no published H-Q curve. Since 2026-10-12 it uses a ≈ 640 mmHg deadhead at 5500 rpm
+(`hq_a` 21.16). The published 540 mmHg "maximum outflow pressure" is read as a rated limit, as the
+CentriMag's 600 turned out to be (measured deadhead 710, ratio 1.18). The curve shape is the CentriMag
+fit scaled to the PediMag's head (×0.91) and flow range (1.5/10 L/min): `hq_b` 5.2, `hq_c` 15.4, flat
+at neonatal flows like any mag-lev pump. The old `hq_b` 30.3 made the curve steep. It had been tuned
+against the old, far too cheap circuit, and absorbed the missing circuit losses. With the calibrated
+circuit, VA `term_neonate` gives ≈ 0.56 L/min at 2800 rpm, close to the PediVAS operating point
+(0.6 L/min). The Rotaflow and Bio-Pump `hq_b` predate the circuit calibration and have not been
+re-checked.
+
+The other H-Q coefficients are **fit to published pump characteristics** (`head = hq_a·(rpm/1000)² −
 hq_b·(rpm/1000)·Q`, with `hq_c = 0`): the deadhead (`Q=0`) scaled as rpm² fixes `hq_a`, and the rated
 flow at max rpm fixes the Euler-slip falloff `hq_b`. For the Rotaflow the deadhead is fixed by two
 independent data points (~108 mmHg shut-off at 2000 rpm and ~700 mmHg at 5000 rpm → `hq_a ≈ 28`); the
@@ -285,7 +377,7 @@ directly each tick.
 ## Example definition (JSON)
 
 Device-level fields from `term_neonate.json` (the full block nests eleven `ECLS_*` sub-models under
-`components`, and embeds the cannula library):
+`components`):
 
 ```json
 {
@@ -323,9 +415,11 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 
 ## Usage in the model
 
-- Used to model VA/VV ECMO support of a patient. Set `drainage_site`/`return_site` to the patient
-  compartments the cannulas are inserted into, pick cannula types, then set `ecls_running = true` and
-  `ecls_clamped = false` and dial `pump_rpm` / `gas_flow` / `gas_fio2`.
+- Used to model VA/VV ECMO support of a patient. For VA, set `drainage_site`/`return_site` to the
+  patient compartments the cannulas are inserted into and pick the two cannula types. For VV, set
+  `cannulation = "VV-DL"`, pick `dl_cannula_type` and the `drainage_site` (the return follows). Then
+  set `ecls_running = true` and `ecls_clamped = false` and dial `pump_rpm` / `gas_flow` /
+  `gas_fio2`.
 - Reports `flow_avg`, `p_ven`/`p_int`/`p_art`, `sat_ven_o2`/`sat_postoxy_o2`/`pco2_postoxy` for the
   monitor.
 - The blood sub-models exchange composition with the patient circuit through the named site
@@ -353,6 +447,24 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 - **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.
 
 ## Changelog
+
+### Circuit calibration and double-lumen VV cannulation (2026-10-12)
+
+- **Cannulas.** The cannulas are now flow-dependent: manufacturer pressure-drop charts, converted from
+  water to blood, applied as a chord resistance at the circuit flow.
+- **Tubing and oxygenator.** Tubing resistance now comes from the geometry (Poiseuille). The
+  oxygenator resistance now comes from the selected device. PediMag H-Q: `hq_a` 17.85 → 21.16,
+  `hq_b` 30.3 → 5.2, `hq_c` 0 → 15.4. See [Circuit calibration](#circuit-calibration).
+- **VV cannulation.** `cannulation` / `dl_cannula_type` / `dl_cannulas` added. `VV-DL` puts both
+  lumens of one Avalon Elite double-lumen cannula in the drainage site. The Medtronic Crescent
+  entries were removed from the single-lumen libraries (their resistances were unsourced, and a VV
+  cannula is one device).
+- **Scenario clean-up.** `tubing_in_res` is live (in series on the pump inlet). The read-outs
+  `drainage_dp`/`return_dp` were added. Eight scenarios (`fetus_30wk`, `term_fetus`, `tapvc`,
+  `tapvc_obstructed`, `tof`, `tof_pa`, `tof_pink`, `tof_severe`) still embedded cannula (and some
+  pump/oxygenator) library copies that override the class libraries. These were removed.
+- **Effect.** VV (13 Fr DL) now needs about the same or slightly more rpm than VA (12/10 Fr) for the
+  same flow, instead of ≈ 35 % fewer. Adult VA flows at high rpm are much lower and more plausible.
 
 ### Sweep-gas row in the diagram (2026-10-05)
 

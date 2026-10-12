@@ -8,7 +8,7 @@
 // Sections: A baseline, B pump-speed sweep, C CO2-vs-sweep-gas, D pump mode (centrifugal vs roller —
 // both must drive FORWARD), E blood-side heater-cooler (hypothermia + no residual time-constant on
 // release), F sweep-gas inlet-valve controller (R_insp tracks the set-point; gas_flow=0 shuts off) and
-// expiratory-valve management.
+// expiratory-valve management, G oxygenator membrane transfer, H VA vs VV double-lumen at equal rpm.
 //
 // Usage: node scripts/probe_ecls.mjs [scenario] [--seconds N] [--window W]
 
@@ -191,5 +191,30 @@ log("  o2_cap(mmol/s)  postOxy  PaO2");
 for (const cap of [0.067, 0.02, 0.008, 0.003]) {
   const a = run({ ecmo: true, rpm: 4500, gas_flow: 1.0, oxygenator_type: "Getinge Quadrox-i Neonatal", o2_cap: cap });
   log(`  ${String(cap).padEnd(14)} ${String(round(a.sat_postoxy,1)).padStart(6)}  ${round(a.po2)}`);
+}
+
+// H. VA vs VV (double-lumen) at equal pump speed. The circuit is calibrated to the manufacturers'
+// cannula/oxygenator pressure-drop charts (docs/Ecls.md, "Circuit calibration"), so VV — no arterial
+// afterload, but a narrow double-lumen return lumen — needs about the same or slightly MORE rpm than
+// VA for the same flow, as at the bedside. Before the calibration VV needed ~35 % fewer rpm.
+H("H. VA (12/10 Fr -> AAR) vs VV-DL (Avalon 13 Fr -> RA)  (lung NOT crippled; 40 s warm-up)");
+log("rpm     VA: Q    Pven  Ppre  dPret    VV: Q    Pven  Ppre  dPret");
+function circuit(cfg, rpm) {
+  const m = eng.build(def); const E = m.models.Ecls;
+  Object.assign(E, { ecls_running: true, ecls_clamped: false, pump_rpm: rpm }, cfg);
+  eng.calc(40);
+  const N = 200, acc = { q: 0, pven: 0, ppre: 0, dpret: 0 };
+  for (let i = 0; i < N; i++) {
+    eng.calc(0.02);
+    acc.q += E.flow; acc.pven += m.models.ECLS_TUBING_IN.pres; acc.ppre += m.models.ECLS_PUMP.pres; acc.dpret += E.return_dp;
+  }
+  for (const k in acc) acc[k] /= N;
+  return acc;
+}
+const p5 = (x, n = 0) => String(round(x, n)).padStart(6);
+for (const rpm of [2000, 2400, 2800, 3200, 3600]) {
+  const va = circuit({ cannulation: "VA" }, rpm);
+  const vv = circuit({ cannulation: "VV-DL", dl_cannula_type: "Avalon Elite 13 Fr" }, rpm);
+  log(`${String(rpm).padEnd(6)} ${p5(va.q, 2)}${p5(va.pven)}${p5(va.ppre)}${p5(va.dpret)}    ${p5(vv.q, 2)}${p5(vv.pven)}${p5(vv.ppre)}${p5(vv.dpret)}`);
 }
 log("");
