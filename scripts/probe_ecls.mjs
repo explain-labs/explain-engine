@@ -198,6 +198,7 @@ for (const cap of [0.067, 0.02, 0.008, 0.003]) {
 // afterload, but a narrow double-lumen return lumen — needs about the same or slightly MORE rpm than
 // VA for the same flow, as at the bedside. Before the calibration VV needed ~35 % fewer rpm.
 H("H. VA (12/10 Fr -> AAR) vs VV-DL (Avalon 13 Fr -> RA)  (lung NOT crippled; 40 s warm-up)");
+log("Pven/Ppre are the displayed read-outs (E.p_ven/E.p_int), incl. the pump_height offset");
 log("rpm     VA: Q    Pven  Ppre  dPret    VV: Q    Pven  Ppre  dPret");
 function circuit(cfg, rpm) {
   const m = eng.build(def); const E = m.models.Ecls;
@@ -206,7 +207,7 @@ function circuit(cfg, rpm) {
   const N = 200, acc = { q: 0, pven: 0, ppre: 0, dpret: 0 };
   for (let i = 0; i < N; i++) {
     eng.calc(0.02);
-    acc.q += E.flow; acc.pven += m.models.ECLS_TUBING_IN.pres; acc.ppre += m.models.ECLS_PUMP.pres; acc.dpret += E.return_dp;
+    acc.q += E.flow; acc.pven += E.p_ven; acc.ppre += E.p_int; acc.dpret += E.return_dp;
   }
   for (const k in acc) acc[k] /= N;
   return acc;
@@ -217,4 +218,6 @@ for (const rpm of [2000, 2400, 2800, 3200, 3600]) {
   const vv = circuit({ cannulation: "VV-DL", dl_cannula_type: "Avalon Elite 13 Fr" }, rpm);
   log(`${String(rpm).padEnd(6)} ${p5(va.q, 2)}${p5(va.pven)}${p5(va.ppre)}${p5(va.dpret)}    ${p5(vv.q, 2)}${p5(vv.pven)}${p5(vv.ppre)}${p5(vv.dpret)}`);
 }
+const vv0 = circuit({ cannulation: "VV-DL", pump_height: 0 }, 2800);
+log(`VV 2800 rpm at pump_height 0 (line pressure, no column): Q ${round(vv0.q, 2)}  Pven ${round(vv0.pven)}`);
 log("");

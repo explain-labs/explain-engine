@@ -87,6 +87,7 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `pump_res_for` / `pump_res_back` | mmHg/(L/s) | Pump internal resistance (default 50/50); the inflow tubing's `tubing_in_res` is added in series on the same resistor |
 | `pump_vol` | L | Pump volume (default 0.031) |
 | `pump_rpm` | rpm | Pump speed — the primary control (default 1500) |
+| `pump_height` | cm | Height of the pump and its pressure transducers **below** the patient's heart level (default 30; negative = above). Adds the blood column (≈ 0.78 mmHg/cm) to `p_ven`/`p_int`/`p_art`; flow is unaffected |
 | `pump_type` | string | Key into `pumps` (default `Abbott PediMag`); selecting it copies the H-Q/roller coefficients and sets `pump_mode` |
 | `pump_mode` | 0/1 | 0 = centrifugal (drives the pump), 1 = roller (drives the oxygenator); set from the selected pump's `type` |
 | `pump_hq_a` / `pump_hq_b` / `pump_hq_c` | — | Centrifugal head-flow coefficients (mmHg per krpm², per krpm·(L/min), per (L/min)²) |
@@ -117,9 +118,10 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 
 | Property | Unit | Description |
 |---|---|---|
-| `p_ven` | mmHg | Filtered (moving-average) venous/inlet pressure (`ECLS_TUBING_IN.pres`) |
-| `p_int` | mmHg | Filtered pressure at the pump interface (`ECLS_PUMP.pres`) |
-| `p_art` | mmHg | Filtered arterial/outlet pressure (`ECLS_TUBING_OUT.pres`) |
+| `p_ven` | mmHg | Filtered (moving-average) venous/inlet pressure as the transducer reads it: `ECLS_TUBING_IN.pres + p_hydrostatic` |
+| `p_int` | mmHg | Filtered pressure at the pump interface: `ECLS_PUMP.pres + p_hydrostatic` |
+| `p_art` | mmHg | Filtered arterial/outlet pressure: `ECLS_TUBING_OUT.pres + p_hydrostatic` |
+| `p_hydrostatic` | mmHg | Hydrostatic offset of the transducers from `pump_height` (30 cm → 23.4 mmHg) |
 | `flow` | L/min | Circuit blood flow (`ECLS_RETURN.flow × 60`) |
 | `flow_avg` | L/min | Moving-average of `flow` |
 | `pump_pressure` | mmHg | Pump drive pressure = `−head` (centrifugal H-Q) or `−`roller-controller output |
@@ -205,9 +207,21 @@ seven patients). The larger devices have no figure at hand. They are assumed to 
 at their own rated flow (`dp_a = 65 / rated_flow`). Selecting the oxygenator writes
 `oxy_res_for/back = dp_a·60`. It was a fixed 1500 mmHg/(L/s), about 25 per L/min.
 
+**Pump height.** The circuit transducers sit at pump level, and the pump usually sits below the
+patient. They therefore read the line pressure plus the blood column between patient and pump,
+ρ·g·h ≈ 0.78 mmHg per cm (`pump_height`, default 30 cm → +23.4 mmHg). This is applied to `p_ven`,
+`p_int` and `p_art` only. The circuit is a closed loop: the column adds on the drainage limb and
+subtracts on the return limb, so it does not change the flow, and the compartment pressures stay at
+patient level. A future inflow-collapse model must use the unshifted cannula-side pressure. The 30 cm
+default is an assumed console position. It was chosen because it puts neonatal VV `p_ven` (13 Fr
+double lumen, 0.44 L/min) at ≈ −12 mmHg, inside the −10 to −20 mmHg seen at the bedside. The
+line pressure itself is −36 mmHg: right atrium +2 minus a 37 mmHg drainage-lumen drop.
+
 **PediMag H-Q.** No H-Q curve is published. See [Pump device library](#pump-device-library).
 
-**Result, `term_neonate`** (PediMag, Quadrox-i Neonatal, 1 m + 1 m of 1/4″ tubing; 40 s warm-up):
+**Result, `term_neonate`** (PediMag, Quadrox-i Neonatal, 1 m + 1 m of 1/4″ tubing; 40 s warm-up).
+Pressures are line pressures at patient level (`pump_height` 0). With the 30 cm default, every
+displayed circuit pressure reads 23.4 mmHg higher:
 
 | rpm | VA 12 Fr venous / 10 Fr arterial → AAR: flow, P_ven, P_pre-oxy | VV Avalon 13 Fr → RA: flow, P_ven, P_pre-oxy |
 |---|---|---|
@@ -447,6 +461,14 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 - **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.
 
 ## Changelog
+
+### Pump height (2026-10-12)
+
+- `pump_height` (cm below the patient, default 30) adds the hydrostatic column to the measured
+  `p_ven`/`p_int`/`p_art`; new read-out `p_hydrostatic`. Read-out only, so flows are unchanged
+  (checked headlessly: `term_neonate` flow identical within run-to-run noise at 0 and 30 cm).
+- `term_neonate` at 2800 rpm: VV 13 Fr `p_ven` −36 → −12 mmHg, VA 12 Fr −17 → +6 mmHg. The user
+  sees −10 to −20 mmHg on neonatal VV.
 
 ### Circuit calibration and double-lumen VV cannulation (2026-10-12)
 
