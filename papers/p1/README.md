@@ -62,18 +62,28 @@ interprets, the calibrator fits):
 
 What the bot did (archived verbatim): for Table 2 it targeted weight 3.3 kg, HR 118, ABP 70/45
 (as the sys/dia pair → MAP 53.3 and pulse pressure 25), LVO 0.597 L/min, shunts closed, and
-listed EF as derived; for Table 3 "no PDA" it started from `bischoff_cohort`, closed the duct,
-chose a 2 mm foramen for "a small foramen ovale", targeted LVO 0.129 L/min with a tightened
-tolerance, and declined RVO, SVC flow and the LVO/RVO ratio because the calibrator has no lever
-for them. Both converged (10 and 3 iterations).
+listed EF as derived; converged in 10 iterations. For Table 3 "no PDA" it started from
+`bischoff_cohort`, closed the duct, and targeted the cohort means LVO 169.7, RVO 170.3 and SVC flow
+73.4 mL·kg⁻¹·min⁻¹ (converted to L/min) together with the cohort's pressure 45/25 and heart rate
+159 — the last two are not in the paper's table and were given in the case prompt — with a 2 mm
+foramen as the starting point for the RVO lever.
 
-**What the pilot shows.** The pipeline reaches the paper's targets, but through its own levers,
-not the paper's: LVO is fitted with ventricular contractility, so the term baseline reaches LVO
-174 with end-systolic volumes above the literature (LVESV 1.4 vs 0.9 ± 0.2 mL/kg, RVESV 1.9 vs
-1.5 ± 0.2), where the hand-rescaled state had them inside; and the bot's 2 mm foramen shunts
-left-to-right at atrial level, giving RVO 213 and LVO/RVO 0.85 against the paper's 1.0 (the
-hand-set 1.5 mm foramen gave 0.92). SVC flow 60 vs 74 (the hand-tuned arteriolar tweak gave 62).
-The other eight states remain hand-tuned until this trade-off is judged.
+Two builder targets were added for this (`rvo` ← foramen ovale diameter, with the duct closed the
+only path by which RVO differs from LVO; `svc` ← the upper/lower-body resistance split, which
+redistributes flow without moving the total resistance the MAP lever owns), and three builder
+fixes fell out of the pilot: flow tolerances now scale with body weight (0.05 L/min meant
+70 mL·kg⁻¹·min⁻¹ on a 720 g infant), the contractility lever starts from the baseline's own
+factor instead of 1.0, and an SVC lever on the upper-body resistance alone was replaced because it
+fought the MAP lever to both bounds.
+
+**What the pilot shows.** The pipeline reaches the paper's values: Table 2 within the literature
+SD on every row except the end-systolic volumes (LVESV 1.4 vs 0.9 ± 0.2 mL/kg, RVESV 1.9 vs
+1.5 ± 0.2), because LVO is fitted with contractility — the hand-rescaled state kept them inside;
+Table 3 "no PDA" LVO = RVO 163, LVO/RVO 1.00, SVC 75 against the paper's 179/179/1.0/74, at HR 155.
+Two things it cannot do: the pulse pressure of a 720 g infant (lever at the ×1.8 stiffness ceiling,
+pressure 35/24 for a 45/25 target), and a strong heart — contractility ends at ×0.33 (EF 18 %),
+though the untouched cohort scenario itself runs at EF 24 % with its baked ×0.5. The other eight
+states remain hand-tuned until the pilot is judged.
 
 ## Where the engine differs from the paper (as of this version)
 

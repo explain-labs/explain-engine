@@ -250,6 +250,14 @@
               "ref": 20
             }
           ]
+        },
+        {
+          "key": "ef",
+          "label": "LV ejection fraction",
+          "unit": "%",
+          "path": "Heart.lv_ef",
+          "factor": 100,
+          "round": 0
         }
       ],
       "spec": "specs/baseline.json",
@@ -307,7 +315,7 @@
       "paper_section": "3.1.2",
       "paper_table": "Table 3 — no PDA",
       "scenario": "p1_pda_none",
-      "description": "Built by the AI parameterization pipeline from the paper's Table 3 'no PDA' column: the bot wrote the build spec (Bischoff cohort infant, duct closed, 2 mm foramen, LVO 179 mL·kg⁻¹·min⁻¹) and the calibrator fitted it.",
+      "description": "Built by the AI parameterization pipeline: the bot wrote the build spec from the paper's Table 3 'no PDA' column and the cohort's pressure and heart rate (duct closed, LVO, RVO via the foramen, SVC flow via the upper/lower-body split, ABP 45/25, HR 159) and the calibrator fitted it to the Bischoff cohort infant.",
       "ops": [],
       "settle_s": 60,
       "window_s": 30,
@@ -389,6 +397,14 @@
           "factor": 1000,
           "per_kg": true,
           "round": 0
+        },
+        {
+          "key": "ef",
+          "label": "LV ejection fraction",
+          "unit": "%",
+          "path": "Heart.lv_ef",
+          "factor": 100,
+          "round": 0
         }
       ],
       "spec": "specs/pda_none.json",
@@ -399,20 +415,60 @@
           "fio2": 0.26,
           "pda_mm": 0,
           "fo_mm": 2,
-          "co": 0.129
+          "hr": 159,
+          "sys": 45,
+          "dia": 25,
+          "co": 0.122,
+          "rvo": 0.123,
+          "svc": 0.053
         },
-        "converged": true,
-        "iters": 3,
+        "converged": false,
+        "iters": 20,
         "results": [
           {
+            "key": "map",
+            "target": 31.7,
+            "value": 29.222,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "pp",
+            "target": 20,
+            "value": 11.689,
+            "within": false,
+            "lever_at_bound": true
+          },
+          {
+            "key": "hr",
+            "target": 159,
+            "value": 155.039,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
             "key": "co",
-            "target": 0.129,
-            "value": 0.131,
+            "target": 0.122,
+            "value": 0.118,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "rvo",
+            "target": 0.123,
+            "value": 0.118,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "svc",
+            "target": 0.053,
+            "value": 0.054,
             "within": true,
             "lever_at_bound": false
           }
         ],
-        "not_targeted": "1. RVO (170.3 ± 39.1 / paper 179) — there is no RVO target. co reads lvo only, and its single lever writes both LV.el_max_factor_ps and RV.el_max_factor_ps together, so right ventricular output is an emergent consequence of fitting LVO, not an independent degree of freedom. This is actually the right structure for the validation: with the duct closed, the only remaining inter-circulatory path is the foramen, so RVO = LVO + Q_fo falls out of the model rather than being imposed. 2. LVO/RVO = 0.996 — a derived ratio of two outputs, one of which isn't targetable.",
+        "not_targeted": "The bot targeted the Bischoff cohort means (LVO 169.7, RVO 170.3, SVC 73.4 mL·kg⁻¹·min⁻¹) rather than the paper's own simulation column, plus the cohort's pressure 45/25 and heart rate 159, which the paper's table does not list. Pulse pressure 20 mmHg is out of reach at 720 g (arterial-stiffness ceiling): the lever ended at its bound and the pressure settled near 35/24.",
         "model": "claude-opus-5 (Explain bot)"
       }
     },

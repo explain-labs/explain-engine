@@ -13,4 +13,8 @@ This case is the column without a ductal shunt: the ductus arteriosus is closed.
 | LVO/RVO | 0.996 | 1.0 |
 | SVCF | 73.4 ± 29.4 | 74 |
 
-Please build the patient so that it matches the paper's simulation column as closely as the builder's targets allow, using every reported value you can express as a build target, with the duct closed and a small foramen ovale. Say which reported values you could not use as targets and why.
+Target all four reported values. The builder accepts, besides `co` (LVO, L/min), the targets `rvo` (right-ventricular output, L/min, fitted through the foramen ovale diameter, so give a small `fo_mm` as the starting point) and `svc` (superior vena cava flow, L/min, fitted through the upper-body arteriolar resistance). Convert the per-kg flows with the infant's weight. The LVO/RVO ratio should come out close to 1.
+
+In addition, target an arterial blood pressure of 45/25 mmHg (systolic/diastolic) and a heart rate of 159 min⁻¹; neither is in the paper's table, both are the cohort's values. Target the heart rate explicitly: without it the baroreflex, whose set-point follows the pressure target, drives the rate up and the output fit has to be made with contractility instead. Note that the pulse pressure of such a small infant may be limited by the model's arterial-stiffness ceiling; if the pulse-pressure lever ends at its bound, report that rather than retrying.
+
+Please build the patient with the duct closed. Say which reported values you could not use as targets and why.

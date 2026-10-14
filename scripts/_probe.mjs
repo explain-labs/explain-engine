@@ -42,6 +42,7 @@ export function measureVitals(model, send, { window = 20 } = {}) {
     add("etco2", M.etco2);
     add("lvo", M.flows?.lvo);
     add("rvo", M.flows?.rvo);
+    add("svc", M.flows?.svc_flow); // superior vena cava flow (L/min)
     add("ph", AA?.ph);
     add("pco2", AA?.pco2);
     add("po2", AA?.po2);

@@ -45,6 +45,11 @@
 //                              //   the weak acids (Stewart): with them a BE target is fitted by the
 //                              //   remaining unmeasured anions instead of absorbing everything
 //       "spo2": 90, "po2": 55, "pco2": 52, "ph": 7.28, "be": -5, "co": 0.3 // iterated
+//       "rvo": 0.31,           // iterated: right-ventricular output, L/min, via the foramen ovale
+//                              //   diameter (with the duct closed RVO differs from LVO only by the
+//                              //   atrial shunt; a given fo_mm is the starting point)
+//       "svc": 0.055,          // iterated: superior vena cava flow, L/min, via the upper-body
+//                              //   arteriolar resistance (brain + remainder of the upper body)
 //       "ef": 60,              // iterated: echo LV ejection fraction, %, via LV contractility. The
 //                              //   same lever as "co", which wins when both are given
 //     },
@@ -122,8 +127,19 @@ const FINAL = Number.isFinite(spec.final_seconds) ? spec.final_seconds : 200;
 const WINDOW = Number.isFinite(spec.window_seconds) ? spec.window_seconds : 12;
 
 // default tolerances per vital (clinician-meaningful bands); overridable via spec.tolerance
-const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, pap_s: 4, ef: 5, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05 };
-const tolOf = (k) => (spec.tolerance && spec.tolerance[k] != null ? spec.tolerance[k] : DEFAULT_TOL[k]);
+const DEFAULT_TOL = { hr: 6, map: 3, pp: 2, rr: 4, cvp: 1.5, pap_m: 3, pap_s: 4, ef: 5, spo2: 2, po2: 6, pco2: 4, ph: 0.03, be: 1.5, co: 0.05, rvo: 0.05, svc: 0.015 };
+// Flow tolerances are stated for a 3.5 kg term neonate and scale with body weight, so they mean
+// the same per kilogram for every patient (0.05 L/min is 14 mL/kg/min at 3.5 kg, and would be
+// 70 mL/kg/min on a 720 g infant if left absolute). `tolWeight` is set once the structural pass
+// has sized the patient; a spec `tolerance` override is always absolute.
+const FLOW_TARGETS = new Set(["co", "rvo", "svc"]);
+let tolWeight = null;
+const tolOf = (k) => {
+  if (spec.tolerance && spec.tolerance[k] != null) return spec.tolerance[k];
+  const t = DEFAULT_TOL[k];
+  if (t != null && FLOW_TARGETS.has(k)) return t * ((tolWeight ?? targets.weight ?? 3.5) / 3.5);
+  return t;
+};
 
 const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const round = (x, n = 2) => (typeof x === "number" && isFinite(x) ? Number(x.toFixed(n)) : x);
@@ -182,6 +198,7 @@ const KNOWN_TARGETS = new Set([
   "weight", "gestational_age", "height", "age", "hb", "hb_gdl", "temp", "pda", "pda_mm", "fo_mm", "fio2",
   "na", "k", "cl", "lactate", "glucose", "albumin",
   "hr", "map", "sys", "dia", "rr", "cvp", "pap_m", "pap_s", "spo2", "po2", "pco2", "ph", "be", "co", "ef",
+  "rvo", "svc",
 ]);
 const ignoredTargets = Object.keys(targets).filter((k) => targets[k] != null && !KNOWN_TARGETS.has(k));
 if (ignoredTargets.length) trace(`ignored targets (not known to the builder): ${ignoredTargets.join(", ")}`);
@@ -496,6 +513,7 @@ const READKEY = { co: "lvo", spo2: "spo2_pre" };
 // round, so a slope from a flat region cannot throw it to a bound (see makeController)
 const mkc = (spec) => makeController({ signGuard: true, maxStepFrac: 0.5, ...spec, readKey: READKEY[spec.key] ?? spec.key, target: targets[spec.key], tol: tolOf(spec.key) });
 
+tolWeight = model.weight || tolWeight;
 const controllers = [];
 let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary shunt
 
@@ -569,12 +587,43 @@ if (has("ef") && !has("co")) {
     console.error(`build_patient: targets.ef must be an ejection fraction in % between 5 and 95 (got ${JSON.stringify(targets.ef)}).`);
     process.exit(1);
   }
-  controllers.push(mkc({ key: "ef", lever: "LV el_max_factor_ps", lo: 0.3, hi: 3, sign: +1, gain: 0.03, value: 1.0, set: (f) => { LV.el_max_factor_ps = f; } }));
+  // start from the baseline's own factor (a preterm baseline carries < 1 for cardiac immaturity)
+  controllers.push(mkc({ key: "ef", lever: "LV el_max_factor_ps", lo: 0.3, hi: 3, sign: +1, gain: 0.03, value: LV.el_max_factor_ps ?? 1.0, set: (f) => { LV.el_max_factor_ps = f; } }));
 }
 // CO (LV output) <- ventricular contractility (el_max persistent factor)
 if (has("co")) {
   const apply = (f) => { for (const n of ["LV", "RV"]) { const m = model.models[n]; if (m) m.el_max_factor_ps = f; } };
-  controllers.push(mkc({ key: "co", lever: "LV/RV el_max_factor_ps", lo: 0.3, hi: 3, sign: +1, gain: 0.8, value: 1.0, set: apply }));
+  // start from the baseline's own factor: a preterm baseline carries < 1 (cardiac immaturity), and
+  // starting at 1.0 overwrote it on the first step, so the loop had to walk back from a stronger
+  // heart than the patient was built with
+  const start = model.models.LV?.el_max_factor_ps ?? 1.0;
+  controllers.push(mkc({ key: "co", lever: "LV/RV el_max_factor_ps", lo: 0.3, hi: 3, sign: +1, gain: 0.8, value: start, set: apply }));
+}
+// RVO <- foramen ovale diameter. In a closed-duct circulation the two outputs differ only by the
+// atrial shunt (RVO = LVO + Q_fo, left-to-right positive), so the foramen is the one lever that
+// sets RVO given LVO. Starts from the structural fo_mm (or the baseline's foramen); a closed
+// foramen starts at 0.25 mm so the step cap (a fraction of the lever) can move it at all.
+if (has("rvo")) {
+  const S = model.models.Shunts;
+  if (!S) { console.error(`build_patient: baseline "${baseline}" has no Shunts model, cannot calibrate rvo.`); process.exit(1); }
+  const start = Math.max(0.25, S.diameter_fo || 0);
+  S.diameter_fo = start;
+  const hi = Math.max(S.diameter_fo_max || 10, start);
+  controllers.push(mkc({ key: "rvo", lever: "Shunts.diameter_fo (mm)", lo: 0, hi, sign: +1, gain: 30, value: start, set: (d) => { S.diameter_fo = d; } }));
+  if (has("fo_mm")) notes.push(`rvo targeted: the foramen ovale diameter is its lever, so fo_mm ${targets.fo_mm} is the starting point, not a fixed size`);
+}
+// SVC flow <- the upper/lower-body resistance split. The lever u divides the upper-body arteriolar
+// resistance (brain + remainder of the upper body) by u and multiplies the lower-body arterioles
+// (intestines, liver-spleen, kidneys, remainder of the lower body) by u, so flow is redistributed
+// toward the head and arms while the total systemic resistance — the MAP lever's business — stays
+// nearly unchanged. (A lever on the upper-body resistance alone fought the MAP lever: each
+// compensated the other until both sat at a bound.) ↑u ↑SVC -> sign +1.
+if (has("svc")) {
+  const upper = ["AA_BR_ART", "AA_RUB"].filter((n) => model.models[n]);
+  const lower = ["AD_INT_ART", "AD_LS_ART", "AD_KID_ART", "AD_RLB"].filter((n) => model.models[n]);
+  if (!upper.length || !lower.length) { console.error(`build_patient: baseline "${baseline}" lacks the upper/lower-body arterioles, cannot calibrate svc.`); process.exit(1); }
+  const apply = (u) => { for (const n of upper) model.models[n].r_factor_ps = 1 / u; for (const n of lower) model.models[n].r_factor_ps = u; };
+  controllers.push(mkc({ key: "svc", lever: "upper/lower-body resistance split u", lo: 0.4, hi: 3, sign: +1, gain: 20, value: 1.0, set: apply }));
 }
 // PO2 / SpO2 <- alveolar O2 diffusion persistent factor (↑dif ↑PO2); in a FETUS the alveolar
 // diffusors are inert (dif_o2 = 0, so the factor multiplies into zero — a complete no-op that would

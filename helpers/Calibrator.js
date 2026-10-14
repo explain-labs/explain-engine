@@ -175,7 +175,7 @@ export function measureWindow(model, step, keys, window = 12) {
 // Live-tune controller specs (composable levers). Keyed by canonical target name.
 // ---------------------------------------------------------------------------
 export const DEFAULT_TOL = {
-  map: 3, pp: 2, cvp: 1.5, pap_m: 3, pap_s: 4, hr: 6, co: 0.03, spo2: 2,
+  map: 3, pp: 2, cvp: 1.5, pap_m: 3, pap_s: 4, hr: 6, co: 0.03, rvo: 0.03, svc: 0.01, spo2: 2,
   po2: 6, pco2: 4, ph: 0.03, be: 1.5, blood_volume: 0.02,
 };
 
