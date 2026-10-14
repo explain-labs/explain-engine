@@ -1,6 +1,6 @@
 {
   "name": "explain-engine",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Explain — a framework-agnostic, dependency-free physiological simulation engine (whole-body neonatal & adult cardiorespiratory model) that runs inside a Web Worker.",
   "type": "module",
   "license": "MIT",

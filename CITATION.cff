@@ -11,8 +11,8 @@ abstract: >-
   calibrated patient scenarios). It runs inside a Web Worker and is driven
   through a small message-based API.
 type: software
-version: "0.1.0"
-date-released: "2026-07-16"
+version: "0.2.0"
+date-released: "2026-10-14"
 authors:
   - given-names: Tim
     family-names: Antonius
