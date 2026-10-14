@@ -1,4 +1,5 @@
-// Shared evaluator for the paper-companion experiments (papers/<id>/experiments.json).
+// Shared evaluator for the paper-companion experiments (papers/<id>/experiments.json);
+// paper-independent, so every companion and probe imports this one file.
 //
 // Both consumers use it so a value shown in the app is the value the headless probe prints:
 //   - scripts/probe_p1.mjs (Node)      samples the model directly every `sample_s` seconds

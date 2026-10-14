@@ -16,7 +16,7 @@
 // verdict, and |Δ| > tol is flagged with "!").
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
-import { evaluate, samplePaths, resolvePath, fmt, withinTolerance } from "../papers/p1/evaluate.js";
+import { evaluate, samplePaths, resolvePath, fmt, withinTolerance } from "../papers/evaluate.js";
 
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);

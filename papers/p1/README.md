@@ -11,7 +11,7 @@ This folder makes those experiments reproducible on this engine.
 | File | Role |
 |---|---|
 | `experiments.json` | **Source of truth.** One entry per experiment: the scenario it starts from, the ops that create the state (the same op shapes the app's lessons use), how long to settle and sample, and every measure with the paper's value and the literature target. |
-| `evaluate.js` | Shared evaluator (sample paths, derived quantities, per-kg, tolerance). Used by the probe and by the app's `/paper/p1` page, so both show the same number. |
+| `../evaluate.js` | Shared evaluator (sample paths, derived quantities, per-kg, tolerance). Used by the probe and by the app's `/paper/p1` page, so both show the same number. |
 | `../../scripts/probe_p1.mjs` | Runs every experiment headlessly and prints `paper | engine | Δ | literature`. `--only`, `--override id:Model.prop=value` (lever sweeps) and `--json`. |
 
 ```bash
