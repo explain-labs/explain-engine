@@ -130,12 +130,57 @@ export class Pda extends BaseModelClass {
     this.velocity_ao = 0;         // bulk mean velocity at aortic end, Q/A (m/s)
     this.velocity_pa = 0;         // bulk mean velocity at pulmonary end, Q/A (m/s)
     this.velocity_doppler = 0;    // jet peak from the Bernoulli term, sign(Q)·√(|B·Q²|/4) (m/s)
+    // per-beat envelope of velocity_pa, latched at each ventricular activation (read-outs for the
+    // Doppler-pattern comparison of the cardiovascular paper, see papers/p1/): the systolic peak, the
+    // minimum (negative = right-to-left), and the fraction of the beat with left-to-right flow
+    this.velocity_pa_max = 0;     // peak of velocity_pa over the previous beat (m/s)
+    this.velocity_pa_min = 0;     // minimum of velocity_pa over the previous beat (m/s)
+    this.forward_fraction = 1;    // fraction of the previous beat with flow >= 0 (left-to-right)
+    this.velocity_doppler_max = 0; // peak of velocity_doppler (jet) over the previous beat (m/s)
+    this.velocity_doppler_min = 0; // minimum of velocity_doppler over the previous beat (m/s)
 
     // -----------------------------------------------
     // local references (preceded with _)
     // -----------------------------------------------
     this._aar_da = null; // Resistor (AAR -> PA), the single "Bernoulli resistor"
     this._aar = null;    // BloodCapacitance (AAR), upstream end (viscosity source)
+    this._heart = null;  // Heart, for the beat boundary of the per-beat velocity envelope
+    this._beat_vmax = -Infinity; // running per-beat accumulators
+    this._beat_vmin = Infinity;
+    this._beat_jmax = -Infinity;
+    this._beat_jmin = Infinity;
+    this._beat_n = 0;
+    this._beat_fwd = 0;
+    this._prev_ncc = -1;
+  }
+
+  // Accumulate the per-beat velocity envelope and latch it when the Heart's ventricular
+  // counter restarts (a new beat). Called at the end of every calc_model path.
+  _track_beat() {
+    const h = this._heart;
+    const ncc = h ? h.ncc_ventricular : 0;
+    if (ncc < this._prev_ncc && this._beat_n > 0) {
+      this.velocity_pa_max = this._beat_vmax;
+      this.velocity_pa_min = this._beat_vmin;
+      this.forward_fraction = this._beat_fwd / this._beat_n;
+      this.velocity_doppler_max = this._beat_jmax;
+      this.velocity_doppler_min = this._beat_jmin;
+      this._beat_vmax = -Infinity;
+      this._beat_vmin = Infinity;
+      this._beat_jmax = -Infinity;
+      this._beat_jmin = Infinity;
+      this._beat_n = 0;
+      this._beat_fwd = 0;
+    }
+    this._prev_ncc = ncc;
+    const v = this.velocity_pa;
+    if (v > this._beat_vmax) this._beat_vmax = v;
+    if (v < this._beat_vmin) this._beat_vmin = v;
+    const j = this.velocity_doppler;
+    if (j > this._beat_jmax) this._beat_jmax = j;
+    if (j < this._beat_jmin) this._beat_jmin = j;
+    this._beat_n += 1;
+    if (this.flow >= 0) this._beat_fwd += 1;
   }
 
   init_model(args = {}) {
@@ -144,6 +189,7 @@ export class Pda extends BaseModelClass {
     // cache sub-model references so we don't hash-lookup every step
     this._aar_da = this._model_engine.models["AAR_DA"] || null;
     this._aar    = this._model_engine.models["AAR"]    || null;
+    this._heart  = this._model_engine.models["Heart"]  || null;
   }
 
   calc_model() {
@@ -174,6 +220,7 @@ export class Pda extends BaseModelClass {
       this.velocity_doppler = 0;
       this.velocity_ao = 0;
       this.velocity_pa = 0;
+      this._track_beat();
       return;
     }
 
@@ -234,6 +281,7 @@ export class Pda extends BaseModelClass {
     // flow is L/s; multiply by 1e-3 to get m³/s so Q/A is in m/s.
     this.velocity_ao = area_ao > 0 ? (q * 0.001) / area_ao : 0.0;
     this.velocity_pa = area_pa > 0 ? (q * 0.001) / area_pa : 0.0;
+    this._track_beat();
   }
 
   calc_resistance(diameter, length = 20.0, viscosity = 6.0) {

@@ -1,0 +1,1982 @@
+{
+  "paper": {
+    "id": "p1",
+    "title": "An integrated model for simulation of neonatal physiology — the cardiovascular system",
+    "authors": "Antonius TAJ, van Meurs WL, Westerhof BE, de Boode WP",
+    "journal": "Pediatric Research (submitted)",
+    "engine_tag": null,
+    "note": "The paper's published numbers were produced before this engine existed; these experiments rebuild each validation case on the current engine with the method and levers the paper names. Beat-averaged read-outs replace the paper's end-expiratory sampling."
+  },
+  "references": {
+    "17": "Jhaveri S, et al. Normative ranges of biventricular volumes and function in healthy term newborns. J Cardiovasc Magn Reson 2023;25:26.",
+    "18": "Groves AM, et al. Functional cardiac MRI in preterm and term newborns. Arch Dis Child Fetal Neonatal Ed 2011;96:F86–91.",
+    "19": "Kluckow M, Evans N. Superior vena cava flow in newborn infants: a novel marker of systemic blood flow. Arch Dis Child Fetal Neonatal Ed 2000;82:F182–7.",
+    "20": "van Zadelhoff AC, et al. Age-dependent changes in arterial blood pressure in neonates during the first week of life. Br J Anaesth 2023;130:585–94.",
+    "21": "Bischoff AR, et al. Assessment of superior vena cava flow and cardiac output in different patterns of patent ductus arteriosus shunt. Echocardiography 2021;38:1524–33.",
+    "22": "van Laere D, et al. Application of NPE in the assessment of a patent ductus arteriosus. Pediatr Res 2018;84(Suppl 1):46–56.",
+    "23": "Jones CB, Crossland DS. The interplay between pressure, flow, and resistance in neonatal pulmonary hypertension. Semin Fetal Neonatal Med 2022;27:101371."
+  },
+  "sample_s": 0.5,
+  "experiments": [
+    {
+      "id": "baseline",
+      "title": "Baseline haemodynamics of the term neonate",
+      "paper_section": "3.1.1",
+      "paper_table": "Table 2",
+      "scenario": "p1_baseline",
+      "description": "Built by the AI parameterization pipeline from the paper's Table 2 column: the bot wrote the build spec (3.3 kg, HR 118, ABP 70/45, LVO 181 mL·kg⁻¹·min⁻¹, shunts closed) and the calibrator fitted it.",
+      "ops": [],
+      "settle_s": 60,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "hr",
+          "label": "HR",
+          "unit": "min⁻¹",
+          "path": "Heart.heart_rate",
+          "round": 0,
+          "paper": 118,
+          "tol": 17.0,
+          "literature": [
+            {
+              "value": "100 ± 10",
+              "ref": 17
+            },
+            {
+              "value": "142 ± 17",
+              "ref": 18
+            }
+          ]
+        },
+        {
+          "key": "lvedv",
+          "label": "LVEDV",
+          "unit": "mL·kg⁻¹",
+          "path": "Monitor.minmax.lv_vol_max",
+          "per_kg": true,
+          "round": 1,
+          "paper": 2.6,
+          "tol": 0.4,
+          "literature": [
+            {
+              "value": "2.5 ± 0.3",
+              "ref": 17
+            },
+            {
+              "value": "2.51 ± 0.40",
+              "ref": 18
+            }
+          ]
+        },
+        {
+          "key": "lvesv",
+          "label": "LVESV",
+          "unit": "mL·kg⁻¹",
+          "path": "Monitor.minmax.lv_vol_min",
+          "per_kg": true,
+          "round": 1,
+          "paper": 1.0,
+          "tol": 0.21,
+          "literature": [
+            {
+              "value": "0.9 ± 0.2",
+              "ref": 17
+            },
+            {
+              "value": "0.78 ± 0.21",
+              "ref": 18
+            }
+          ]
+        },
+        {
+          "key": "lvsv",
+          "label": "LVSV",
+          "unit": "mL·kg⁻¹",
+          "derive": [
+            "sub",
+            "lvedv",
+            "lvesv"
+          ],
+          "round": 1,
+          "paper": 1.6,
+          "tol": 0.28,
+          "literature": [
+            {
+              "value": "1.6 ± 0.1",
+              "ref": 17
+            },
+            {
+              "value": "1.73 ± 0.28",
+              "ref": 18
+            }
+          ]
+        },
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 181,
+          "tol": 47.0,
+          "literature": [
+            {
+              "value": "177 ± 25",
+              "ref": 17
+            },
+            {
+              "value": "245 ± 47",
+              "ref": 18
+            }
+          ]
+        },
+        {
+          "key": "rvedv",
+          "label": "RVEDV",
+          "unit": "mL·kg⁻¹",
+          "path": "Monitor.minmax.rv_vol_max",
+          "per_kg": true,
+          "round": 1,
+          "paper": 3.2,
+          "tol": 0.3,
+          "literature": [
+            {
+              "value": "3.1 ± 0.3",
+              "ref": 17
+            }
+          ]
+        },
+        {
+          "key": "rvesv",
+          "label": "RVESV",
+          "unit": "mL·kg⁻¹",
+          "path": "Monitor.minmax.rv_vol_min",
+          "per_kg": true,
+          "round": 1,
+          "paper": 1.6,
+          "tol": 0.2,
+          "literature": [
+            {
+              "value": "1.5 ± 0.2",
+              "ref": 17
+            }
+          ]
+        },
+        {
+          "key": "rvsv",
+          "label": "RVSV",
+          "unit": "mL·kg⁻¹",
+          "derive": [
+            "sub",
+            "rvedv",
+            "rvesv"
+          ],
+          "round": 1,
+          "paper": 1.6,
+          "tol": 0.2,
+          "literature": [
+            {
+              "value": "1.6 ± 0.2",
+              "ref": 17
+            }
+          ]
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 181,
+          "tol": 30.0,
+          "literature": [
+            {
+              "value": "181 ± 30",
+              "ref": 17
+            }
+          ]
+        },
+        {
+          "key": "svcf",
+          "label": "SVC flow",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.svc_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 76,
+          "tol": 27.0,
+          "literature": [
+            {
+              "value": "95 ± 27",
+              "ref": 18
+            },
+            {
+              "value": "76 (34–143)",
+              "ref": 19
+            }
+          ]
+        },
+        {
+          "key": "abps",
+          "label": "ABP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_max",
+          "round": 0,
+          "paper": 70,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "67",
+              "ref": 20
+            }
+          ]
+        },
+        {
+          "key": "abpd",
+          "label": "ABP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_min",
+          "round": 0,
+          "paper": 45,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "42",
+              "ref": 20
+            }
+          ]
+        },
+        {
+          "key": "ef",
+          "label": "LV ejection fraction",
+          "unit": "%",
+          "path": "Heart.lv_ef",
+          "factor": 100,
+          "round": 0
+        }
+      ],
+      "spec": "specs/baseline.json",
+      "build": {
+        "baseline": "term_neonate",
+        "targets": {
+          "weight": 3.3,
+          "hr": 118,
+          "sys": 70,
+          "dia": 45,
+          "co": 0.597,
+          "ef": 61.5,
+          "pda_mm": 0,
+          "fo_mm": 0
+        },
+        "converged": true,
+        "iters": 3,
+        "results": [
+          {
+            "key": "map",
+            "target": 56.77,
+            "value": 54.92,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "pp",
+            "target": 25,
+            "value": 25.885,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "hr",
+            "target": 118,
+            "value": 118.769,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "co",
+            "target": 0.597,
+            "value": 0.598,
+            "within": true,
+            "lever_at_bound": false
+          }
+        ],
+        "not_targeted": null,
+        "model": "claude-opus-5 (Explain bot)"
+      }
+    },
+    {
+      "id": "pda_none",
+      "title": "Preterm infant without a ductal shunt",
+      "paper_section": "3.1.2",
+      "paper_table": "Table 3 — no PDA",
+      "scenario": "p1_pda_none",
+      "description": "Built by the AI parameterization pipeline: the bot wrote the build spec from the paper's Table 3 'no PDA' column and the cohort's pressure and heart rate (duct closed, LVO, RVO via the foramen, SVC flow via the upper/lower-body split, ABP 45/25, HR 159) and the calibrator fitted it to the Bischoff cohort infant.",
+      "ops": [],
+      "settle_s": 60,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 179,
+          "tol": 44.0,
+          "literature": [
+            {
+              "value": "170 ± 44",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 179,
+          "tol": 39.0,
+          "literature": [
+            {
+              "value": "170 ± 39",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "ratio",
+          "label": "LVO/RVO",
+          "derive": [
+            "div",
+            "lvo",
+            "rvo"
+          ],
+          "round": 2,
+          "paper": 1.0,
+          "tol": 0.1,
+          "literature": [
+            {
+              "value": "0.996",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "svcf",
+          "label": "SVC flow",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.svc_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 74,
+          "tol": 29.0,
+          "literature": [
+            {
+              "value": "73 ± 29",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "abps",
+          "label": "ABP systolic (build target 45; not in the paper)",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_max",
+          "round": 0
+        },
+        {
+          "key": "abpd",
+          "label": "ABP diastolic (build target 25; not in the paper)",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_min",
+          "round": 0
+        },
+        {
+          "key": "hr",
+          "label": "HR (build target 159; not in the paper)",
+          "unit": "min⁻¹",
+          "path": "Heart.heart_rate",
+          "round": 0
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "ef",
+          "label": "LV ejection fraction",
+          "unit": "%",
+          "path": "Heart.lv_ef",
+          "factor": 100,
+          "round": 0
+        }
+      ],
+      "spec": "specs/pda_none.json",
+      "build": {
+        "baseline": "bischoff_cohort",
+        "targets": {
+          "weight": 0.72,
+          "fio2": 0.26,
+          "pda_mm": 0,
+          "fo_mm": 2,
+          "hr": 159,
+          "sys": 45,
+          "dia": 25,
+          "co": 0.122,
+          "rvo": 0.123,
+          "svc": 0.053
+        },
+        "converged": true,
+        "iters": 5,
+        "results": [
+          {
+            "key": "map",
+            "target": 34.24,
+            "value": 33.758,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "pp",
+            "target": 20,
+            "value": 19.545,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "hr",
+            "target": 159,
+            "value": 158.59,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "co",
+            "target": 0.122,
+            "value": 0.124,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "rvo",
+            "target": 0.123,
+            "value": 0.124,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "svc",
+            "target": 0.053,
+            "value": 0.051,
+            "within": true,
+            "lever_at_bound": false
+          }
+        ],
+        "not_targeted": "The bot targeted the Bischoff cohort means (LVO 169.7, RVO 170.3, SVC 73.4 mL·kg⁻¹·min⁻¹) rather than the paper's own simulation column, plus the cohort's pressure 45/25 and heart rate 159, which the paper's table does not list. The arteries were stiffened for size (×2.2, as for a 720 g infant) and the large-artery stiffness lever then reached the 20 mmHg pulse pressure; the mean-pressure target follows the model's own waveform so that the sys/dia pair lands.",
+        "model": "claude-opus-5 (Explain bot)"
+      }
+    },
+    {
+      "id": "pda_bidirectional",
+      "title": "Preterm infant with a bidirectional ductal shunt",
+      "paper_section": "3.1.2",
+      "paper_table": "Table 3 — bidirectional",
+      "scenario": "bischoff_cohort",
+      "description": "Duct 2.2 mm; pulmonary arteriolar resistance ×7 and pulmonary-artery elastance ×2 so that the duct shunts right-to-left for part of the cycle.",
+      "ops": [
+        {
+          "kind": "set",
+          "path": "AA_BR_ART.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "AA_RUB.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Pda.diameter_relative",
+          "value": 0.733,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 1.5,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAL_LL_ART.r_factor_ps",
+          "value": 7.0,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAR_RL_ART.r_factor_ps",
+          "value": 7.0,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PA.el_base_factor_ps",
+          "value": 2.0,
+          "it": 5
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 157,
+          "tol": 30.0,
+          "literature": [
+            {
+              "value": "140 ± 30",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 138,
+          "tol": 42.0,
+          "literature": [
+            {
+              "value": "121 ± 42",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "ratio",
+          "label": "LVO/RVO",
+          "derive": [
+            "div",
+            "lvo",
+            "rvo"
+          ],
+          "round": 2,
+          "paper": 1.14,
+          "tol": 0.1,
+          "literature": [
+            {
+              "value": "1.165",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "svcf",
+          "label": "SVC flow",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.svc_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 69,
+          "tol": 25.0,
+          "literature": [
+            {
+              "value": "70 ± 25",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "fwd",
+          "label": "Fraction of cycle L→R",
+          "path": "Pda.forward_fraction",
+          "round": 2,
+          "paper": "≤ 0.90"
+        }
+      ]
+    },
+    {
+      "id": "pda_ltr",
+      "title": "Preterm infant with a haemodynamically significant left-to-right duct",
+      "paper_section": "3.1.2",
+      "paper_table": "Table 3 — PDA",
+      "scenario": "bischoff_cohort",
+      "description": "Duct 2.2 mm with the pulmonary arteriolar resistance lowered (×2.5 instead of ×7) so the duct shunts left-to-right throughout the cycle.",
+      "ops": [
+        {
+          "kind": "set",
+          "path": "AA_BR_ART.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "AA_RUB.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Pda.diameter_relative",
+          "value": 0.733,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 1.5,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAL_LL_ART.r_factor_ps",
+          "value": 2.5,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAR_RL_ART.r_factor_ps",
+          "value": 2.5,
+          "it": 5
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 261,
+          "tol": 46.0,
+          "literature": [
+            {
+              "value": "250 ± 46",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 154,
+          "tol": 37.0,
+          "literature": [
+            {
+              "value": "161 ± 37",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "ratio",
+          "label": "LVO/RVO",
+          "derive": [
+            "div",
+            "lvo",
+            "rvo"
+          ],
+          "round": 2,
+          "paper": 1.57,
+          "tol": 0.1,
+          "literature": [
+            {
+              "value": "1.552",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "svcf",
+          "label": "SVC flow",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.svc_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0,
+          "paper": 64.5,
+          "tol": 35.0,
+          "literature": [
+            {
+              "value": "65 ± 35",
+              "ref": 21
+            }
+          ]
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "fwd",
+          "label": "Fraction of cycle L→R",
+          "path": "Pda.forward_fraction",
+          "round": 2,
+          "paper": 1.0
+        }
+      ]
+    },
+    {
+      "id": "doppler_nonrestrictive",
+      "title": "Ductal Doppler: non-restrictive left-to-right flow",
+      "paper_section": "3.1.2",
+      "paper_table": "Fig. 5, non-restrictive",
+      "scenario": "bischoff_cohort",
+      "description": "A wide duct (3 mm) at normal pulmonary resistance: pulsatile left-to-right velocity with a low end-diastolic velocity.",
+      "ops": [
+        {
+          "kind": "set",
+          "path": "AA_BR_ART.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "AA_RUB.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Pda.diameter_relative",
+          "value": 1.0,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 1.5,
+          "it": 5
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 20,
+      "chart": "Pda velocity (Eq. 12)",
+      "measures": [
+        {
+          "key": "vmax",
+          "label": "Peak velocity",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_pa_max",
+          "round": 2,
+          "paper": "pulsatile, < 2",
+          "literature": [
+            {
+              "value": "pulsatile L→R",
+              "ref": 22
+            }
+          ]
+        },
+        {
+          "key": "vmin",
+          "label": "Minimum velocity",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_pa_min",
+          "round": 2,
+          "paper": "≈ 0 at end-diastole"
+        },
+        {
+          "key": "jmax",
+          "label": "Peak jet velocity (Bernoulli)",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_doppler_max",
+          "round": 2
+        },
+        {
+          "key": "jmin",
+          "label": "Minimum jet velocity (Bernoulli)",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_doppler_min",
+          "round": 2
+        },
+        {
+          "key": "fwd",
+          "label": "Fraction of cycle L→R",
+          "path": "Pda.forward_fraction",
+          "round": 2,
+          "paper": 1.0
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        }
+      ]
+    },
+    {
+      "id": "doppler_restrictive",
+      "title": "Ductal Doppler: restrictive left-to-right flow",
+      "paper_section": "3.1.2",
+      "paper_table": "Fig. 5, restrictive",
+      "scenario": "bischoff_cohort",
+      "description": "A narrow, closing duct (1 mm): continuous high-velocity left-to-right flow with low pulsatility and the early-systolic dip.",
+      "ops": [
+        {
+          "kind": "set",
+          "path": "AA_BR_ART.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "AA_RUB.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Pda.diameter_relative",
+          "value": 0.33,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 1.5,
+          "it": 5
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 20,
+      "chart": "Pda velocity (Eq. 12)",
+      "measures": [
+        {
+          "key": "vmax",
+          "label": "Peak velocity",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_pa_max",
+          "round": 2,
+          "paper": "continuous, high",
+          "literature": [
+            {
+              "value": "continuous L→R, low pulsatility",
+              "ref": 22
+            }
+          ]
+        },
+        {
+          "key": "vmin",
+          "label": "Minimum velocity",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_pa_min",
+          "round": 2,
+          "paper": "high end-diastolic"
+        },
+        {
+          "key": "jmax",
+          "label": "Peak jet velocity (Bernoulli)",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_doppler_max",
+          "round": 2
+        },
+        {
+          "key": "jmin",
+          "label": "Minimum jet velocity (Bernoulli)",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_doppler_min",
+          "round": 2
+        },
+        {
+          "key": "fwd",
+          "label": "Fraction of cycle L→R",
+          "path": "Pda.forward_fraction",
+          "round": 2,
+          "paper": 1.0
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        }
+      ]
+    },
+    {
+      "id": "doppler_bidirectional",
+      "title": "Ductal Doppler: bidirectional flow",
+      "paper_section": "3.1.2",
+      "paper_table": "Fig. 5, bidirectional",
+      "scenario": "bischoff_cohort",
+      "description": "The bidirectional state of Table 3: systolic right-to-left and diastolic left-to-right flow.",
+      "ops": [
+        {
+          "kind": "set",
+          "path": "AA_BR_ART.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "AA_RUB.r_factor_ps",
+          "value": 0.6,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Pda.diameter_relative",
+          "value": 0.733,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 1.5,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAL_LL_ART.r_factor_ps",
+          "value": 7.0,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAR_RL_ART.r_factor_ps",
+          "value": 7.0,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PA.el_base_factor_ps",
+          "value": 2.0,
+          "it": 5
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 20,
+      "chart": "Pda velocity (Eq. 12)",
+      "measures": [
+        {
+          "key": "vmax",
+          "label": "Peak L→R velocity",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_pa_max",
+          "round": 2,
+          "paper": "diastolic L→R",
+          "literature": [
+            {
+              "value": "systolic R→L, diastolic L→R",
+              "ref": 22
+            }
+          ]
+        },
+        {
+          "key": "vmin",
+          "label": "Peak R→L velocity",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_pa_min",
+          "round": 2,
+          "paper": "systolic R→L (negative)"
+        },
+        {
+          "key": "jmax",
+          "label": "Peak jet velocity (Bernoulli)",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_doppler_max",
+          "round": 2
+        },
+        {
+          "key": "jmin",
+          "label": "Minimum jet velocity (Bernoulli)",
+          "unit": "m·s⁻¹",
+          "path": "Pda.velocity_doppler_min",
+          "round": 2
+        },
+        {
+          "key": "fwd",
+          "label": "Fraction of cycle L→R",
+          "path": "Pda.forward_fraction",
+          "round": 2,
+          "paper": "≤ 0.90"
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        }
+      ]
+    },
+    {
+      "id": "ph_early",
+      "title": "Pulmonary hypertension: early",
+      "paper_section": "3.1.3",
+      "paper_table": "Table 4 — early PH",
+      "scenario": "term_neonate",
+      "description": "The term baseline with a patent foramen ovale (3 mm), the resistance of the pulmonary arterioles (PAAL→LL, PAAR→RL) tripled and the pulmonary-artery elastance raised; duct closed.",
+      "ops": [
+        {
+          "kind": "scale",
+          "group": "weight_scale",
+          "factor": 3.3
+        },
+        {
+          "kind": "set",
+          "path": "Heart.heart_rate_ref",
+          "value": 118,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAL_LL_ART.r_factor_ps",
+          "value": 3.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "PAAR_RL_ART.r_factor_ps",
+          "value": 3.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "PA.el_base_factor_ps",
+          "value": 1.5,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 3.0,
+          "it": 10
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "qp",
+          "label": "Qp",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "derive": [
+            "add",
+            "rvo",
+            "da"
+          ],
+          "round": 0,
+          "paper": 179,
+          "tol": 20,
+          "literature": [
+            {
+              "value": "176",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "qs",
+          "label": "Qs",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "derive": [
+            "sub",
+            "lvo",
+            "da"
+          ],
+          "round": 0,
+          "paper": 179,
+          "tol": 20,
+          "literature": [
+            {
+              "value": "176",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "qpqs",
+          "label": "Qp/Qs",
+          "derive": [
+            "div",
+            "qp",
+            "qs"
+          ],
+          "round": 2,
+          "paper": 1.0,
+          "tol": 0.1,
+          "literature": [
+            {
+              "value": "1.0",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_m",
+          "label": "PAP mean",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_mean",
+          "round": 0
+        },
+        {
+          "key": "lap",
+          "label": "LA pressure",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.la_pres_mean",
+          "round": 1
+        },
+        {
+          "key": "tpg",
+          "label": "TPG",
+          "unit": "mmHg",
+          "derive": [
+            "sub",
+            "pap_m",
+            "lap"
+          ],
+          "round": 0,
+          "paper": 35,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "34",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pvr",
+          "label": "PVR",
+          "unit": "mmHg·min·mL⁻¹·kg",
+          "derive": [
+            "div",
+            "tpg",
+            "qp"
+          ],
+          "round": 2,
+          "paper": 0.19,
+          "tol": 0.04,
+          "literature": [
+            {
+              "value": "0.19",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "rvp_s",
+          "label": "RVP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.rv_pres_max",
+          "round": 0,
+          "paper": 55,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "58",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "rvp_d",
+          "label": "RVP end-diastolic",
+          "unit": "mmHg",
+          "path": "Heart.rv_edp",
+          "round": 0,
+          "paper": 7,
+          "tol": 3,
+          "literature": [
+            {
+              "value": "7",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "lvp_s",
+          "label": "LVP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.lv_pres_max",
+          "round": 0,
+          "paper": 63,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "64",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "lvp_d",
+          "label": "LVP end-diastolic",
+          "unit": "mmHg",
+          "path": "Heart.lv_edp",
+          "round": 0,
+          "paper": 6,
+          "tol": 3,
+          "literature": [
+            {
+              "value": "6",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_s",
+          "label": "PAP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_max",
+          "round": 0,
+          "paper": 60,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "58",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_d",
+          "label": "PAP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_min",
+          "round": 0,
+          "paper": 30,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "28",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "abp_s",
+          "label": "ABP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_max",
+          "round": 0,
+          "paper": 63,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "64",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "abp_d",
+          "label": "ABP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_min",
+          "round": 0,
+          "paper": 31,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "32",
+              "ref": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ph_severe",
+      "title": "Pulmonary hypertension: severe, without a duct",
+      "paper_section": "3.1.3",
+      "paper_table": "Table 4 — severe PH (no PDA)",
+      "scenario": "term_neonate",
+      "description": "Pulmonary arteriolar resistance ×6 and pulmonary-artery elastance ×2, foramen ovale 3 mm, duct closed.",
+      "ops": [
+        {
+          "kind": "scale",
+          "group": "weight_scale",
+          "factor": 3.3
+        },
+        {
+          "kind": "set",
+          "path": "Heart.heart_rate_ref",
+          "value": 118,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAL_LL_ART.r_factor_ps",
+          "value": 6.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "PAAR_RL_ART.r_factor_ps",
+          "value": 6.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "PA.el_base_factor_ps",
+          "value": 2.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 3.0,
+          "it": 10
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "qp",
+          "label": "Qp",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "derive": [
+            "add",
+            "rvo",
+            "da"
+          ],
+          "round": 0,
+          "paper": 132,
+          "tol": 20,
+          "literature": [
+            {
+              "value": "126",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "qs",
+          "label": "Qs",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "derive": [
+            "sub",
+            "lvo",
+            "da"
+          ],
+          "round": 0,
+          "paper": 143,
+          "tol": 20,
+          "literature": [
+            {
+              "value": "132",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "qpqs",
+          "label": "Qp/Qs",
+          "derive": [
+            "div",
+            "qp",
+            "qs"
+          ],
+          "round": 2,
+          "paper": 0.92,
+          "tol": 0.1,
+          "literature": [
+            {
+              "value": "0.95",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_m",
+          "label": "PAP mean",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_mean",
+          "round": 0
+        },
+        {
+          "key": "lap",
+          "label": "LA pressure",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.la_pres_mean",
+          "round": 1
+        },
+        {
+          "key": "tpg",
+          "label": "TPG",
+          "unit": "mmHg",
+          "derive": [
+            "sub",
+            "pap_m",
+            "lap"
+          ],
+          "round": 0,
+          "paper": 47,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "48",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pvr",
+          "label": "PVR",
+          "unit": "mmHg·min·mL⁻¹·kg",
+          "derive": [
+            "div",
+            "tpg",
+            "qp"
+          ],
+          "round": 2,
+          "paper": 0.36,
+          "tol": 0.06,
+          "literature": [
+            {
+              "value": "0.38",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "rvp_s",
+          "label": "RVP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.rv_pres_max",
+          "round": 0,
+          "paper": 68,
+          "tol": 7,
+          "literature": [
+            {
+              "value": "70",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "rvp_d",
+          "label": "RVP end-diastolic",
+          "unit": "mmHg",
+          "path": "Heart.rv_edp",
+          "round": 0,
+          "paper": 7,
+          "tol": 3,
+          "literature": [
+            {
+              "value": "8",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "lvp_s",
+          "label": "LVP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.lv_pres_max",
+          "round": 0,
+          "paper": 51,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "50",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "lvp_d",
+          "label": "LVP end-diastolic",
+          "unit": "mmHg",
+          "path": "Heart.lv_edp",
+          "round": 0,
+          "paper": 6,
+          "tol": 3,
+          "literature": [
+            {
+              "value": "6",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_s",
+          "label": "PAP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_max",
+          "round": 0,
+          "paper": 72,
+          "tol": 7,
+          "literature": [
+            {
+              "value": "70",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_d",
+          "label": "PAP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_min",
+          "round": 0,
+          "paper": 39,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "38",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "abp_s",
+          "label": "ABP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_max",
+          "round": 0,
+          "paper": 52,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "50",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "abp_d",
+          "label": "ABP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_min",
+          "round": 0,
+          "paper": 26,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "24",
+              "ref": 23
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ph_severe_pda",
+      "title": "Pulmonary hypertension: severe, with a patent duct",
+      "paper_section": "3.1.3",
+      "paper_table": "Table 4 — severe PH + PDA",
+      "scenario": "term_neonate",
+      "description": "Pulmonary arteriolar resistance ×9 and pulmonary-artery elastance ×2.5 with the duct wide open (3 mm) and the foramen 3 mm, so part of the right-ventricular output bypasses the lungs.",
+      "ops": [
+        {
+          "kind": "scale",
+          "group": "weight_scale",
+          "factor": 3.3
+        },
+        {
+          "kind": "set",
+          "path": "Heart.heart_rate_ref",
+          "value": 118,
+          "it": 5
+        },
+        {
+          "kind": "set",
+          "path": "PAAL_LL_ART.r_factor_ps",
+          "value": 9.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "PAAR_RL_ART.r_factor_ps",
+          "value": 9.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "PA.el_base_factor_ps",
+          "value": 2.5,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "Pda.diameter_relative",
+          "value": 1.0,
+          "it": 10
+        },
+        {
+          "kind": "set",
+          "path": "Shunts.diameter_fo",
+          "value": 3.0,
+          "it": 10
+        }
+      ],
+      "settle_s": 120,
+      "window_s": 30,
+      "measures": [
+        {
+          "key": "lvo",
+          "label": "LVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.lvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "rvo",
+          "label": "RVO",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.rvo",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "da",
+          "label": "Ductal flow (+ = L→R)",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "path": "Monitor.flows.da_flow",
+          "factor": 1000,
+          "per_kg": true,
+          "round": 0
+        },
+        {
+          "key": "qp",
+          "label": "Qp",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "derive": [
+            "add",
+            "rvo",
+            "da"
+          ],
+          "round": 0,
+          "paper": 105,
+          "tol": 20,
+          "literature": [
+            {
+              "value": "101",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "qs",
+          "label": "Qs",
+          "unit": "mL·kg⁻¹·min⁻¹",
+          "derive": [
+            "sub",
+            "lvo",
+            "da"
+          ],
+          "round": 0,
+          "paper": 178,
+          "tol": 20,
+          "literature": [
+            {
+              "value": "176",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "qpqs",
+          "label": "Qp/Qs",
+          "derive": [
+            "div",
+            "qp",
+            "qs"
+          ],
+          "round": 2,
+          "paper": 0.59,
+          "tol": 0.1,
+          "literature": [
+            {
+              "value": "0.57",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_m",
+          "label": "PAP mean",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_mean",
+          "round": 0
+        },
+        {
+          "key": "lap",
+          "label": "LA pressure",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.la_pres_mean",
+          "round": 1
+        },
+        {
+          "key": "tpg",
+          "label": "TPG",
+          "unit": "mmHg",
+          "derive": [
+            "sub",
+            "pap_m",
+            "lap"
+          ],
+          "round": 0,
+          "paper": 37,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "36",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pvr",
+          "label": "PVR",
+          "unit": "mmHg·min·mL⁻¹·kg",
+          "derive": [
+            "div",
+            "tpg",
+            "qp"
+          ],
+          "round": 2,
+          "paper": 0.37,
+          "tol": 0.06,
+          "literature": [
+            {
+              "value": "0.36",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "rvp_s",
+          "label": "RVP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.rv_pres_max",
+          "round": 0,
+          "paper": 63,
+          "tol": 7,
+          "literature": [
+            {
+              "value": "60",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "rvp_d",
+          "label": "RVP end-diastolic",
+          "unit": "mmHg",
+          "path": "Heart.rv_edp",
+          "round": 0,
+          "paper": 8,
+          "tol": 3,
+          "literature": [
+            {
+              "value": "7",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "lvp_s",
+          "label": "LVP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.lv_pres_max",
+          "round": 0,
+          "paper": 63,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "60",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "lvp_d",
+          "label": "LVP end-diastolic",
+          "unit": "mmHg",
+          "path": "Heart.lv_edp",
+          "round": 0,
+          "paper": 6,
+          "tol": 3,
+          "literature": [
+            {
+              "value": "6",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_s",
+          "label": "PAP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_max",
+          "round": 0,
+          "paper": 63,
+          "tol": 7,
+          "literature": [
+            {
+              "value": "60",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "pap_d",
+          "label": "PAP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.pap_pres_min",
+          "round": 0,
+          "paper": 32,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "30",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "abp_s",
+          "label": "ABP systolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_max",
+          "round": 0,
+          "paper": 61,
+          "tol": 6,
+          "literature": [
+            {
+              "value": "60",
+              "ref": 23
+            }
+          ]
+        },
+        {
+          "key": "abp_d",
+          "label": "ABP diastolic",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_min",
+          "round": 0,
+          "paper": 31,
+          "tol": 5,
+          "literature": [
+            {
+              "value": "30",
+              "ref": 23
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -151,3 +151,26 @@ p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)
 - Set `no_back_flow` for valve-like behaviour (or use `HeartValve`).
 - `r_factor_ps` is the standard lever for vasoconstriction/dilation (PVR/SVR adjustments by ANS and
   scenario tuning); `r_factor_scaling_ps` is written by `ModelScaler` for weight-based scaling.
+
+## Implicit (backward-Euler) flow — `implicit`
+
+`implicit` (default `false`) switches the flow of one resistor from the explicit `Δp / R` to the
+backward-Euler solution for the two compartments it joins, `Δp / (R + dt·(E_from + E_to))`, by
+adding `dt·(E_from + E_to)` to `r_for_eff` / `r_back_eff` each step (`E` = the compartment's current
+`el_eff`, or a time-varying elastance's instantaneous value). It is a numerical scheme, not a
+change of the resistor law: both forms are first-order accurate and agree when `R >> dt·ΣE`.
+
+Why it exists: explicit integration of two capacitances joined by a small resistance is stable
+only while `dt·(E_from + E_to)/R < 2`, and for three equal capacitances in a row (the aorta AA →
+AAR → AD, joined by `AA_AAR`, `AAR_AD`, R ≈ 70 mmHg·s/L) only below 4/3. Stiffening the large
+arteries, which a small infant's pulse pressure needs, crosses that limit at about ×2–3. Measured
+on the 0.72 kg Bischoff infant (AA pressure range, mmHg):
+
+| stiffness | explicit | implicit `AA_AAR`, `AAR_AD` | explicit, half time step |
+|---|---|---|---|
+| ×1.8 | 23.6–35.7 | 23.6–35.8 | 23.7–35.7 |
+| ×3 | unstable | 21.4–39.8 | 21.5–39.6 |
+| ×5 | unstable | 18.4–44.7 | 18.2–44.4 |
+
+The patient builder and the live tuner set it on `AA_AAR` and `AAR_AD`; bundled scenarios do not
+(yet), so their numbers are unchanged.
