@@ -1,6 +1,6 @@
 # Explain Engine
 
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21389097.svg)](https://doi.org/10.5281/zenodo.21389097)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21389096.svg)](https://doi.org/10.5281/zenodo.21389096)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 A framework-agnostic, dependency-free physiological simulation engine (whole-body neonatal
@@ -221,7 +221,7 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 If you use this software, please cite it via its archived release. The DOI below is the
 **concept (all-versions) DOI** and always resolves to the latest release:
 
-> Antonius, T. *Explain: a whole-body physiological simulation engine* (v0.1.0). Zenodo. https://doi.org/10.5281/zenodo.21389097
+> Antonius, T. *Explain: a whole-body physiological simulation engine*. Zenodo. https://doi.org/10.5281/zenodo.21389096
 
-Machine-readable metadata lives in [`CITATION.cff`](./CITATION.cff); GitHub's "Cite this repository" button reads it directly. To cite a specific version, use that release's version-specific DOI from the [Zenodo record](https://doi.org/10.5281/zenodo.21389097) instead of the concept DOI.
+Machine-readable metadata lives in [`CITATION.cff`](./CITATION.cff); GitHub's "Cite this repository" button reads it directly. To cite a specific version, use that release's version-specific DOI from the [Zenodo record](https://doi.org/10.5281/zenodo.21389096) instead of the concept DOI.
 
