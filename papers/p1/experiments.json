@@ -23,22 +23,10 @@
       "title": "Baseline haemodynamics of the term neonate",
       "paper_section": "3.1.1",
       "paper_table": "Table 2",
-      "scenario": "term_neonate",
-      "description": "The term baseline scaled to the paper's 3.3 kg neonate at 24 h, heart-rate set-point 118 min⁻¹.",
-      "ops": [
-        {
-          "kind": "scale",
-          "group": "weight_scale",
-          "factor": 3.3
-        },
-        {
-          "kind": "set",
-          "path": "Heart.heart_rate_ref",
-          "value": 118,
-          "it": 5
-        }
-      ],
-      "settle_s": 120,
+      "scenario": "p1_baseline",
+      "description": "Built by the AI parameterization pipeline from the paper's Table 2 column: the bot wrote the build spec (3.3 kg, HR 118, ABP 70/45, LVO 181 mL·kg⁻¹·min⁻¹, shunts closed) and the calibrator fitted it.",
+      "ops": [],
+      "settle_s": 60,
       "window_s": 30,
       "measures": [
         {
@@ -263,42 +251,65 @@
             }
           ]
         }
-      ]
+      ],
+      "spec": "specs/baseline.json",
+      "build": {
+        "baseline": "term_neonate",
+        "targets": {
+          "weight": 3.3,
+          "hr": 118,
+          "sys": 70,
+          "dia": 45,
+          "co": 0.597,
+          "ef": 61.5,
+          "pda_mm": 0,
+          "fo_mm": 0
+        },
+        "converged": true,
+        "iters": 10,
+        "results": [
+          {
+            "key": "map",
+            "target": 53.3,
+            "value": 55.058,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "pp",
+            "target": 25,
+            "value": 25.227,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "hr",
+            "target": 118,
+            "value": 118.116,
+            "within": true,
+            "lever_at_bound": false
+          },
+          {
+            "key": "co",
+            "target": 0.597,
+            "value": 0.583,
+            "within": true,
+            "lever_at_bound": false
+          }
+        ],
+        "not_targeted": null,
+        "model": "claude-opus-5 (Explain bot)"
+      }
     },
     {
       "id": "pda_none",
       "title": "Preterm infant without a ductal shunt",
       "paper_section": "3.1.2",
       "paper_table": "Table 3 — no PDA",
-      "scenario": "bischoff_cohort",
-      "description": "The Bischoff cohort infant (25 wk, 720 g, CPAP) with the duct closed, a small foramen ovale (1.5 mm) and the upper-body arteriolar resistance lowered (the paper's \"minor additional tuning of arterial resistances\").",
-      "ops": [
-        {
-          "kind": "set",
-          "path": "AA_BR_ART.r_factor_ps",
-          "value": 0.6,
-          "it": 5
-        },
-        {
-          "kind": "set",
-          "path": "AA_RUB.r_factor_ps",
-          "value": 0.6,
-          "it": 5
-        },
-        {
-          "kind": "set",
-          "path": "Pda.diameter_relative",
-          "value": 0,
-          "it": 5
-        },
-        {
-          "kind": "set",
-          "path": "Shunts.diameter_fo",
-          "value": 1.5,
-          "it": 5
-        }
-      ],
-      "settle_s": 120,
+      "scenario": "p1_pda_none",
+      "description": "Built by the AI parameterization pipeline from the paper's Table 3 'no PDA' column: the bot wrote the build spec (Bischoff cohort infant, duct closed, 2 mm foramen, LVO 179 mL·kg⁻¹·min⁻¹) and the calibrator fitted it.",
+      "ops": [],
+      "settle_s": 60,
       "window_s": 30,
       "measures": [
         {
@@ -379,7 +390,31 @@
           "per_kg": true,
           "round": 0
         }
-      ]
+      ],
+      "spec": "specs/pda_none.json",
+      "build": {
+        "baseline": "bischoff_cohort",
+        "targets": {
+          "weight": 0.72,
+          "fio2": 0.26,
+          "pda_mm": 0,
+          "fo_mm": 2,
+          "co": 0.129
+        },
+        "converged": true,
+        "iters": 3,
+        "results": [
+          {
+            "key": "co",
+            "target": 0.129,
+            "value": 0.131,
+            "within": true,
+            "lever_at_bound": false
+          }
+        ],
+        "not_targeted": "1. RVO (170.3 ± 39.1 / paper 179) — there is no RVO target. co reads lvo only, and its single lever writes both LV.el_max_factor_ps and RV.el_max_factor_ps together, so right ventricular output is an emergent consequence of fitting LVO, not an independent degree of freedom. This is actually the right structure for the validation: with the duct closed, the only remaining inter-circulatory path is the foramen, so RVO = LVO + Q_fo falls out of the model rather than being imposed. 2. LVO/RVO = 0.996 — a derived ratio of two outputs, one of which isn't targetable.",
+        "model": "claude-opus-5 (Explain bot)"
+      }
     },
     {
       "id": "pda_bidirectional",

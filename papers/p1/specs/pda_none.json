@@ -1,0 +1,211 @@
+{
+  "case": "cases/pda_none.md",
+  "date": "2026-10-14T14:55:43.206Z",
+  "seconds": 197,
+  "conversation_id": "0c94a42d28d54642953faeb048c3232c",
+  "answer": "I'll start by reading the command protocol and the relevant docs to get the SPEC schema right.\nNow let me look at what the bundled `bischoff_cohort` baseline carries and how the foramen ovale / duct are sized.\nI have what I need. Two things from the pack shaped the SPEC:\n\n- **`co` *is* LVO.** In `explain-engine/docs/Calibrator.md` the lever table reads `| co | LV.el_max_factor_ps and RV.el_max_factor_ps | ventricular contractility; reads lvo |`, and `READ_KEY = { co: \"lvo\", … }` maps the canonical target `co` onto `Monitor.flows.lvo`. So the paper's LVO is directly expressible — but in **L/min**, so it needs the weight: 179 mL·min⁻¹·kg⁻¹ × 0.72 kg = 128.9 mL/min = **0.129 L/min**.\n- **The default `co` tolerance is far too loose for this case.** `DEFAULT_TOL` has `co: 0.03` (Calibrator.md), which on a 720 g infant is ±42 mL·min⁻¹·kg⁻¹ — the controller would declare victory without moving. I override it to 0.004 L/min (≈ ±5.6 mL·min⁻¹·kg⁻¹).\n\nFor the duct and foramen, `explain-engine/docs/Shunts.md` gives `diameter_fo` default `2.0` mm with the note that the FO \"only bites below 2 mm, where it swings violently (1 mm -> 73:27)\" — so 2 mm is the model's own \"small, transitional\" foramen and a stable place to sit. `pda_mm: 0` closes the duct (`0 = closed`, and it \"takes precedence over the 0–1 `pda` fraction\").\n\nBuilding the Bischoff cohort infant with the duct closed and a 2 mm foramen ovale, calibrated to the paper's LVO of 179 mL·min⁻¹·kg⁻¹.\n\n\n\n**What I used as targets**\n\n| SPEC target | Value | Source |\n|---|---|---|\n| `co` | 0.129 L/min | LVO 179 mL·min⁻¹·kg⁻¹ × 0.72 kg (the paper's EXPLAIN column) |\n| `pda_mm` | 0 | \"no PDA\" column — duct closed |\n| `fo_mm` | 2 | \"a small foramen ovale\" |\n| `fio2` | 0.26 | baseline description; passed so the oxygen lever is fitted at the right FiO2 |\n| `weight` | 0.72 | 720 g — a no-op rescale if the baseline already carries it, but it's the conversion factor for every per-kg flow, so I made it explicit |\n| `postnatal_age_days` | 1 | day 1 (metadata, drives the normal-range flags) |\n\nNo `gestational_age`, as you asked — `bischoff_cohort` already has `gestational_age` below 37, and Calibrator.md says a SPEC that adds one \"is refused (exit 1) instead of applying prematurity twice.\"\n\n**Reported values I could not express as targets**\n\n1. **RVO (170.3 ± 39.1 / paper 179)** — there is no RVO target. `co` reads `lvo` only, and its single lever writes *both* `LV.el_max_factor_ps` and `RV.el_max_factor_ps` together, so right ventricular output is an emergent consequence of fitting LVO, not an independent degree of freedom. This is actually the right structure for the validation: with the duct closed, the only remaining inter-circulatory path is the foramen, so RVO = LVO + Q_fo falls out of the model rather than being imposed.\n2. **LVO/RVO = 0.996** — a derived ratio of two outputs, one of which isn't targetable. It is a *prediction* here, set by the 2 mm foramen's flow (reported as `build_report.measured.q_fo`, L/s, + = left-to-right).\n3. **SVCF (73.4 ± 29.4 / paper 74)** — the builder has no regional-flow lever at all. SVC flow emerges from the upper-/lower-body resistance split and the split right atrium (`RAIVCI`/`RASVC`). Per `explain-engine/docs/Monitor.md`, SVC flow is readable only if the scenario declares the matching `flow_targets` entry, so verify it on the monitor after loading rather than expecting it in the convergence report.\n4. **The ± standard deviations** — the builder takes point targets, not distributions. The closest analogue is the tolerance band, which is why I set `co` explicitly; note the clinical SD (±43.7 mL·min⁻¹·kg⁻¹ ≈ ±0.031 L/min) is about eight times wider than the band I'm fitting to.\n5. **\"Active circulatory control\" and \"end-expiratory conditions\"** — not targets. The first is the ANS/baroreflex being enabled, which is the baseline's default state; the second is a *measurement* convention (read flows at end-expiration to strip the respiratory swing), which matters for how you sample the result, not how it's built.\n\nOne caveat on the fit: Calibrator.md warns that contractility moves EF much more than output (on `term_neonate`, ×0.6–1.6 spans EF 47–70 % but LVO only 179–207 mL·min⁻¹·kg⁻¹), so LVO is a fairly flat function of this lever. If the report comes back `INCOMPLETE` with `lever_at_bound`, that's the reason, and the honest fix is loosening the band rather than claiming the number.\n\ncalibration CONVERGED after 3 iter — all targets met\n\n```explain-command\n{\"op\": \"loadDefinition\", \"name\": \"bischoff_no_pda\", \"summary\": \"Bischoff et al. 2021 cohort infant (25 wk, 720 g, day 1, CPAP FiO2 0.26) \\u2014 PDA validation, Table 3 'no PDA' column: duct closed, 2 mm foramen ovale, LVO 179 mL/min/kg\"}\n```",
+  "spec": {
+    "baseline": "bischoff_cohort",
+    "name": "bischoff_no_pda",
+    "summary": "Bischoff et al. 2021 cohort infant (25 wk, 720 g, day 1, CPAP FiO2 0.26) — PDA validation, Table 3 'no PDA' column: duct closed, 2 mm foramen ovale, LVO 179 mL/min/kg",
+    "postnatal_age_days": 1,
+    "targets": {
+      "weight": 0.72,
+      "fio2": 0.26,
+      "pda_mm": 0,
+      "fo_mm": 2,
+      "co": 0.129
+    },
+    "tolerance": {
+      "co": 0.004
+    },
+    "max_iters": 14,
+    "final_seconds": 240
+  },
+  "host_build": {
+    "converged": true,
+    "iters": 3,
+    "unmet": [],
+    "residuals": [
+      {
+        "key": "hr",
+        "value": 149.63,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "sys",
+        "value": 38.835,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "dia",
+        "value": 30.319,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pp",
+        "value": 8.5161,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "map",
+        "value": 34.519,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "cvp",
+        "value": 0.76214,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pap_s",
+        "value": 16.723,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pap_m",
+        "value": 12.585,
+        "target": null,
+        "delta": null,
+        "flag": "LOW"
+      },
+      {
+        "key": "lvo",
+        "value": 0.13097,
+        "target": 0.129,
+        "delta": 0.002,
+        "flag": ""
+      },
+      {
+        "key": "ef",
+        "value": 30.767,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "q_da",
+        "value": 0,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "q_fo",
+        "value": 0.00037828,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "rr",
+        "value": 42.994,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "spo2_pre",
+        "value": 90.142,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "spo2_post",
+        "value": 89.732,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "etco2",
+        "value": 37.756,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "po2",
+        "value": 49.425,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pco2",
+        "value": 47.025,
+        "target": null,
+        "delta": null,
+        "flag": "LOW"
+      },
+      {
+        "key": "ph",
+        "value": 7.3447,
+        "target": null,
+        "delta": null,
+        "flag": "HIGH"
+      },
+      {
+        "key": "be",
+        "value": -1.1297,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "hco3",
+        "value": 25.334,
+        "target": null,
+        "delta": null,
+        "flag": "HIGH"
+      },
+      {
+        "key": "temp",
+        "value": 36.993,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      }
+    ],
+    "lever_limits": [],
+    "ignored_targets": [],
+    "superseded_targets": [],
+    "notes": [],
+    "solutes": {},
+    "source": "build_report",
+    "log": "fetal mode: off (detected from baseline)\nstructural: weight -> 0.72 kg (allometric volume scaling)\nstructural: PDA 0 mm (diameter_relative 0 of 3 mm)\nstructural: foramen ovale 2 mm (left-to-right resistance x10)\nstructural: FiO2 0.26 (MOUTH)\n\ncalibrating \"bischoff_no_pda\" (baseline bischoff_cohort, profile preterm_24) — 1 target(s)\n  iter 0: co=0.11/0.129\n  iter 1: co=0.14/0.129\n  iter 2: co=0.14/0.129\n  iter 3: co=0.13/0.129✓\n  converged at iter 3\n\n=== bischoff_no_pda — final vitals (profile preterm_24) ===\n  hr           149.63  [ok]\n  sys           38.84  [ok]\n  dia           30.32  [ok]\n  map           34.52  [ok]\n  rr            42.99  [ok]\n  cvp            0.76  [ok]\n  pap_s         16.72  [ok]\n  pap_m         12.59  [LOW]\n  ef            30.77  []\n  spo2_pre      90.14  [ok]\n  spo2_post     89.73  []\n  etco2         37.76  [ok]\n  po2           49.42  [ok]\n  pco2          47.03  [LOW]\n  ph             7.34  [HIGH]\n  be            -1.13  [ok]\n  hco3          25.33  [HIGH]\n  calibration CONVERGED after 3 iter — all targets met\n(node:91796) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n",
+    "spec": {
+      "baseline": "bischoff_cohort",
+      "name": "bischoff_no_pda",
+      "summary": "Bischoff et al. 2021 cohort infant (25 wk, 720 g, day 1, CPAP FiO2 0.26) — PDA validation, Table 3 'no PDA' column: duct closed, 2 mm foramen ovale, LVO 179 mL/min/kg",
+      "postnatal_age_days": 1,
+      "targets": {
+        "weight": 0.72,
+        "fio2": 0.26,
+        "pda_mm": 0,
+        "fo_mm": 2,
+        "co": 0.129
+      },
+      "tolerance": {
+        "co": 0.004
+      },
+      "max_iters": 14,
+      "final_seconds": 240
+    }
+  }
+}

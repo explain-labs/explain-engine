@@ -1,0 +1,224 @@
+{
+  "case": "cases/baseline.md",
+  "date": "2026-10-14T14:49:49.468Z",
+  "seconds": 274,
+  "conversation_id": "f4a44ab6e81a4c9cac914103ad359ef4",
+  "answer": "I'll start by reading the protocol docs to get the build SPEC schema and lever map right.\nNow let me check the `term_neonate` baseline and how the model reports CO / LVO, so my targets line up with what the builder measures.\n`co` reads LVO directly — that's exactly Table 2's LVO. Let me read the Calibrator doc for the full target table and tolerances.\nTwo things to verify before I write the SPEC: the `term_neonate` baseline weight, and the units of `Monitor.flows.lvo` that `co` reads.\n`lvo` is in L/min — confirmed. Let me check the `term_neonate` baseline's weight and heart rate, since the doc warns LVO is only weakly sensitive to the `co` lever.\n`term_neonate` is **3.545 kg**, so `weight: 3.3` will properly rescale. One last check — the baseline's heart rate and LVO operating point, to judge whether LVO 181 at HR 118 is reachable.\nI have what I need. Key findings from the pack that shape the SPEC:\n\n- **`co` reads LVO directly** — `READ_KEY = { co: \"lvo\" }`, `lvo ← Monitor.flows.lvo` in **L/min** (`explain-engine/docs/Calibrator.md`, and the `LIVE_READ` source at pack line 27957). So LVO 181 mL·min⁻¹·kg⁻¹ × 3.3 kg = **0.597 L/min**.\n- **`term_neonate` is 3.545 kg**, not 3.3 — the TOF family notes it was \"allometrically scaled from 3.545 kg with `weight_scale`\" (pack line 11978). So `weight: 3.3` is a real, necessary target here, not a no-op.\n- **`sys`+`dia` work only as a pair**, and with no `map` given the builder derives `map = dia + pp/3` = 45 + 25/3 ≈ 53.3 mmHg — correct, since the paper reports no MAP.\n\nBuilding it now:\n\nI'll build the Table 2 baseline case: a 3.3 kg term neonate at 24 h, room air, spontaneously breathing, both shunts closed, calibrated to the paper's EXPLAIN column — HR 118, ABP 70/45, LVO 181 mL·min⁻¹·kg⁻¹.\n\n\n\n### What I turned into targets\n\n| Table 2 row | SPEC target | Lever |\n|---|---|---|\n| HR 118 | `hr: 118` | `Heart.heart_rate_ref` |\n| ABP 70 / 45 | `sys: 70, dia: 45` | large-artery stiffness (`AA`/`AAR`/`AD` `el_base_factor_ps`) for pp = 25; systemic resistance for the derived MAP 53.3 |\n| LVO 181 mL·min⁻¹·kg⁻¹ | `co: 0.597` | `LV`+`RV` `el_max_factor_ps` |\n| LVEDV/LVSV ratio → EF 61.5 % | `ef: 61.5` (reported only) | superseded by `co` |\n| 3.3 kg, 24 h | `weight: 3.3`, `postnatal_age_days: 1` | structural |\n| closed shunts | `pda_mm: 0, fo_mm: 0` | structural |\n\nI tightened `hr` to ±2 (its lever is a direct setpoint, so it converges trivially) and `co` to ±0.02 L/min ≈ ±6 mL·min⁻¹·kg⁻¹, down from the `DEFAULT_TOL` of 0.03.\n\n### Reported values I could *not* use as targets\n\n1. **LVEDV, LVESV, LVSV, RVEDV, RVESV, RVSV** (6 of the 12 rows) — the builder has **no chamber-volume target**. The only volume target is `blood_volume`, which is total circulating volume in L, a different quantity. These stay emergent from contractility, filling and HR. I captured their *ratio* as far as possible via `ef`.\n2. **RVO 181** — there is no `rvo` key; `co` reads LVO only. This one is effectively covered anyway: with the duct and foramen both closed, RVO must equal LVO in steady state, so pinning LVO at 181 pins RVO at 181. Worth checking in the report rather than assuming.\n3. **fSVC 76 mL·min⁻¹·kg⁻¹** — no SVC-flow target exists in the builder or in `LIVE_READ`. It is emergent from the upper-body share of systemic flow.\n4. **EF 61.5 %** — passed, but `Calibrator.md` is explicit that `co` wins when both are given: `ef` goes under `superseded_targets` and is \"only reported\". I included it deliberately, as a free cross-check on the LVEDV/LVESV pair rather than as a fitted target.\n5. **The four literature columns** (Jhaveri, Groves, Kluckow, van Zadelhoff) — not targets by design; you asked me to reproduce the paper's simulation column, and those are the data it was validated *against*.\n\nI also deliberately left out everything Table 2 does not report — MAP, CVP, RR, SpO2/PO2, pCO2, pH/BE, Hb, temperature, PAP. Those targets are coupled, so calibrating to invented \"normal\" numbers would distort the fit to the values the paper actually reports. They keep the `term_neonate` baseline's values (room air, so no `fio2`).\n\n### Two caveats on how close this can get\n\n- **LVO 181 sits at the bottom of the `co` lever's range.** `Calibrator.md` records that on `term_neonate`, contractility ×0.6–1.6 moves EF across 47–70 % but LVO only across 179–207 mL·min⁻¹·kg⁻¹ — \"a CO fitted on this lever can leave EF well away from the echo value.\" Since we are also dropping HR to 118, the reachable LVO band shifts, so `co` may land with `lever_at_bound: true`, and the resulting EF may not be the paper's 61.5 %. The build report's `lever_at_bound` flag and the superseded `ef` row will show this directly — I won't claim either value until the report is back.\n- **Table 2 is end-expiratory; the builder is not.** `measureWindow` averages each key over a ~12 s window on top of the `Monitor`'s beat-averaging, so the fitted systolic/diastolic are respiration-averaged rather than strictly end-expiratory. Expect a small systematic offset on the pressure pair specifically.\n\ncalibration CONVERGED after 10 iter — all targets met\n\n```explain-command\n{\"op\": \"loadDefinition\", \"name\": \"paper_table2_term_baseline\", \"summary\": \"Antonius et al., Pediatric Research \\u2014 section 3.1.1 / Table 2 baseline validation case. Normal term neonate, 3.3 kg, 24 h, room air, spontaneous breathing, closed duct and foramen. Targets from the paper's EXPLAIN column: HR 118, ABP 70/45, LVO 181 mL/min/kg (0.597 L/min).\"}\n```",
+  "spec": {
+    "baseline": "term_neonate",
+    "name": "paper_table2_term_baseline",
+    "summary": "Antonius et al., Pediatric Research — section 3.1.1 / Table 2 baseline validation case. Normal term neonate, 3.3 kg, 24 h, room air, spontaneous breathing, closed duct and foramen. Targets from the paper's EXPLAIN column: HR 118, ABP 70/45, LVO 181 mL/min/kg (0.597 L/min).",
+    "postnatal_age_days": 1,
+    "targets": {
+      "weight": 3.3,
+      "hr": 118,
+      "sys": 70,
+      "dia": 45,
+      "co": 0.597,
+      "ef": 61.5,
+      "pda_mm": 0,
+      "fo_mm": 0
+    },
+    "tolerance": {
+      "hr": 2,
+      "co": 0.02
+    },
+    "max_iters": 14,
+    "final_seconds": 240
+  },
+  "host_build": {
+    "converged": true,
+    "iters": 10,
+    "unmet": [],
+    "residuals": [
+      {
+        "key": "hr",
+        "value": 118.12,
+        "target": 118,
+        "delta": 0.116,
+        "flag": "ok"
+      },
+      {
+        "key": "sys",
+        "value": 68.494,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "dia",
+        "value": 43.267,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pp",
+        "value": 25.227,
+        "target": 25,
+        "delta": 0.227,
+        "flag": ""
+      },
+      {
+        "key": "map",
+        "value": 55.058,
+        "target": 53.3,
+        "delta": 1.758,
+        "flag": "ok"
+      },
+      {
+        "key": "cvp",
+        "value": 2.3839,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pap_s",
+        "value": 36.288,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pap_m",
+        "value": 23.996,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "lvo",
+        "value": 0.58256,
+        "target": 0.597,
+        "delta": -0.014,
+        "flag": ""
+      },
+      {
+        "key": "ef",
+        "value": 51.056,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "q_da",
+        "value": 0,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "q_fo",
+        "value": 0,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "rr",
+        "value": 40.545,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "spo2_pre",
+        "value": 96.491,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "spo2_post",
+        "value": 96.109,
+        "target": null,
+        "delta": null,
+        "flag": ""
+      },
+      {
+        "key": "etco2",
+        "value": 36.376,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "po2",
+        "value": 70.336,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "pco2",
+        "value": 39.601,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "ph",
+        "value": 7.3719,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "be",
+        "value": -2.4961,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "hco3",
+        "value": 22.718,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      },
+      {
+        "key": "temp",
+        "value": 37.009,
+        "target": null,
+        "delta": null,
+        "flag": "ok"
+      }
+    ],
+    "lever_limits": [],
+    "ignored_targets": [],
+    "superseded_targets": [
+      {
+        "key": "ef",
+        "by": "co"
+      }
+    ],
+    "notes": [],
+    "solutes": {},
+    "source": "build_report",
+    "log": "target ef not calibrated: co uses the same lever\nderived targets: pulse pressure 25, MAP 53.3 (dia + pp/3)\nfetal mode: off (detected from baseline)\nstructural: weight -> 3.3 kg (allometric volume scaling)\nstructural: arterial elastance x1.036 for size ((W/W0)^-0.5)\nstructural: PDA 0 mm (diameter_relative 0 of 3 mm)\nstructural: foramen ovale 0 mm (left-to-right resistance x25)\nstructural: baroreflex MAP set-point 53.3\n\ncalibrating \"paper_table2_term_baseline\" (baseline term_neonate, profile neonate) — 4 target(s)\n  iter 0: map=58.55/53.3  pp=25.15/25✓  hr=137.27/118  co=0.67/0.597\n  iter 1: map=51.85/53.3✓  pp=23.59/25✓  hr=135.28/118  co=0.68/0.597\n  iter 2: map=45.27/53.3  pp=35.48/25  hr=74.93/118  co=0.55/0.597\n  iter 3: map=54.92/53.3✓  pp=23.63/25✓  hr=97.29/118  co=0.57/0.597\n  iter 4: map=57.74/53.3  pp=20.1/25  hr=121.46/118  co=0.61/0.597✓\n  iter 5: map=54.25/53.3✓  pp=22.25/25  hr=124.31/118  co=0.64/0.597\n  iter 6: map=54.11/53.3✓  pp=27.65/25  hr=119.76/118✓  co=0.64/0.597\n  iter 7: map=49.29/53.3  pp=21.73/25  hr=127.57/118  co=0.56/0.597\n  iter 8: map=54.88/53.3✓  pp=28.31/25  hr=110.93/118  co=0.58/0.597✓\n  iter 9: map=55/53.3✓  pp=27.06/25  hr=113.87/118  co=0.58/0.597✓\n  iter 10: map=55.14/53.3✓  pp=25.25/25✓  hr=117.94/118✓  co=0.58/0.597✓\n  converged at iter 10\n\n=== paper_table2_term_baseline — final vitals (profile neonate) ===\n  hr           118.12  (target 118, Δ 0.12)  [ok]\n  sys           68.49  (target 70, Δ -1.51)  [ok]\n  dia           43.27  (target 45, Δ -1.73)  [ok]\n  map           55.06  (target 53.3, Δ 1.76)  [ok]\n  pp            25.23  (target 25, Δ 0.23)  []\n  rr            40.54  [ok]\n  cvp            2.38  [ok]\n  pap_s         36.29  [ok]\n  pap_m            24  [ok]\n  ef            51.06  (target 61.5, Δ -10.44)  []\n  spo2_pre      96.49  [ok]\n  spo2_post     96.11  []\n  etco2         36.38  [ok]\n  po2           70.34  [ok]\n  pco2           39.6  [ok]\n  ph             7.37  [ok]\n  be             -2.5  [ok]\n  hco3          22.72  [ok]\n  calibration CONVERGED after 10 iter — all targets met\n(node:91620) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.\n(Use `node --trace-deprecation ...` to show where the warning was created)\n",
+    "spec": {
+      "baseline": "term_neonate",
+      "name": "paper_table2_term_baseline",
+      "summary": "Antonius et al., Pediatric Research — section 3.1.1 / Table 2 baseline validation case. Normal term neonate, 3.3 kg, 24 h, room air, spontaneous breathing, closed duct and foramen. Targets from the paper's EXPLAIN column: HR 118, ABP 70/45, LVO 181 mL/min/kg (0.597 L/min).",
+      "postnatal_age_days": 1,
+      "targets": {
+        "weight": 3.3,
+        "hr": 118,
+        "sys": 70,
+        "dia": 45,
+        "co": 0.597,
+        "ef": 61.5,
+        "pda_mm": 0,
+        "fo_mm": 0
+      },
+      "tolerance": {
+        "hr": 2,
+        "co": 0.02
+      },
+      "max_iters": 14,
+      "final_seconds": 240
+    }
+  }
+}

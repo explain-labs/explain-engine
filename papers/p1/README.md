@@ -12,6 +12,8 @@ This folder makes those experiments reproducible on this engine.
 |---|---|
 | `experiments.json` | **Source of truth.** One entry per experiment: the scenario it starts from, the ops that create the state (the same op shapes the app's lessons use), how long to settle and sample, and every measure with the paper's value and the literature target. |
 | `../evaluate.js` | Shared evaluator (sample paths, derived quantities, per-kg, tolerance). Used by the probe and by the app's `/paper/p1` page, so both show the same number. |
+| `cases/`, `specs/` | Pipeline prompts and the bot's archived replies/SPECs for the pipeline-built states |
+| `../../scripts/p1_build.mjs` | Asks the bot, archives, rebuilds locally (see below) |
 | `../../scripts/probe_p1.mjs` | Runs every experiment headlessly and prints `paper | engine | Δ | literature`. `--only`, `--override id:Model.prop=value` (lever sweeps) and `--json`. |
 
 ```bash
@@ -41,6 +43,37 @@ any column. The experiments here reconstruct each case from the **method the pap
 
 Read-outs are beat-averaged over the sampling window (the paper sampled at end-expiration, −3.5 mmHg);
 `Monitor` gained an `la` min/max target in the two scenarios so the transpulmonary gradient can be read.
+
+## States built by the AI parameterization pipeline (pilot: `baseline`, `pda_none`)
+
+The paper set its states by hand. Two of them are also **re-created by the pipeline** so the
+reproduction exercises the method the later papers describe (two stages: the language model
+interprets, the calibrator fits):
+
+1. `cases/<id>.md` is the prompt: the paper's own description of the case and its table.
+2. `scripts/p1_build.mjs` sends it to the Explain bot (Claude on the bot host, via `/v1/ask`),
+   which answers with a build SPEC; the host runs the builder. The reply (prose, SPEC, the host's
+   report) is archived as `specs/<id>.json`.
+3. The patient is then **rebuilt locally** from the archived SPEC with this checkout's
+   `scripts/build_patient.mjs` → `model_definitions/p1_<id>.json`, so the deposited scenario matches
+   this engine version and is reproducible without the language model
+   (`node scripts/p1_build.mjs --only <id> --no-bot`; `node scripts/probe_p1.mjs --rebuild`
+   measures the rebuilt patient beside the archived one — identical in the pilot).
+
+What the bot did (archived verbatim): for Table 2 it targeted weight 3.3 kg, HR 118, ABP 70/45
+(as the sys/dia pair → MAP 53.3 and pulse pressure 25), LVO 0.597 L/min, shunts closed, and
+listed EF as derived; for Table 3 "no PDA" it started from `bischoff_cohort`, closed the duct,
+chose a 2 mm foramen for "a small foramen ovale", targeted LVO 0.129 L/min with a tightened
+tolerance, and declined RVO, SVC flow and the LVO/RVO ratio because the calibrator has no lever
+for them. Both converged (10 and 3 iterations).
+
+**What the pilot shows.** The pipeline reaches the paper's targets, but through its own levers,
+not the paper's: LVO is fitted with ventricular contractility, so the term baseline reaches LVO
+174 with end-systolic volumes above the literature (LVESV 1.4 vs 0.9 ± 0.2 mL/kg, RVESV 1.9 vs
+1.5 ± 0.2), where the hand-rescaled state had them inside; and the bot's 2 mm foramen shunts
+left-to-right at atrial level, giving RVO 213 and LVO/RVO 0.85 against the paper's 1.0 (the
+hand-set 1.5 mm foramen gave 0.92). SVC flow 60 vs 74 (the hand-tuned arteriolar tweak gave 62).
+The other eight states remain hand-tuned until this trade-off is judged.
 
 ## Where the engine differs from the paper (as of this version)
 
