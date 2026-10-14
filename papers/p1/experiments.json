@@ -390,6 +390,27 @@
           ]
         },
         {
+          "key": "abps",
+          "label": "ABP systolic (build target 45; not in the paper)",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_max",
+          "round": 0
+        },
+        {
+          "key": "abpd",
+          "label": "ABP diastolic (build target 25; not in the paper)",
+          "unit": "mmHg",
+          "path": "Monitor.minmax.abp_pre_pres_min",
+          "round": 0
+        },
+        {
+          "key": "hr",
+          "label": "HR (build target 159; not in the paper)",
+          "unit": "min⁻¹",
+          "path": "Heart.heart_rate",
+          "round": 0
+        },
+        {
           "key": "da",
           "label": "Ductal flow (+ = L→R)",
           "unit": "mL·kg⁻¹·min⁻¹",
