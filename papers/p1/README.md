@@ -76,14 +76,27 @@ fixes fell out of the pilot: flow tolerances now scale with body weight (0.05 L/
 factor instead of 1.0, and an SVC lever on the upper-body resistance alone was replaced because it
 fought the MAP lever to both bounds.
 
-**What the pilot shows.** The pipeline reaches the paper's values: Table 2 within the literature
+**What the pilot shows.** The pipeline reaches the paper's values. Table 2: within the literature
 SD on every row except the end-systolic volumes (LVESV 1.4 vs 0.9 ± 0.2 mL/kg, RVESV 1.9 vs
-1.5 ± 0.2), because LVO is fitted with contractility — the hand-rescaled state kept them inside;
-Table 3 "no PDA" LVO = RVO 163, LVO/RVO 1.00, SVC 75 against the paper's 179/179/1.0/74, at HR 155.
-Two things it cannot do: the pulse pressure of a 720 g infant (lever at the ×1.8 stiffness ceiling,
-pressure 35/24 for a 45/25 target), and a strong heart — contractility ends at ×0.33 (EF 18 %),
-though the untouched cohort scenario itself runs at EF 24 % with its baked ×0.5. The other eight
-states remain hand-tuned until the pilot is judged.
+1.5 ± 0.2), because LVO is fitted with contractility (the hand-rescaled state kept them inside).
+Table 3 "no PDA": LVO = RVO ≈ 172, LVO/RVO 1.00, SVC ≈ 71 against the paper's 179/179/1.0/74, at
+the cohort's pressure 44/25 (target 45/25) and heart rate 159. The ejection fraction is low (≈17 %),
+largely inherited: the untouched cohort scenario runs at 24 % with its baked contractility ×0.5.
+
+**The pulse-pressure fix this needed.** The infant first stopped at about 35/24 with the stiffness
+lever at ×1.8. That ceiling was numerical: the aorta AA → AAR → AD is three compartments joined by
+tiny resistors, and explicit integration of such a chain fails once dt·(E₁+E₂)/R exceeds 4/3
+(measured 0.80 at ×1.8, 1.34 at ×3). `Resistor.implicit` integrates those two resistors
+backward-Euler (docs/Resistor.md: identical to the explicit result in the old stable range, equal to
+a half-time-step reference within 0.2 mmHg beyond it, no CPU cost); builder and live tuner switch it
+on, after which term and 0.72 kg patients are stable to at least ×8 (`ARTERIAL_EL_MAX` 2 → 6).
+Two pipeline fixes came with it: arteries are sized against the term weight, so an already-small
+baseline made before the size rule (bischoff_cohort, preterm_*wk) is stiffened too (×2.2 at
+0.72 kg); and a sys/dia pair without a MAP no longer fits the clinical estimate dia + pp/3, which
+the model's true time-averaged mean does not follow in a small infant (≈ dia + 0.46·pp), but a MAP
+target re-derived each iteration from the model's own waveform. The MAP tolerance is at most 5 % of
+the target. Bundled scenarios are not changed. The other eight states remain hand-tuned until the
+pilot is judged.
 
 ## Where the engine differs from the paper (as of this version)
 

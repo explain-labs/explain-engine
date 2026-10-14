@@ -90,7 +90,7 @@ import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { measureVitals, selectProfile, rangesFor, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
-import { makeController, runCalibration, ARTERIAL_EL_MAX, DIF_O2_FLOOR } from "../helpers/Calibrator.js";
+import { makeController, runCalibration, ARTERIAL_EL_MAX, DIF_O2_FLOOR, enableImplicitAorta } from "../helpers/Calibrator.js";
 
 // ---------------------------------------------------------------------------
 // 0. read the SPEC (from --spec <file> or stdin)
@@ -138,6 +138,9 @@ const tolOf = (k) => {
   if (spec.tolerance && spec.tolerance[k] != null) return spec.tolerance[k];
   const t = DEFAULT_TOL[k];
   if (t != null && FLOW_TARGETS.has(k)) return t * ((tolWeight ?? targets.weight ?? 3.5) / 3.5);
+  // the mean arterial pressure tolerance is at most 5 % of the target: ±3 mmHg is 6 % of a term
+  // neonate's MAP but 10 % of a 720 g infant's, enough to turn a 45/25 target into 41/22
+  if (k === "map" && typeof targets.map === "number") return Math.min(t, 0.05 * Math.abs(targets.map));
   return t;
 };
 
@@ -219,6 +222,7 @@ const notes = []; // things the caller should know that are neither a residual n
 // orthogonal (stiffer arteries raise systolic and lower diastolic around an almost unchanged mean).
 // With no measured MAP, the mean is derived the usual clinical way.
 const derivedTargets = {};
+let fitDiastolic = false; // sys/dia without map: the MAP target follows the model's waveform (see below)
 if (has("sys") || has("dia")) {
   if (!(has("sys") && has("dia"))) {
     notes.push(`${has("sys") ? "sys" : "dia"} was given without ${has("sys") ? "dia" : "sys"}; blood pressure is calibrated from the pair only, so it was not used`);
@@ -228,11 +232,17 @@ if (has("sys") || has("dia")) {
   } else {
     targets.pp = round(targets.sys - targets.dia, 2);
     derivedTargets.pp = targets.pp;
+    // Without a measured MAP the resistance lever needs a mean to aim at. The clinical estimate
+    // dia + pp/3 misses the pair: the model's MAP is the true time average, which in a small
+    // infant's waveform sits near dia + 0.46·pp, so a 45/25 target landed at 43/22. So the MAP
+    // target starts at the estimate and is re-derived every measurement from the model's own
+    // waveform, MAP = dia + k·pp with k = (MAP − dia)/pp as measured (measureAll below).
     if (!has("map")) {
       targets.map = round(targets.dia + targets.pp / 3, 1);
       derivedTargets.map = targets.map;
+      fitDiastolic = true;
     }
-    trace(`derived targets: pulse pressure ${targets.pp}${derivedTargets.map != null ? `, MAP ${derivedTargets.map} (dia + pp/3)` : ""}`);
+    trace(`derived targets: pulse pressure ${targets.pp}${fitDiastolic ? `, MAP ${derivedTargets.map} to start (dia + pp/3), then re-derived from the model's waveform` : ""}`);
   }
 }
 
@@ -287,20 +297,29 @@ if (weightKg != null) {
 // wk corrected ~3.2 m/s), while preterm arteries are intrinsically stiffer than term ones (Tauzin,
 // Pediatr Res 2006). Elastance x (W/W0)^-0.5 reproduces that PWV ratio (0.74 of term at 1.08 kg)
 // and gives the 28 wk patient a pulse pressure of about 16-18 mmHg (lower at a faster heart rate).
-// A larger exponent is not reachable:
-// the explicit integration of these compartments goes unstable above about x2 total elastance
-// (shared with the pulse-pressure lever below), so the factor is capped at ARTERIAL_SCALE_MAX.
+// The reference is the term neonate's weight, not the baseline's, so a baseline that is already
+// small but was made before this rule (bischoff_cohort, preterm_*wk: term elastance at 0.72–2.7 kg)
+// is sized too; the factor is set absolutely, so a baseline that already carries it is unchanged.
+// The integrator limit that used to cap this at x1.9 was the explicit AA–AAR–AD chain; those
+// resistors are now implicit (below), and ARTERIAL_SCALE_MAX only bounds the extrapolation of the
+// PWV data (x2.5 = 0.57 kg).
 // Neonatal baselines only (the PWV data are neonatal); fetal mode keeps its own seed.
 const ARTERIES = ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"].filter((n) => model.models[n]);
-// ARTERIAL_EL_MAX (2.0, from Calibrator.js): total arterial elastance multiplier the integrator tolerates (unstable at ~2.17)
-const ARTERIAL_SCALE_MAX = 1.9;
-let arterialScale = 1.0;
-if (!FETAL_MODE && weightKg != null && model._baseline_weight > 0 && weightKg !== model._baseline_weight) {
-  const wanted = Math.pow(weightKg / model._baseline_weight, -0.5);
-  arterialScale = Math.min(wanted, ARTERIAL_SCALE_MAX);
-  for (const n of ARTERIES) model.models[n].el_base_factor_scaling_ps = arterialScale;
-  trace(`structural: arterial elastance x${round(arterialScale, 3)} for size ((W/W0)^-0.5${wanted > ARTERIAL_SCALE_MAX ? `, capped from x${round(wanted, 2)}` : ""})`);
-  if (wanted > ARTERIAL_SCALE_MAX) notes.push(`arterial stiffness for a ${weightKg} kg baby was capped at x${ARTERIAL_SCALE_MAX} (x${round(wanted, 2)} would follow from size) to keep the simulation numerically stable, so its pulse pressure may run low`);
+const TERM_REF_WEIGHT = 3.545; // kg, term_neonate
+const ARTERIAL_SCALE_MAX = 2.5;
+let arterialScale = model.models.AA?.el_base_factor_scaling_ps ?? 1.0;
+if (!FETAL_MODE) {
+  // implicit flow on the resistors joining the near-merged aortic compartments, so the large
+  // arteries can be as stiff as the size rule and the pulse-pressure lever ask (docs/Resistor.md)
+  enableImplicitAorta(model);
+  const w = weightKg ?? model.weight;
+  if (w > 0 && w < TERM_REF_WEIGHT) {
+    const wanted = Math.pow(w / TERM_REF_WEIGHT, -0.5);
+    arterialScale = Math.min(wanted, ARTERIAL_SCALE_MAX);
+    for (const n of ARTERIES) model.models[n].el_base_factor_scaling_ps = arterialScale;
+    trace(`structural: arterial elastance x${round(arterialScale, 3)} for size ((W/${TERM_REF_WEIGHT} kg)^-0.5${wanted > ARTERIAL_SCALE_MAX ? `, capped from x${round(wanted, 2)}` : ""})`);
+    if (wanted > ARTERIAL_SCALE_MAX) notes.push(`arterial stiffness for a ${w} kg baby was capped at x${ARTERIAL_SCALE_MAX} (x${round(wanted, 2)} would follow from size), the edge of the pulse-wave-velocity data it extrapolates`);
+  }
 }
 if (has("height")) model.height = targets.height >= 3 ? targets.height / 100 : targets.height;
 else if (seed) model.height = seed.height;
@@ -518,24 +537,24 @@ const controllers = [];
 let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary shunt
 
 // MAP  <- systemic vascular resistance scaling (↑SVR ↑MAP)
+let mapController = null;
 if (has("map")) {
   let f = seed && seed.svr ? seed.svr : 1.0;
   eng.scale("systemic_resistances", f);
-  controllers.push(mkc({ key: "map", lever: "systemic resistance scale", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) }));
+  mapController = mkc({ key: "map", lever: "systemic resistance scale", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) });
+  controllers.push(mapController);
 }
 // pulse pressure <- stiffness of the large elastic arteries (AA, AAR, AD: the windkessel).
 // ↑stiffness ↑systolic ↓diastolic, MAP nearly unchanged (term neonate: x1.0 -> pp 26, x1.8 -> 43,
-// x0.3 -> 7 mmHg). The upper bound is a numerical one: stiffer than about x2 the explicit
-// integration of these small compartments goes unstable (pressures swing to hundreds of mmHg;
-// measured: term neonate unstable at x2.0, a calibrated 28 wk preterm at x2.4), so the lever stops
-// at 1.8 and a higher pulse pressure is reported as out of reach instead. The lever multiplies
-// the size scaling above (BloodVessel composes elastance factors multiplicatively), so in a small
-// baby, whose arteries already start stiffer, its upper bound is what is left of ARTERIAL_EL_MAX.
+// x0.3 -> 7 mmHg). Its upper bound was a numerical one (explicit integration of the AA–AAR–AD
+// chain failed at about x2); with those resistors implicit it is ARTERIAL_EL_MAX (x6, stable to
+// at least x8). The lever multiplies the size scaling above (BloodVessel composes elastance
+// factors multiplicatively), so in a small baby its upper bound is what is left of ARTERIAL_EL_MAX.
 if (has("pp")) {
   const arteries = ["AA", "AAR", "AD"].filter((n) => model.models[n]);
   const start = model.models[arteries[0]]?.el_base_factor_ps ?? 1.0;
   const apply = (f) => { for (const n of arteries) model.models[n].el_base_factor_ps = f; };
-  const hi = Math.min(1.8, ARTERIAL_EL_MAX / arterialScale);
+  const hi = ARTERIAL_EL_MAX / arterialScale;
   controllers.push(mkc({ key: "pp", lever: "large-artery stiffness x", lo: 0.3, hi, sign: +1, gain: 0.03, value: Math.min(start, hi), set: apply }));
 }
 // PAP (mean, or systolic from an echo TR jet) <- pulmonary vascular resistance scaling (↑PVR ↑PAP).
@@ -729,6 +748,17 @@ trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile $
 const measureAll = () => {
   const v = measureVitals(model, eng.send, { window: WINDOW });
   v.pp = v.sys - v.dia; // pulse pressure, the second half of the sys/dia pair
+  // sys/dia without MAP: re-aim the MAP target (and the baroreflex set-point, which defends it) at
+  // dia + k·pp with the waveform's own k. k changes slowly with stiffness and heart rate, so the
+  // target settles within a few iterations; bounded to the physiological range of the form factor
+  if (fitDiastolic && mapController && v.pp > 1 && Number.isFinite(v.map)) {
+    const k = Math.min(0.6, Math.max(0.25, (v.map - v.dia) / v.pp));
+    const m = round(targets.dia + k * targets.pp, 2);
+    mapController.target = m;
+    mapController.tol = tolOf("map");
+    targets.map = m;
+    if (model.models.BR_MAP) model.models.BR_MAP.set_value = m;
+  }
   return v;
 };
 let result;

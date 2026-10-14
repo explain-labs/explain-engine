@@ -16,6 +16,14 @@ export class Resistor extends BaseModelClass {
     this.comp_to = ""; // holds the name of the downstream component
     this.no_flow = false; // flags whether flow is allowed across this resistor
     this.no_back_flow = false; // flags whether backflow is allowed across this resistor
+    // Numerical scheme, not physiology: when true the flow is computed backward-Euler for the pair
+    // of compartments this resistor joins, flow = Δp / (R + dt·(E_from + E_to)), instead of the
+    // explicit Δp / R. Explicit integration of two capacitances joined by a small resistance is
+    // stable only while dt·(E_from + E_to)/R < 2 (< 4/3 for three equal ones in a row, as the
+    // aorta AA–AAR–AD is); the implicit form is stable for any elastance and equals the explicit
+    // one to first order when R >> dt·ΣE. Default false: only resistors that join near-merged
+    // compartments need it (see docs/Resistor.md).
+    this.implicit = false;
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
     this.p2_ext = 0.0; // external pressure on the outlet (mmHg)
     this.fixed_composition = false;
@@ -79,6 +87,22 @@ export class Resistor extends BaseModelClass {
       // reset the non persistent factors
       this.r_factor = 1.0;
       this.r_k_factor = 1.0;
+
+      // backward-Euler pair correction (see `implicit` above)
+      if (this.implicit) {
+        const k = this._t * (this._elastance(this._comp_from) + this._elastance(this._comp_to));
+        this.r_for_eff += k;
+        this.r_back_eff += k;
+      }
+  }
+
+  // current elastance of a compartment for the implicit correction: a capacitance's el_eff, or a
+  // time-varying elastance's instantaneous value between its minimum and maximum
+  _elastance(c) {
+    if (!c) return 0.0;
+    if (typeof c.el_max_eff === "number" && typeof c.act_factor === "number")
+      return c.el_min_eff + (c.el_max_eff - c.el_min_eff) * c.act_factor;
+    return typeof c.el_eff === "number" ? c.el_eff : 0.0;
   }
 
   calc_flow() {

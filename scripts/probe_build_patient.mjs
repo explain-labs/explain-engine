@@ -12,7 +12,9 @@
 //   - unknown targets are listed under ignored_targets
 //   - with targets.fio2: the reloaded scenario carries that FiO2, and the same patient put in
 //     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
-//   - with sys/dia: the derived pulse pressure (and MAP, when not given) are in the report
+//   - with sys/dia: the derived pulse pressure (and the MAP estimate, when not given) are in the
+//     report; without a MAP the MAP target follows the model's waveform and the pair lands
+//   - a 0.72 kg preterm baseline with sys/dia 45/25: converges without the stiffness lever at its bound
 //   - with pda_mm: the reloaded duct has that diameter at its pulmonary end
 //   - with fo_mm: the reloaded foramen ovale has that diameter
 //   - with ef and co: ef is reported as superseded by co (same lever)
@@ -58,7 +60,15 @@ const CASES = [
     // MAP derived from sys/dia; pulse pressure and respiratory rate calibrated
     name: "term_bp_rr",
     spec: { baseline: "term_neonate", name: "probe_term_bp_rr", targets: { hr: 140, sys: 68, dia: 40, spo2: 96, pco2: 42, rr: 52 } },
-    expectDerived: { pp: 28, map: 49.3 },
+    expectDerived: { pp: 28, map: 49.3 }, expectDia: true,
+  },
+  {
+    // a small infant on an already-preterm baseline: arteries sized against the term weight and the
+    // implicit aortic resistors let a 20 mmHg pulse pressure converge (it stopped near 11 with the
+    // lever at the old x1.8 bound); the pair is fitted as diastolic + pulse pressure
+    name: "preterm_baseline_bp",
+    spec: { baseline: "bischoff_cohort", name: "probe_bischoff_bp", targets: { hr: 159, sys: 45, dia: 25 } },
+    expectDia: true, expectPpFree: true,
   },
   {
     // lactic acidosis with measured electrolytes: the BE target is fitted by the unmeasured
@@ -166,6 +176,16 @@ for (const c of CASES) {
   if (c.expectNoTargets) check(report.targets.length === 0 && typeof report.measured?.map?.value === "number", "no calibrated targets, vitals measured");
   for (const s of c.expectSuperseded ?? []) check(report.superseded_targets?.some((x) => x.key === s.key && x.by === s.by), `${s.key} reported as superseded by ${s.by}`);
   for (const [k, v] of Object.entries(c.expectDerived ?? {})) check(report.derived_targets?.[k] === v, `derived target ${k} = ${v}`);
+  if (c.expectDia) {
+    // sys/dia without map: the resistance lever fits the diastolic pressure; both ends of the pair land
+    const sys = report.measured?.sys?.value, dia = report.measured?.dia?.value;
+    check(Math.abs(sys - c.spec.targets.sys) <= 3 && Math.abs(dia - c.spec.targets.dia) <= 2, `pressure ${sys?.toFixed(1)}/${dia?.toFixed(1)} (target ${c.spec.targets.sys}/${c.spec.targets.dia})`);
+  }
+  if (c.expectPpFree) {
+    const pp = report.targets.find((t) => t.key === "pp");
+    check(pp && pp.within && !pp.lever_at_bound, `pulse pressure ${pp?.value} reached without the stiffness lever at its bound`);
+    check(scenario.model_definition.models.AA_AAR?.implicit === true, "aortic resistors integrated implicitly in the emitted scenario");
+  }
   for (const t of report.targets.filter((t) => t.lever_at_bound)) {
     const atHi = Math.abs(t.lever_value - t.lever_bounds[1]) < 1e-9;
     print(`    note ${t.key}: ${t.lever} at its ${atHi ? "upper" : "lower"} bound (${t.within ? "target reached" : "target missed"})`);

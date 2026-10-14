@@ -180,10 +180,18 @@ export const DEFAULT_TOL = {
 };
 
 // Shared with the offline builder (scripts/build_patient.mjs):
-// - total arterial elastance multiplier the explicit integrator tolerates (unstable at ~2.17); the
-//   size stiffening (el_base_factor_scaling_ps) and the pulse-pressure lever (el_base_factor_ps)
-//   compose multiplicatively and together must stay below it
-export const ARTERIAL_EL_MAX = 2.0;
+// - total arterial elastance multiplier (size stiffening el_base_factor_scaling_ps × pulse-pressure
+//   lever el_base_factor_ps, which compose multiplicatively) the levers may reach. With the explicit
+//   intra-aortic resistors the integrator failed at about ×2 (the AA–AAR–AD chain); with them
+//   implicit (Resistor.implicit, set by enableImplicitAorta) term and 0.72 kg patients are stable
+//   to at least ×8, so ×6 leaves a margin
+export const ARTERIAL_EL_MAX = 6.0;
+// the resistors joining the near-merged aortic compartments; integrated backward-Euler so the
+// large arteries can be stiffened (see Resistor.implicit, docs/Resistor.md)
+export const AORTIC_RESISTORS = ["AA_AAR", "AAR_AD"];
+export function enableImplicitAorta(model) {
+  for (const n of AORTIC_RESISTORS) if (model.models[n]) model.models[n].implicit = true;
+}
 // - the oxygen lever's diffusion floor; below it the intrapulmonary shunt opens instead
 export const DIF_O2_FLOOR = 0.1;
 
@@ -308,17 +316,16 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
   }
   // Pulse pressure (sys/dia pair) <- stiffness of the large elastic arteries (AA, AAR, AD), their
   // el_base_factor_ps, as in the builder. It multiplies the size stiffening a built small patient
-  // carries in el_base_factor_scaling_ps, and the product must stay below ARTERIAL_EL_MAX or the
-  // integration goes unstable, so the upper bound is what that scaling leaves (and at most 1.8).
-  // The live tuner keeps a 5 % margin below ARTERIAL_EL_MAX: where the edge lies depends on the
-  // operating point (a 28 wk build at HR 170 ran at ×1.96 but blew up at ×1.99 and did not recover
-  // when the factor was set back), and unlike the builder, which refuses a failed build, a live
-  // tune cannot discard one.
+  // carries in el_base_factor_scaling_ps, and the product must stay below ARTERIAL_EL_MAX, so the
+  // upper bound is what that scaling leaves. The aortic resistors are switched to implicit
+  // integration first (a running scenario may predate them); without that the chain fails near ×2
+  // and a live tune, unlike the builder, cannot discard a failed run.
   if (targets.pp != null) {
     const arteries = LARGE_ARTERIES.map((n) => model.models[n]).filter(Boolean);
     if (arteries.length) {
+      enableImplicitAorta(model);
       const scaling = arteries[0].el_base_factor_scaling_ps ?? 1.0;
-      const hi = Math.min(1.8, (0.95 * ARTERIAL_EL_MAX) / scaling);
+      const hi = (0.95 * ARTERIAL_EL_MAX) / scaling;
       const start = Math.min(arteries[0].el_base_factor_ps ?? 1.0, hi);
       mk("pp", { lo: 0.3, hi, sign: +1, gain: 0.03, value: start,
         set: (f) => { for (const a of arteries) a.el_base_factor_ps = f; } });

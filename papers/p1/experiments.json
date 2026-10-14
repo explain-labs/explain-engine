@@ -274,33 +274,33 @@
           "fo_mm": 0
         },
         "converged": true,
-        "iters": 10,
+        "iters": 3,
         "results": [
           {
             "key": "map",
-            "target": 53.3,
-            "value": 55.058,
+            "target": 56.77,
+            "value": 54.92,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "pp",
             "target": 25,
-            "value": 25.227,
+            "value": 25.885,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "hr",
             "target": 118,
-            "value": 118.116,
+            "value": 118.769,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "co",
             "target": 0.597,
-            "value": 0.583,
+            "value": 0.598,
             "within": true,
             "lever_at_bound": false
           }
@@ -422,53 +422,53 @@
           "rvo": 0.123,
           "svc": 0.053
         },
-        "converged": false,
-        "iters": 20,
+        "converged": true,
+        "iters": 5,
         "results": [
           {
             "key": "map",
-            "target": 31.7,
-            "value": 29.222,
+            "target": 34.24,
+            "value": 33.758,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "pp",
             "target": 20,
-            "value": 11.689,
-            "within": false,
-            "lever_at_bound": true
+            "value": 19.545,
+            "within": true,
+            "lever_at_bound": false
           },
           {
             "key": "hr",
             "target": 159,
-            "value": 155.039,
+            "value": 158.59,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "co",
             "target": 0.122,
-            "value": 0.118,
+            "value": 0.124,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "rvo",
             "target": 0.123,
-            "value": 0.118,
+            "value": 0.124,
             "within": true,
             "lever_at_bound": false
           },
           {
             "key": "svc",
             "target": 0.053,
-            "value": 0.054,
+            "value": 0.051,
             "within": true,
             "lever_at_bound": false
           }
         ],
-        "not_targeted": "The bot targeted the Bischoff cohort means (LVO 169.7, RVO 170.3, SVC 73.4 mL·kg⁻¹·min⁻¹) rather than the paper's own simulation column, plus the cohort's pressure 45/25 and heart rate 159, which the paper's table does not list. Pulse pressure 20 mmHg is out of reach at 720 g (arterial-stiffness ceiling): the lever ended at its bound and the pressure settled near 35/24.",
+        "not_targeted": "The bot targeted the Bischoff cohort means (LVO 169.7, RVO 170.3, SVC 73.4 mL·kg⁻¹·min⁻¹) rather than the paper's own simulation column, plus the cohort's pressure 45/25 and heart rate 159, which the paper's table does not list. The arteries were stiffened for size (×2.2, as for a 720 g infant) and the large-artery stiffness lever then reached the 20 mmHg pulse pressure; the mean-pressure target follows the model's own waveform so that the sys/dia pair lands.",
         "model": "claude-opus-5 (Explain bot)"
       }
     },
