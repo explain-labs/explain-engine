@@ -11438,6 +11438,10 @@
      {
       "name": "cvp",
       "model": "RAIVCI"
+     },
+     {
+      "name": "la",
+      "model": "LA"
      }
     ],
     "signal_targets": [

@@ -183,3 +183,11 @@ circuit compartment (not owned by the Pda).
 - **A restrictive jet requires an orifice-like (short) throat `length`.** Because the viscous term scales with `length` (Poiseuille over the cone) while the Bernoulli term does not, a long, narrow duct is viscous-limited and will *not* jet — flow and velocity both stay low even at a large trans-ductal gradient (this is physically correct, and is what makes the new element honest where the old `√(full gradient/4)` over-reported). To model a restrictive/closing PDA, set `length` to the throat length (~1–2 mm) and tune `discharge_coeff` (lower → tighter jet). The `preterm_28wk_restrictive_pda` scenario uses `length = 1.5`, `discharge_coeff = 0.5` (≈2.5 m/s continuous L→R, low pulsatility).
 - **Velocity is gradient-limited.** Since `B·Q² = 4·v²` and `B·Q²` can at most equal the full trans-ductal gradient, the peak jet velocity cannot exceed `√(gradient/4)`. Raising peak velocity beyond that ceiling requires a larger systemic–pulmonary pressure difference (e.g. higher SVR / lower PVR), not duct geometry.
 - **Viscosity is dynamic.** `viscosity` is pulled from the upstream `AAR` compartment each step (which itself follows hematocrit), so `res` tracks viscosity changes automatically.
+
+## Per-beat velocity envelope (paper companion read-outs)
+
+`velocity_pa_max` / `velocity_pa_min` (Eq. 12 continuity velocity at the pulmonary end),
+`velocity_doppler_max` / `velocity_doppler_min` (Bernoulli jet) and `forward_fraction` (fraction of
+the beat with left-to-right flow) are latched once per beat, at the restart of the Heart's
+ventricular counter. They exist so the ductal Doppler patterns of the cardiovascular paper can be
+compared from the slow stream (see `papers/p1/`); the instantaneous values are unchanged.
