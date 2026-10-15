@@ -92,6 +92,9 @@ otherwise it reads as hypovolaemic and hypoperfused at rest. `scripts/_reference
   the GA table) over the baseline's.
 
 `_make_preterm.mjs`, `_make_bischoff.mjs`, `_make_fetus.mjs` and `build_patient.mjs` apply it.
+For a postnatal patient below 34 wk the renal reference of [`Kidneys`](./Kidneys.md) (preterm kidney
+section) then replaces `perfusion_setpoint` with the `KID_ART` pressure of its solved renal bed: the
+MAP rule gives 19.2 mmHg at 24 wk, below the glomerular pressure that kidney needs.
 `build_patient.mjs` never uses a targeted MAP, which may be pathological. Until 2026-10-15 the
 preterm, Bischoff and fetal scenarios kept the term reference (0.286 L, 40 mmHg). They sat at
 angiotensin ×1.75–5 and constricted their arterioles by up to ×2.25 through

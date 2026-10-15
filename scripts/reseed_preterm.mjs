@@ -7,12 +7,18 @@
 //
 //   node scripts/reseed_preterm.mjs 28 [--seconds 250] [--write]      (also 32, 34)
 //
+// Below 34 wk it also sets the healthy renal reference of the gestation (scripts/_renal_reference.mjs,
+// scripts/_renal_bed.mjs): Bowman, oncotic and kf, a renal bed solved for the renal blood flow and
+// glomerular pressure targets, and the kidney controllers seeded at that resting state.
+//
 // Variant scenarios that aren't named preterm_<ga>wk.json (e.g. preterm_28wk_restrictive_pda) can be
 // reseeded by passing the scenario name explicitly:
 //   node scripts/reseed_preterm.mjs --file preterm_28wk_restrictive_pda [--seconds 250] [--write]
 
 import fs from "node:fs";
 import { register } from "node:module";
+import { renalReference, describeRenalReference, TERM_RENAL } from "./_renal_reference.mjs";
+import { solveRenalBed } from "./_renal_bed.mjs";
 register("./resolve-extensionless.mjs", import.meta.url);
 
 const argv = process.argv.slice(2);
@@ -31,15 +37,28 @@ const _log = console.log; console.log = () => {};
 await import("../ModelEngine.js");
 const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
 
+const eng = {
+  build: (def) => { send("POST", "build", def); send("GET", "state", []); return liveModel; },
+  calc: (s) => send("POST", "calc", s),
+};
+
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 
-send("POST", "build", json.model_definition);
-send("GET", "state", []);
-const model = liveModel;
+const model = eng.build(json.model_definition);
 
 // preterm calibration is fully baked into the JSON; no extra deltas here — just warm to steady state.
-send("POST", "calc", SECONDS);
+eng.calc(SECONDS);
+
+// healthy renal reference of this gestation and size (< 34 wk): set the renal bed and seed the kidney's
+// controllers at rest (scripts/_renal_bed.mjs), then warm again so the file loads at that state
+const brMap = model.models.BR_MAP.set_value;
+const renalRef = renalReference({ ga: model.gestational_age, weight: model.weight, height: model.height, brMap });
+const renalLog = describeRenalReference(renalRef);
+if (renalRef) {
+  solveRenalBed(eng, model, renalRef, { brMap, termBrMap: TERM_RENAL.brMap });
+  eng.calc(SECONDS);
+}
 
 // --- replicate Model._processModelState ---
 delete model["DataCollector"];
@@ -64,5 +83,6 @@ json.model_definition = model;
 const out = JSON.stringify(json, null, 1) + "\n";
 JSON.parse(out);
 console.log(`reseed ${name}: ${Object.keys(model.models).length} top-level models, warmup ${SECONDS}s, output ${out.length} bytes`);
+console.log(renalLog);
 if (WRITE) { fs.writeFileSync(file, out); console.log("WROTE", file.pathname); }
 else { fs.writeFileSync(`/tmp/${name}_reseed.json`, out); console.log(`dry run -> /tmp/${name}_reseed.json (pass --write to commit)`); }
