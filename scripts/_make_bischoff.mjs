@@ -39,6 +39,7 @@
 //                 and: node scripts/probe_pda.mjs bischoff_cohort --beats 6
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 import { calc_gas_composition } from "../component_models/GasComposition.js";
@@ -122,8 +123,11 @@ log.push(`Breathing: spontaneous, minute_volume_ref x${(volFactor * (cfg.mv_boos
 
 // D. HR setpoint + baroreflex operating point (preterm runs faster at a lower defended MAP).
 model.models.Heart.heart_rate_ref = cfg.hr_ref;
+const termBrMap = model.models.BR_MAP.set_value;
 model.models.BR_MAP.set_value = cfg.br_map;
 log.push(`Heart: heart_rate_ref -> ${cfg.hr_ref}; Ans BR_MAP set_value -> ${cfg.br_map}`);
+// the slow volume/pressure controller measures this infant against its own healthy reference
+log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor: volFactor, mapRef: cfg.br_map, mapRefBaseline: termBrMap })));
 
 // E. venous preload (restore CVP after uniform volume scaling) + Stewart strong-ion difference (BE lever).
 for (const n of ["VLB", "VUB"]) { const c = model.models[n]; if (c) c.u_vol *= cfg.ven_uvol; }
