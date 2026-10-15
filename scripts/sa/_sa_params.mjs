@@ -33,21 +33,46 @@
 const setFactorPs = (model, names, prop, v) => {
   for (const n of names) { const m = model.models[n]; if (m) m[prop] = v; }
 };
+// A resistance scale group RELATIVE to the scenario as loaded: each member's r_factor_scaling_ps
+// is multiplied by v, so v = 1 is the patient as built. eng.scale(group, v) sets that layer
+// absolutely, which on a size-scaled scenario (bischoff_cohort, preterm_*) wiped the baked weight
+// scaling at nominal: MAP 42 -> 30 mmHg on the Bischoff infant before any lever had moved. Each
+// evaluation starts from a fresh build, so reading the layer at apply time is the loaded value.
+const scaleGroupRel = (model, eng, group, v) => {
+  const cfg = model.scaler_config ?? eng.model?.scaler_config;
+  for (const n of cfg?.[group]?.resistance ?? []) {
+    const c = model.models[n];
+    if (c && typeof c.r_factor_scaling_ps === "number") c.r_factor_scaling_ps *= v;
+  }
+};
+// the scenario's own value of an absolute-set factor (a preterm baseline bakes e.g. contractility
+// x0.5), so OAT centres on the patient as loaded rather than on 1.0
+const readFactor = (model, name, prop) => model.models[name]?.[prop] ?? 1;
 const mulBase = (model, names, prop, v) => {
   for (const n of names) { const m = model.models[n]; if (m && typeof m[prop] === "number") m[prop] *= v; }
 };
 
-// ---- REDUCED SET (11): one lever per subsystem, each a designated single-target controller ----
+// compartment groups shared with the builder's levers
+const LARGE_ARTERIES = ["AA", "AAR", "AD"];
+const UPPER_BODY_ART = ["AA_BR_ART", "AA_RUB"];
+const LOWER_BODY_ART = ["AD_INT_ART", "AD_LS_ART", "AD_KID_ART", "AD_RLB"];
+const PULMONARY_ARTERIES = ["PA", "PAAL", "PAAR"];
+const PERIPHERAL_ARTERIES = ["BR_ART", "INT_ART", "KID_ART", "LS_ART", "RUB", "RLB"];
+
+// ---- REDUCED SET (15): one lever per builder target, plus two candidate elastance levers ----
 export const REDUCED = [
   { name: "systemic_R", subsystem: "vascular", order: 10, scale: "log", lo: 0.3, hi: 8, nominal: () => 1,
-    designatedOut: "map", apply: (m, eng, v) => eng.scale("systemic_resistances", v) },
+    designatedOut: "map", apply: (m, eng, v) => scaleGroupRel(m, eng, "blood_systemic", v) },
+  // the intrapulmonary shunt (IPSL/IPSR) moves with the bed, as build_patient's scalePvr does
+  // (raised PVR does not create intrapulmonary shunt; without this the shunt's share of pulmonary
+  // flow rose with every PVR sample and SpO2 fell for the wrong reason)
   { name: "pulmonary_R", subsystem: "vascular", order: 10, scale: "log", lo: 0.3, hi: 12, nominal: () => 1,
-    designatedOut: "pap_m", apply: (m, eng, v) => eng.scale("pulmonary_resistances", v) },
-  { name: "contractility", subsystem: "cardiac", order: 20, scale: "log", lo: 0.3, hi: 3, nominal: () => 1,
+    designatedOut: "pap_m", apply: (m, eng, v) => { scaleGroupRel(m, eng, "blood_pulmonary", v); mulBase(m, ["IPSL", "IPSR"], "r_factor_scaling_ps", v); } },
+  { name: "contractility", subsystem: "cardiac", order: 20, scale: "log", lo: 0.3, hi: 3, nominal: (m) => readFactor(m, "LV", "el_max_factor_ps"),
     designatedOut: "co", apply: (m, e, v) => setFactorPs(m, ["LV", "RV"], "el_max_factor_ps", v) },
   { name: "heart_rate_ref", subsystem: "cardiac", order: 20, scale: "linear", lo: 0.5, hi: 1.6, nominal: () => 1,
     designatedOut: "hr", apply: (m, e, v) => mulBase(m, ["Heart"], "heart_rate_ref", v) },
-  { name: "O2_diffusion", subsystem: "gas-exchange", order: 20, scale: "log", lo: 0.1, hi: 8, nominal: () => 1,
+  { name: "O2_diffusion", subsystem: "gas-exchange", order: 20, scale: "log", lo: 0.1, hi: 8, nominal: (m) => readFactor(m, "GASEX_LL", "dif_o2_factor_ps"),
     designatedOut: "spo2", apply: (m, e, v) => setFactorPs(m, ["GASEX_LL", "GASEX_RL"], "dif_o2_factor_ps", v) },
   { name: "vent_drive", subsystem: "respiratory", order: 20, scale: "log", lo: 0.2, hi: 2.5, nominal: () => 1,
     designatedOut: "pco2", apply: (m, e, v) => mulBase(m, ["Breathing"], "minute_volume_ref", v) },
@@ -62,6 +87,22 @@ export const REDUCED = [
   { name: "fo_diameter", subsystem: "shunt", order: 20, scale: "linear", lo: 0, hi: 12,
     nominal: (m) => m.models.Shunts?.diameter_fo ?? 0,
     designatedOut: "q_fo", apply: (m, e, v) => { if (m.models.Shunts) m.models.Shunts.diameter_fo = v; } },
+  // ---- the patient builder's remaining levers (scripts/build_patient.mjs), same mechanisms ----
+  // pulse pressure <- large-artery stiffness (the windkessel). Upper bound 2.5: ARTERIAL_EL_MAX (6)
+  // over the builder's size factor at 0.72 kg (2.2), so every sample stays inside what the builder
+  // may set; the aortic resistors are integrated implicitly in every evaluation (_sa_eval)
+  { name: "artery_stiffness", subsystem: "vascular", order: 20, scale: "log", lo: 0.3, hi: 2.5, nominal: (m) => readFactor(m, "AA", "el_base_factor_ps"),
+    designatedOut: "pp", apply: (m, e, v) => setFactorPs(m, LARGE_ARTERIES, "el_base_factor_ps", v) },
+  // SVC flow <- the upper/lower-body arteriolar resistance split u (upper / u, lower x u)
+  { name: "svc_split", subsystem: "vascular", order: 20, scale: "log", lo: 0.4, hi: 3, nominal: () => 1,
+    designatedOut: "svc", apply: (m, e, v) => { setFactorPs(m, UPPER_BODY_ART, "r_factor_ps", 1 / v); setFactorPs(m, LOWER_BODY_ART, "r_factor_ps", v); } },
+  // ---- candidate levers (not in the builder yet; the SA decides whether they earn a place) ----
+  // pulmonary artery elastance: P1 obtained its bidirectional duct with PVR AND this (PA x2)
+  { name: "pulmonary_el", subsystem: "vascular", order: 20, scale: "log", lo: 0.5, hi: 4, nominal: (m) => readFactor(m, "PA", "el_base_factor_ps"),
+    designatedOut: "da_fwd", apply: (m, e, v) => setFactorPs(m, PULMONARY_ARTERIES, "el_base_factor_ps", v) },
+  // peripheral systemic arteries (regional arteries and the two body remainders), apart from the aorta
+  { name: "systemic_el", subsystem: "vascular", order: 20, scale: "log", lo: 0.5, hi: 4, nominal: (m) => readFactor(m, "BR_ART", "el_base_factor_ps"),
+    designatedOut: "dia", apply: (m, e, v) => setFactorPs(m, PERIPHERAL_ARTERIES, "el_base_factor_ps", v) },
   // weight is a MEASURED input (birth weight), set directly and never tuned to hit a vital sign.
   // context:true => held fixed (conditioned on), NOT sampled, in the calibration-oriented SA — otherwise
   // its wide 0.6-4 kg range dominates the variance of size-dependent outputs and masks the conditional
@@ -76,7 +117,7 @@ export const REDUCED = [
 // ---- EXPANDED SET: reduced + interaction/identifiability parameters ----
 export const EXPANDED = [
   ...REDUCED,
-  { name: "diastolic_stiffness", subsystem: "cardiac", order: 20, scale: "log", lo: 0.3, hi: 3, nominal: () => 1,
+  { name: "diastolic_stiffness", subsystem: "cardiac", order: 20, scale: "log", lo: 0.3, hi: 3, nominal: (m) => readFactor(m, "LV", "el_min_factor_ps"),
     designatedOut: "cvp", apply: (m, e, v) => setFactorPs(m, ["LV", "RV"], "el_min_factor_ps", v) },
   { name: "pericardium", subsystem: "cardiac", order: 20, scale: "linear", lo: 0.5, hi: 3,
     nominal: (m) => m.models.Heart?.pc_el_factor ?? 1,
@@ -127,6 +168,8 @@ export const BASE_OUTPUTS = [
   "hr", "map", "sys", "dia", "cvp", "pap_m", "co", "rvo", "lvo_minus_rvo",
   "spo2", "spo2_post", "svo2", "po2", "pco2", "ph", "be", "etco2",
   "rr", "vt", "mv", "q_da", "q_fo",
+  // the builder's newer targets and the ductal direction
+  "svc", "pp", "pap_s", "da_fwd",
 ];
 
 // Airway mechanics exist only under positive-pressure ventilation. In a spontaneously
@@ -160,6 +203,7 @@ export const PLAUSIBLE = {
   rr: [0, 200], vt: [0, 0.2], mv: [0, 10],
   c_dyn: [0, 100], r_aw: [0, 2000],
   q_da: [-5000, 5000], q_fo: [-5000, 5000],
+  svc: [0, 5], pp: [0, 150], pap_s: [0, 250], da_fwd: [0, 1],
 };
 
 // Outputs whose non-finiteness means the simulation itself diverged, rather than one
@@ -192,6 +236,11 @@ export function toOutputVector(vit, extra = {}) {
     c_dyn: vit.c_dyn, r_aw: vit.r_aw,                        // mL/cmH2O, cmH2O/(L/s)
     q_da: vit.q_da != null ? vit.q_da * 60000 : undefined,   // L/s -> mL/min
     q_fo: extra.q_fo != null ? extra.q_fo * 60000 : undefined,
+    svc: vit.svc,                                            // L/min
+    pp: (vit.sys != null && vit.dia != null) ? vit.sys - vit.dia : undefined,
+    pap_s: vit.pap_s,
+    // fraction of the last beat with left-to-right ductal flow (Pda latch); 1 = never right-to-left
+    da_fwd: extra.da_fwd,
   };
 }
 
@@ -200,7 +249,10 @@ export const DESIGNATED = {
   map: "systemic_R", pap_m: "pulmonary_R", co: "contractility", hr: "heart_rate_ref",
   spo2: "O2_diffusion", po2: "O2_diffusion", pco2: "vent_drive", be: "uma", ph: "uma",
   cvp: "venous_uvol", q_da: "pda_diameter", q_fo: "fo_diameter",
-  lvo_minus_rvo: "pda_diameter", rr: "vent_drive",
+  rr: "vent_drive",
+  // the builder takes the duct as measured (pda_mm), so the tunable lever of the net shunt is PVR
+  lvo_minus_rvo: "pulmonary_R",
+  pp: "artery_stiffness", svc: "svc_split", da_fwd: "pulmonary_el",
 };
 
 export function getParamSet(name) {

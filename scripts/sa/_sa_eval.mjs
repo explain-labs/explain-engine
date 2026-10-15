@@ -13,8 +13,14 @@ import fs from "node:fs";
 import { createEngine } from "../_harness.mjs";
 import { measureVitals } from "../_probe.mjs";
 import { getParamSet, applyAll, toOutputVector, OUTPUTS, CORE_OUTPUTS, maskImplausible } from "./_sa_params.mjs";
+import { enableImplicitAorta } from "../../helpers/Calibrator.js";
 
-const scenarioPath = (s) => new URL(`../../model_definitions/${s}.json`, import.meta.url);
+// a bundled scenario, or an SA context in scripts/sa/contexts/ (a builder-made operating point,
+// e.g. the Bischoff infant with a 2.2 mm duct; see contexts/README.md)
+const scenarioPath = (s) => {
+  const bundled = new URL(`../../model_definitions/${s}.json`, import.meta.url);
+  return fs.existsSync(bundled) ? bundled : new URL(`./contexts/${s}.json`, import.meta.url);
+};
 
 // Load a scenario definition (the model_definition object the engine builds).
 export function loadScenario(scenario) {
@@ -35,11 +41,14 @@ export async function createEvaluator({ scenario, warm = 60, window = 12, output
     // re-reads the JSON from disk every run.
     const model = eng.build(structuredClone(baseDef));
     if (!model || !model.models) return null;
+    // the aortic resistors integrated implicitly, as in every builder-made patient: the explicit
+    // scheme fails at about x2 arterial elastance, which stiff samples would reach
+    enableImplicitAorta(model);
     applyAll(model, eng, params, values);          // perturb (in dependency order)
     eng.calc(warm);                                // warm to steady state
     const vit = measureVitals(model, eng.send, { window });  // advances sim window & averages
     const q_fo = model.models.Shunts?.flow_fo;
-    const out = toOutputVector(vit, { q_fo });
+    const out = toOutputVector(vit, { q_fo, da_fwd: model.models.Pda?.forward_fraction });
     // Two-level guard. A non-finite CORE output means the simulation itself diverged, so
     // the whole evaluation is discarded. Everything else is masked per channel: an absurd
     // heart rate should not throw away a perfectly good MAP from the same run, and

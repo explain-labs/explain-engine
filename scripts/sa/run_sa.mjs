@@ -63,6 +63,7 @@ const OUTSCALE = {
   hr: 130, map: 50, sys: 65, dia: 40, cvp: 5, pap_m: 25, co: 0.5, spo2: 95, spo2_post: 95,
   svo2: 65, po2: 70, pco2: 40, ph: 7.4, be: 5, etco2: 35, q_da: 50, q_fo: 50,
   rvo: 0.5, lvo_minus_rvo: 50, rr: 40, vt: 0.015, mv: 0.5, c_dyn: 4, r_aw: 60,
+  svc: 0.15, pp: 25, pap_s: 35, da_fwd: 1,
 };
 
 const params = getLeverSet(paramSet, { includeContext }).map((p) => {
