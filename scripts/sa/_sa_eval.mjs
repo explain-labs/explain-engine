@@ -12,7 +12,7 @@
 import fs from "node:fs";
 import { createEngine } from "../_harness.mjs";
 import { measureVitals } from "../_probe.mjs";
-import { getParamSet, applyAll, toOutputVector, OUTPUTS } from "./_sa_params.mjs";
+import { getParamSet, applyAll, toOutputVector, OUTPUTS, CORE_OUTPUTS, maskImplausible } from "./_sa_params.mjs";
 
 const scenarioPath = (s) => new URL(`../../model_definitions/${s}.json`, import.meta.url);
 
@@ -24,7 +24,7 @@ export function loadScenario(scenario) {
 
 // Build an evaluator bound to one engine + one scenario. `evaluate(values, params)`
 // returns the OUTPUTS vector for a fresh build perturbed by `values`.
-export async function createEvaluator({ scenario, warm = 60, window = 12 } = {}) {
+export async function createEvaluator({ scenario, warm = 60, window = 12, outputs = OUTPUTS } = {}) {
   const eng = await createEngine();
   const baseDef = loadScenario(scenario);
 
@@ -40,8 +40,12 @@ export async function createEvaluator({ scenario, warm = 60, window = 12 } = {})
     const vit = measureVitals(model, eng.send, { window });  // advances sim window & averages
     const q_fo = model.models.Shunts?.flow_fo;
     const out = toOutputVector(vit, { q_fo });
-    // guard: any non-finite output => flag the whole eval as failed
-    for (const k of OUTPUTS) if (!Number.isFinite(out[k])) return null;
+    // Two-level guard. A non-finite CORE output means the simulation itself diverged, so
+    // the whole evaluation is discarded. Everything else is masked per channel: an absurd
+    // heart rate should not throw away a perfectly good MAP from the same run, and
+    // analyzeSobol already drops incomplete rows per output column.
+    for (const k of CORE_OUTPUTS) if (!Number.isFinite(out[k])) return null;
+    out._masked = maskImplausible(out, outputs);
     return out;
   }
 
@@ -60,7 +64,7 @@ async function mainCLI() {
   if (!cfgPath) { console.error("usage: node _sa_eval.mjs <configJson>"); process.exit(1); }
   const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8"));
   const params = getParamSet(cfg.paramSet).filter((p) => !cfg.paramNames || cfg.paramNames.includes(p.name));
-  const { evaluate } = await createEvaluator({ scenario: cfg.scenario, warm: cfg.warm, window: cfg.window });
+  const { evaluate } = await createEvaluator({ scenario: cfg.scenario, warm: cfg.warm, window: cfg.window, outputs: cfg.outputs });
   const out = [];
   for (let i = 0; i < cfg.rows.length; i++) {
     const o = evaluate(cfg.rows[i], params);

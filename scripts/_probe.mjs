@@ -16,6 +16,8 @@ export function measureVitals(model, send, { window = 20 } = {}) {
   const M = model.models.Monitor;
   const AA = model.models.AA; // ascending aorta — arterial blood gas
   const IVCI = model.models.IVCI; // IVC inlet — mixed-venous proxy
+  const VENT = model.models.Ventilator; // respiratory mechanics while mechanically ventilated
+  const BRE = model.models.Breathing; // ... and while breathing spontaneously
   const N = Math.round(window / SLICE);
   const acc = {};
   const add = (k, v) => {
@@ -43,6 +45,22 @@ export function measureVitals(model, send, { window = 20 } = {}) {
     add("lvo", M.flows?.lvo);
     add("rvo", M.flows?.rvo);
     add("svc", M.flows?.svc_flow); // superior vena cava flow (L/min)
+    // respiratory mechanics — device-agnostic, sourced from whichever pump is driving the
+    // lungs (the same convention Monitor uses for etco2). c_dyn/r_aw only exist under
+    // positive-pressure ventilation: spontaneously there is no airway-pressure swing to
+    // regress tidal volume against, so they read 0 and must not be fitted in that mode.
+    const vented = VENT?.is_enabled === true;
+    add("vt", vented ? VENT.exp_tidal_volume : BRE?.exp_tidal_volume); // L
+    add("mv", vented ? VENT.minute_volume : BRE?.minute_volume); // L/min
+    // NaN, deliberately, when the quantity is not measurable — never 0. The Ventilator sets
+    // `resistance = null` unless the breath had a real end-inspiratory hold, because without a
+    // plateau the resistive and elastic pressures cannot be separated; spontaneously there is no
+    // airway-pressure swing at all. `add` coerces null to 0 via ??, which would present
+    // "unmeasurable" as a hard zero and let a fitter treat it as data. NaN propagates through the
+    // accumulator instead, so the channel is masked and dropped rather than silently believed.
+    const nz = (v) => (v == null ? NaN : v);
+    add("c_dyn", vented ? nz(VENT.compliance_dynamic) : NaN); // mL/cmH2O
+    add("r_aw", vented ? nz(VENT.resistance) : NaN); // cmH2O/(L/s), needs an inspiratory pause
     add("ph", AA?.ph);
     add("pco2", AA?.pco2);
     add("po2", AA?.po2);

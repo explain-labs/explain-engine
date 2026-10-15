@@ -39,6 +39,21 @@ const nWorkers = Number(arg("--workers", String(Math.max(1, os.cpus().length - 2
 // by default the SA samples only the TUNABLE levers; measured `context` inputs (weight) are held fixed.
 // --include-context reproduces the population variance decomposition (weight sampled over its full range).
 const includeContext = argv.includes("--include-context");
+// --bound name=lo:hi (repeatable) narrows a lever's sampling range without editing the registry.
+// Bounds are used ONLY in the parent (sampling turns unit-cube values into physical ones); the
+// workers receive physical rows, so nothing has to be forwarded to them.
+// Motivation: the registry ranges are deliberately wide for population-level SA. `uma` spans
+// [0, 40] mEq/L, which swamps every gas-exchange and acid-base output and makes O2_diffusion and
+// vent_drive look unidentifiable. For fitting, uma is nearly measured (base excess comes off the
+// ABG), so the conditional question needs a patient-scale prior instead.
+const boundOverrides = {};
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] !== "--bound") continue;
+  const spec = argv[i + 1];
+  const m = /^([A-Za-z0-9_]+)=(-?[\d.eE+-]+):(-?[\d.eE+-]+)$/.exec(spec || "");
+  if (!m) { console.error(`bad --bound "${spec}" (expected name=lo:hi)`); process.exit(1); }
+  boundOverrides[m[1]] = [Number(m[2]), Number(m[3])];
+}
 const log = (...a) => console.error(...a);
 
 // characteristic clinical scale per output — used to normalise the local sensitivity
@@ -47,9 +62,17 @@ const log = (...a) => console.error(...a);
 const OUTSCALE = {
   hr: 130, map: 50, sys: 65, dia: 40, cvp: 5, pap_m: 25, co: 0.5, spo2: 95, spo2_post: 95,
   svo2: 65, po2: 70, pco2: 40, ph: 7.4, be: 5, etco2: 35, q_da: 50, q_fo: 50,
+  rvo: 0.5, lvo_minus_rvo: 50, rr: 40, vt: 0.015, mv: 0.5, c_dyn: 4, r_aw: 60,
 };
 
-const params = getLeverSet(paramSet, { includeContext });
+const params = getLeverSet(paramSet, { includeContext }).map((p) => {
+  const b = boundOverrides[p.name];
+  if (!b) return p;
+  if (!(b[0] < b[1])) { console.error(`bad --bound for ${p.name}: lo must be < hi`); process.exit(1); }
+  if (p.scale === "log" && b[0] <= 0) { console.error(`bad --bound for ${p.name}: log-scaled lever needs lo > 0`); process.exit(1); }
+  return { ...p, lo: b[0], hi: b[1] };
+});
+const appliedBounds = Object.fromEntries(params.filter((p) => boundOverrides[p.name]).map((p) => [p.name, [p.lo, p.hi]]));
 const paramNames = params.map((p) => p.name);   // the exact sampled subset, for worker-side alignment
 const problem = problemFromParams(params);
 const k = params.length;
@@ -91,6 +114,18 @@ const elapsed = Number(process.hrtime.bigint() - t0) / 1e9;
 const nOk = outs.filter(Boolean).length;
 log(`evaluated ${nOk}/${rows.length} ok in ${elapsed.toFixed(1)}s (${(elapsed / rows.length).toFixed(2)}s/eval effective)`);
 
+// Per-output mask rate. A converged row can still have individual channels masked as
+// implausible (see PLAUSIBLE in _sa_params.mjs); those are dropped per column, not per row.
+// A high rate here is the signal that an output is numerically unstable rather than sensitive.
+const maskRate = {};
+for (const out of OUTPUTS) {
+  const bad = outs.reduce((a, o) => a + (o && !Number.isFinite(o[out]) ? 1 : 0), 0);
+  if (bad) maskRate[out] = bad / Math.max(1, nOk);
+}
+const flagged = Object.entries(maskRate).sort((a, b) => b[1] - a[1]);
+if (flagged.length) log("masked (implausible) per output: " + flagged.map(([o, r]) => `${o} ${(r * 100).toFixed(1)}%`).join("  "));
+else log("masked (implausible) per output: none");
+
 // ---------- analyze ----------
 let result;
 if (tier === "oat") result = analyzeOAT(outs);
@@ -99,7 +134,7 @@ else if (tier === "sobol") result = analyzeSobol(outs);
 else if (tier === "prcc") result = analyzePRCC(outs);
 
 const outPath = new URL(`./results/${scenario}_${tier}_${paramSet}.json`, import.meta.url).pathname;
-fs.writeFileSync(outPath, JSON.stringify({ scenario, tier, paramSet, warm, window, seed, k, params: params.map((p) => p.name), nominal: nom, nOk, nTotal: rows.length, elapsed, result }, null, 2));
+fs.writeFileSync(outPath, JSON.stringify({ scenario, tier, paramSet, warm, window, seed, k, params: params.map((p) => p.name), bounds: params.map((p) => [p.lo, p.hi]), appliedBounds, outputs: OUTPUTS, nominal: nom, nOk, nTotal: rows.length, maskRate, elapsed, result }, null, 2));
 log(`\nwrote ${outPath}`);
 process.exit(0);
 
@@ -240,7 +275,7 @@ async function evaluateParallel(rows) {
     const outFile = `${HERE}results/.out_${tier}_${w}.jsonl`;
     // paramNames pins the worker to the SAME sampled subset (context-excluded) and order as the parent,
     // so each row's values line up with the worker's reconstructed param list.
-    fs.writeFileSync(cfgPath, JSON.stringify({ scenario, warm, window, paramSet, paramNames, rows: sh.rows, offset: sh.offset, outFile }));
+    fs.writeFileSync(cfgPath, JSON.stringify({ scenario, warm, window, paramSet, paramNames, outputs: OUTPUTS, rows: sh.rows, offset: sh.offset, outFile }));
     const child = spawn(process.execPath, [EVAL, cfgPath], { stdio: ["ignore", "ignore", "inherit"] });
     child.on("exit", (code) => {
       if (code !== 0) return reject(new Error(`worker ${w} exited ${code}`));

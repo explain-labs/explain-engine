@@ -118,10 +118,65 @@ export const EXPANDED = [
 ];
 
 // ---- OUTPUT VECTOR (from measureVitals + atrial shunt), the clinical targets ----
-export const OUTPUTS = [
-  "hr", "map", "sys", "dia", "cvp", "pap_m", "co", "spo2", "spo2_post", "svo2",
-  "po2", "pco2", "ph", "be", "etco2", "q_da", "q_fo",
+// BASE outputs are live in every scenario, ventilated or spontaneous.
+// `rvo` and `rr` were always measured by measureVitals but never surfaced here;
+// `lvo_minus_rvo` is the bi-ventricular output difference, which IS the net shunt and is
+// a far more direct observation of the duct/FO than q_da alone (whose variance is
+// dominated by the PVR/SVR ratio rather than by duct calibre).
+export const BASE_OUTPUTS = [
+  "hr", "map", "sys", "dia", "cvp", "pap_m", "co", "rvo", "lvo_minus_rvo",
+  "spo2", "spo2_post", "svo2", "po2", "pco2", "ph", "be", "etco2",
+  "rr", "vt", "mv", "q_da", "q_fo",
 ];
+
+// Airway mechanics exist only under positive-pressure ventilation. In a spontaneously
+// breathing scenario they are identically 0, which would give a zero-variance column and
+// divide-by-zero in the Sobol estimator — so they are opt-in, never in the default set.
+export const VENT_OUTPUTS = ["c_dyn", "r_aw"];
+
+export const OUTPUTS = BASE_OUTPUTS;
+
+export function getOutputs({ ventilated = false } = {}) {
+  return ventilated ? [...BASE_OUTPUTS, ...VENT_OUTPUTS] : [...BASE_OUTPUTS];
+}
+
+// PLAUSIBILITY BOUNDS — deliberately far wider than any normal range (RANGES in
+// scripts/_probe.mjs is the normal-range table; this is not that). The purpose is only to
+// catch numerical blow-up, never to constrain pathology: a candidate may legitimately be
+// in extremis, but it may not have a heart rate of 900.
+//
+// Motivation: the committed term_neonate Sobol run reported SD(hr) = 342 bpm and
+// SD(q_fo) = 673 mL/min, giving sum(S_T) ~ 6.8 and individual S_T > 2 — impossible for a
+// valid decomposition. The cause is heavy tails, not a real effect: Monitor derives
+// beat-to-beat HR as 60/interval, which explodes when a candidate barely beats, and q_fo
+// changes sign. Values outside these bounds are masked to NaN PER OUTPUT (not per row),
+// so analyzeSobol's existing per-column `keep` filter drops them from that column only and
+// every other output keeps the row.
+export const PLAUSIBLE = {
+  hr: [5, 320], map: [1, 200], sys: [1, 250], dia: [0, 200], cvp: [-15, 60], pap_m: [0, 200],
+  co: [0, 5], rvo: [0, 5], lvo_minus_rvo: [-3000, 3000],
+  spo2: [0, 100], spo2_post: [0, 100], svo2: [0, 100],
+  po2: [0, 800], pco2: [0, 300], ph: [6.2, 8.0], be: [-50, 50], etco2: [0, 200],
+  rr: [0, 200], vt: [0, 0.2], mv: [0, 10],
+  c_dyn: [0, 100], r_aw: [0, 2000],
+  q_da: [-5000, 5000], q_fo: [-5000, 5000],
+};
+
+// Outputs whose non-finiteness means the simulation itself diverged, rather than one
+// channel being unreadable. Only these justify discarding the whole evaluation.
+export const CORE_OUTPUTS = ["map", "co", "ph", "po2"];
+
+// Mask implausible values to NaN in place. Returns the number of channels masked.
+export function maskImplausible(out, outputs = OUTPUTS) {
+  let masked = 0;
+  for (const k of outputs) {
+    const v = out[k];
+    const b = PLAUSIBLE[k];
+    if (!Number.isFinite(v)) { out[k] = NaN; masked++; continue; }
+    if (b && (v < b[0] || v > b[1])) { out[k] = NaN; masked++; }
+  }
+  return masked;
+}
 
 // map a measureVitals result (+ extra reads) to the OUTPUTS vector
 export function toOutputVector(vit, extra = {}) {
@@ -129,6 +184,12 @@ export function toOutputVector(vit, extra = {}) {
     hr: vit.hr, map: vit.map, sys: vit.sys, dia: vit.dia, cvp: vit.cvp, pap_m: vit.pap_m,
     co: vit.lvo, spo2: vit.spo2_pre, spo2_post: vit.spo2_post, svo2: vit.svo2,
     po2: vit.po2, pco2: vit.pco2, ph: vit.ph, be: vit.be, etco2: vit.etco2,
+    rvo: vit.rvo,                                            // L/min
+    // net shunt, in mL/min to match the q_da/q_fo convention. LVO is inflated by a ductal
+    // L->R shunt and RVO by an atrial one, so the difference carries the shunt directly.
+    lvo_minus_rvo: (vit.lvo != null && vit.rvo != null) ? (vit.lvo - vit.rvo) * 1000 : undefined,
+    rr: vit.rr, vt: vit.vt, mv: vit.mv,                      // breaths/min, L, L/min
+    c_dyn: vit.c_dyn, r_aw: vit.r_aw,                        // mL/cmH2O, cmH2O/(L/s)
     q_da: vit.q_da != null ? vit.q_da * 60000 : undefined,   // L/s -> mL/min
     q_fo: extra.q_fo != null ? extra.q_fo * 60000 : undefined,
   };
@@ -139,6 +200,7 @@ export const DESIGNATED = {
   map: "systemic_R", pap_m: "pulmonary_R", co: "contractility", hr: "heart_rate_ref",
   spo2: "O2_diffusion", po2: "O2_diffusion", pco2: "vent_drive", be: "uma", ph: "uma",
   cvp: "venous_uvol", q_da: "pda_diameter", q_fo: "fo_diameter",
+  lvo_minus_rvo: "pda_diameter", rr: "vent_drive",
 };
 
 export function getParamSet(name) {
