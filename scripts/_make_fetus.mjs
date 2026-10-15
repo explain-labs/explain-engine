@@ -24,6 +24,7 @@
 // gestation (much lower than the term fetus's ~51 mmHg).
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { FETAL, FETAL_GAS } from "./_ga_tables.mjs";
@@ -150,8 +151,11 @@ log.push(`Blood: P50_0 ${cfg.p50} (HbF)${cfg.hb != null ? `, hemoglobin ${cfg.hb
 // F. heart rate + the MAP the baroreflex defends. If br_map does not track the fetus's actual
 // operating pressure the ANS drives permanent reflex tachycardia and vasoconstriction.
 M.Heart.heart_rate_ref = cfg.hr_ref;
+const termBrMap = M.BR_MAP ? M.BR_MAP.set_value : null;
 if (M.BR_MAP) M.BR_MAP.set_value = cfg.br_map; // flattened onto model.models at build (nesting is JSON-only)
 log.push(`Heart: heart_rate_ref -> ${cfg.hr_ref}; Ans BR_MAP set_value -> ${cfg.br_map}`);
+// the slow volume/pressure controller measures this fetus against its own healthy reference
+log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor: volFactor, mapRef: cfg.br_map, mapRefBaseline: termBrMap })));
 
 // G. immature myocardium (weaker systole, stiffer/slower diastolic relaxation) and venous preload.
 // Uniform volume scaling preserves the stressed fraction but leaves CVP near zero, so trim the

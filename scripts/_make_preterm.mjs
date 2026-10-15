@@ -19,6 +19,7 @@
 // higher) at a lower MAP (~ GA in mmHg) with RDS oxygenation (lower PO2/SpO2, mild resp acidosis).
 import fs from "node:fs";
 import { setDiagramTitle } from "./_titles.mjs";
+import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
@@ -119,8 +120,11 @@ log.push(`Breathing: spontaneous, minute_volume_ref x${volFactor.toFixed(3)}, vt
 // D. HR setpoint + baroreflex operating point. Preterm runs faster; the ANS baroreflex must defend the
 // preterm's lower normal MAP (~ GA in mmHg) or it perpetually drives reflex tachycardia/vasoconstriction.
 model.models.Heart.heart_rate_ref = cfg.hr_ref;
+const termBrMap = model.models.BR_MAP.set_value;
 model.models.BR_MAP.set_value = cfg.br_map;   // flattened to model.models at build (nesting is JSON-only)
 log.push(`Heart: heart_rate_ref -> ${cfg.hr_ref}; Ans BR_MAP set_value -> ${cfg.br_map}`);
+// the slow volume/pressure controller measures this infant against its own healthy reference
+log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor: volFactor, mapRef: cfg.br_map, mapRefBaseline: termBrMap })));
 
 // E. engine-level metadata; re-anchor the allometric baseline to the preterm weight so reset()/scaling
 // in-app work from the preterm size (build re-derives _baseline_weight = weight on reload).

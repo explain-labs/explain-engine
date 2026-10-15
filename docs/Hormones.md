@@ -82,6 +82,24 @@ Anchor `perfusion_setpoint` ≈ baseline `KID_ART.pres` (neonate ≈ 40, adult �
 scenarios ship **enabled** with **physiologic** time constants (`angiotensin_tc` 30 s, `adh_tc`
 120 s, `aldosterone_tc` 1800 s).
 
+**The set-points are the patient's healthy reference, not its current state.** A congenital
+lesion keeps its size's reference, so a coarctation's low renal pressure activates RAAS
+(angiotensin ≈ 2.5), as it should. A smaller or less mature patient needs its own reference,
+otherwise it reads as hypovolaemic and hypoperfused at rest. `scripts/_reference.mjs`
+(`scaleHormoneReferences`) derives it from the baseline the patient was made from:
+- `volume_setpoint` scales with the volume factor (weight / baseline weight);
+- `perfusion_setpoint` scales with the healthy MAP the gestation defends (`BR_MAP.set_value` from
+  the GA table) over the baseline's.
+
+`_make_preterm.mjs`, `_make_bischoff.mjs`, `_make_fetus.mjs` and `build_patient.mjs` apply it.
+`build_patient.mjs` never uses a targeted MAP, which may be pathological. Until 2026-10-15 the
+preterm, Bischoff and fetal scenarios kept the term reference (0.286 L, 40 mmHg). They sat at
+angiotensin ×1.75–5 and constricted their arterioles by up to ×2.25 through
+`Circulation.svr_factor_art`. `scripts/_fix_hormone_references.mjs` repaired the stored files:
+it set the references and kept that constriction in the vessels' `r_factor_ps` as a scenario
+adjustment (Circulation no longer counts it as RAAS's), so each patient's calibrated resting state
+is kept while RAAS now starts near neutral.
+
 **Validated headless** (`scripts/headless.mjs <scenario> --bleed FRAC | --naload Δ --phase2 S`,
 optionally `--hset aldosterone_tc=…` to compress for a quick loop check):
 - **Resting neutrality:** hormones ≈ 1.0; GFR/urine/FENa unchanged from the no-hormone calibration;

@@ -90,6 +90,7 @@ import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { measureVitals, selectProfile, rangesFor, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
+import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
 import { makeController, runCalibration, ARTERIAL_EL_MAX, DIF_O2_FLOOR, enableImplicitAorta } from "../helpers/Calibrator.js";
 
 // ---------------------------------------------------------------------------
@@ -277,6 +278,11 @@ if (FETAL_MODE) {
   }
   seed = PRETERM_SEED[nearestGa(targets.gestational_age)];
 }
+
+// the baseline's own size and healthy MAP, read before anything is scaled: the slow volume/pressure
+// controller (Hormones) is re-referenced to the built patient from these (see _reference.mjs)
+const baseWeight = model._baseline_weight ?? model.weight;
+const baseBrMap = model.models.BR_MAP ? model.models.BR_MAP.set_value : null;
 
 // weight: allometric volume scaling (scale_to_weight sets model.weight too). Apply FIRST —
 // _scale_vol multiplies vol AND u_vol on every listed compartment, so any absolute per-compartment
@@ -512,6 +518,13 @@ if (seed && model.models.Heart && !has("hr")) model.models.Heart.heart_rate_ref 
 // the baroreflex must defend the gestation's own MAP when the spec does not name one, or it drives
 // permanent reflex tachycardia (the fetal setpoint is 50 at term, far above a 30 wk target)
 if (seed?.br_map != null && !has("map") && model.models.BR_MAP) model.models.BR_MAP.set_value = seed.br_map;
+// Hormones measures the patient against its own HEALTHY reference: blood volume scaled with size,
+// renal perfusion with the gestation's normal MAP (seed.br_map), never with a targeted MAP, which may
+// be pathological (a hypotensive patient should activate RAAS)
+if (weightKg != null || seed?.br_map != null) {
+  const r = scaleHormoneReferences(model, { volumeFactor: weightKg != null && baseWeight > 0 ? weightKg / baseWeight : 1.0, mapRef: seed?.br_map ?? null, mapRefBaseline: baseBrMap });
+  if (r) trace(`structural: ${describeHormoneReferences(r)}`);
+}
 // fetal haemoglobin affinity (HbF), maternal pool excluded
 if (FETAL_MODE && seed?.p50 != null && model.models.Blood) {
   if (model.models.Blood.set_P50) model.models.Blood.set_P50(seed.p50); else model.models.Blood.P50_0 = seed.p50;
