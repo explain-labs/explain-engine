@@ -4,6 +4,11 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
+> **Since 2026-10-16 only `term_neonate` is maintained.** The frozen set that live pages need
+> (`bischoff_cohort`, `p1_baseline`, `p1_pda_none`, `tof_severe`) is kept in place; everything else
+> is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
+> the fixed term baby.
+>
 > Consumers generate their own copy from it. In the [explain-ui](https://github.com/explain-labs/explain-ui)
 > web app, `scripts/sync-scenarios.mjs` copies this directory into its `public/model_definitions/`
 > on every `predev`/`prebuild` and serves it statically. **That copy is generated, gitignored, and
