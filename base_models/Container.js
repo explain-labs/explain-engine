@@ -11,7 +11,7 @@ export class Container extends BaseModelClass {
     // initialize independent properties
     this.u_vol = 0.0; // unstressed volume UV (L)
     this.el_base = 0.0; // baseline elastance E (mmHg/L)
-    this.el_k = 0.0; // non-linear elastance factor K2 (unitless)
+    this.el_k = 0.0; // non-linear elastance K2 (mmHg/L^2), acts only above the unstressed volume
     this.pres_ext = 0.0; // non persistent external pressure p2(t) (mmHg)
     this.vol_extra = 0.0; // additional volume of the container (L)
     this.contained_components = []; // list of names of models this Container contains
@@ -94,7 +94,11 @@ export class Container extends BaseModelClass {
 
   calc_pressure() {
     // calculate the recoil pressure
-    this.pres_in = this.el_k_eff * Math.pow(this.vol - this.u_vol_eff, 2) + this.el_eff * (this.vol - this.u_vol_eff);
+    // the non-linear term only stiffens a stretched container (above its unstressed volume): (V - U)^2
+    // is also positive below U, where it would push the wrong way (a slack pericardium does not
+    // squeeze an under-filled heart)
+    const _s = this.vol - this.u_vol_eff;
+    this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
 
     // calculate the transmural pressure
     this.pres_tm = this.pres_in - this.pres_ext;

@@ -13,8 +13,20 @@ BaseModelClass
 ```
 
 `Container` extends `BaseModelClass` directly (it does not derive from `Capacitance`), but implements
-the same `el_base`/`u_vol`/`el_k` factor pattern and the same `calc_pressure` recoil formula. See
-[BaseModelClass.md](./BaseModelClass.md) for the lifecycle contract.
+the same `el_base`/`u_vol`/`el_k` factor pattern and the same `calc_pressure` recoil formula, with one
+difference: the non-linear term only acts on a **stretched** container,
+
+```
+S      = vol − u_vol_eff
+pres_in = (S > 0 ? el_k_eff · S² : 0) + el_eff · S
+```
+
+because `S²` is also positive below the unstressed volume, where it would push the wrong way: a
+slack pericardium must not squeeze an under-filled heart. That is what gives the pericardium its
+J-shaped curve: slack up to a reserve volume (`u_vol`), then a steep `el_k` wall (pericardial
+constraint, tamponade via `Heart.pc_extra_volume`). Note that `el_k` is in mmHg/L², so with
+volumes of millilitres it needs values of ~10⁵ to matter. See [BaseModelClass.md](./BaseModelClass.md)
+for the lifecycle contract.
 
 ## What it models
 
@@ -36,7 +48,7 @@ flow endpoint.
 |---|---|---|
 | `u_vol` | L | Unstressed volume of the container |
 | `el_base` | mmHg/L | Baseline (linear) elastance |
-| `el_k` | unitless | Non-linear elastance coefficient |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient (acts only above `u_vol`) |
 | `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
 | `vol_extra` | L | Additional fixed volume added to the contained sum |
 | `contained_components` | string[] | Names of the models this container encloses |
