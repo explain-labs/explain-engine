@@ -145,6 +145,61 @@ shipped values were calibrated this way (autoregulation enabled, `Ans` disabled)
 Stable across 60–150 s warm-ups (no drift/oscillation); `afferent_factor` ≈ 1 confirms
 autoregulation sits near-neutral at baseline (no railing).
 
+### Preterm kidney: the healthy renal reference by gestation
+
+Until 2026-10-15 every preterm and Bischoff scenario kept the term kidney. Bowman 8 + oncotic 18 =
+26 mmHg stood against a glomerular pressure of 18–25 mmHg, so GFR was 0 at ≤ 30 wk. The term
+myogenic set-point (40 mmHg) held the afferent at its 0.50 dilation floor, renal blood flow per kg
+was higher than term's, and `kf` was the term value at every size.
+
+`scripts/_renal_reference.mjs` gives a postnatal patient below 34 wk the kidney of its own
+gestation and size. The rules were chosen with the model's author, one at a time:
+
+| quantity | rule | basis |
+|---|---|---|
+| GFR target | Vieux 2010 day-7 medians, 7.9 (27 wk) → 30.3 (31 wk) mL/min per 1.73 m², exponential (×1.4/wk), extrapolated to 24 wk; plateau from 31 wk | Vieux, *Pediatrics* 2010 (doi 10.1542/peds.2009-1426); Gordjani 1988 |
+| `oncotic_base` | 15 mmHg at ≤ 28 wk, linear to 18 at 40 wk (kidney only; blood albumin also feeds the acid–base term) | preterm plasma COP ~15 vs term ~17–19 (*Crit Care Med* 1981) |
+| `p_bowman` | 8 × BR_MAP set-point / 50 | immature transglomerular gradient only modestly lower (Ichikawa 1979) |
+| `kf` | term `kf` × body surface / term body surface (Mosteller) | the filtration surface grows with the body |
+| renal blood flow | follows the GFR target at term's filtration fraction (RBF/GFR 21.0) | inulin and PAH clearance rise in parallel 28 → 35 wk (Fawer 1979) |
+| glomerular pressure | `p_bowman` + oncotic + GFR target / `kf` | what that `kf` needs to filter the target |
+
+`scripts/_renal_bed.mjs` (`solveRenalBed`) then sets the renal bed to these targets. With
+autoregulation off and Hormones released, it iterates the base `r_for` of `KID_ART` (afferent) and
+`KID_VEN` (efferent; a vessel pushes its resistance onto its input resistor `KID_CAP_KID_VEN`) until
+renal blood flow and `KID_CAP.pres` meet their targets. Base `r_for` is the only layer nobody else
+owns: autoregulation writes `KID_ART.r_factor_ps`, Hormones the efferent resistor's `r_factor_ps`,
+and the builder's `eng.scale(...)` groups can overwrite the vessels' `r_factor_scaling_ps`. The
+efferent resistor's own layers return to 1, so the old RAAS excess folds into the base. Last, it
+seeds the controllers at that resting state: myogenic set-point = `KID_ART.pres` (the term window
+width, scaled by the gestation's MAP), TGF set-point = GFR × Na, and Hormones'
+`perfusion_setpoint` = `KID_ART.pres`. The PR #61 rule (40 × BR_MAP/50) cannot hold here: at
+24 wk it gives 19.2 mmHg, below the glomerular pressure the kidney needs (19.7).
+
+The repaired scenarios (`scripts/_fix_renal_bed.mjs`; the same solve runs in `reseed_preterm.mjs`
+and in `build_patient.mjs` before calibration), at rest:
+
+| scenario | GFR mL/min/kg (target) | renal blood flow mL/min/kg (target) | MAP before → after |
+|---|---|---|---|
+| preterm_24wk | 0.22 (0.19) | 4.0 (4.1) | 24.5 → 27.4 |
+| bischoff_cohort (25 wk) | 0.25 (0.26) | 5.2 (5.4) | 29.5 → 30.3 |
+| p1_pda_none (25 wk) | 0.22 (0.26) | 5.5 (5.4) | 33.7 → 34.8 |
+| preterm_26wk | 0.32 (0.34) | 7.0 (7.1) | 28.8 → 30.0 |
+| preterm_28wk | 0.62 (0.63) | 13.3 (13.3) | 28.3 → 29.5 |
+| preterm_30wk | 1.12 (1.11) | 22.9 (23.4) | 33.4 → 33.5 |
+| preterm_32wk | 1.35 (1.45) | 30.0 (30.5) | 37.8 → 37.6 |
+
+Autoregulation and angiotensin sit at ≈ 1 at rest, and blood gases are unchanged. The lower
+renal blood flow sends more blood to the rest of the body: MAP rises by 1–3 mmHg and the
+baroreflex lowers HR by 6–10 bpm at 25–28 wk. The model's author chose to keep that shift. Not
+changed: 34 wk and up (GFR already on the plateau), `fetus_30wk` (it already filters, and the
+reference values are postnatal), and the term and congenital scenarios.
+
+`bischoff_cohort` and `p1_pda_none` also feed the P1 experiments, which were computed with the term
+kidney (and, in `p1_pda_none`, the term Hormones references: it got the Hormones repair of
+`scripts/_fix_hormone_references.mjs` first). Repairing them moves P1's ductal experiments (e.g. `pda_ltr` LVO/RVO 1.68 → 1.80, ductal flow
++3 to +11 mL/kg/min); the model's author chose the correct kidney over P1's frozen numbers.
+
 ## GFR autoregulation (myogenic + TGF)
 
 Optional closed-loop autoregulation (`autoregulation_enabled`, **default `false`** → the

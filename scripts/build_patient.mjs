@@ -91,6 +91,8 @@ import { serializeState } from "./_serialize_state.mjs";
 import { measureVitals, selectProfile, rangesFor, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
 import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
+import { renalReference, describeRenalReference, TERM_RENAL } from "./_renal_reference.mjs";
+import { solveRenalBed } from "./_renal_bed.mjs";
 import { makeController, runCalibration, ARTERIAL_EL_MAX, DIF_O2_FLOOR, enableImplicitAorta } from "../helpers/Calibrator.js";
 
 // ---------------------------------------------------------------------------
@@ -742,6 +744,23 @@ if (has("be") || has("ph")) {
     restoreMaternalPool(); // set_solute reaches PL_MAT; the mother is not the patient
   };
   controllers.push(mkc({ key, lever: "unmeasured anions (uma)", lo: 0, hi: 40, sign: -1, gain: key === "be" ? 0.8 : 18, value: startUma, set: apply }));
+}
+
+// healthy renal reference of a postnatal patient below 34 wk (scripts/_renal_reference.mjs): Bowman,
+// oncotic and kf of its gestation and size, a renal bed solved for the renal blood flow and glomerular
+// pressure targets, and the kidney's controllers seeded at that resting state (scripts/_renal_bed.mjs).
+// It runs on the settled structural patient, before calibration, and uses the gestation's healthy MAP
+// (seed.br_map, else the baseline's), never a targeted MAP, which may be pathological. A fetus keeps
+// its kidney: the reference values are postnatal.
+if (!FETAL_MODE && model.models.Kidneys && model.models.KID_ART && model.models.KID_VEN) {
+  const renalBrMap = seed?.br_map ?? baseBrMap;
+  const renalRef = renalBrMap != null && model.height ? renalReference({ ga: model.gestational_age, weight: model.weight, height: model.height, brMap: renalBrMap }) : null;
+  if (renalRef) {
+    eng.calc(SETTLE);
+    const r = solveRenalBed(eng, model, renalRef, { brMap: renalBrMap, termBrMap: TERM_RENAL.brMap });
+    trace(`structural: ${describeRenalReference(renalRef)}; renal bed solved in ${r.iterations} iteration(s): ` +
+      `KID_ART.r_for ${round(r.kid_art_r_for, 0)}, KID_VEN.r_for ${round(r.kid_ven_r_for, 0)}, myogenic set-point ${round(r.myogenic_p_set, 1)} mmHg`);
+  }
 }
 
 // ---------------------------------------------------------------------------
