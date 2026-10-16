@@ -551,12 +551,29 @@ tolWeight = model.weight || tolWeight;
 const controllers = [];
 let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary shunt
 
+// The resistance-scale levers (MAP, PVR) move a ModelScaler group's r_factor_scaling_ps layer. They
+// used eng.scale(group, f), which sets that layer ABSOLUTELY: on a size-scaled baseline
+// (bischoff_cohort carries systemic x3 and pulmonary x2.2, preterm_24wk x1.85 / x3) the first call
+// wiped the baked scaling, so the Bischoff infant fell from 42/19 to 30/14 before any lever had
+// moved. scaleGroup() instead sets each member to base x f, where base is the layer as loaded, so
+// f = 1 is the patient as built. A gestational-age seed is the exception: its svr/pvr are stated
+// against the term reference (term_neonate, term_fetus; a preterm baseline is never seeded, see
+// above), so a seeded build keeps the absolute layer (base 1), exactly as before.
+const scaleGroup = (group, absolute) => {
+  const cfg = group === "systemic_resistances" ? "blood_systemic" : "blood_pulmonary";
+  const members = (model.scaler_config?.[cfg]?.resistance ?? []).map((n) => model.models[n]).filter((c) => c && typeof c.r_factor_scaling_ps === "number");
+  const base = members.map((c) => (absolute ? 1.0 : c.r_factor_scaling_ps));
+  return (f) => members.forEach((c, i) => { c.r_factor_scaling_ps = base[i] * f; });
+};
+
 // MAP  <- systemic vascular resistance scaling (↑SVR ↑MAP)
 let mapController = null;
 if (has("map")) {
-  let f = seed && seed.svr ? seed.svr : 1.0;
-  eng.scale("systemic_resistances", f);
-  mapController = mkc({ key: "map", lever: "systemic resistance scale", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: (v) => eng.scale("systemic_resistances", v) });
+  const seeded = !!(seed && seed.svr);
+  const f = seeded ? seed.svr : 1.0;
+  const scaleSvr = scaleGroup("systemic_resistances", seeded);
+  scaleSvr(f);
+  mapController = mkc({ key: "map", lever: "systemic resistance scale", lo: 0.3, hi: 8, sign: +1, gain: 0.04, value: f, set: scaleSvr });
   controllers.push(mapController);
 }
 // pulse pressure <- stiffness of the large elastic arteries (AA, AAR, AD: the windkessel).
@@ -586,15 +603,17 @@ if (has("pp")) {
 if (has("pap_m") || has("pap_s")) {
   const key = has("pap_m") ? "pap_m" : "pap_s";
   const f0 = patho.pvr_scale || (seed && seed.pvr) || 1.0;
+  const bed = scaleGroup("pulmonary_resistances", !!(seed && seed.pvr));
   const ips = ["IPSL", "IPSR"].map((n) => model.models[n]).filter(Boolean);
+  const ipsBase = ips.map((r) => r.r_factor_scaling_ps ?? 1.0);
   const scalePvr = (f) => {
-    eng.scale("pulmonary_resistances", f);
-    for (const r of ips) r.r_factor_scaling_ps = f / f0;
+    bed(f);
+    ips.forEach((r, i) => { r.r_factor_scaling_ps = ipsBase[i] * f / f0; });
   };
   scalePvr(f0);
   controllers.push(mkc({ key, lever: "pulmonary resistance scale (incl. intrapulmonary shunt)", lo: 0.3, hi: 12, sign: +1, gain: key === "pap_m" ? 0.05 : 0.04, value: f0, set: scalePvr }));
 } else if (patho.pvr_scale || (seed && seed.pvr)) {
-  eng.scale("pulmonary_resistances", patho.pvr_scale || seed.pvr); // structural-only PVR
+  scaleGroup("pulmonary_resistances", !!(seed && seed.pvr))(patho.pvr_scale || seed.pvr); // structural-only PVR
 }
 // CVP <- venous unstressed-volume multiplier on VLB/VUB (↓u_vol ↑CVP -> sign -1)
 if (has("cvp")) {
