@@ -136,6 +136,9 @@ export class Blood extends BaseModelClass {
       // right-atrial (mixed-venous) bloodgas — the Monitor reads SvO2 from RAIVCI, so its
       // composition must be solved here too (otherwise so2 stays at the -1 sentinel)
       if (this._model_engine.models["RAIVCI"]) calc_blood_composition(this._model_engine.models["RAIVCI"])
+      // pulmonary artery = true mixed-venous blood (the RV mixes both RA halves, which barely
+      // exchange blood with each other); the Monitor reads SvO2 here
+      if (this._model_engine.models["PA"]) calc_blood_composition(this._model_engine.models["PA"])
 
       // arterial solute concentrations
       this.art_solutes = { ...this._descending_aorta.solutes };

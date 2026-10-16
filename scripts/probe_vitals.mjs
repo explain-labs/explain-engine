@@ -86,7 +86,6 @@ if (bloodVol != null) for (const [n, m] of Object.entries(model.models)) {
 
 const M = model.models.Monitor;
 const AA = model.models.AA;       // ascending aorta — arterial blood gas
-const IVCI = model.models.IVCI;   // IVC inlet — mixed-venous proxy (Monitor's RAIVCI gets no gas solve)
 const weight = model.weight;
 const heightCm = model.height < 3 ? model.height * 100 : model.height; // def stores metres
 const round = (x, n = 2) => (typeof x === "number" && isFinite(x) ? Number(x.toFixed(n)) : x);
@@ -103,7 +102,7 @@ for (let i = 0; i < N; i++) {
   add("sys", M.minmax?.abp_pre_pres_max); add("dia", M.minmax?.abp_pre_pres_min); add("map", M.minmax?.abp_pre_pres_mean);
   add("pap_s", M.minmax?.pap_pres_max); add("pap_d", M.minmax?.pap_pres_min); add("pap_m", M.minmax?.pap_pres_mean);
   add("cvp", M.minmax?.cvp_pres_mean);
-  add("spo2_pre", M.sao2_pre); add("spo2_post", M.sao2_post); add("svo2", IVCI?.so2); // so2 already in %
+  add("spo2_pre", M.sao2_pre); add("spo2_post", M.sao2_post); add("svo2", M.svo2); // mixed-venous (PA) saturation, already in %
   add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
   add("temp", M.temp); add("etco2", M.etco2);
   add("lvo", M.flows?.lvo); add("rvo", M.flows?.rvo);

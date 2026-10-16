@@ -43,7 +43,7 @@ It does not move volume or compute pressure; flow mixing is done per-compartment
 |---|---|---|
 | `preductal_art_bloodgas` | object | `{ph, pco2, po2, hco3, be, so2}` sampled from the ascending aorta `AA` |
 | `art_bloodgas` | object | Post-ductal arterial blood gas sampled from the descending aorta `AD` |
-| `ven_bloodgas` | object | Venous read-out (declared on the model; venous solves run on `IVCI`/`SVC`/`RAIVCI`) |
+| `ven_bloodgas` | object | Venous read-out (declared on the model; venous solves run on `IVCI`/`SVC`/`RAIVCI`/`PA`) |
 | `art_solutes` | object | Snapshot of `AD.solutes` (arterial solute concentrations) |
 
 ### Local references (`_`-prefixed)
@@ -89,7 +89,8 @@ The same `calc_model` also accumulates `_t` into `_update_counter` and, once `_u
 - **`AA`** → `preductal_art_bloodgas`
 - **`AD`** → `art_bloodgas`, and `art_solutes = {...AD.solutes}`
 - **`IVCI`** and **`SVC`** → venous solve (composition updated in place)
-- **`RAIVCI`** (if present) → mixed-venous solve. The Monitor reads SvO₂ from `RAIVCI`, so its composition must be solved here or `so2` stays at the `-1` sentinel. In postnatal scenarios the RA halves are merged, so this is truly mixed RA blood. In the fetal ones it is IVC-side blood, because the split atrium keeps streaming.
+- **`RAIVCI`** (if present) → right-atrial (IVC-side) solve. The two RA halves are coupled by a low resistance, so their pressures match, but they barely exchange blood (~7 mL/min in `term_neonate`). `RAIVCI` therefore holds IVC-side blood, not mixed venous blood.
+- **`PA`** (if present) → **mixed-venous** solve. The RV mixes both RA halves, so the PA carries true mixed-venous blood, and the Monitor reads SvO₂ here. Its composition must be solved here, or `so2` stays at the `-1` sentinel.
 
 ## Runtime setters
 

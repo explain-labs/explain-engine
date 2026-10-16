@@ -11,11 +11,10 @@ const SLICE = 0.02; // sample every 20 ms (sub-cardiac-cycle) so pulsatile press
 
 // Cycle-average the monitor + ABG over `window` seconds. Mirrors the accumulate
 // loop in probe_vitals.mjs (lines 96-112). Reads the same model instances:
-//   Monitor (hemodynamics), AA (arterial blood gas), IVCI (mixed-venous proxy), Pda (ductal shunt).
+//   Monitor (hemodynamics, mixed-venous SvO2 from the PA), AA (arterial blood gas), Pda (ductal shunt).
 export function measureVitals(model, send, { window = 20 } = {}) {
   const M = model.models.Monitor;
   const AA = model.models.AA; // ascending aorta — arterial blood gas
-  const IVCI = model.models.IVCI; // IVC inlet — mixed-venous proxy
   const N = Math.round(window / SLICE);
   const acc = {};
   const add = (k, v) => {
@@ -34,7 +33,7 @@ export function measureVitals(model, send, { window = 20 } = {}) {
     add("cvp", M.minmax?.cvp_pres_mean);
     add("spo2_pre", M.sao2_pre);
     add("spo2_post", M.sao2_post);
-    add("svo2", IVCI?.so2); // already in %
+    add("svo2", M.svo2); // mixed-venous (PA) saturation, already in %
     add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
     add("q_fo", model.models.Shunts?.flow_fo); // foramen ovale shunt (L/s); +ve = left-to-right (LA -> RA)
     add("ef", model.models.Heart ? model.models.Heart.lv_ef * 100 : undefined); // LV ejection fraction, % of the last beat
