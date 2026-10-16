@@ -5845,7 +5845,9 @@
     "autoregulation_enabled": true,
     "icp_enabled": true,
     "autoregulation_gain": 1,
-    "edema_volume": 0
+    "edema_volume": 0,
+    "autoreg_control_gain": 1.5,
+    "autoreg_leak": 0.015
    },
    "Hormones": {
     "name": "Hormones",
