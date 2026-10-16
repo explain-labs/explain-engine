@@ -18,6 +18,15 @@ const brent_accuracy  = 1e-6;
 const max_iterations  = 60;
 const gas_constant    = 62.36367;
 const DEFAULT_HALDANE_COEFF = 1.0; // default Haldane coefficient (0 = effect off); calibrate per scenario
+// Hemoglobin as a non-bicarbonate buffer. The charge balance below is a plasma (Stewart/Figge)
+// model, so without this term the only buffers were albumin and phosphate (~3.5 mmol/L per pH) and
+// HCO3 hardly rose with pCO2. Each compartment stands in for the whole extracellular fluid it
+// exchanges with, so Hb buffers at its effective ECF concentration: a fraction of the blood Hb (the
+// basis of the standard base excess, Hb_eff ~3 mmol/L at a blood Hb of ~9). Buffer value per mmol/L
+// of Hb: 2.3 mmol/L per pH unit (Van Slyke). The acute in vivo response is then ~+1 mmol/L HCO3 per
+// 10 mmHg pCO2.
+const DEFAULT_HB_BUFFER_FRACTION = 1.0 / 3.0;
+const HB_BUFFER_SLOPE = 2.3; // mmol/L per pH unit per mmol/L Hb
 
 // -----------------------------------------------------------------------------
 // Independent variables
@@ -60,6 +69,7 @@ let hemoglobin_gdl = 0.0;
 let inv_mmol_to_ml = 0.0;
 let haldane_coeff = 0.0; // Haldane effect: ↓SO₂ → ↑CO₂-carrying capacity → ↓pCO2 at given tCO2
 let so2_prev = 0.98;     // SO₂ fraction from previous calculation (breaks the O₂↔CO₂ coupling)
+let beta_hb = 0.0;       // hemoglobin buffer value at the effective ECF concentration (mmol/L per pH)
 
 
 
@@ -85,6 +95,7 @@ export function calc_blood_composition(bc) {
       bc._bc_prev_phosphates === sol["phosphates"] &&
       bc._bc_prev_uma === sol["uma"] &&
       bc._bc_prev_hemoglobin === sol["hemoglobin"] &&
+      bc._bc_prev_hb_buffer_fraction === bc.hb_buffer_fraction &&
       (step_stamp === undefined || bc._bc_prev_step_stamp === step_stamp)
     ) {
       return;
@@ -108,6 +119,7 @@ export function calc_blood_composition(bc) {
     bc._bc_prev_phosphates = sol["phosphates"];
     bc._bc_prev_uma = sol["uma"];
     bc._bc_prev_hemoglobin = sol["hemoglobin"];
+    bc._bc_prev_hb_buffer_fraction = bc.hb_buffer_fraction;
     bc._bc_cache_initialized = true;
 }
 
@@ -133,6 +145,7 @@ function _calc_blood_composition_js(bc) {
     so2_prev = bc.so2 > 0 ? bc.so2 / 100.0 : 0.98;
 
     hemoglobin_gdl = hemoglobin / 0.6206;
+    beta_hb = HB_BUFFER_SLOPE * hemoglobin * (bc.hb_buffer_fraction ?? DEFAULT_HB_BUFFER_FRACTION);
     inv_mmol_to_ml = 760.0 / (gas_constant * (273.15 + temp));
 
     // set the wide limits based
@@ -147,7 +160,8 @@ function _calc_blood_composition_js(bc) {
 
     let hp = _brent_root_finding(_net_charge_plasma, left_hp, right_hp, max_iterations, brent_accuracy);
     if (hp > 0) {
-        be =(hco3 - 25.1 + (2.3 * hemoglobin + 7.7) * (ph - 7.4)) * (1.0 - 0.023 * hemoglobin);
+        // standard base excess (cBase(Ecf), Siggaard-Andersen; what blood-gas analysers report as SBE)
+        be = 0.93 * (hco3 - 24.4 + 14.83 * (ph - 7.4));
         bc.ph = ph;
         bc.pco2 = pco2;
         bc.hco3 = hco3;
@@ -160,7 +174,7 @@ function _calc_blood_composition_js(bc) {
         right_hp = right_hp_wide; // wide upper bound for H⁺ concentration
         hp = _brent_root_finding(_net_charge_plasma, left_hp, right_hp, max_iterations, brent_accuracy);
         if (hp > 0) {
-            be =(hco3 - 25.1 + (2.3 * hemoglobin + 7.7) * (ph - 7.4)) * (1.0 - 0.023 * hemoglobin);
+            be = 0.93 * (hco3 - 24.4 + 14.83 * (ph - 7.4));
             bc.ph = ph;
             bc.pco2 = pco2;
             bc.hco3 = hco3;
@@ -228,8 +242,9 @@ function _net_charge_plasma(hp_estimate) {
     pco2 = cco2p / alpha_co2p;
 
     let a_base = albumin*(0.123*ph - 0.631) + phosphates*(0.309*ph - 0.469);
+    let a_hb = beta_hb * (ph - 7.4); // hemoglobin buffer charge, relative to pH 7.4
 
-    return hp_estimate + sid - hco3 - 2.0*co3p - ohp - a_base - uma;
+    return hp_estimate + sid - hco3 - 2.0*co3p - ohp - a_base - a_hb - uma;
 }
 
 function _calc_so2(po2_estimate) {
