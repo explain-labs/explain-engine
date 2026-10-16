@@ -14,7 +14,7 @@ export class Monitor extends BaseModelClass {
     this.temp = 0.0; // blood temperature (°C), mirrored from the ascending aorta (AA)
     this.sao2_pre = 0.0; // pre-ductal arterial O2 saturation, from the ascending aorta (AA)
     this.sao2_post = 0.0; // post-ductal arterial O2 saturation, from the descending aorta (AD)
-    this.svo2 = 0.0; // venous O2 saturation, from the right atrium / IVC (RAIVCI)
+    this.svo2 = 0.0; // mixed-venous O2 saturation, from the pulmonary artery (PA); falls back to RAIVCI
 
     // JSON-configurable flow read-outs: a list of { name, model } where model is a "ModelName.prop"
     // dot-path (prop defaults to "flow"). Each is reported beat-averaged in L/min under flows[name].
@@ -55,7 +55,8 @@ export class Monitor extends BaseModelClass {
     this._heart = null; // reference to the heart model, for tracking the cardiac cycle
     this._aa = null; // reference to the ascending aorta (O2 content for do2_br)
     this._ad = null; // reference to the descending aorta (O2 content for do2_lb)
-    this._ra_ivci = null; // reference to the right atrium / IVC (venous O2 saturation)
+    this._ra_ivci = null; // reference to the right atrium / IVC (venous O2 saturation fallback)
+    this._pa = null; // reference to the pulmonary artery (mixed-venous O2 saturation)
     this._breathing = null; // reference to the spontaneous breathing model (breath events)
     this._ventilator = null; // reference to the mechanical ventilator model (breath events)
     this._ds = null; // reference to the airway gas compartment for spontaneous end-tidal CO2
@@ -135,6 +136,7 @@ export class Monitor extends BaseModelClass {
     this._aa = this._model_engine.models["AA"] ?? null;
     this._ad = this._model_engine.models["AD"] ?? null;
     this._ra_ivci = this._model_engine.models["RAIVCI"] ?? null;
+    this._pa = this._model_engine.models["PA"] ?? null;
 
     // reference the breathing sources for the respiratory-rate read-out (either may be absent)
     this._breathing = this._model_engine.models["Breathing"] ?? null;
@@ -170,7 +172,10 @@ export class Monitor extends BaseModelClass {
     // mirror the oxygen saturations (pre-/post-ductal arterial and venous); last value kept if absent
     this.sao2_pre = this._aa ? this._aa.so2 : this.sao2_pre;
     this.sao2_post = this._ad ? this._ad.so2 : this.sao2_post;
-    this.svo2 = this._ra_ivci ? this._ra_ivci.so2 : this.svo2;
+    // SvO2 is mixed-venous (PA): RAIVCI holds only IVC-side blood, which misses the brain's
+    // extraction (the brain drains via the SVC); fall back to RAIVCI when there is no PA
+    if (this._pa && this._pa.so2 >= 0) this.svo2 = this._pa.so2;
+    else if (this._ra_ivci) this.svo2 = this._ra_ivci.so2;
 
     // determine the begin of the cardiac cycle, this is where the min and max values are latched
     // only do this when _heart is non-null and has the ncc_ventricular property (to avoid hard dependencies on specific heart models)
