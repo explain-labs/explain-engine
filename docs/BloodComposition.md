@@ -22,7 +22,7 @@ These are plain module-scoped functions. The constants, independent variables an
 
 Two coupled physiological solves, each implemented as a Brent root-find:
 
-1. **Acid-base** — a Stewart strong-ion / charge-balance model. Total CO₂ is partitioned into dissolved CO₂, bicarbonate and carbonate via the carbonic-acid equilibria; albumin and phosphate provide non-bicarbonate buffering. The solver finds the plasma H⁺ that makes net charge zero, yielding pH, pCO₂, HCO₃⁻ and base excess.
+1. **Acid-base** — a Stewart strong-ion / charge-balance model. Total CO₂ is partitioned into dissolved CO₂, bicarbonate and carbonate via the carbonic-acid equilibria; albumin, phosphate and haemoglobin provide non-bicarbonate buffering. The solver finds the plasma H⁺ that makes net charge zero, yielding pH, pCO₂, HCO₃⁻ and base excess.
 2. **Oxygenation** — an O₂–haemoglobin dissociation model (Hill equation) with a P50 that is right/left-shifted by pH (Bohr), pCO₂ (carbamino CO₂-Bohr), temperature and 2,3-DPG. The solver finds the pO₂ whose total O₂ content (Hb-bound + dissolved) matches the compartment's `to2`; SO₂ falls out of the Hill equation.
 
 The two solves are coupled through the **Haldane effect** (O₂ saturation → CO₂ carrying capacity) and the **CO₂-Bohr effect** (pCO₂ → O₂ affinity).
@@ -96,17 +96,22 @@ co3p  = kd · hco3 / H
 ohp   = kw / H
 pco2  = cco2p / alpha_co2p
 a_base = albumin·(0.123·pH − 0.631) + phosphates·(0.309·pH − 0.469)
+a_hb   = 2.3 · Hb · hb_buffer_fraction · (pH − 7.4)
 
-net charge = H + SID − hco3 − 2·co3p − ohp − a_base − uma
+net charge = H + SID − hco3 − 2·co3p − ohp − a_base − a_hb − uma
 ```
+
+`a_hb` is **haemoglobin as a buffer**. Without it, albumin and phosphate were the only non-bicarbonate buffers (~3.5 mmol/L per pH), and HCO₃ rose only ~0.3 mmol/L per 10 mmHg pCO₂. Each compartment stands in for the extracellular fluid it exchanges with, so Hb buffers at its effective ECF concentration: `hb_buffer_fraction` (per compartment, default 1/3) of the blood Hb. That is the same basis as the standard base excess (Hb_eff ≈ 3 mmol/L at a blood Hb of ≈ 9). The coefficient 2.3 mmol/L per pH per mmol/L Hb is Van Slyke's. In `term_neonate` the acute response becomes ≈ +0.85 mmol/L HCO₃ and −0.074 pH per +10 mmHg pCO₂, close to the clinical rule of +1 per 10.
 
 The `haldane_coeff·(1 − SO₂_prev)` term in the CO₂ partition is the **Haldane effect**: as saturation falls it raises the effective CO₂-carrying capacity, lowering dissolved CO₂ (hence `pco2`/`hco3`) at a given `tco2`. It uses the *previous-step* SO₂ (`bc.so2/100`, default 0.98) to break the O₂↔CO₂ coupling; at steady state `SO₂_prev == SO₂` so the one-step lag vanishes. `haldane_coeff = 0` disables it.
 
-Once H⁺ is found, base excess is:
+Once H⁺ is found, base excess is the **standard base excess** (cBase(Ecf), Siggaard-Andersen; what blood-gas analysers report as SBE):
 
 ```
-be = (hco3 − 25.1 + (2.3·Hb + 7.7)·(pH − 7.4)) · (1 − 0.023·Hb)
+be = 0.93 · (hco3 − 24.4 + 14.83·(pH − 7.4))
 ```
+
+With the Hb buffer above it is nearly independent of pCO₂ (−0.5 mmol/L over +21 mmHg in `term_neonate`, against −4 with the earlier whole-blood formula on the unbuffered solve).
 
 and `ph`, `pco2`, `hco3`, `be` are written to `bc`.
 
