@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass.js";
+import { O2_MMOL_PER_ML } from "../helpers/Units.js";
 
 /*
   The Uterus class turns the (otherwise passive) uterine vascular bed
@@ -9,7 +10,7 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
   Scope (Part 2):
     - Uterine OXYGEN CONSUMPTION / CO2 PRODUCTION: a dedicated uterine VO2 (ut_vo2,
       mL O2/kg/min) is applied directly to UT_CAP using the SAME molar conversion as the
-      whole-body Metabolism model (0.039 mmol O2/mL at 37 C). It is deliberately NOT
+      whole-body Metabolism model (O2_MMOL_PER_ML, STPD). It is deliberately NOT
       registered in Metabolism.metabolic_active_models, so the calibrated whole-body VO2
       map is left untouched and the uterus carries an independent, pregnancy-scalable O2
       demand of its own.
@@ -41,7 +42,6 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
 
 // O2 molar density at 37 C, 1 atm (mmol O2 per mL) — same constant the Metabolism model uses, so
 // the VO2 (mL/min) and DO2 (mL/min) read-outs share one unit system and O2ER is self-consistent.
-const O2_MMOL_PER_ML = 0.039;
 
 export class Uterus extends BaseModelClass {
   // static properties

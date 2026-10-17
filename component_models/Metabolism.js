@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { O2_MMOL_PER_ML } from "../helpers/Units";
 
 export class Metabolism extends BaseModelClass {
   // static properties
@@ -27,9 +28,9 @@ export class Metabolism extends BaseModelClass {
       // If metabolism is not active, do nothing
       return;
     }
-    // Translate the VO2 in ml/kg/min to VO2 in mmol for this step size (assuming 37 degrees temperature and atmospheric pressure).
+    // Translate the VO2 in ml/kg/min (STPD) to VO2 in mmol for this step size.
     // vo2_temp_factor (Q10) is a persistent channel written by Thermoregulation; it is 1.0 at 37 degC / when that model is absent or disabled.
-    const vo2_step =((0.039 * this.vo2 * this.vo2_factor * this.vo2_temp_factor * this._model_engine.weight) / 60.0) * this._t;
+    const vo2_step =((O2_MMOL_PER_ML * this.vo2 * this.vo2_factor * this.vo2_temp_factor * this._model_engine.weight) / 60.0) * this._t;
 
     // Iterate over each metabolic active model
     for (const [model, fvo2] of Object.entries(this.metabolic_active_models)) {

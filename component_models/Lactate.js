@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { O2_MMOL_PER_ML } from "../helpers/Units";
 
 /*
   The Lactate class turns the previously-static `lact` blood solute into a hypoxia-driven product —
@@ -17,7 +18,7 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   PER TISSUE SITE (reusing Metabolism's consumption map + whole-body VO2):
     O2 debt   — at warm-up each site's resting to2 is captured; threshold = threshold_frac * resting.
                 anaerobic fraction = clamp((threshold - to2) / threshold, 0, 1)   (the Mob activation idiom)
-    PRODUCTION— local_o2_demand = (0.039 * vo2 * weight / 60) * dt * fvo2   [mmol O2, as Metabolism uses]
+    PRODUCTION— local_o2_demand = (O2_MMOL_PER_ML * vo2 * weight / 60) * dt * fvo2   [mmol O2, as Metabolism uses]
                 lactate produced (mmol) = anaerobic * local_o2_demand * lact_per_o2_deficit
                   (≈ 2 lactate per glucose / 6 O2 per glucose ⇒ ~0.33 mmol lactate per mmol O2 deficit)
                 added to that compartment's solutes.lact (mmol/L).
@@ -132,7 +133,7 @@ export class Lactate extends BaseModelClass {
         const anaerobic = this._clamp((threshold - comp.to2) / threshold, 0.0, 1.0);
         if (anaerobic > max_anaerobic) max_anaerobic = anaerobic;
         if (anaerobic <= 0.0) continue;
-        const local_o2_demand = (0.039 * vo2 * vo2_factor * vo2_temp_factor * weight / 60.0) * u * fvo2; // mmol O2
+        const local_o2_demand = (O2_MMOL_PER_ML * vo2 * vo2_factor * vo2_temp_factor * weight / 60.0) * u * fvo2; // mmol O2
         const lact_mmol = anaerobic * local_o2_demand * this.lact_per_o2_deficit * this.prod_gain;
         comp.solutes.lact += lact_mmol / comp.vol;
         total_prod += lact_mmol;

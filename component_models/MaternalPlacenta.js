@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass.js";
+import { O2_MMOL_PER_ML } from "../helpers/Units.js";
 
 /*
   The MaternalPlacenta class models the MATERNAL side of the placenta: the perfused intervillous
@@ -16,7 +17,7 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
     - GATING: when not pregnant the bed is held no_flow (zero perturbation to the calibrated uterine
       baseline). PL_IVS stays enabled but inert.
     - PLACENTAL METABOLISM: a dedicated placental VO2 applied to PL_IVS (same molar conversion as
-      Metabolism: 0.039 mmol O2/mL), giving real O2 extraction across the intervillous space even
+      Metabolism: O2_MMOL_PER_ML, STPD), giving real O2 extraction across the intervillous space even
       before a fetus exists.
     - CONTRACTION COMPRESSION: the uterine intrauterine pressure (Uterus.iup) is applied as external
       pressure on PL_IVS, so contractions throttle placental perfusion (the contraction -> placental
@@ -29,7 +30,6 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
 */
 
 // O2 molar density at 37 C, 1 atm (mmol O2 per mL) — same constant Metabolism/Uterus use.
-const O2_MMOL_PER_ML = 0.039;
 
 export class MaternalPlacenta extends BaseModelClass {
   // static properties

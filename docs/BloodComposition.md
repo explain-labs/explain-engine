@@ -139,10 +139,10 @@ A second Brent solve finds the pO₂ whose O₂ content matches `to2`. Brackets 
 ```
 SO₂        = po2^n / (po2^n + P50_n)                       (Hill, _calc_so2)
 to2_est    = (0.0031·po2 + 1.36·Hb_gdl·SO₂) · 10           (mL O₂ per L blood)
-to2_est    = to2_est · inv_mmol_to_ml                      (→ mmol/L)
+to2_est    = to2_est · O2_MMOL_PER_ML                      (→ mmol/L)
 ```
 
-with `Hb_gdl = hemoglobin / 0.6206` and `inv_mmol_to_ml = 760 / (gas_constant·(273.15 + temp))`. On success `bc.po2`, `bc.so2 = so2·100`, and `bc.prev_po2` are written. The Hill SO₂ uses the shifted `P50_n`, so the Bohr/CO₂-Bohr/temperature shifts feed directly into saturation.
+with `Hb_gdl = hemoglobin / 0.6206` and `O2_MMOL_PER_ML = 1/22.414` (STPD molar volume, [`helpers/Units.js`](../helpers/Units.js); Hüfner's 1.36 and the 0.0031 solubility are STPD volumes, so the conversion does not depend on blood temperature). On success `bc.po2`, `bc.so2 = so2·100`, and `bc.prev_po2` are written. The Hill SO₂ uses the shifted `P50_n`, so the Bohr/CO₂-Bohr/temperature shifts feed directly into saturation.
 
 ## Root finder (`_brent_root_finding`)
 

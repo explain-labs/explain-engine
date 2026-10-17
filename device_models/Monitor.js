@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass.js";
+import { O2_MMOL_PER_ML } from "../helpers/Units.js";
 
 export class Monitor extends BaseModelClass {
   // static properties
@@ -224,8 +225,8 @@ export class Monitor extends BaseModelClass {
       // derived metrics read from the configurable flows dict (require flow_targets named
       // brain_flow / kid_flow / fo_ivci_flow / fo_svc_flow)
       this.fo_flow = (this.flows["fo_ivci_flow"] || 0) + (this.flows["fo_svc_flow"] || 0);
-      this.do2_br = this._aa ? (this.flows["brain_flow"] || 0) * this._aa.to2 * 22.4 : this.do2_br;
-      this.do2_lb = this._ad ? (this.flows["kid_flow"] || 0) * 4 * this._ad.to2 * 22.4 : this.do2_lb;
+      this.do2_br = this._aa ? (this.flows["brain_flow"] || 0) * this._aa.to2 / O2_MMOL_PER_ML : this.do2_br;
+      this.do2_lb = this._ad ? (this.flows["kid_flow"] || 0) * 4 * this._ad.to2 / O2_MMOL_PER_ML : this.do2_lb;
 
       // reset the counters
       this._beats_counter = 0;

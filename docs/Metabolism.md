@@ -62,10 +62,11 @@ Runs every model step when `met_active` is true.
 1. **Whole-body O₂ use for this step**, converted ml → mmol and per-minute → per-step:
 
    ```
-   vo2_step = (0.039 · vo2 · vo2_factor · vo2_temp_factor · weight) / 60 · Δt        [mmol]
+   vo2_step = (O2_MMOL_PER_ML · vo2 · vo2_factor · vo2_temp_factor · weight) / 60 · Δt        [mmol]
    ```
 
-   - `0.039` mmol/ml is the O₂ molar density at 37 °C, 1 atm (≈ 1 / 25.4 L·mol⁻¹).
+   - `O2_MMOL_PER_ML = 1/22.414` mmol/mL ([`helpers/Units.js`](../helpers/Units.js)): clinical VO₂ is STPD
+     (0 °C, 760 mmHg), as are the blood O₂ content constants, so the conversion does not depend on temperature.
    - `weight` is the engine body weight (kg); `Δt` (`this._t`) is the model step size.
 
 2. **For each entry in `metabolic_active_models` (`{ compartment: fvo2 }`):**
