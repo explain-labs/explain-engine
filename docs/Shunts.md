@@ -46,7 +46,7 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 | `ventricular_septal_width` | `5.0` | mm | VSD channel length |
 | `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
 | `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
-| `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula |
+| `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula; read each step from `LA.viscosity` (fallback 6.0), so it follows the blood like `Pda` |
 
 ### Computed / reported (outputs)
 

@@ -22,7 +22,7 @@ export class Shunts extends BaseModelClass {
     this.atrial_septal_width = 3.0; // width of the atrial septum in mm
     this.ventricular_septal_width = 5.0; // width of the ventricular septum in mm
     this.fo_lr_factor = 10.0;
-    this.viscosity = 6.0; 
+    this.viscosity = 6.0; // blood viscosity (cP), read each step from the left atrium (like Pda reads AAR); 6.0 if absent
 
     this.ips_res = 5000; // resistance of the left intrapulmonary shunt in mmHg * s / L
 
@@ -47,6 +47,7 @@ export class Shunts extends BaseModelClass {
     this._vsd = null; // muscular ventricular septal defect
     this._ipsl = null; // left intrapulmonar shunt
     this._ipsr = null; // right intrapulmonar shunt
+    this._la = null; // left atrium, source of the blood viscosity
     this._refs_resolved = false;
     this._refs_warned = false;
   }
@@ -83,6 +84,7 @@ export class Shunts extends BaseModelClass {
     this._vsd = vsd;
     this._ipsl = ipsl;
     this._ipsr = ipsr;
+    this._la = models["LA"] || null;
     this._refs_resolved = true;
     return true;
   }
@@ -98,6 +100,9 @@ export class Shunts extends BaseModelClass {
     this._fo_ivci.no_flow = this.diameter_fo === 0;
     this._fo_svc.no_flow = this.diameter_fo === 0;
     this._vsd.no_flow = this.diameter_vsd === 0;
+
+    // blood viscosity tracks the blood (hematocrit, fluids) instead of a fixed value
+    this.viscosity = this._la?.viscosity ?? 6.0;
 
     // calculate the resistance across the FO and VSD
     this.res_fo = this.calc_resistance(this.diameter_fo, this.atrial_septal_width, this.viscosity);
