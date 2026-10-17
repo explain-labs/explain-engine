@@ -140,6 +140,11 @@ export default class Model extends ModelEmitter {
           this.modelData = e.data.payload;
           this.emit("rtf");
           break;
+        case "rt_perf":
+          // realtime factor of the worker loop (simulated / wall time over ~1 s; < 1 = falling behind)
+          this.realtime_factor = e.data.payload;
+          this.emit("rt_perf", e.data.payload);
+          break;
         case "rts":
           this.modelDataSlow = e.data.payload;
           this.emit("rts");

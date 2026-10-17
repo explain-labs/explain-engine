@@ -45,15 +45,28 @@ export class GasExchanger extends BaseModelClass {
     this._gas = null; // reference to the gas component
     this.dif_o2_step = 0.0; // state variable for the o2 diffusion (mmol)
     this.dif_co2_step = 0.0; // state variable for the co2 diffusion (mmol)
+    // the blood-gas solve (calc_blood_composition, an iterative acid-base / O2 solve) runs every
+    // bc_interval seconds instead of every step; the fluxes in between use the last po2/pco2
+    this.bc_interval = 0.002;
+    this._bc_counter = Infinity; // solve on the first step
   }
 
   calc_model() {
-    // find the blood and gas components
-    this._blood = this._model_engine.models[this.comp_blood];
-    this._gas = this._model_engine.models[this.comp_gas];
+    // find the blood and gas components (cached; re-resolved when a name changes)
+    if (this._blood_name !== this.comp_blood || this._gas_name !== this.comp_gas || !this._blood || !this._gas) {
+      this._blood = this._model_engine.models[this.comp_blood];
+      this._gas = this._model_engine.models[this.comp_gas];
+      this._blood_name = this.comp_blood;
+      this._gas_name = this.comp_gas;
+      this._bc_counter = Infinity;
+    }
 
-    // set the blood composition of the blood component
-    calc_blood_composition(this._blood);
+    // set the blood composition of the blood component (every bc_interval, see the constructor)
+    this._bc_counter += this._t;
+    if (this._bc_counter >= this.bc_interval - 1e-12) {
+      this._bc_counter = 0.0;
+      calc_blood_composition(this._blood);
+    }
 
     // get the partial pressures and gas concentrations from the components
     let po2_blood = this._blood.po2;

@@ -63,6 +63,10 @@ export class BloodVessel extends BloodCapacitance {
 
     // local properties
     this._resistors = {}; // list of connectors for this blood vessel
+    this._resistor_list = []; // the same connectors as an array, for the per-step loops (no allocation)
+    this._pow_base = NaN; // memo of Math.pow(_r_total_factor, alpha) in calc_elastances
+    this._pow_alpha = NaN;
+    this._pow_value = 1.0;
     this._r_total_factor = 1.0; // composed multiplicative R multiplier; cached by calc_resistances and reused by calc_elastances for the α-coupling
 
   }
@@ -106,15 +110,15 @@ export class BloodVessel extends BloodCapacitance {
       // add the resistor to the dictionary of connectors
       this._resistors[inputName + "_" + this.name] = res;
     });
+    this._resistor_list = Object.values(this._resistors);
   }
   
   // keep the owned input resistors in sync with this vessel's enabled state, also when the
   // vessel itself is disabled — calc_model does not run then, which would otherwise leave the
   // resistors enabled and still conducting flow through a disabled vessel
   step_model() {
-    Object.values(this._resistors).forEach((resistor) => {
-      resistor.is_enabled = this.is_enabled;
-    });
+    const list = this._resistor_list;
+    for (let i = 0; i < list.length; i++) list[i].is_enabled = this.is_enabled;
     super.step_model();
   }
 
@@ -124,17 +128,19 @@ export class BloodVessel extends BloodCapacitance {
     this.calc_elastances();
 
     // update the associated resistors
-    Object.values(this._resistors).forEach((resistor) => {
+    const list = this._resistor_list;
+    for (let i = 0; i < list.length; i++) {
+      const resistor = list[i];
       resistor.is_enabled = this.is_enabled;
-      resistor.r_for = this.r_for_eff
-      resistor.r_back = this.r_back_eff
-      resistor.r_k = this.r_k_eff
+      resistor.r_for = this.r_for_eff;
+      resistor.r_back = this.r_back_eff;
+      resistor.r_k = this.r_k_eff;
 
-      resistor.no_back_flow = this.no_back_flow
-      resistor.no_flow = this.no_flow
-      resistor.p1_ext = this.p1_ext
-      resistor.p2_ext = this.p2_ext
-    })
+      resistor.no_back_flow = this.no_back_flow;
+      resistor.no_flow = this.no_flow;
+      resistor.p1_ext = this.p1_ext;
+      resistor.p2_ext = this.p2_ext;
+    }
 
     // call parent class methods
     this.calc_volumes();  
@@ -151,7 +157,9 @@ export class BloodVessel extends BloodCapacitance {
     this.flow_backward = 0.0;
 
     // get the flow values from the resistors
-    Object.values(this._resistors).forEach((resistor) => {
+    const list = this._resistor_list;
+    for (let i = 0; i < list.length; i++) {
+      const resistor = list[i];
       if (resistor.is_enabled) {
         if (resistor.flow > 0) {
           // get the forward flow across the input
@@ -161,7 +169,7 @@ export class BloodVessel extends BloodCapacitance {
           this.flow_backward += -resistor.flow;
         }
       }
-    });
+    }
     
     // calculate the net flow through this blood vessel
     this.flow = this.flow_forward - this.flow_backward;
@@ -229,7 +237,14 @@ export class BloodVessel extends BloodCapacitance {
     // Geometric R→E coupling: apply α once to the *combined* resistance
     // multiplier, not per-factor. Falls back to 1 if calc_resistances has not
     // run yet (defensive — under normal model order it always has).
-    const el_geom_mult = Math.pow(this._r_total_factor ?? 1.0, this.alpha);
+    // memoised: the multiplier only changes when the ANS or a factor does
+    const r_mult = this._r_total_factor ?? 1.0;
+    if (r_mult !== this._pow_base || this.alpha !== this._pow_alpha) {
+      this._pow_base = r_mult;
+      this._pow_alpha = this.alpha;
+      this._pow_value = Math.pow(r_mult, this.alpha);
+    }
+    const el_geom_mult = this._pow_value;
 
     this.el_eff = this.el_base * el_passive_mult * el_geom_mult;
 
