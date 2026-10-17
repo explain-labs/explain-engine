@@ -80,7 +80,7 @@ export class AnsAfferent extends BaseModelClass {
         const _eff = this._model_engine.models[effector];
         if (_eff && typeof _eff.update_effector === "function") {
           // Update the effector with the firing rate and effect weight
-          _eff.update_effector(this.firing_rate, this.effect_weight);
+          _eff.update_effector(this.firing_rate, this.effect_weight, this.name);
         }
       });
       

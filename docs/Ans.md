@@ -11,7 +11,7 @@ Three classes work together:
 |---|---|---|
 | `Ans` | Manager — enables/disables the loop and refreshes the blood gases its receptors read | central control |
 | `AnsAfferent` | Receptor — maps one input quantity to a firing rate (0–1) | baro-/chemoreceptor |
-| `AnsEfferent` | Effector — averages incoming firing rates and writes an effect factor to a target | efferent nerve |
+| `AnsEfferent` | Effector — sums the weighted firing-rate deviations of its afferents and writes an effect factor to a target | efferent nerve |
 
 ## Data flow
 
@@ -61,7 +61,7 @@ Each afferent maps its input to a normalized firing rate in **[0, 1]**, with **0
 5. **First-order lag** with time constant `tc` (forward Euler), so the receptor responds gradually:
    `firing_rate += (Δt / tc) · (new_firing_rate − firing_rate)`  (with `Δt = _update_interval`; if
    `tc == 0` the new rate is applied instantly).
-6. **Broadcast:** call `update_effector(firing_rate, effect_weight)` on each connected efferent.
+6. **Broadcast:** call `update_effector(firing_rate, effect_weight, name)` on each connected efferent.
 
 So a rising input (e.g. arterial pressure) above setpoint drives the firing rate toward 1; below
 setpoint toward 0; at setpoint it sits at 0.5.
@@ -69,22 +69,22 @@ setpoint toward 0; at setpoint it sits at 0.5.
 ## `AnsEfferent` — effect translation
 
 Each efferent collects firing rates from its afferents during the interval and, every
-`_update_interval` (0.015 s), turns the average into an effect factor written to its target.
+`_update_interval` (0.015 s), turns them into an effect factor written to its target.
 
-**Accumulation** (`update_effector`, called by each afferent):
+**Accumulation** (`update_effector`, called by each afferent with its own name):
 ```
-_cum_firing_rate         += (firing_rate − 0.5) · weight   // summed weighted deviation
-_cum_firing_rate_counter += 1                              // number of afferent votes
+_inputs[source].sum += (firing_rate − 0.5) · weight
+_inputs[source].n   += 1
 ```
 
-**Averaging** (`calc_model`): the resting firing rate must be 0.5 *regardless of how many afferents
-feed the efferent*, so the 0.5 setpoint is added **after** averaging the deviations:
+**Summation** (`calc_model`): each afferent's reports in the window are averaged, and the afferents
+**add**, so a second receptor adds its drive instead of diluting the first (the old version averaged
+across afferents, which halved the CO2 drive as soon as an O2 input was added):
 ```
-firing_rate = 0.5 + _cum_firing_rate / _cum_firing_rate_counter   (or 0.5 if no afferent fired)
+firing_rate = 0.5 + Σ_source  _inputs[source].sum / _inputs[source].n     (0.5 if nothing reported)
 ```
-> Note: an earlier version seeded the accumulator with 0.5 and divided that by the vote count, which
-> made the resting rate 0.5/N — wrong for any efferent with more than one afferent. The accumulator
-> now holds only deviations and is reset to 0.
+The weight sets sign and strength: a receptor whose firing falls with the stimulus (O2, pH) needs a
+negative weight to stimulate.
 
 **Translation** to an effect factor — piecewise linear, pinned to `1.0` (no effect) at firing rate
 0.5 and continuous at the breakpoint:

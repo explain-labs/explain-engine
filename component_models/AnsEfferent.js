@@ -26,8 +26,7 @@ export class AnsEfferent extends BaseModelClass {
     // Initialize local parameters
     this._update_interval = 0.015; // update interval of the effector (s)
     this._update_counter = 0.0; // update counter (s)
-    this._cum_firing_rate = 0.0; // cumulative weighted firing-rate deviation since the last update
-    this._cum_firing_rate_counter = 0.0; // number of afferent inputs accumulated since the last update
+    this._inputs = {}; // per afferent: { sum, n } of weighted firing-rate deviations since the last update
   }
 
 
@@ -37,12 +36,13 @@ export class AnsEfferent extends BaseModelClass {
     if (this._update_counter >= this._update_interval) {
       this._update_counter = 0.0;
 
-      // Determine the average firing rate. The accumulator holds the summed weighted deviations
-      // from the 0.5 setpoint; add 0.5 AFTER averaging so the resting firing rate stays 0.5
-      // regardless of how many afferents feed this efferent.
+      // Determine the firing rate: the weighted deviations from the 0.5 setpoint of the different
+      // afferents ADD (each afferent's own reports in this window are averaged first), so a second
+      // afferent adds its drive instead of diluting the first. Rest stays 0.5.
       this.firing_rate = 0.5;
-      if (this._cum_firing_rate_counter > 0.0) {
-        this.firing_rate = 0.5 + this._cum_firing_rate / this._cum_firing_rate_counter;
+      for (const src in this._inputs) {
+        const inp = this._inputs[src];
+        if (inp.n > 0) this.firing_rate += inp.sum / inp.n;
       }
 
       // Translate the average firing rate to the effect factor
@@ -72,16 +72,16 @@ export class AnsEfferent extends BaseModelClass {
         _target[this.target_prop] = this.effector;
       }
 
-      // Reset the accumulator for the next averaging window
-      this._cum_firing_rate = 0.0;
-      this._cum_firing_rate_counter = 0.0;
+      // Reset the accumulators for the next window
+      this._inputs = {};
     }
   }
 
-  // Update effector firing rate
-  update_effector(new_firing_rate, weight) {
-    // Increase the firing rate depending on the input and weight
-    this._cum_firing_rate += (new_firing_rate - 0.5) * weight;
-    this._cum_firing_rate_counter += 1.0;
+  // Collect an afferent's firing rate (source = the afferent's name). The weight sets the sign and
+  // strength: a receptor whose firing FALLS with the stimulus (O2, pH) needs a negative weight.
+  update_effector(new_firing_rate, weight, source = "") {
+    const inp = this._inputs[source] ?? (this._inputs[source] = { sum: 0.0, n: 0 });
+    inp.sum += (new_firing_rate - 0.5) * weight;
+    inp.n += 1;
   }
 }
