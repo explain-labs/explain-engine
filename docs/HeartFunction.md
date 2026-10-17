@@ -60,8 +60,10 @@ Baseline wall stress depends on each scenario's geometry, so the setpoints `sigm
 auto-calibrate: during an initial window (`setpoint_warmup` seconds **of elapsed model time since the
 model started** — not the absolute engine clock, since scenarios are saved with a non-zero
 `model_time_total`) the model tracks the resting peak wall stress and freezes the reference to it.
-While warming up, all factors are held at `1.0` (no effect). Provide a positive `sigma_*_ref` in the
-definition to override and skip auto-learning.
+While a ventricle is still learning a setpoint, its factors are held at `1.0` (no effect). A positive
+`sigma_*_ref` in the definition is kept exactly as given and is not learned: it is never raised by
+the warm-up, so a saved scenario keeps its setpoints across save/load cycles. A ventricle whose two
+setpoints are both given responds to load from the first step.
 
 ## Acute layer (reversible, seconds–minutes)
 

@@ -36,13 +36,14 @@ export class Ans extends BaseModelClass {
         }
       );
 
-      // calculate the necessary blood compositions
-      this.blood_composition_models.forEach(model => {
-        let m = this._model_engine.models[model];
-        if (m.ans_active) {
-          calc_blood_composition(m);
-        }
-      });
+      // calculate the blood compositions the chemoreceptors read (the gate is the ANS's own flag:
+      // the blood compartments have no ans_active, so gating on theirs skipped this every time)
+      if (this.ans_active) {
+        this.blood_composition_models.forEach(model => {
+          const m = this._model_engine.models[model];
+          if (m) calc_blood_composition(m);
+        });
+      }
     }
   }
 }

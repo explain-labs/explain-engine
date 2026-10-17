@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { O2_MMOL_PER_ML } from "../helpers/Units";
 
 /*
   The Lactate class turns the previously-static `lact` blood solute into a hypoxia-driven product —
@@ -17,7 +18,7 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   PER TISSUE SITE (reusing Metabolism's consumption map + whole-body VO2):
     O2 debt   — at warm-up each site's resting to2 is captured; threshold = threshold_frac * resting.
                 anaerobic fraction = clamp((threshold - to2) / threshold, 0, 1)   (the Mob activation idiom)
-    PRODUCTION— local_o2_demand = (0.039 * vo2 * weight / 60) * dt * fvo2   [mmol O2, as Metabolism uses]
+    PRODUCTION— local_o2_demand = (O2_MMOL_PER_ML * vo2 * weight / 60) * dt * fvo2   [mmol O2, as Metabolism uses]
                 lactate produced (mmol) = anaerobic * local_o2_demand * lact_per_o2_deficit
                   (≈ 2 lactate per glucose / 6 O2 per glucose ⇒ ~0.33 mmol lactate per mmol O2 deficit)
                 added to that compartment's solutes.lact (mmol/L).
@@ -89,7 +90,7 @@ export class Lactate extends BaseModelClass {
       this._blood_components = [];
       for (const name in this._model_engine.models) {
         const m = this._model_engine.models[name];
-        if (m && m.solutes && m.solutes.lact !== undefined) this._blood_components.push(m);
+        if (m && m.solutes && m.solutes.lact !== undefined && m.blood_pool !== false) this._blood_components.push(m);
       }
     }
   }
@@ -100,7 +101,7 @@ export class Lactate extends BaseModelClass {
     const sites = this._metabolism?.metabolic_active_models ?? {};
     const vo2 = this._metabolism?.vo2 ?? 8.1;
     const vo2_factor = this._metabolism?.vo2_factor ?? 1.0;
-    const vo2_temp_factor = this._metabolism?.vo2_temp_factor ?? 1.0;
+    const vo2_temp_factor = (this._metabolism?.vo2_temp_factor ?? 1.0) * (this._metabolism?.vo2_bat_factor ?? 1.0);
 
     // Capture each site's resting to2 as the running MINIMUM across the warm-up window, then arm. Using
     // the minimum (not a single instant) makes the threshold sit below the operating trough, so the model
@@ -110,7 +111,6 @@ export class Lactate extends BaseModelClass {
       this._warmup_counter += u;
       for (const site of Object.keys(sites)) {
         let comp = this._model_engine.models[site];
-        if (comp && comp.model_type === "MicroVascularUnit") comp = this._model_engine.models[site + "_CAP"];
         if (!comp) continue;
         const prev = this._baseline_to2[site];
         this._baseline_to2[site] = prev === undefined ? comp.to2 : Math.min(prev, comp.to2);
@@ -124,7 +124,6 @@ export class Lactate extends BaseModelClass {
     if (this._seeded && this.lactate_running) {
       for (const [site, fvo2] of Object.entries(sites)) {
         let comp = this._model_engine.models[site];
-        if (comp && comp.model_type === "MicroVascularUnit") comp = this._model_engine.models[site + "_CAP"];
         if (!comp || !comp.solutes || comp.vol <= 0.0) continue;
         const resting = this._baseline_to2[site];
         if (resting === undefined || resting <= 0.0) continue;
@@ -132,7 +131,7 @@ export class Lactate extends BaseModelClass {
         const anaerobic = this._clamp((threshold - comp.to2) / threshold, 0.0, 1.0);
         if (anaerobic > max_anaerobic) max_anaerobic = anaerobic;
         if (anaerobic <= 0.0) continue;
-        const local_o2_demand = (0.039 * vo2 * vo2_factor * vo2_temp_factor * weight / 60.0) * u * fvo2; // mmol O2
+        const local_o2_demand = (O2_MMOL_PER_ML * vo2 * vo2_factor * vo2_temp_factor * weight / 60.0) * u * fvo2; // mmol O2
         const lact_mmol = anaerobic * local_o2_demand * this.lact_per_o2_deficit * this.prod_gain;
         comp.solutes.lact += lact_mmol / comp.vol;
         total_prod += lact_mmol;

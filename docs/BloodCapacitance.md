@@ -26,11 +26,10 @@ All capacitance properties are available. See the Capacitance base model for the
 |---|---|---|
 | `u_vol` | L | Unstressed volume |
 | `el_base` | mmHg/L | Baseline elastance |
-| `el_k` | unitless | Non-linear elastance coefficient |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient |
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 
 ### Blood composition (unique to BloodCapacitance)
 
@@ -71,7 +70,7 @@ right-shifts P50, reducing O₂ affinity), which is modelled separately via the 
 
 ## Mixing logic (`volume_in`)
 
-BloodCapacitance overrides the `volume_in` method to perform composition mixing when blood flows in from another compartment. For each tracked substance, the mixing uses a linear dilution formula:
+BloodCapacitance overrides the `volume_in` method to perform composition mixing when blood flows in from another compartment. The mixing itself lives in [`helpers/BloodMixing.js`](../helpers/BloodMixing.js) (`mix_blood_in`), shared with `BloodTimeVaryingElastance` and `HeartChamber`. Because it runs after the volume is added, the formula is exact mass balance. For each tracked substance, the mixing uses a linear dilution formula:
 
 ```
 concentration += ((concentration_from - concentration) * dvol) / vol
@@ -102,7 +101,7 @@ BloodCapacitance does not override `calc_model()` -- it inherits the Capacitance
 
 1. `calc_elastances()` -- compute effective elastance from base + all factor tiers
 2. `calc_volumes()` -- compute effective unstressed volume from base + all factor tiers
-3. `calc_pressure()` -- compute recoil, transmural, and total pressure
+3. `calc_pressure()` -- compute recoil (`pres_in`) and total pressure
 
 ## Example definition (JSON)
 

@@ -35,12 +35,11 @@ export class Container extends BaseModelClass {
     this.vol = 0.0; // volume v(t) (L)
     this.pres = 0.0; // pressure p1(t) (mmHg)
     this.pres_in = 0.0; // recoil pressure of the elastance (mmHg)
-    this.pres_tm = 0.0; // transmural pressure (mmHg)
 
     // local variables
     this.el_eff = 0.0; // calculated elastance (mmHg/L)
     this.u_vol_eff = 0.0; // calculated unstressed volume (L)
-    this.el_k_eff = 0.0; // calculated elastance non-linear k (unitless)
+    this.el_k_eff = 0.0; // calculated non-linear elastance coefficient (mmHg/L²)
   }
 
   calc_model() {
@@ -99,9 +98,6 @@ export class Container extends BaseModelClass {
     // squeeze an under-filled heart)
     const _s = this.vol - this.u_vol_eff;
     this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
-
-    // calculate the transmural pressure
-    this.pres_tm = this.pres_in - this.pres_ext;
 
     // calculate the total pressure by incorporating the external pressures
     this.pres = this.pres_in + this.pres_ext;

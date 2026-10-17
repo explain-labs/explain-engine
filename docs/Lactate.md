@@ -80,14 +80,13 @@ by the model's position in the scenario JSON `models` map — insert it just aft
 ## Per-tissue-site mechanism (`_update_lactate`)
 
 `Lactate` reuses `Metabolism.metabolic_active_models` (the tissue consumption map, per-site VO₂
-fraction `fvo2`) plus the whole-body `vo2`, `vo2_factor` and `vo2_temp_factor`. For each active site
-(a `MicroVascularUnit` is followed to its `_CAP` compartment):
+fraction `fvo2`) plus the whole-body `vo2`, `vo2_factor` and `vo2_temp_factor`. For each active site:
 
 ```
 threshold = threshold_frac * resting_to2          (resting captured at warm-up, see below)
 anaerobic = clamp((threshold − to2) / threshold, 0, 1)        (the Mob activation idiom)
 
-local_o2_demand = (0.039 · vo2 · vo2_factor · vo2_temp_factor · weight / 60) · u · fvo2   [mmol O₂]
+local_o2_demand = (O2_MMOL_PER_ML · vo2 · vo2_factor · vo2_temp_factor · weight / 60) · u · fvo2   [mmol O₂]
 lactate_produced (mmol) = anaerobic · local_o2_demand · lact_per_o2_deficit · prod_gain
    → comp.solutes.lact += lactate_produced / comp.vol
 ```

@@ -273,12 +273,6 @@ const build = function (model_definition) {
   model = {
     models: {},
     scaler_config: {},
-    ncc_atrial: 0,
-    ncc_ventricular: 0,
-    ncc_breathing_insp: 0,
-    ncc_breathing_exp: 0,
-    ncc_ventilator_insp: 0,
-    ncc_ventilator_exp: 0,
   };
 
   // initialize the model parameters, except the model components key which needs special processing
@@ -430,7 +424,8 @@ const remove_model_from_engine = function (model_name) {
 
 const add_model_to_engine = function (new_model) {
 
-  const base_model = available_models.find(item => item.model_type === new_model.model_type );
+  // same lookup as build(): the merged map, where a custom model overrides a built-in one
+  const base_model = available_model_map[new_model.model_type];
   // make a key value list of the args
   let arg_list = []
   Object.keys(new_model).forEach(arg => {
@@ -448,11 +443,13 @@ const add_model_to_engine = function (new_model) {
       message: `Submodel added to the model`,
       payload: [],
     });
-  } catch {
-    console.log('Failed to add model to engine: ')
+  } catch (e) {
+    console.error('Failed to add model to engine: ', new_model.name, e)
     _send({
       type: "status",
-      message: `ERROR: failed to add model`,
+      message: base_model
+        ? `ERROR: failed to add model ${new_model.name}: ${e.message}`
+        : `ERROR: failed to add model ${new_model.name}: model type ${new_model.model_type} not found`,
       payload: [],
     });
   }
@@ -612,7 +609,8 @@ const tune_model = function (payload) {
 };
 
 const set_property = function (new_prop_value) {
-  _get_task_scheduler()?.add_task(new_prop_value);
+  const err = _get_task_scheduler()?.add_task(new_prop_value);
+  if (err) _send_error("set_property", err);
 };
 
 const get_property = function (prop) {
@@ -668,7 +666,8 @@ const get_model_types = function () {
 }
 
 const call_function = function (new_function_call) {
-  _get_task_scheduler()?.add_function_call(new_function_call);
+  const err = _get_task_scheduler()?.add_function_call(new_function_call);
+  if (err) _send_error("call_function", err);
 };
 
 const clear_watchlist = function () {

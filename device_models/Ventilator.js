@@ -173,8 +173,6 @@ export class Ventilator extends BaseModelClass {
     this._hfo_breath_t = 0.0; // s into the current HFOV_CMV breath cycle
     this._breathing_model = null;
     this._peak_flow = 0.0;
-    this._prev_et_tube_flow = 0.0;
-    this._et_tube_resistance = 40.0;
     this._te_counter = 0.0; // s since the end of the last ventilator inspiration
     this._peak_exp_flow = 0.0; // L/s, peak expiratory flow at the tube in the current expiration
     this._map_sum = 0.0;
@@ -184,7 +182,6 @@ export class Ventilator extends BaseModelClass {
     // flow sensor sees each as a small breath of its own (SLE6000 IFU §27.6.5: Vte is the "expired
     // volume of large and small breaths", RR the "total number of breaths detected")
     this._spont_open = false; // the breath being measured is such a spontaneous breath
-    this._spont_cut_off = false; // the last closed spontaneous breath was cut off by a ventilator breath
     this._spont_armed = false; // detector re-armed by expiratory flow since its last detection
     this._spont_effort = false; // a patient effort was seen during the open spontaneous breath
     this._vent_vte = 0.0; // L, exhaled volume of the last ventilator breath (minute volume)
@@ -269,13 +266,16 @@ export class Ventilator extends BaseModelClass {
       this._vent_exp_valve,
     ];
 
-    // calculate the gas composition of the ventilator circuits
+    // calculate the gas composition of the ventilator circuits. Gas.init_model runs after this
+    // model and resets every gas compartment to ambient, so the humidifier is applied again on the
+    // first step (or by switch_ventilator(true))
     this._apply_humidifier();
+    this._humidifier_applied = false;
     calc_gas_composition(this._vent_gasout, 0.205, 20.0, 0.5);
 
     // calculate the et-tube diameter and resistance
     this.set_ettube_diameter(this.ettube_diameter);
-    this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
+    this.calc_ettube_resistance(this._vent_ettube.flow); // sets the tube r_for/r_back
   }
 
   calc_model() {
@@ -368,7 +368,7 @@ export class Ventilator extends BaseModelClass {
     // calc_measured_mechanics(); they are NOT recomputed here (and must not be clobbered to null
     // each step, or the per-breath measurement would never survive)
     this._breath_interval_counter += this._t;
-    this._et_tube_resistance = this.calc_ettube_resistance(this._vent_ettube.flow);
+    this.calc_ettube_resistance(this._vent_ettube.flow); // sets the tube r_for/r_back
     this.calc_leak();
     this._set_tube_dead_space(this.tube_position !== "extubated");
     this._calc_monitoring();
@@ -658,7 +658,6 @@ export class Ventilator extends BaseModelClass {
       if (start) {
         this._start_inspiration();
         this._peak_flow = 0.0;
-        this._prev_et_tube_flow = 0.0;
       }
     }
 
@@ -684,8 +683,6 @@ export class Ventilator extends BaseModelClass {
       if (flow_cycled || time_cycled || this._vg_volume_limit_reached()) {
         this._end_inspiration();
       }
-
-      this._prev_et_tube_flow = this._vent_ettube.flow;
     }
 
     if (this._expiration) {
@@ -843,7 +840,6 @@ export class Ventilator extends BaseModelClass {
     this.etco2 = this._model_engine.models["DS"]?.pco2 ?? this.etco2;
     const weight = this._model_engine.weight;
     this.tv_kg = weight > 0 ? (this.exp_tidal_volume * 1000.0) / weight : 0.0;
-    this._spont_cut_off = cut_off;
     if (!cut_off) this._calc_leak_perc();
     this._spont_log.push([this._model_engine.model_time_total ?? 0.0, Math.max(this.exp_tidal_volume, 0.0)]);
     this._exp_tidal_volume_counter = 0.0;
@@ -1504,7 +1500,6 @@ export class Ventilator extends BaseModelClass {
     this._trigger_volume_counter = 0.0;
     this._trigger_start = false;
     this._trigger_blocked = false;
-    this._prev_et_tube_flow = 0.0;
     this._peak_flow = 0.0;
     this._pip_meas = 0.0;
     this._insp_flow_at_pause = 0.0;
@@ -1561,6 +1556,9 @@ export class Ventilator extends BaseModelClass {
     if (!state) this._set_tube_dead_space(false);
     if (!state) {
       this.reset_dependent_properties();
+      // empty the circuit to its unstressed volume: a circuit switched off mid-inspiration would
+      // otherwise keep its PIP volume and empty into the airway when it is switched on again
+      if (this._vent_gascircuit) this._vent_gascircuit.vol = this._vent_gascircuit.u_vol;
     }
 
     for (const vp of this._ventilator_parts) {

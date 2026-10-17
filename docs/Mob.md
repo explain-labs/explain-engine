@@ -33,9 +33,10 @@ Heart (rate, contractility, autonomic activity).
 | `mob_active` | bool | Master on/off; `calc_model` returns immediately when false |
 | `to2_ref` | mmol/L | Upper edge of the coronary-O₂ hypoxia window (no effect at/above) |
 | `to2_min` | mmol/L | Lower edge of the hypoxia window (floor of activation) |
-| `resp_q` | unitless | Respiratory quotient (CO₂ produced / O₂ consumed), default `0.1` |
+| `resp_q` | unitless | Myocardial respiratory quotient (CO₂ produced / O₂ consumed), default `0.8` |
 | `bm_vo2_per_g` | mmol/(g·s) | Basal myocardial O₂ cost per gram of myocardium |
-| `sw_vo2_per_g` | mmol/(g·mmHg·mL) | Stroke-work O₂ cost per gram per unit P-V loop area |
+| `mech_efficiency` | — | Incremental (contractile) work efficiency: O₂ energy = stroke work / efficiency, default `0.35` |
+| `caloric_equiv_o2` | J/mL | Energy per mL O₂ (STPD), default `20.1` |
 | `hw_intercept`, `hw_slope` | g, g/g | Heart-mass-from-body-weight regression: `hw = hw_intercept + hw_slope · weight_kg · 1000` |
 | `hr_factor_min/max`, `hr_tc` | unitless, s | Heart-rate hypoxia channel bounds + time constant |
 | `cont_factor_min/max`, `cont_tc` | unitless, s | Contractility hypoxia channel bounds + time constant |
@@ -52,7 +53,7 @@ Heart (rate, contractility, autonomic activity).
 | `mvo2_step` | mmol | O₂ consumed this step (`mob_vo2 · Δt`) |
 | `stroke_work_lv` / `stroke_work_rv` / `stroke_work_total` | mmHg·mL | Per-beat P-V loop area (left / right / sum) |
 | `hr_factor` / `cont_factor` / `ans_activity_factor` | unitless | Current values of the three hypoxia channels (1.0 = no effect) |
-| `mob` | — | Rough instantaneous O₂-balance reporter (not dimensionally meaningful — see caveats) |
+| `mob` | mmol/s | Myocardial O₂ balance: coronary O₂ delivery (`AA_COR.flow · AA.to2`) minus consumption |
 
 ## Oxygen consumption
 
@@ -61,7 +62,7 @@ Two physiologically explicit terms, both in **mmol O₂ / s**, scaled by heart w
 ```
 hw      = hw_intercept + hw_slope · weight_kg · 1000           [g]   (heart mass from body weight)
 bm_vo2  = bm_vo2_per_g · hw                                    [mmol/s]   basal metabolism
-sw_vo2  = sw_vo2_per_g · hw · stroke_work_total / cycle_time   [mmol/s]   contractile (stroke) work
+sw_vo2  = stroke_work_total[J] / (mech_efficiency · caloric_equiv_o2) · O2_MMOL_PER_ML / cycle_time   [mmol/s]
 mob_vo2 = bm_vo2 + sw_vo2
 ```
 
@@ -74,7 +75,7 @@ integration each step and split by flow direction:
 - ejection (dV < 0) accumulates into `_pv_area_*_dec`
 - at the rising edge of `Heart.cardiac_cycle_running` (start of a new cycle):
   `stroke_work = _pv_area_dec − _pv_area_inc` (the enclosed loop area), the per-beat O₂ cost
-  `_sw_vo2_per_beat = sw_vo2_per_g · hw · stroke_work_total` is computed, and the accumulators reset.
+  `_sw_vo2_per_beat = stroke_work_total · 0.133322 J/(mmHg·L) / (mech_efficiency · caloric_equiv_o2) · O2_MMOL_PER_ML` is computed (the P-V area is in mmHg·L), and the accumulators reset. The edge is `Heart.cardiac_cycle_running` rising while `Heart.prev_cardiac_cycle_running` is 0.
 
 The per-beat stroke-work cost is then amortized over the current `cardiac_cycle_time` to give the
 `sw_vo2` rate.
@@ -128,9 +129,6 @@ responsiveness — the model of an ischemic, failing myocardium.
   whole coronary update is skipped (O₂ not floored to 0, no CO₂ added), so `COR.to2` cannot fall below
   one step's consumption. Under extreme ischemia the hypoxia signal therefore plateaus rather than
   reaching `to2_min`.
-- **`mob` is a rough reporter only.** The published `mob` value mixes a rate balance (mmol/s) with a
-  concentration (`to2_cor`, mmol/L) and is not dimensionally meaningful; do not use it as a true
-  balance.
 - **Negative stroke work is not guarded.** If the filling-phase P·dV area exceeds the ejection-phase
   area (`stroke_work_total < 0`), `sw_vo2` and hence `mob_vo2` can go negative, which would *add* O₂ to
   the coronary pool. This does not occur for a normally ejecting ventricle.
@@ -156,9 +154,10 @@ From `term_neonate.json` (coronary sub-components abbreviated):
   "mob_active": true,
   "to2_min": 0.0002,
   "to2_ref": 0.2,
-  "resp_q": 0.1,
+  "resp_q": 0.8,
   "bm_vo2_per_g": 3.7e-5,
-  "sw_vo2_per_g": 2.0e-7,
+  "mech_efficiency": 0.35,
+  "caloric_equiv_o2": 20.1,
   "hw_intercept": 7.799,
   "hw_slope": 0.004296,
   "hr_factor_max": 1, "hr_factor_min": 0.01, "hr_tc": 5,

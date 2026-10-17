@@ -12,6 +12,8 @@ baseline vitals/ABG are unchanged. The model only diverges when the thermal envi
 
 ## Sensors → tissue node ⇄ blood pool → effectors
 
+**Brown-fat O₂ cost.** Non-shivering thermogenesis burns oxygen: `brown_fat_heat / caloric_equiv_o2` mL O₂/s is added to [`Metabolism`](./Metabolism.md) through `vo2_bat_factor` (so CO₂ production rises with it via `resp_q`). The heat balance counts the brown-fat heat once, as `brown_fat_heat`. Released to `1.0` on disable. term_neonate at 28 °C for 20 min: VO₂ 8.2 → 9.1 mL/kg/min, SvO₂ 78.8 → 76.1 (without the cost VO₂ fell slightly, by Q10).
+
 ```
 SENSORS (lazy refs)              TISSUE NODE (heat balance)                   EFFECTORS (owned, default-neutral)
 Metabolism.vo2 · vo2_factor ──┐

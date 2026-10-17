@@ -64,10 +64,14 @@ Both branches first call `_reset_cycle()`, which zeroes every internal timer/cou
 `_vent_breath_count`) and `chest_comp_pres`. This guarantees a re-toggle always restarts a clean
 cycle rather than resuming mid-compression or mid-pause with stale state.
 
-When turned **on** it: resets the cycle, starts the ventilator (`switch_ventilator(true)`), configures
-pressure control from `vent_pres_pip` / `vent_pres_peep` / `vent_insp_time`
-(`set_pc(pip, peep, MANUAL_MODE_VENT_BACKUP_RATE, t_in, 5.0)`), switches off spontaneous `Breathing`
-(`switch_breathing(false)`), and sets `cpr_enabled = true`.
+When turned **on** it: resets the cycle, saves the ventilator settings it is about to replace (mode,
+PIP, PEEP, rate, Ti, flow, `synchronized`, `trigger_mode`, FiO₂), starts the ventilator
+(`switch_ventilator(true)`), sets the fresh gas to `vent_fio2`, configures pressure control from
+`vent_pres_pip` / `vent_pres_peep` / `vent_insp_time` at the circuit's own flow
+(`set_pc(pip, peep, MANUAL_MODE_VENT_BACKUP_RATE, t_in, insp_flow)`), makes the breaths
+**unsynchronised** (so the flow the compressions push through the tube can't trigger breaths),
+switches off spontaneous `Breathing` (`switch_breathing(false)`), and sets `cpr_enabled = true`.
+Switching it on while it is already on keeps the settings saved the first time.
 
 On an [SLE6000](./Sle6000.md), the ventilator of every scenario up to 30 kg, these generic calls
 are mirrored into the device settings (`_sync_from_generic`).
@@ -77,7 +81,8 @@ are mirrored into the device settings (`_sync_from_generic`).
 
 Turning it **off** resets the cycle and clears `cpr_enabled`, but **intentionally leaves the
 ventilator running and spontaneous `Breathing` switched off** — this models the post-arrest,
-still-ventilated patient. There is no automatic restore of spontaneous breathing; re-enable it
+still-ventilated patient. The ventilator gets back the settings saved when CPR started (not the
+1/min backup rate), and the FiO₂ is restored through `set_fio2`. There is no automatic restore of spontaneous breathing; re-enable it
 explicitly (`Breathing.switch_breathing(true)` / `Ventilator.switch_ventilator(false)`) if a
 post-ROSC spontaneous state is wanted. All calls are null-guarded with `?.`.
 
@@ -132,8 +137,9 @@ atria `RASVC`/`RAIVCI` at 0.8 and `LA` at 0.5, great vessels `AA`/`AAR` at 0.7 a
 
 ## `set_fio2(new_fio2)`
 
-Forwards to `Ventilator.set_fio2` (null-guarded). Called once in `init_model` from `vent_fio2` so the
-ventilator's fresh gas matches the configured CPR FiO₂.
+Forwards to `Ventilator.set_fio2` (null-guarded). `switch_cpr(true)` applies `vent_fio2` this way;
+`init_model` no longer does (it ran after Gas had built the fresh gas and overwrote any scenario FiO₂
+at every load).
 
 ## Factor system
 

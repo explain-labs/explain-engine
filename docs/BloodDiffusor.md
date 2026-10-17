@@ -27,11 +27,11 @@ Each step it refreshes both compartments' blood composition (so the partial pres
 
 | Property | Unit | Description |
 |---|---|---|
-| `comp_blood1` | name | First blood compartment (default `"PLF"`) |
-| `comp_blood2` | name | Second blood compartment (default `"PLM"`) |
+| `comp_blood1` | name | First blood compartment (default `"PLF"` — a legacy name no scenario defines; scenarios set it, e.g. `PL_FETAL_CAP`) |
+| `comp_blood2` | name | Second blood compartment (default `"PLM"` — likewise legacy; e.g. `PL_MAT`) |
 | `dif_o2` | mmol/(mmHg·s) | O₂ diffusion constant |
 | `dif_co2` | mmol/(mmHg·s) | CO₂ diffusion constant |
-| `dif_solutes` | object | Per-solute diffusion constants, keyed by solute name (mmol/(mmol·s)) |
+| `dif_solutes` | object | Per-solute diffusion constants, keyed by solute name (L/s: the flux in mmol/s per mmol/L of gradient) |
 
 ### Factor tiers (see below)
 
@@ -73,19 +73,22 @@ solutes_step = 1 + (dif_solutes_factor − 1) + (dif_solutes_factor_ps − 1) + 
 
 ## Calculation cycle (`calc_model`)
 
-1. Resolve `_comp_blood1` / `_comp_blood2` from the engine map.
+1. Resolve `_comp_blood1` / `_comp_blood2` from the engine map; return (no exchange) if either is missing.
 2. Call [`calc_blood_composition`](./BloodComposition.md) on both compartments so `po2`/`pco2`/solute concentrations are current.
 3. Compose `dif_o2_step`, `dif_co2_step` and `solutes_step` from the factors.
-4. **O₂:** `do2 = (blood1.po2 − blood2.po2) · dif_o2_step · _t`, then update each side's `to2` by `(to2·vol ∓ do2)/vol`.
-5. **CO₂:** same with `pco2` / `dif_co2_step` → `tco2`.
-6. **Solutes:** for each key in `dif_solutes`, `dsol = (c1 − c2) · dif_solutes[sol] · solutes_step · _t`, update each side's concentration.
+4. **O₂:** `do2 = (blood1.po2 − blood2.po2) · dif_o2_step · _t`, then update each side's `to2` by `(to2·vol ∓ do2)/vol`. Skipped this step if either `po2` is negative — the `−1` sentinel a failed acid-base / O₂ solve leaves behind, which would otherwise drive a spurious flux.
+5. **CO₂:** same with `pco2` / `dif_co2_step` → `tco2` (same `−1` sentinel guard).
+6. **Solutes:** for each key in `dif_solutes`, `dsol = (c1 − c2) · dif_solutes[sol] · solutes_step · _t`, update each side's concentration. A solute that is not a number on either side is skipped.
 7. Reset the non-persistent factors (`dif_o2_factor`, `dif_co2_factor`, `dif_solutes_factor`) to `1.0`.
 
-`_t` is the modeling stepsize. Every write is **guarded by `!fixed_composition && vol > 0`**, so a fixed reservoir (e.g. the maternal pool) supplies/absorbs gas and solute without changing its own composition, and an empty compartment never divides by zero.
+`_t` is the modeling stepsize. All transfers go through `_transfer()`:
+
+- **Donor limit** — the flux is capped at what the (non-fixed) donor holds (`conc · vol`), so no concentration goes below zero.
+- Every write is **guarded by `!fixed_composition && vol > 0`**, so a fixed reservoir (e.g. the maternal pool) supplies/absorbs gas and solute without changing its own composition (and without a donor cap), and an empty compartment never divides by zero.
 
 ## Example definition (JSON)
 
-From `term_fetus.json` — `PL_GASEX`, a component of the `Placenta` model, connecting the fetal capillary to the fixed maternal pool:
+From `archive/term_fetus.json` — `PL_GASEX`, a component of the `Placenta` model, connecting the fetal capillary to the fixed maternal pool:
 
 ```json
 {

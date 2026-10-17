@@ -1,3 +1,5 @@
+import { GAS_CONSTANT, svp_h2o } from "../helpers/Units";
+
 export function calc_gas_composition(
   gc,
   fio2 = 0.205,
@@ -9,16 +11,21 @@ export function calc_gas_composition(
   const _fco2_dry = 0.000392;
   const _fn2_dry = 0.794608;
   const _fother_dry = 0.0;
-  const _gas_constant = 62.36367;
 
-  // calculate the dry gas composition depending on the supplied fio2
+  // calculate the dry gas composition depending on the supplied fio2. The CO2 fraction gives way to
+  // the O2 fraction, so fio2 + fico2 never exceeds 1 (at fio2 1.0 the N2 fraction would go negative)
+  fio2 = Math.min(Math.max(fio2, 0.0), 1.0);
+  fico2 = Math.min(Math.max(fico2, 0.0), 1.0 - fio2);
   let new_fo2_dry = fio2;
   let new_fco2_dry = fico2;
   let new_fn2_dry = (_fn2_dry * (1.0 - (fio2 + fico2))) / (1.0 - (_fo2_dry + _fco2_dry));
   let new_fother_dry = (_fother_dry * (1.0 - (fio2 + fico2))) / (1.0 - (_fo2_dry + _fco2_dry));
 
-  // make sure the latest pressure is available
-  gc.calc_model();
+  // make sure the latest pressure is available, without stepping the compartment: calc_model would
+  // also add heat and water vapour (an extra integration step on every setter call)
+  gc.calc_elastances();
+  gc.calc_volumes();
+  gc.calc_pressure();
 
   // get the gas capacitance pressure
   let pressure = gc.pres;
@@ -32,10 +39,10 @@ export function calc_gas_composition(
   if (!(pressure > 0)) return;
 
   // calculate the concentration at this pressure and temperature in mmol/l using the gas law
-  gc.ctotal = (pressure / (_gas_constant * (273.15 + temp))) * 1000.0;
+  gc.ctotal = (pressure / (GAS_CONSTANT * (273.15 + temp))) * 1000.0;
 
   // calculate the water vapor pressure, concentration, and fraction for this temperature and humidity (0 - 1)
-  gc.ph2o = Math.exp(20.386 - 5132 / (temp + 273.15)) * humidity;
+  gc.ph2o = svp_h2o(temp) * humidity;
   gc.fh2o = gc.ph2o / pressure;
   gc.ch2o = gc.fh2o * gc.ctotal;
 

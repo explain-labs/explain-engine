@@ -113,7 +113,7 @@ export class Circulation extends BaseModelClass {
 
       // BloodVessels expose an ans_activity and an ans_sensitivity parameter which control the amount of vasoreactivity. 
       // The ciruclation model has an ans_activity parameter which can be set by an ANS effector and this ans_activity parameter is 
-      // set on all BloodVessels and MicroVascular units of the circulation.
+      // set on all BloodVessels of the circulation.
 
       // update the ans influence on the circulation if the influence has changed
       if (this.prev_ans_activity !== this.ans_activity) {

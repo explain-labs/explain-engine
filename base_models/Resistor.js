@@ -1,4 +1,6 @@
 import { BaseModelClass } from "./BaseModelClass";
+import { exchange_blood } from "../helpers/BloodMixing";
+import { exchange_gas } from "../helpers/GasMixing";
 
 export class Resistor extends BaseModelClass {
   // static properties
@@ -11,10 +13,13 @@ export class Resistor extends BaseModelClass {
     // initialize independent properties
     this.r_for = 1.0; // forward flow resistance Rf (mmHg*s/l)
     this.r_back = 1.0; // backward flow resistance Rb (mmHg*s/l )
-    this.r_k = 0.0; // non-linear resistance coefficient K1 (unitless)
+    this.r_k = 0.0; // non-linear resistance coefficient K1 (mmHg·s²/L²)
     this.comp_from = ""; // holds the name of the upstream component
     this.comp_to = ""; // holds the name of the downstream component
     this.no_flow = false; // flags whether flow is allowed across this resistor
+    // a second, independent gate for a controller that does NOT own this resistor: an owning
+    // BloodVessel re-copies its own no_flow every step and would overwrite a gate written there
+    this.no_flow_ext = false;
     this.no_back_flow = false; // flags whether backflow is allowed across this resistor
     // Numerical scheme, not physiology: when true the flow is computed backward-Euler for the pair
     // of compartments this resistor joins, flow = Δp / (R + dt·(E_from + E_to)), instead of the
@@ -27,7 +32,11 @@ export class Resistor extends BaseModelClass {
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
     this.p2_ext = 0.0; // external pressure on the outlet (mmHg)
     this.fixed_composition = false;
-    this.is_externally_managed = false; // flag read by owning models to skip their own flow calc
+    // Mixing without net flow (L/s): an equal volume exchanged both ways each step. Blood: eddies and
+    // vortex flow between compartments that are one continuous pool (helpers/BloodMixing.js
+    // exchange_blood). Gas: molecular diffusion and cardiogenic mixing (helpers/GasMixing.js
+    // exchange_gas). Advection by `flow` only carries upstream contents downstream. 0 (default) = off.
+    this.mix_flow = 0.0;
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
     this.r_factor = 1.0; // non-persistent resistance factor
@@ -49,7 +58,7 @@ export class Resistor extends BaseModelClass {
     this._comp_to = {}; // holds a reference to the downstream component
     this.r_for_eff = 1000;  // calculated forward resistance (mmHg/L*s)
     this.r_back_eff = 1000; // calculated backward resistance (mmHg/L*s)
-    this.r_k_eff = 0; // calculated non-linear resistance factor (unitless)
+    this.r_k_eff = 0; // calculated non-linear resistance coefficient (mmHg·s²/L²)
     this._prev_flow = 0.0; // flow from previous model step (L/s)
   }
 
@@ -64,6 +73,15 @@ export class Resistor extends BaseModelClass {
 
     // calculate the flow
     this.calc_flow();
+
+    // exchange without net flow (never across a closed connection)
+    if (this.mix_flow > 0.0 && !this.no_flow && !this.no_flow_ext && this._comp_from && this._comp_to) {
+      if (typeof this._comp_from.to2 === "number" && typeof this._comp_to.to2 === "number") {
+        exchange_blood(this._comp_from, this._comp_to, this.mix_flow * this._t);
+      } else if (typeof this._comp_from._end_conc === "function" && typeof this._comp_to._end_conc === "function") {
+        exchange_gas(this._comp_from, this._comp_to, this.mix_flow * this._t);
+      }
+    }
   }
 
   // calculate resistance
@@ -118,7 +136,7 @@ export class Resistor extends BaseModelClass {
     this.flow = 0.0;
 
     // return if no flow is allowed across this resistor
-    if (this.no_flow) {
+    if (this.no_flow || this.no_flow_ext) {
       this._prev_flow = 0.0;
       // return from this function
       return;

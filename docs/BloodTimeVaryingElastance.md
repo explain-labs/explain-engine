@@ -27,12 +27,11 @@ A compartment whose elastance varies over time between a minimum (`el_min`) and 
 | `u_vol` | L | Unstressed volume |
 | `el_min` | mmHg/L | Minimum elastance (during relaxation/diastole) |
 | `el_max` | mmHg/L | Maximum elastance (during contraction/systole) |
-| `el_k` | unitless | Non-linear elastance coefficient |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient |
 | `act_factor` | 0-1 | Activation factor (set externally, e.g., by Heart model) |
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 | `pres_ext` | mmHg | External pressure (non-persistent, resets each step) |
 
 ### Blood composition (unique to BloodTimeVaryingElastance)
@@ -58,7 +57,7 @@ A compartment whose elastance varies over time between a minimum (`el_min`) and 
 |---|---|---|
 | `el_min_eff` | mmHg/L | Effective minimum elastance this step (after all factors) |
 | `el_max_eff` | mmHg/L | Effective maximum elastance this step |
-| `el_k_eff` | unitless | Effective non-linear elastance coefficient |
+| `el_k_eff` | mmHg/L² | Effective non-linear elastance coefficient |
 | `u_vol_eff` | L | Effective unstressed volume |
 
 ## Three-tier factor system
@@ -94,7 +93,7 @@ When `act_factor = 0` (diastole), pressure equals `p_ed`. When `act_factor = 1` 
 
 ## Mixing logic (`volume_in`)
 
-Overrides `volume_in` to perform composition mixing when blood flows in, identical to `BloodCapacitance`:
+Overrides `volume_in` to perform composition mixing when blood flows in, through the shared `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), identical to `BloodCapacitance`:
 
 ```
 concentration += ((concentration_from - concentration) * dvol) / vol
@@ -109,10 +108,6 @@ Inherits from `TimeVaryingElastance`:
 1. `calc_elastances()` -- compute el_min_eff, el_max_eff, el_k_eff from base values + all factor tiers
 2. `calc_volumes()` -- compute u_vol_eff from base + all factor tiers
 3. `calc_pressure()` -- compute time-varying recoil pressure from activation factor
-
-## Externally managed mode
-
-When `is_externally_managed = true`, all three tiers of factors are reset to 1.0 every step. The parent model sets base properties directly.
 
 ## Example definition (JSON)
 

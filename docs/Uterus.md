@@ -40,7 +40,7 @@ Three behaviours, all gated:
 
 - **Uterine metabolism** — a dedicated uterine VO₂ (`ut_vo2`, mL O₂/kg/min) applied directly to
   `UT_CAP` using the same molar conversion as the whole-body `Metabolism` model
-  (`0.039 mmol O₂/mL` at 37 °C). It is deliberately **not** registered in
+  (`O2_MMOL_PER_ML = 1/22.414`, STPD). It is deliberately **not** registered in
   `Metabolism.metabolic_active_models`, so the calibrated whole-body VO₂ map is untouched and the
   uterus carries an independent, pregnancy-scalable O₂ demand.
 - **Pregnancy adaptation** — `preg_ga` (pregnancy gestational age, weeks; distinct from the
@@ -206,7 +206,7 @@ UT_CAP.tco2 = max(0, (tco2·vol + vo2_step·resp_q) / vol)
 ut_vo2_ml   = vo2_eff · model.weight                                            (mL O₂/min)
 ```
 
-with `O2_MMOL_PER_ML = 0.039`. `vo2_factor` is then reset to 1.0 (the non-persistent layer).
+with `O2_MMOL_PER_ML = 1/22.414` (STPD, `helpers/Units.js`). `vo2_factor` is then reset to 1.0 (the non-persistent layer).
 
 ### Flow & oxygen read-outs
 

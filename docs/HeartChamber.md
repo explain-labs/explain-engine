@@ -32,12 +32,11 @@ The `Heart` model also applies contractility (`cont_factor_left/right`) and rela
 | `u_vol` | L | Unstressed volume |
 | `el_min` | mmHg/L | Minimum elastance (diastolic stiffness) |
 | `el_max` | mmHg/L | Maximum elastance (systolic stiffness / contractility) |
-| `el_k` | unitless | Non-linear elastance coefficient |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient |
 | `act_factor` | 0-1 | Activation factor (set by Heart model: `aaf` for atria, `vaf` for ventricles) |
 | `vol` | L | Current blood volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 | `pres_ext` | mmHg | External pressure (non-persistent, e.g., pericardial pressure) |
 
 ### ANS properties (unique to HeartChamber)
@@ -70,7 +69,7 @@ The `Heart` model also applies contractility (`cont_factor_left/right`) and rela
 |---|---|---|
 | `el_min_eff` | mmHg/L | Effective minimum elastance this step |
 | `el_max_eff` | mmHg/L | Effective maximum elastance this step |
-| `el_k_eff` | unitless | Effective non-linear elastance coefficient |
+| `el_k_eff` | mmHg/L² | Effective non-linear elastance coefficient |
 | `u_vol_eff` | L | Effective unstressed volume |
 
 ## ANS elastance modulation
@@ -139,7 +138,7 @@ During diastole (`act_factor = 0`), pressure is determined by `el_min_eff` (and 
 
 ## Mixing logic (`volume_in`)
 
-Overrides `volume_in` to perform composition mixing when blood flows in:
+Overrides `volume_in` to perform composition mixing when blood flows in, through the shared `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), the same as `BloodCapacitance`:
 
 ```
 concentration += ((concentration_from - concentration) * dvol) / vol

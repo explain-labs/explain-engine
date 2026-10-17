@@ -11,10 +11,10 @@ export class GasDiffusor extends BaseModelClass {
     // initialize independent properties
     this.comp_gas1 = ""; // name of the first gas-containing model
     this.comp_gas2 = ""; // name of the second gas-containing model
-    this.dif_o2 = 0.01; // diffusion constant for o2 (mmol/mmHg * s)
-    this.dif_co2 = 0.01; // diffusion constant for co2 (mmol/mmHg * s)
-    this.dif_n2 = 0.01; // diffusion constant for n2 (mmol/mmHg * s)
-    this.dif_other = 0.01; // diffusion constant for n2 (mmol/mmHg * s)
+    this.dif_o2 = 0.01; // diffusion constant for o2 (mmol/(mmHg*s))
+    this.dif_co2 = 0.01; // diffusion constant for co2 (mmol/(mmHg*s))
+    this.dif_n2 = 0.01; // diffusion constant for n2 (mmol/(mmHg*s))
+    this.dif_other = 0.01; // diffusion constant for the other gasses (mmol/(mmHg*s))
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
     this.dif_o2_factor = 1.0; // non-persistent diffusion factor for o2 (unitless)

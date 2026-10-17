@@ -42,7 +42,7 @@ export class Respiration extends BaseModelClass {
     this.lungs = ["ALL", "ALR"]
     this.left_lung = ["ALL"]
     this.right_lung = ["ALR"]
-    this.gas_echangers = ["GASEX_LL", "GASEX_RL"]
+    this.gas_exchangers = ["GASEX_LL", "GASEX_RL"]
     this.gas_exchanger_left_lung = ["GASEX_LL"]
     this.gas_exchanger_right_lung = ["GASEX_RL"]
     this.intrapulmonary_shunt = ["IPS"]
@@ -54,6 +54,8 @@ export class Respiration extends BaseModelClass {
     // plug-flow (Fowler/Bohr) dead space, plus axial dispersion between them. 1 = classic well-mixed.
     this.dead_space_segments = 32;
     this.dead_space_dispersion = 0.015;
+    // molecular diffusion along the dead space (L/s per sub-tank interface), active without flow
+    this.dead_space_diffusion = 0.0;
 
     this.res_upper_airways_factor = 1.0;
     this.res_lower_airways_factor = 1.0;
@@ -123,6 +125,15 @@ export class Respiration extends BaseModelClass {
     this._trapped_pres_right = 0.0;
   }
 
+  init_model(args = []) {
+    super.init_model(args);
+    // older scenarios store the list under the misspelled key gas_echangers
+    if (Array.isArray(this.gas_echangers)) {
+      this.gas_exchangers = this.gas_echangers;
+      delete this.gas_echangers;
+    }
+  }
+
   calc_model() {
     // the blood side of atelectasis rides on non-persistent resistor factors, so it is re-written
     // every step (not throttled); it is skipped entirely while both lungs are aerated
@@ -142,6 +153,7 @@ export class Respiration extends BaseModelClass {
         ds.series_segments = this.dead_space_segments;
         ds.distal_models = this.lungs;
         ds.dispersion_coeff = this.dead_space_dispersion;
+        ds.diffusion_rate = this.dead_space_diffusion;
       }
 
       if (this._prev_el_lungs_factor !== this.el_lungs_factor) {
@@ -239,7 +251,7 @@ export class Respiration extends BaseModelClass {
 
   set_gasexchange(new_factor) {
     const delta = new_factor - this._prev_gex_factor;
-    this.gas_echangers.forEach(gex_name => {
+    this.gas_exchangers.forEach(gex_name => {
       const m = this._model_engine.models[gex_name];
       if (!m) return;
       // the O2 and CO2 diffusion factors track the same target; clamp each at 0 independently

@@ -40,8 +40,10 @@ export const RT_TRANSPORT = {
 
 // CHART control: a single-producer / single-consumer ring write cursor.
 // WRITE_IDX is the total number of rows ever written (monotonic; the physical
-// slot is WRITE_IDX % capacity). READ_HINT lets the writer detect a stalled
-// reader. VERSION must match the registry the rows were written under.
+// slot is WRITE_IDX % capacity). READ_HINT is where the reader publishes the
+// last WRITE_IDX it drained; nothing reads it back (the writer never waits for
+// the reader — a lapped reader keeps the freshest `capacity` rows and flags a
+// gap). VERSION must match the registry the rows were written under.
 export const CHART_CTRL = {
   WRITE_IDX: 0,
   READ_HINT: 1,
@@ -56,7 +58,7 @@ export const CHART_CTRL = {
 // ACTIVE frame and retries if SEQ changed mid-copy (torn-read protection).
 export const ANIM_CTRL = {
   ACTIVE: 0, // 0 or 1 — which frame slot currently holds the newest data
-  SEQ: 1, // bumped on every publish; odd while a write is in progress
+  SEQ: 1, // bumped by 1 after every publish (after the flip); its parity carries no meaning
   VERSION: 2,
   STRIDE: 3, // floats per frame (slot 0 = time, then component values)
   LEN: 4,

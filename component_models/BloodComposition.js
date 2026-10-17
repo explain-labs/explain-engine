@@ -1,8 +1,9 @@
+import { O2_MMOL_PER_ML } from "../helpers/Units";
 
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
-const kw              = 2.5119e-11; // water dissociation constant
+const kw              = 2.5119e-8; // water dissociation constant (mmol²/L², pKw 13.6 at 37 °C)
 const kc              = 7.94328235e-4; // carbonic acid dissociation constant
 const kd              = 6.0255959e-8; // bicarbonate dissociation constant
 const alpha_co2p      = 0.03067; // CO2 solubility coefficient
@@ -16,7 +17,6 @@ const right_o2_wide   = 1000.0; // upper bound for pO2 (headroom for ECMO/oxygen
 const delta_o2_limits = 10.0; // delta for pO2 limits
 const brent_accuracy  = 1e-6;
 const max_iterations  = 60;
-const gas_constant    = 62.36367;
 const DEFAULT_HALDANE_COEFF = 1.0; // default Haldane coefficient (0 = effect off); calibrate per scenario
 // Hemoglobin as a non-bicarbonate buffer. The charge balance below is a plasma (Stewart/Figge)
 // model, so without this term the only buffers were albumin and phosphate (~3.5 mmol/L per pH) and
@@ -66,7 +66,6 @@ let dpCO2 = 0;       // CO₂-Bohr effect: ↑pCO2 → right shift → ↑P₅�
 let dT = 0;          // ↑T → right shift → ↑P₅₀
 let dDPG = 0;          // ↑DPG → right shift → ↑P₅₀
 let hemoglobin_gdl = 0.0;
-let inv_mmol_to_ml = 0.0;
 let haldane_coeff = 0.0; // Haldane effect: ↓SO₂ → ↑CO₂-carrying capacity → ↓pCO2 at given tCO2
 let so2_prev = 0.98;     // SO₂ fraction from previous calculation (breaks the O₂↔CO₂ coupling)
 let beta_hb = 0.0;       // hemoglobin buffer value at the effective ECF concentration (mmol/L per pH)
@@ -146,7 +145,6 @@ function _calc_blood_composition_js(bc) {
 
     hemoglobin_gdl = hemoglobin / 0.6206;
     beta_hb = HB_BUFFER_SLOPE * hemoglobin * (bc.hb_buffer_fraction ?? DEFAULT_HB_BUFFER_FRACTION);
-    inv_mmol_to_ml = 760.0 / (gas_constant * (273.15 + temp));
 
     // set the wide limits based
     left_hp = left_hp_wide; // lower bound for H⁺ concentration
@@ -166,6 +164,7 @@ function _calc_blood_composition_js(bc) {
         bc.pco2 = pco2;
         bc.hco3 = hco3;
         bc.be = be;
+        bc.prev_ph = ph;
     } else {
         //console.log('small limit ab root finding failed in:', bc.name)
         // If the root finding failed, we will use the wide limits
@@ -179,8 +178,13 @@ function _calc_blood_composition_js(bc) {
             bc.pco2 = pco2;
             bc.hco3 = hco3;
             bc.be = be;
+            bc.prev_ph = ph;
         } else {
           console.log('definitive ab root finding failed in:', bc.name)
+          // keep the last valid acid-base state for the O2 curve below (the globals hold the
+          // last root-finding estimate, not a solution)
+          ph = bc.ph > 0 ? bc.ph : 7.4;
+          pco2 = bc.pco2 > 0 ? bc.pco2 : 40.0;
         }
     }
 
@@ -262,7 +266,8 @@ function _do2_content(po2_estimate) {
   // convert the hemoglobin unit from mmol/l to g/dL  (/ 0.6206)
   // convert to output from ml O2/dL blood to ml O2/l blood (* 10.0)
   let to2_new_estimate = (0.0031 * po2_estimate + 1.36 * hemoglobin_gdl * so2) * 10.0;
-  to2_new_estimate = to2_new_estimate * inv_mmol_to_ml;
+  // mL O2 (STPD) → mmol: Hüfner's 1.36 and the 0.0031 solubility are STPD volumes
+  to2_new_estimate = to2_new_estimate * O2_MMOL_PER_ML;
 
   // calculate the difference between the real to2 and the to2 based on the new po2 estimate and return it to the brent root finding function
   let dto2 = to2 - to2_new_estimate;
@@ -314,8 +319,8 @@ function _brent_root_finding(f, x0, x1, max_iter, tolerance) {
     }
 
     if (
-      new_point < (3 * x0 + x1) / 4 ||
-      new_point > x1 ||
+      // the new point must lie between (3a+b)/4 and b, whichever side a is on
+      (new_point - (3 * x0 + x1) / 4) * (new_point - x1) >= 0 ||
       (mflag && Math.abs(new_point - x1) >= Math.abs(x1 - x2) / 2) ||
       (!mflag && Math.abs(new_point - x1) >= Math.abs(x2 - d) / 2) ||
       (mflag && Math.abs(x1 - x2) < tolerance) ||

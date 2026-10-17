@@ -28,7 +28,7 @@ export class BloodVessel extends BloodCapacitance {
     this.inputs = []; // list of inputs for this blood vessel
     this.r_for = 1.0; // forward flow resistance Rf (mmHg*s/l)
     this.r_back = 1.0; // backward flow resistance Rb (mmHg*s/l )
-    this.r_k = 0.0; // non-linear resistance coefficient K1 (unitless)
+    this.r_k = 0.0; // non-linear resistance coefficient K1 (mmHg·s²/L²)
     this.no_flow = false; // flags whether flow is allowed across this resistor
     this.no_back_flow = false; // flags whether backflow is allowed across this resistor
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
@@ -36,6 +36,8 @@ export class BloodVessel extends BloodCapacitance {
     this.alpha = 0.0; // determines relation between resistance change and elastance change. Veins/venules: 0.75, arterioles: 0.63, large arteries: 0.5
     this.ans_sens = 0.0; // sensitivity of this blood vessel for autonomic control. 0.0 is no effect, 1.0 is full effect
     this.ans_activity = 1.0; // ans activity factor (unitless)
+    this.viscosity_ref = 0.0; // viscosity at which r_for/r_back are calibrated (cP), set by Blood; 0 = no viscosity effect
+    this.u_vol_ans_sens = 0.0; // sensitivity of the unstressed volume for autonomic control (venoconstriction mobilizes unstressed volume). 0.0 is no effect
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
     this.r_factor = 1.0; // non-persistent resistance factor
@@ -57,7 +59,7 @@ export class BloodVessel extends BloodCapacitance {
     // state variables to store the current resistance and elastance values
     this.r_for_eff = 1000;  // calculated forward resistance (mmHg/L*s)
     this.r_back_eff = 1000; // calculated backward resistance (mmHg/L*s)
-    this.r_k_eff = 0; // calculated non-linear resistance factor (unitless)
+    this.r_k_eff = 0; // calculated non-linear resistance coefficient (mmHg·s²/L²)
 
     // local properties
     this._resistors = {}; // list of connectors for this blood vessel
@@ -66,7 +68,7 @@ export class BloodVessel extends BloodCapacitance {
   }
 
   // override the parent class method
-  init_model(args={}) {
+  init_model(args = []) {
     // call parent class method
     super.init_model(args);
 
@@ -86,7 +88,6 @@ export class BloodVessel extends BloodCapacitance {
         { key: "name", value: inputName + "_" + this.name},
         { key: "description", value: "input connector for " + this.name },
         { key: "is_enabled", value: this.is_enabled },
-        { key: "is_externally_managed", value: true },
         { key: "model_type", value: "Resistor" },
         { key: "r_for", value: this.r_for },
         { key: "r_back", value: this.r_back },
@@ -166,6 +167,16 @@ export class BloodVessel extends BloodCapacitance {
     this.flow = this.flow_forward - this.flow_backward;
   }
 
+  calc_volumes() {
+    // the inherited additive factor layers (clamped at zero, non-persistent factor reset)
+    super.calc_volumes();
+
+    // sympathetic venoconstriction mobilizes unstressed volume: ans_activity > 1 (constriction)
+    // lowers u_vol, < 1 (withdrawal) raises it. Composed multiplicatively, like the ANS effect on R.
+    const u_vol_ans_mult = 1.0 - (this.ans_activity - 1.0) * this.u_vol_ans_sens;
+    this.u_vol_eff *= u_vol_ans_mult > 0.0 ? u_vol_ans_mult : 0.0;
+  }
+
   calc_resistances() {
     // Multiplicative composition of all resistance multipliers. Composing
     // factors as a product (rather than summing their deltas as before) lets
@@ -181,8 +192,13 @@ export class BloodVessel extends BloodCapacitance {
       this.r_factor_scaling_ps *
       ans_mult;
 
-    this.r_for_eff = this.r_for * r_total_factor;
-    this.r_back_eff = this.r_back * r_total_factor;
+    // Poiseuille: the viscous resistance scales with blood viscosity (haematocrit). Not part of
+    // r_total_factor, so it does not drive the α R→E coupling (viscosity is not vasoconstriction),
+    // and not applied to r_k (the inertial term does not depend on viscosity).
+    const visc_mult = this.viscosity_ref > 0.0 ? this.viscosity / this.viscosity_ref : 1.0;
+
+    this.r_for_eff = this.r_for * r_total_factor * visc_mult;
+    this.r_back_eff = this.r_back * r_total_factor * visc_mult;
 
     // r_k carries its own factor stack but the same ANS coupling, composed
     // multiplicatively like the linear resistance above.

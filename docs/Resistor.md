@@ -37,15 +37,16 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 |---|---|---|
 | `r_for` | mmHg·s/L | Forward flow resistance |
 | `r_back` | mmHg·s/L | Backward flow resistance |
-| `r_k` | unitless | Non-linear (turbulent) resistance coefficient |
+| `r_k` | mmHg·s²/L² | Non-linear (turbulent) resistance coefficient |
 | `comp_from` | string | Name of the upstream compartment |
 | `comp_to` | string | Name of the downstream compartment |
 | `no_flow` | bool | When true, block all flow (set `flow = 0` and return) |
+| `no_flow_ext` | bool | Same effect as `no_flow`, for a controller that does not own the resistor (an owning BloodVessel re-copies its own `no_flow` every step and would overwrite a gate written there; e.g. MaternalPlacenta's drainage) |
 | `no_back_flow` | bool | When true, block backward flow (valve behaviour) |
-| `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step) |
+| `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step — but see the BloodVessel note below) |
 | `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
 | `fixed_composition` | bool | Passed through to the endpoints' volume handling |
-| `is_externally_managed` | bool | Flag read by owning models to skip their own flow calc |
+| `mix_flow` | L/s | Exchange without net flow, blood or gas (default `0` = off); see [Dispersive mixing](#dispersive-mixing--mix_flow) |
 
 Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 `r_factor`, `r_k_factor` (non-persistent); `r_factor_ps`, `r_k_factor_ps` (persistent);
@@ -59,7 +60,7 @@ both `r_for` and `r_back`.
 | `flow` | L/s | Current flow (positive = forward, negative = backward) |
 | `r_for_eff` | mmHg·s/L | Effective forward resistance after the factor layers |
 | `r_back_eff` | mmHg·s/L | Effective backward resistance after the factor layers |
-| `r_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
+| `r_k_eff` | mmHg·s²/L² | Effective non-linear coefficient after the factor layers |
 | `_comp_from` / `_comp_to` | ref | Resolved references to the up/downstream compartments |
 | `_prev_flow` | L/s | Flow from the previous step (used by the non-linear term) |
 
@@ -81,8 +82,11 @@ Then resets the non-persistent factors `r_factor` and `r_k_factor` to `1.0`.
 ### `calc_flow`
 
 1. Compute inlet/outlet pressures including the non-persistent `p1_ext`/`p2_ext`, then clear those and
-   reset `flow` to `0`.
-2. If `no_flow`, set `_prev_flow = 0` and return.
+   reset `flow` to `0`. **On a resistor owned by a [BloodVessel](./BloodVessel.md)** (one of its
+   `inputs`) the clearing is moot: the vessel keeps its own `p1_ext`/`p2_ext` and copies them onto the
+   resistor every step, so a value written on the *vessel* acts as persistent until a writer sets it
+   back to 0.
+2. If `no_flow` or `no_flow_ext`, set `_prev_flow = 0` and return.
 3. Pick the direction by the sign of `ΔP` (forward if `ΔP ≥ 0`, else backward unless `no_back_flow`),
    guard against a non-positive effective resistance, and compute `flow` with the lagged non-linear
    term.
@@ -139,8 +143,7 @@ p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)
   "no_back_flow": false,
   "p1_ext": 0,
   "p2_ext": 0,
-  "fixed_composition": false,
-  "is_externally_managed": false
+  "fixed_composition": false
 }
 ```
 
@@ -174,3 +177,31 @@ on the 0.72 kg Bischoff infant (AA pressure range, mmHg):
 
 The patient builder and the live tuner set it on `AA_AAR` and `AAR_AD`; bundled scenarios do not
 (yet), so their numbers are unchanged.
+
+## Dispersive mixing — `mix_flow`
+
+Flow through a resistor carries upstream blood downstream (advection). Between two compartments that are
+really one continuous pool — the two halves of the right atrium, say — real blood also mixes by eddies
+and vortex flow, even when the net and oscillating flow between them is close to zero. Molecular
+diffusion cannot stand in for it (O2 needs minutes to diffuse a millimetre).
+
+`mix_flow` (L/s) adds that exchange. Each step an equal volume `dv = mix_flow · dt` is swapped both
+ways, with no net volume, using the pre-exchange concentrations
+([`helpers/BloodMixing.js`](../helpers/BloodMixing.js) `exchange_blood`):
+
+```
+c_a += (c_b − c_a) · dv / V_a        c_b += (c_a − c_b) · dv / V_b
+```
+
+so `c_a·V_a + c_b·V_b` is conserved for to2, tco2, every solute and drug and temperature (viscosity follows the haemoglobin).
+`dv` is clamped to half the smaller volume; a `fixed_composition` end keeps its composition, and a
+`no_flow` connection does not exchange. It acts only when both ends carry blood (`to2`), and only on
+a plain `Resistor`/`HeartValve` (a `BloodVessel` overrides `calc_model`). The equilibration time
+constant between the two compartments is about `V_a·V_b / ((V_a + V_b) · mix_flow)`.
+
+**Gas.** Between two gas compartments the same swap runs on the five species (O2, CO2, N2, H2O,
+other) by [`helpers/GasMixing.js`](../helpers/GasMixing.js) `exchange_gas`. It stands for molecular
+diffusion and cardiogenic mixing at the airway–alveolus junction, which go on without flow (in
+apnoea). It uses the composition at the connecting ends, so a series dead space exchanges through its
+distal sub-tank, not its bulk.
+

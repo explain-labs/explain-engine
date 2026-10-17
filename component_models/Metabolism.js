@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { O2_MMOL_PER_ML } from "../helpers/Units";
 
 export class Metabolism extends BaseModelClass {
   // static properties
@@ -16,6 +17,7 @@ export class Metabolism extends BaseModelClass {
     this.vo2 = 8.1; // oxygen use in ml/kg/min
     this.vo2_factor = 1.0; // factor modulating oxygen use by outside models
     this.vo2_temp_factor = 1.0; // temperature (Q10) factor on oxygen use, owned by Thermoregulation (1.0 = 37 degC)
+    this.vo2_bat_factor = 1.0; // brown-fat (non-shivering thermogenesis) O2 cost, owned by Thermoregulation (1.0 = none)
     this.resp_q = 0.8; // respiratory quotient for CO2 production
     this.metabolic_active_models = {}; // dictionary of models with fractional oxygen use
   }
@@ -27,18 +29,14 @@ export class Metabolism extends BaseModelClass {
       // If metabolism is not active, do nothing
       return;
     }
-    // Translate the VO2 in ml/kg/min to VO2 in mmol for this step size (assuming 37 degrees temperature and atmospheric pressure).
+    // Translate the VO2 in ml/kg/min (STPD) to VO2 in mmol for this step size.
     // vo2_temp_factor (Q10) is a persistent channel written by Thermoregulation; it is 1.0 at 37 degC / when that model is absent or disabled.
-    const vo2_step =((0.039 * this.vo2 * this.vo2_factor * this.vo2_temp_factor * this._model_engine.weight) / 60.0) * this._t;
+    const vo2_step =((O2_MMOL_PER_ML * this.vo2 * this.vo2_factor * this.vo2_temp_factor * this.vo2_bat_factor * this._model_engine.weight) / 60.0) * this._t;
 
     // Iterate over each metabolic active model
     for (const [model, fvo2] of Object.entries(this.metabolic_active_models)) {
       // Get the volume, tco2, and to2 from the blood compartment
       let compartment = this._model_engine.models[model];
-      // if the model is a MVU then do the metabolism inside the capillaries
-      if (compartment && compartment.model_type == 'MicroVascularUnit') {
-        compartment = this._model_engine.models[model + "_CAP"]
-      }
 
       // skip if the compartment (or its capillary) is not present in this configuration
       if (!compartment) {

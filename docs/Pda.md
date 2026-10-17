@@ -64,7 +64,7 @@ Each open-duct step executes in this order:
 
 | Property | Unit | Description |
 |---|---|---|
-| `discharge_coeff` | 0.3..1 | Effective vena-contracta contraction `Cd` of the pulmonary orifice. The Bernoulli coefficient uses `A_eff = Cd · A_pa`, so `B ∝ 1/Cd²`. The single tuning knob for peak jet velocity (lower `Cd` → tighter jet → higher velocity). Default `0.8` |
+| `discharge_coeff` | 0.3..1 | Effective vena-contracta contraction `Cd` of the pulmonary orifice. The Bernoulli coefficient uses `A_eff = Cd · A_pa`, so `B ∝ 1/Cd²`. The single tuning knob for peak jet velocity (lower `Cd` → tighter jet → higher velocity). Default `0.9` (smooth converging duct; a sharp-edged hole would be ~0.6) |
 | `diameter_drug_factor` | multiplier | Patency multiplier owned by the `Drugs` model (`1.0` = neutral). Prostaglandin E1 (alprostadil / PGE1) drives this above `1.0` to hold a constricting duct open in duct-dependent CHD; it multiplies `diameter_relative` (the product is capped at the anatomic max). **It does not reopen a fully-closed duct** — the `diameter_relative === 0` fast path stays keyed on the raw value (clinically the duct is maintained patent from birth on PGE1, never allowed to reach 0). Default `1.0` |
 
 ### Dependent (recomputed each step)
@@ -167,7 +167,7 @@ circuit compartment (not owned by the Pda).
   "diameter_pa_max": 2.0,
   "diameter_relative": 0,
   "length": 20,
-  "discharge_coeff": 0.8
+  "discharge_coeff": 0.9
 }
 ```
 

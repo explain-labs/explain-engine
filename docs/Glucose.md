@@ -32,8 +32,7 @@ SINK    peripheral utilization, split over Metabolism.metabolic_active_models by
   (`_inject.solutes.glucose += prod_total / _inject.vol`), modulated by `production_factor`.
 - **SINK** — peripheral utilization distributed over the *same* compartments and fractions
   [`Metabolism`](./Metabolism.md) uses for O₂ (`metabolic_active_models`, a `site → fvo2` map),
-  scaled by `uptake_factor`. A `MicroVascularUnit` site redirects to its `<site>_CAP` compartment;
-  sites with `vol <= 0` are skipped, and concentration is floored at 0.
+  scaled by `uptake_factor`. Sites with `vol <= 0` are skipped, and concentration is floored at 0.
 - **CONTROL** — `insulin` rises with hyperglycemia (↑uptake, ↓hepatic output); `counterreg` rises
   with hypoglycemia (↑hepatic output). At the set-point both `== 1.0`.
 
@@ -52,9 +51,10 @@ production_factor  = clamp(1 − hgp_insulin_gain·(insulin−1) + hgp_counterre
                            production_factor_min, production_factor_max)
 ```
 
-**Auto-seed.** After a `_warmup_delay` (30 s, to let the arterio-venous gradient settle), the
-set-point is pinned once to the then-current sensed `glucose` (`_seeded = true`) — this is what makes
-a shipped scenario neutral regardless of its resting glucose. The master gate `glucose_running`
+**Auto-seed.** A scenario that stores `glucose_setpoint` (> 0) keeps it. Otherwise, after a
+`_warmup_delay` (30 s, to let the arterio-venous gradient settle), the set-point is pinned once to the
+then-current sensed `glucose` (`_seeded = true`). Storing it is preferred: the re-seed depends on when
+the scenario was loaded. The master gate `glucose_running`
 (false) calls `_release()` once, pinning every read-out back to neutral, then idles.
 
 ## IV dextrose — no extra code
@@ -78,7 +78,7 @@ glucose the same way any fluid raises Na/K. The controller then senses the rise 
 |---|---|---|
 | `glu_use_rate` | `0.03` mmol/kg/min | peripheral utilization (~5.4 mg/kg/min) |
 | `hgp_rate` | `0.03` mmol/kg/min | hepatic production (`== glu_use_rate` → neutral at rest) |
-| `glucose_setpoint` | `4.0` mmol/L (~72 mg/dL) | controller target (auto-seeded to resting value) |
+| `glucose_setpoint` | `0` (auto-seed) | controller target in mmol/L; stored value kept, ≤ 0 → seeded to the resting value |
 | `insulin_gain` / `counterreg_gain` | `6.0` / `6.0` | drive per fractional glucose excess / deficit |
 | `insulin_tc` / `counterreg_tc` | `120 s` / `120 s` | controller lag time constants |
 | `uptake_insulin_gain` | `1.0` | uptake-factor rise per `(insulin−1)` |

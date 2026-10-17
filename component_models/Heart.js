@@ -46,15 +46,11 @@ export class Heart extends BaseModelClass {
     this.hr_drug_factor = 1.0; // heart rate factor of the drug model (driven by the Drugs model)
     this.hr_chemo_factor = 1.0; // heart rate factor of the peripheral chemoreflex (hypoxic bradycardia; driven by an AnsEfferent, 1.0 = no effect)
 
-    this.cont_factor = 1.0; // contractility factor
     this.cont_factor_left = 1.0; // left heart contractility factor
     this.cont_factor_right = 1.0; // right heart contractility factor
-    this.cont_mob_factor = 1.0; // contractility factor of myocardial oxygen balance model
 
-    this.relax_factor = 1.0; // relaxation factor (higher is less relaxation!)
     this.relax_factor_left = 1.0; // left heart relaxation factor
     this.relax_factor_right = 1.0; // right heart relaxation factor
-    this.relax_mob_factor = 1.0; // relaxation factor of myocardial oxygen balance model
 
     this.pc_el_factor = 1.0; // elastance factor of the pericardium
     this.pc_extra_volume = 0.0; // additional volume of the pericardium
@@ -142,11 +138,9 @@ export class Heart extends BaseModelClass {
 
     this.prev_la_lv_flow = 0.0;
     this.prev_lv_aa_flow = 0.0;
-    this.prev_cont_factor = 1.0;
     this.prev_cont_factor_left = 1.0;
     this.prev_cont_factor_right = 1.0;
 
-    this.prev_relax_factor = 1.0;
     this.prev_relax_factor_left = 1.0;
     this.prev_relax_factor_right = 1.0;
 
@@ -350,11 +344,16 @@ export class Heart extends BaseModelClass {
     if (this.hr_override) {
       this.heart_rate = this.heart_rate_ref;
     }
+    // the factors add up and can take the sum to (or, by rounding, just below) zero: a sinus rate
+    // can't be negative, and at zero the SA node is silent (sinus arrest → the escape pacemaker takes over)
+    if (!(this.heart_rate > 0.0)) this.heart_rate = 0.0;
+
     // calculate qtc time depending on heart rate
     this.cqt_time = this.calc_qtc(this.heart_rate);
 
-    // calculate the sinus node interval (in seconds) based on heart rate
-    this._sa_node_interval = 60.0 / this.heart_rate;
+    // calculate the sinus node interval (in seconds) based on heart rate; a negative interval
+    // would make the SA node fire on every step
+    this._sa_node_interval = this.heart_rate > 0.0 ? 60.0 / this.heart_rate : Infinity;
 
     // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over)
     if (this.sa_node_enabled && this._sa_node_timer > this._sa_node_interval) {

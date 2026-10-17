@@ -33,7 +33,7 @@ of its own.
 |---|---|---|
 | `u_vol` | L | Unstressed volume (volume at which recoil pressure is zero) |
 | `el_base` | mmHg/L | Baseline (linear) elastance |
-| `el_k` | unitless | Non-linear elastance coefficient (quadratic stiffening term) |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient (quadratic stiffening term) |
 | `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
 | `fixed_composition` | bool | When true, `volume_in`/`volume_out` do not change `vol` (infinite reservoir) |
 
@@ -49,10 +49,9 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
 | `pres_in` | mmHg | Internal recoil pressure of the elastance |
-| `pres_tm` | mmHg | Transmural pressure (`pres_in − pres_ext`) |
 | `el_eff` | mmHg/L | Effective elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
+| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
 
 ## Calculation cycle (`calc_model`)
 
@@ -79,15 +78,17 @@ plus atelectasis) could otherwise produce a negative unstressed volume. Then res
 ### `calc_pressure`
 
 ```
-pres_in = el_k_eff · (vol − u_vol_eff)² + el_eff · (vol − u_vol_eff)
-pres_tm = pres_in − pres_ext                 (transmural)
+s       = vol − u_vol_eff
+pres_in = el_k_eff · s² · [s > 0] + el_eff · s
 pres    = pres_in + pres_ext                 (total)
 pres_ext := 0                                (external pressure is non-persistent)
 ```
 
-The `el_k_eff` term adds non-linear stiffening; because it uses `(vol − u_vol_eff)²` (sign-independent)
-it also raises pressure *below* the unstressed volume — this is the engine convention, and `el_k` is
-`0` for most compartments. `pres_ext` is an external pressure (e.g. from a [`Container`](./Container.md)
+The `el_k_eff` term adds non-linear stiffening and acts **only above the unstressed volume** (`s > 0`).
+`s²` is positive on both sides of `u_vol`, so without the guard it would raise pressure *below* the
+unstressed volume, against the linear term, and far enough below it bends the P-V curve back up (an
+emptied aorta with the term_neonate `el_k` would read +17 mmHg at 6 mL below `u_vol`). Below `u_vol`
+the relation is linear. `el_k` is in mmHg/L² and is `0` for most compartments. `pres_ext` is an external pressure (e.g. from a [`Container`](./Container.md)
 or chest compression) applied this step and then cleared.
 
 ## Volume flow
@@ -108,7 +109,7 @@ layers that combine **additively against the base** into an `*_eff` value:
 |---|---|---|
 | `<p>_factor` | reset to `1.0` every step | transient interventions |
 | `<p>_factor_ps` | persistent | user / scenario / regulator models (ANS, MOB, Circulation…) |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (allometric/weight scaling) |
+| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling) |
 
 ```
 p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)·p

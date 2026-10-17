@@ -113,7 +113,7 @@ carried by `icp_k`.
 | `autoreg_factor_min` / `max` | `0.15` / `6.0` | max vasodilation / vasoconstriction limits |
 | `autoreg_tc` | `4.0` s | lag on the applied factor (anti-oscillation) |
 | `cbf_tc` / `pres_tc` | `3.0` / `3.0` s | smoothing of pulsatile CBF / arterial pressure |
-| `cbf_setpoint` / `cpp_setpoint` | auto-seeded | baseline CBF (L/min) / CPP (mmHg) targets |
+| `cbf_setpoint` / `cpp_setpoint` / `cbv0` | `0` = auto-seed | baseline CBF (L/min) / CPP (mmHg) / cerebral blood volume (mL); a scenario that stores them is neutral from the first step |
 | `icp_baseline` | `5.0` mmHg | normal neonatal ICP (read-out anchor) |
 | `edema_volume` | `0.0` mL | oedema / mass / haemorrhage lever (`set_edema()`) |
 | `icp_e0` | `4.0` mmHg | scale of the exponential P-V curve |
@@ -125,8 +125,10 @@ carried by `icp_k`.
 Wiring refs (`map_model` `AA`, `arteriole_resistor`/`cbf_resistor` `AA_BR_ART`,
 `cerebral_compartments` `[BR_ART, BR_CAP, BR_VEN]`, `outflow_resistor` `BR_VEN_VUB`, `oxy_model`
 `BR_CAP`) are resolved lazily on the first step. The controller runs on a 15 ms tick
-(`_update_interval`); the baseline CPP / CBF setpoint and `CBV0` are seeded once after a
-`_warmup_delay` (30 s) so they reflect the settled circuit, not the startup transient. Disabling
+(`_update_interval`); a baseline (`cpp_setpoint`, `cbf_setpoint`, `cbv0`) that is not stored in the
+scenario (≤ 0) is seeded once after a `_warmup_delay` (30 s). Storing them is preferred: a seed taken
+during the start-up transient leaves the autoregulation slightly off neutral, and it depends on when
+the scenario was loaded. Disabling
 (`brain_running = false`) writes `AA_BR_ART.r_factor_ps` and `BR_VEN_VUB.r_factor_ps` back to `1.0`
 once, restoring neutral cerebral haemodynamics.
 

@@ -1,4 +1,5 @@
 import { Capacitance } from "../base_models/Capacitance";
+import { GAS_CONSTANT, svp_h2o } from "../helpers/Units";
 
 // This class represents a gas capacitance model, which is a subclass of the Capacitance class.
 // This class adds functionality to handle gas-specific properties such as temperature, humidity ans gas concentrations.
@@ -52,9 +53,10 @@ export class GasCapacitance extends Capacitance {
     this.tube_segments = 3; // composition sub-tanks of the tube lumen
     this.dispersion_coeff = 0.0; // axial (Taylor-type) dispersion strength between sub-tanks (0 = none)
     this.dispersion_tau_max = 0.1; // s, cap on the dispersion mixing time
+    this.diffusion_rate = 0.0; // L/s per sub-tank interface: flow-independent (molecular) exchange (0 = none)
 
     // local properties
-    this._gas_constant = 62.36367; // ideal gas law constant (L·mmHg/(mol·K))
+    this._gas_constant = GAS_CONSTANT; // ideal gas law constant (L·mmHg/(mol·K))
     this._cp_molar = 29.1; // molar heat capacity of air at constant pressure (J/(mol·K))
     this._latent_h2o = 43400.0; // latent heat of vaporisation of water near 37 C (J/mol)
 
@@ -135,11 +137,14 @@ export class GasCapacitance extends Capacitance {
     // temperature, and add_heat performs the thermal expansion (and matching dilution) once the
     // compartment relaxes toward target_temp. Doing it here as well would double-count.
     //
-    // This is a no-op (k = 1) between compartments at equal pressure, which is every pairing in
-    // the model except the pressurised supplies. Those are all fixed_composition reservoirs whose
-    // volume_out is a no-op, so no donor-side amount is contradicted by rescaling here.
+    // Only a fixed_composition donor (a pressurised supply, e.g. VENT_GASIN) is rescaled: its
+    // volume_out is a no-op, so no donor-side amount is contradicted. Between two ordinary
+    // compartments the donor has already lost dvol·c, so the receiver must gain exactly dvol·c
+    // (k = 1) or moles vanish: every advective transfer crosses a pressure drop, and scaling by
+    // P_to / P_from there loses ~ΔP/P of every species per transfer (about 1 % of VO2 in the
+    // spontaneously breathing term neonate).
     let k = 1.0;
-    if (comp_from.pres > 0.0 && this.pres > 0.0) k = this.pres / comp_from.pres;
+    if (comp_from.fixed_composition && comp_from.pres > 0.0 && this.pres > 0.0) k = this.pres / comp_from.pres;
 
     // every species scales by the same k, so the gas FRACTIONS delivered are unchanged — this
     // corrects molar density only, never composition
@@ -274,7 +279,7 @@ export class GasCapacitance extends Capacitance {
 
   calc_watervapour_pressure() {
     // calculate the water vapor pressure based on the temperature
-    return Math.exp(20.386 - 5132 / (this.temp + 273.15));
+    return svp_h2o(this.temp);
   }
 
   calc_gas_composition() {
@@ -462,6 +467,38 @@ export class GasCapacitance extends Capacitance {
     return out;
   }
 
+  // composition (mmol/L per species) and volume (L) at the end of this compartment that faces
+  // neighbour: the matching sub-tank of a series dead space, otherwise the well-mixed bulk
+  _end_conc(neighbour) {
+    if (this._seg_active()) {
+      const t = this._seg_end_tank(neighbour);
+      return { c: [...t.c], v: t.rigid ? t.v : this.vol / this._segs_n };
+    }
+    return { c: GasCapacitance.SPECIES.map((k) => this[k]), v: this.vol };
+  }
+
+  // add dn (mmol per species, may be negative) at the end facing neighbour
+  _end_add(neighbour, dn) {
+    if (this.fixed_composition) return;
+    if (this._seg_active()) {
+      const t = this._seg_end_tank(neighbour);
+      const v = t.rigid ? t.v : this.vol / this._segs_n;
+      if (!(v > 0.0)) return;
+      for (let k = 0; k < 5; k++) t.c[k] += dn[k] / v;
+      this._seg_sync_bulk();
+      return;
+    }
+    if (!(this.vol > 0.0)) return;
+    GasCapacitance.SPECIES.forEach((key, k) => (this[key] += dn[k] / this.vol));
+  }
+
+  _seg_end_tank(neighbour) {
+    const port = this._seg_port(neighbour);
+    if (port === "distal") return this._segs[this._segs_nt + this._segs_n - 1];
+    if (port === "tube") return this._segs[0];
+    return this._segs[this._segs_nt];
+  }
+
   _seg_replay_bulk_change(pre) {
     // add_heat / add_watervapour scale every dry species by one factor s and set water to s*old + b;
     // apply the same affine change to each sub-tank so the chain stays consistent with the bulk
@@ -490,8 +527,12 @@ export class GasCapacitance extends Capacitance {
     } else {
       this._seg_t_rev += this._t;
     }
-    if (!(this.dispersion_coeff > 0.0) || sign === 0) return;
+    // flow-driven dispersion acts only while gas flows; molecular diffusion (diffusion_rate) always
+    const disperse = this.dispersion_coeff > 0.0 && sign !== 0;
+    const diffuse = this.diffusion_rate > 0.0;
+    if (!disperse && !diffuse) return;
     const tau = Math.min(this._seg_t_rev, this.dispersion_tau_max);
+    const e_diff = diffuse ? this.diffusion_rate * this._t : 0.0;
     const n = this._segs.length;
     const v_ds = this.vol / this._segs_n;
     for (let i = 0; i + 1 < n; i++) {
@@ -501,7 +542,8 @@ export class GasCapacitance extends Capacitance {
       if (!(v_seg > 0.0)) continue;
       // exchanged volume, capped at half the smaller sub-tank (fully mixed pair); mass-conserving
       // for unequal sub-tanks (tube lumen vs DS)
-      const e = Math.min(0.5 * v_seg, (this.dispersion_coeff * q * q * tau * this._t) / v_seg);
+      const e_disp = disperse ? (this.dispersion_coeff * q * q * tau * this._t) / v_seg : 0.0;
+      const e = Math.min(0.5 * v_seg, e_disp + e_diff);
       for (let k = 0; k < 5; k++) {
         const d = (b.c[k] - a.c[k]) * e;
         a.c[k] += d / va;

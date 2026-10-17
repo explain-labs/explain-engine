@@ -50,7 +50,7 @@ patient(drainage_site) ─[ECLS_DRAINAGE]─► ECLS_TUBING_IN ─► ECLS_PUMP 
 | `ECLS_DRAINAGE` | Resistor | Drainage cannula (`drainage_site → ECLS_TUBING_IN`) |
 | `ECLS_TUBING_IN` | BloodCapacitance | Inflow tubing; its pressure is reported as `p_ven` |
 | `ECLS_PUMP` | BloodVessel | Pump; its pressure is reported as `p_int`; centrifugal drive sets `p2_ext` |
-| `ECLS_OXY` | BloodVessel | Membrane oxygenator; blood side of the gas exchanger; roller drive sets `p1_ext` |
+| `ECLS_OXY` | BloodVessel | Membrane oxygenator; blood side of the gas exchanger; roller drive sets `p2_ext` |
 | `ECLS_TUBING_OUT` | BloodCapacitance/BloodVessel | Outflow tubing; its pressure is reported as `p_art` |
 | `ECLS_RETURN` | Resistor | Return cannula (`ECLS_TUBING_OUT → return_site`); its flow ×60 is `flow` |
 | `ECLS_GAS_SOURCE` | GasCapacitance | Sweep-gas source (composition from `gas_fio2`/`gas_fico2`/…) |
@@ -83,9 +83,9 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `pump_res_factor` | × | Multiplier on pump resistance |
 | `oxy_res_factor` | × | Multiplier on oxygenator resistance |
 | `oxy_res_for` / `oxy_res_back` | mmHg/(L/s) | Oxygenator resistance; set from the selected oxygenator's `dp_a` (Quadrox-i Neonatal 2700) whenever `oxygenator_type` is applied, editable in between |
-| `oxy_vol` | L | Oxygenator volume (default 0.09) |
+| `oxy_vol` | L | Oxygenator volume (default 0.09); overwritten by the selected oxygenator's `prime`, and applied as `ECLS_OXY.u_vol` |
 | `pump_res_for` / `pump_res_back` | mmHg/(L/s) | Pump internal resistance (default 50/50); the inflow tubing's `tubing_in_res` is added in series on the same resistor |
-| `pump_vol` | L | Pump volume (default 0.031) |
+| `pump_vol` | L | Pump volume (default 0.031); overwritten by the selected pump's `prime`, and applied as `ECLS_PUMP.u_vol` |
 | `pump_rpm` | rpm | Pump speed — the primary control (default 1500) |
 | `pump_height` | cm | Height of the pump and its pressure transducers **below** the patient's heart level (default 30; negative = above). Adds the blood column (≈ 0.78 mmHg/cm) to `p_ven`/`p_int`/`p_art`; flow is unaffected |
 | `pump_type` | string | Key into `pumps` (default `Abbott PediMag`); selecting it copies the H-Q/roller coefficients and sets `pump_mode` |
@@ -131,14 +131,15 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `drainage_res` / `return_res` | mmHg/(L/s) | Cannula (or lumen) resistance in blood at the current circuit flow — the chord dP(Q)/Q of the device's pressure-drop curve, before `*_res_factor` |
 | `drainage_dp` / `return_dp` | mmHg | Pressure drop over the drainage / return cannula (lumen) at the current flow, factor included |
 | `tubing_in_res` / `tubing_out_res` | mmHg/(L/s) | Poiseuille tubing resistances (blood) from the tubing geometry, recomputed each update (a scenario value is overwritten). `tubing_out_res` drives the `ECLS_OXY → ECLS_TUBING_OUT` resistor; `tubing_in_res` is added to the pump's inlet resistor |
-| `tubing_in_vol` / `tubing_out_vol` | L | Tubing volumes |
+| `tubing_in_vol` / `tubing_out_vol` | L | Tubing volumes from the tubing geometry (π·(d/2)²·length), applied as the `u_vol` of `ECLS_TUBING_IN` / `ECLS_TUBING_OUT` |
 
 ### Internal (`_`-prefixed) and moving averages
 
-`prev_fio2` / `prev_fico2` / `prev_gas_flow` detect sweep-gas changes so compositions/valve resistance
-are only recomputed when needed. `_update_interval` (0.015 s) and `_update_counter` gate the main
+`prev_fio2` / `prev_fico2` / `_prev_gas_temp` / `_prev_gas_humidity` detect sweep-gas changes so the
+gas-source composition is only rebuilt when one of them changes. `_stopped` makes the stop work
+edge-triggered (see below). `_update_interval` (0.015 s) and `_update_counter` gate the main
 control block; `_blood_comp_interval` (1.0 s) and `_blood_comp_counter` gate the blood-gas read-outs.
-`pressure_avg_window` / `flow_avg_window` (default 400 samples, ≈0.9 s at the 0.015 s update rate)
+`pressure_avg_window` / `flow_avg_window` (default 400 samples, ≈6 s at the 0.015 s update rate)
 size the four [`RealTimeMovingAverage`](./RealTimeMovingAverage.md) filters
 (`_flow_avg_calculator`, `_p_ven_avg_calculator`, `_p_int_avg_calculator`, `_p_art_avg_calculator`).
 
@@ -244,13 +245,19 @@ The realistic adult cannula losses also remove most of the implausibly high adul
 
 ## Calculation cycle (`calc_model`)
 
-**When `ecls_running` is false:** zero `flow`/`flow_avg`/`p_ven`/`p_int`/`p_art`, reset the four
-moving-average filters and `_blood_comp_counter`, and **disable every circuit sub-model** so a stopped
-circuit no longer conducts passive flow, then return. The refs are resolved here as well, so a
-circuit that has never run is disabled from the first step (scenarios ship the sub-models with
-`is_enabled: true`). It also zeroes `flow` on the circuit's five blood resistors (both cannulas and the
-three BloodVessel-owned connectors): a disabled Resistor never runs `calc_flow`, so its last flow would
-otherwise linger after a stop.
+**When `ecls_running` is false:** the stop work runs once, on the running→stopped edge (and on the
+first step after a load), guarded by `_stopped`; later stopped steps return immediately. It zeroes
+`flow`/`flow_avg`/`p_ven`/`p_int`/`p_art`, `pump_pressure` and the `sat_ven_o2`/`sat_postoxy_o2`/
+`pco2_postoxy` read-outs, resets the four moving-average filters, `_blood_comp_counter`, the pump
+flow EMA and the roller integrator, and **disables every circuit sub-model** so a stopped circuit no
+longer conducts passive flow, then returns. The refs are resolved here as well, so a circuit that has
+never run is disabled from the first step (scenarios ship the sub-models with `is_enabled: true`).
+It also zeroes `flow` on the circuit's five blood resistors (both cannulas and the three
+BloodVessel-owned connectors) and on both sweep-gas valves: a disabled Resistor never runs
+`calc_flow`, so its last flow would otherwise linger after a stop. Finally it zeroes `p1_ext`/`p2_ext`
+on `ECLS_PUMP` and `ECLS_OXY` — a BloodVessel keeps its own copy and re-copies it to its resistors
+every step, so a stale drive would persist and be saved with the state — applies the circuit volumes
+and releases the heater-cooler.
 
 **When running**, every `_update_interval` (0.015 s):
 
@@ -263,16 +270,22 @@ otherwise linger after a stop.
    of the selected cannulas: both lumens of `dl_cannula_type` in `VV-DL`, or the two VA cannulas.
    Turn them into the chord resistances `drainage_res`/`return_res` at the current flow, and compute
    the Poiseuille `tubing_in_res`/`tubing_out_res` ([Circuit calibration](#circuit-calibration)).
+   Apply the circuit volumes: the tubing `u_vol` from its geometry, `ECLS_PUMP`/`ECLS_OXY` `u_vol` from
+   `pump_vol`/`oxy_vol` (the selected devices' `prime`), each part keeping its stressed volume.
+   Re-apply the pump / oxygenator library entry if `pump_type` / `oxygenator_type` changed.
    (Before every tick, running or not, `_apply_cannulation` forces `return_site = drainage_site` in
    `VV-DL`, or restores the remembered VA return site.)
 4. Sync every sub-model's `is_enabled` to `ecls_running` (including both sweep-gas valves); set
    `no_flow = ecls_clamped` on all blood sub-models; enable `ECLS_GASEX` only when **unclamped**
    (`is_enabled = !ecls_clamped`); block back-flow on `ECLS_GAS_EXP_VALVE`.
 5. Push resistances onto each sub-model: drainage/return cannula, pump, oxygenator and outlet-tubing
-   resistance × its `*_res_factor`. `ECLS_TUBING_IN` is a bare `BloodCapacitance` that owns no
+   resistance × its `*_res_factor`. The two cannula resistances are further scaled by the blood they
+   carry, `viscosity / viscosity_ref` of `ECLS_TUBING_IN` (drainage) and `ECLS_TUBING_OUT` (return),
+   as the ECLS BloodVessels already do for their own resistors (haemodilution by the prime,
+   transfusion). `ECLS_TUBING_IN` is a bare `BloodCapacitance` that owns no
    resistor, so the inflow tubing's `tubing_in_res × tubing_res_factor` is added in series to the
    pump's own inlet resistor.
-6. Recompute the sweep-gas composition when `gas_fio2`/`gas_fico2` changed; size the inspiratory-valve
+6. Rebuild the sweep-gas composition when `gas_fio2`/`gas_fico2`/`gas_temp`/`gas_humidity` changed; size the inspiratory-valve
    resistance each update so sweep flow tracks `gas_flow` (see below).
 7. Update `ECLS_GASEX.dif_o2` / `dif_co2` and the membrane transfer ceilings `o2_cap` / `co2_cap`
    (from the selected oxygenator) — the rated-flow limit.
@@ -429,8 +442,7 @@ Device-level fields from `term_neonate.json` (the full block nests eleven `ECLS_
 (`ecls_running: false`, since 2026-10-01). Switching it on at runtime gives a primed but clamped circuit
 (`ecls_clamped: true`), so no blood flows until it is unclamped. Use `ecls_running` rather than the
 model's `is_enabled`: with `is_enabled: false`, `calc_model` never runs, so nothing manages the
-sub-models. On top of that, the DataCollector drops watched props of disabled models after every
-`calculate()`, which silently kills `Ecls.*` UI read-outs.
+sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
 
 ## Usage in the model
 
@@ -463,7 +475,7 @@ sub-models. On top of that, the DataCollector drops watched props of disabled mo
 - **Flow is preload/afterload limited by the *circuit*, not the pump rating.** The H-Q curve sets the
   head; the cannula sizes and venous return set the achievable flow. A term neonate stays ~0.5 L/min
   even at high rpm (correct); increasing `pump_rpm` past the preload limit just raises head, not flow.
-- **`flow` is reported in L/min** (`× 60`) even though the source comment labels it L/s.
+- **`flow` and `flow_avg` are in L/min** (`ECLS_RETURN.flow × 60`).
 
 ## Changelog
 

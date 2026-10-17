@@ -1,9 +1,11 @@
 # Monitor
 
 The `Monitor` device model is a **read-only patient monitor**. It does not change the physiology — it
-samples other models each step and publishes bedside read-outs. It is a pure observer: nothing in the
-engine reads from it, and it never writes to the models it samples, so it can be added or removed
-without affecting the simulation. The `DataCollector` relays its read-outs (via the normal watchlist)
+samples other models each step and publishes bedside read-outs. It is an observer: it never writes to
+the models it samples, and no model's physics depends on it, so it can be added or removed without
+affecting the simulation. (The [Calibrator](./Calibrator.md) does read its read-outs — `heart_rate`,
+`flows.lvo` and the `minmax` pressures — as its calibration targets, so a calibration run needs a
+Monitor with the matching targets.) The `DataCollector` relays its read-outs (via the normal watchlist)
 to the user.
 
 The model is deliberately minimal. It computes a handful of bedside values itself — **heart rate**,
@@ -31,6 +33,12 @@ and venous) — and exposes everything else through three uniform, **JSON-config
 `60 / interval` (interval = time since the previous beat). A running window of the last `hr_avg_beats`
 rates is kept (with a running sum) and averaged into `heart_rate`, so it updates every beat.
 
+**Asystole** — when no beat arrives for `asystole_time` (6 s), `heart_rate` reads 0 and its window is
+cleared, the beat-averaged `flows` and the derived `fo_flow`/`do2_br`/`do2_lb` read 0, and the per-beat
+`minmax` pressures/volumes are latched from the flat line — repeated every `asystole_time` while it
+lasts — instead of holding the last beat. The interval that ends an asystole (longer than
+`asystole_time`) is not counted as a beat-to-beat interval.
+
 **Respiratory rate** — `calc_resp_rate()` detects a breath when an **active** breathing source reaches
 the start of inspiration (`ncc_insp === 1`): the spontaneous `Breathing` model (when
 `breathing_enabled`) or the `Ventilator` (when `is_enabled`). One breath counts once: a ventilator
@@ -50,7 +58,10 @@ skipped.
 running peak airway pCO₂ over each breath on the airway gas compartment named by `etco2_source`
 (default `"DS"`, resolved to `_ds`), and latches that end-expiratory peak as `etco2` at the onset of the
 next spontaneous breath (resetting the per-breath peak). If neither source is present the last value is
-kept.
+kept. When no breath starts for `rr_avg_time` (apnoea) and the ventilator is off, the spontaneous
+`etco2` reads 0 (no expired breath to measure, as on a capnograph). Switching the ventilator on or off
+resets the per-breath peak, so the first spontaneous breath after weaning does not report the
+maximum over the whole ventilated period.
 
 ## Configurable read-outs
 
@@ -121,19 +132,25 @@ matching `flow_targets`:
 | Output | Formula | Requires `flow_targets` |
 |---|---|---|
 | `fo_flow` | `flows.fo_ivci_flow + flows.fo_svc_flow` | `fo_ivci_flow`, `fo_svc_flow` |
-| `do2_br` | `flows.brain_flow · AA.to2 · 22.4` | `brain_flow` |
-| `do2_lb` | `flows.kid_flow · 4 · AD.to2 · 22.4` | `kid_flow` |
+| `do2_br` | `flows.brain_flow · AA.to2 / O2_MMOL_PER_ML` (= × 22.414, mL O₂/min) | `brain_flow` |
+| `do2_lb` | `flows.kid_flow · 4 · AD.to2 / O2_MMOL_PER_ML` (mL O₂/min) | `kid_flow` |
+
+`O2_MMOL_PER_ML` is `1/22.414` (STPD) from `helpers/Units.js`. `do2_lb` **assumes** the lower-body
+flow is four times the renal flow (`kid_flow × 4`) — a fixed ratio, not a measured lower-body flow;
+it does not follow redistribution between the kidneys and the rest of the lower body.
 
 ## Configuration
 
-`hr_avg_beats` (12), `flow_avg_beats` (1), `rr_avg_time` (20 s), `sat_avg_time` (5 s), plus the three
-`*_targets` arrays. Model references are resolved by name: `Heart` (beats), `Breathing` + `Ventilator`
+`hr_avg_beats` (12), `flow_avg_beats` (1), `rr_avg_time` (20 s), `asystole_time` (6 s), `etco2_source`
+(`"DS"`), plus the three `*_targets` arrays. (`sat_avg_time` was removed — scenario files
+still carry the key, but nothing reads it; the saturations are mirrored every step without averaging.) Model references are resolved by name: `Heart` (beats), `Breathing` + `Ventilator`
 (breaths). The `flow_targets`/`minmax_targets`/`signal_targets` entries name their own models.
 
 ## Notes & caveats
 
-- **Pure observer.** The Monitor never writes to the models it samples; no model depends on it. The
-  `DataCollector` reads its outputs through the watchlist like any other model.
+- **Observer.** The Monitor never writes to the models it samples; no model's physics depends on it.
+  The `DataCollector` reads its outputs through the watchlist like any other model, and the
+  `Calibrator` reads them as calibration targets.
 - **Breath sourcing.** `resp_rate` counts breaths from the spontaneous `Breathing` source *and* the
   `Ventilator` (each gated by its enable flag), merging the two onsets of one breath (above). Before
   the merge, every patient-triggered breath was counted twice (effort onset + triggered ventilator
@@ -143,4 +160,4 @@ matching `flow_targets`:
   the first beat/breath, so the very first read-out is slightly off; it settles after one window.
 - **`do2_br` / `do2_lb` need `AA` / `AD`.** The oxygen-delivery metrics read the aortic O₂ content
   (`AA.to2` / `AD.to2`); both references are resolved with a `?? null` fallback, so they hold their
-  last value if those compartments are absent.
+  last value if those compartments are absent (asystole still zeroes them).

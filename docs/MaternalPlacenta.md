@@ -38,7 +38,7 @@ the `PL_IVS` compartment and its connecting resistors:
    the drainage, so it adds zero perturbation to the calibrated uterine baseline. `PL_IVS` stays
    `is_enabled` (an inert pool with a defined pressure).
 3. **Placental metabolism.** A dedicated placental VO2 is applied to `PL_IVS` using the same molar
-   conversion as `Metabolism`/`Uterus` (`0.039 mmol O2/mL`), giving real O₂ extraction across the
+   conversion as `Metabolism`/`Uterus` (`O2_MMOL_PER_ML`, STPD, `helpers/Units.js`), giving real O₂ extraction across the
    intervillous space.
 4. **Contraction compression.** The uterine intrauterine pressure (`Uterus.iup`) is applied as
    external pressure on `PL_IVS`, so contractions throttle placental perfusion.
@@ -123,7 +123,7 @@ Runs every step. Steps in order:
    ```
 
 3. **Gating.** Re-asserted every step:
-   - `PL_IVS.no_flow = !active` and `drain_res.no_flow = !active`. A non-pregnant or stopped placenta
+   - `PL_IVS.no_flow = !active` and `drain_res.no_flow_ext = !active` (the drainage resistor is owned by `UT_VEN`, which re-copies its own `no_flow` every step, so the external gate is used). A non-pregnant or stopped placenta
      is perfectly inert (no perturbation of the uterine baseline), but `PL_IVS` stays `is_enabled` so
      it retains a defined pressure.
    - If **not active**: restore `PL_IVS.r_factor_scaling_ps = 1.0` (the layer this model owns), zero
@@ -162,7 +162,7 @@ Runs every step. Steps in order:
    mp_vo2_ml   = vo2_eff * model.weight                                         # mL O2/min
    ```
 
-   where `O2_MMOL_PER_ML = 0.039` and `vol = PL_IVS.vol`. Then `vo2_factor` is reset to `1.0`. When
+   where `O2_MMOL_PER_ML = 1/22.414` (STPD) and `vol = PL_IVS.vol`. Then `vo2_factor` is reset to `1.0`. When
    inactive metabolism, `mp_vo2_ml = 0`.
 
 7. **Smoothed flows (EMA).** With `alpha = _t / (_flow_tc + _t)`:

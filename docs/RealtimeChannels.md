@@ -50,7 +50,7 @@ Indices into the small `Int32Array` control array that sits alongside the chart 
 | Index | Value | Meaning |
 |---|---|---|
 | `CHART_CTRL.WRITE_IDX` | `0` | Total rows ever written (monotonic). Physical slot = `WRITE_IDX % capacity` |
-| `CHART_CTRL.READ_HINT` | `1` | Lets the writer detect a stalled reader |
+| `CHART_CTRL.READ_HINT` | `1` | The last `WRITE_IDX` the reader drained (written by the reader). Nothing reads it back: the writer never waits for the reader, and a reader that was lapped keeps the freshest `capacity` rows and flags a gap (see [ChannelReader](./ChannelReader.md)) |
 | `CHART_CTRL.VERSION` | `2` | Must match the registry the rows were written under |
 | `CHART_CTRL.CAPACITY` | `3` | Number of rows the data ring holds |
 | `CHART_CTRL.STRIDE` | `4` | Floats per row (col 0 = time, then signals) |
@@ -63,7 +63,7 @@ Indices into the anim control array. The anim channel is a **seqlock over two ph
 | Index | Value | Meaning |
 |---|---|---|
 | `ANIM_CTRL.ACTIVE` | `0` | `0` or `1` — which frame slot holds the newest data |
-| `ANIM_CTRL.SEQ` | `1` | Bumped on every publish; odd while a write is in progress |
+| `ANIM_CTRL.SEQ` | `1` | Bumped by 1 after every publish (after the flip). Its parity means nothing — the reader only checks whether it changed during its copy |
 | `ANIM_CTRL.VERSION` | `2` | Registry version |
 | `ANIM_CTRL.STRIDE` | `3` | Floats per frame (slot 0 = time, then component values) |
 | `ANIM_CTRL.LEN` | `4` | Length of the control `Int32Array` |

@@ -10,6 +10,12 @@ const MANUAL_MODE_VENT_BACKUP_RATE = 1.0; // breaths/min
 // clamp for the frequencies that feed 60/f denominators, so a 0 can't yield an infinite-period cycle
 const MIN_FREQ = 1e-6;
 
+// the ventilator settings CPR overrides (set_pc, synchronisation, trigger, FiO2) and restores on stop
+const VENT_SETTINGS = [
+  "vent_mode", "pip_cmh2o", "pip_cmh2o_max", "peep_cmh2o", "vent_rate", "insp_time", "insp_flow",
+  "synchronized", "trigger_mode", "fio2",
+];
+
 export class Resuscitation extends BaseModelClass {
   // static properties
   static model_type = "Resuscitation";
@@ -54,6 +60,7 @@ export class Resuscitation extends BaseModelClass {
     this._vent_interval = 0.0; // interval between ventilations within a pause (s)
     this._vent_counter = 0.0; // ventilation interval counter (s)
     this._vent_breath_count = 0; // breaths already delivered in the current pause
+    this._vent_settings = null; // the ventilator settings CPR replaced, restored when CPR stops
   }
 
   init_model(args = {}) {
@@ -65,9 +72,6 @@ export class Resuscitation extends BaseModelClass {
     // get references to the model on which this model depends
     this._ventilator = this._model_engine.models["Ventilator"] || null;
     this._breathing = this._model_engine.models["Breathing"] || null;
-
-    // set the fio2 on the ventilator (if present)
-    if (this._ventilator) this.set_fio2(this.vent_fio2);
 
     // flag that the model is initialized
     this._is_initialized = true;
@@ -161,20 +165,41 @@ export class Resuscitation extends BaseModelClass {
     // always start (or stop) from a clean cycle so a re-toggle never resumes mid-compression/pause
     this._reset_cycle();
 
+    const v = this._ventilator;
     if (state) {
-      this._ventilator?.switch_ventilator(true);
-      this._ventilator?.set_pc(
+      if (this.cpr_enabled) return; // already running: keep the settings saved at the first switch
+      // remember what CPR replaces, so switching CPR off hands back the ventilator as it was set
+      if (v) {
+        this._vent_settings = {};
+        VENT_SETTINGS.forEach((key) => { if (key in v) this._vent_settings[key] = v[key]; });
+      }
+      v?.switch_ventilator(true);
+      v?.set_fio2(this.vent_fio2);
+      // PC breaths at the CPR pressures, keeping the circuit's own demand flow
+      v?.set_pc(
         this.vent_pres_pip,
         this.vent_pres_peep,
         MANUAL_MODE_VENT_BACKUP_RATE,
         this.vent_insp_time,
-        5.0
+        v.insp_flow
       );
+      // unsynchronised: the flow compressions push through the tube must not trigger breaths
+      if (v) {
+        v.synchronized = false;
+        v._sync_from_generic?.(); // the device display (Sle6000) follows
+      }
       this._breathing?.switch_breathing(false);
       this.cpr_enabled = true;
     } else {
-      // note: turning CPR off intentionally leaves the ventilator running and spontaneous breathing
-      // off — it models the post-arrest, still-ventilated patient. There is no automatic restore.
+      // the ventilator keeps running and spontaneous breathing stays off — the post-arrest,
+      // still-ventilated patient — but with the settings it had before CPR (not the 1/min backup)
+      if (v && this._vent_settings) {
+        const { fio2, ...settings } = this._vent_settings;
+        Object.assign(v, settings);
+        if (fio2 !== undefined) v.set_fio2(fio2); // rebuilds the fresh gas
+        v._sync_from_generic?.();
+      }
+      this._vent_settings = null;
       this.cpr_enabled = false;
     }
   }

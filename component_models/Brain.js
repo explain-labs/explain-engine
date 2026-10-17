@@ -71,8 +71,9 @@ export class Brain extends BaseModelClass {
                               // baseline (zero CBF error) the factor returns to 1.0 (no windup); under a
                               // sustained insult the error term dominates and the correction is held
                               // (control_gain/leak ≈ 100 → strong autoregulation with a small droop)
-    this.cbf_setpoint = 0.0; // L/min — auto-seeded baseline CBF (the autoregulation target)
-    this.cpp_setpoint = 40.0; // mmHg — auto-seeded baseline CPP (read-out)
+    this.cbf_setpoint = 0.0; // L/min — baseline CBF (the autoregulation target); <= 0 → auto-seeded after the warm-up
+    this.cpp_setpoint = 0.0; // mmHg — baseline CPP (read-out); <= 0 → auto-seeded after the warm-up
+    this.cbv0 = 0.0; // mL — baseline cerebral blood volume (ICP reference); <= 0 → auto-seeded after the warm-up
     this.autoreg_tc = 4.0; // s — first-order lag on the applied factor (anti-oscillation)
     this.autoreg_factor_min = 0.15; // max cerebral vasoDILATION (lower autoregulation limit)
     this.autoreg_factor_max = 6.0; // max cerebral vasoCONSTRICTION (upper autoregulation limit)
@@ -112,7 +113,6 @@ export class Brain extends BaseModelClass {
     this._map_smooth = null; // smoothed mean arterial pressure state
     this._cbf_smooth = null; // smoothed cerebral blood flow state (L/min)
     this._ar_int = 1.0; // autoregulation integral state (resistance factor before the gain blend)
-    this._cbv0 = 0.0; // captured baseline cerebral blood volume (mL)
     this._was_active = false;
     this._map = null;
     this._arteriole = null;
@@ -122,9 +122,15 @@ export class Brain extends BaseModelClass {
     this._oxy = null;
   }
 
-  init_model(args) {
+  init_model(args = []) {
     super.init_model(args);
     this.icp = this.icp_baseline;
+    // a scenario that stores its baseline (cbf_setpoint, cbv0) is neutral from the first step, without
+    // a warm-up re-seed whose result depends on when the scenario was loaded
+    this._seeded = this.cbf_setpoint > 0.0 && this.cbv0 > 0.0;
+    // start the flow smoother at the stored baseline, not at one pulsatile sample (which would kick
+    // the integrator at the first step)
+    if (this._seeded) this._cbf_smooth = this.cbf_setpoint;
   }
 
   calc_model() {
@@ -177,7 +183,7 @@ export class Brain extends BaseModelClass {
 
     // --- ICP (Monro-Kellie, exponential), only the EXCESS above baseline is applied ---
     if (this.icp_enabled) {
-      const dV = (this._seeded ? cbv - this._cbv0 : 0.0) + this.edema_volume; // mL
+      const dV = (this._seeded ? cbv - this.cbv0 : 0.0) + this.edema_volume; // mL
       let excess = this.icp_e0 * (Math.exp(this.icp_k * dV) - 1.0);
       if (excess < 0.0) excess = 0.0; // a smaller-than-baseline cranium does not pull a vacuum
       if (excess > this.icp_excess_max) excess = this.icp_excess_max;
@@ -200,9 +206,9 @@ export class Brain extends BaseModelClass {
     if (!this._seeded) {
       this._warmup_counter += u;
       if (this._warmup_counter >= this._warmup_delay) {
-        this.cpp_setpoint = this.cpp;
-        this.cbf_setpoint = this._cbf_smooth;
-        this._cbv0 = cbv;
+        if (!(this.cpp_setpoint > 0.0)) this.cpp_setpoint = this.cpp;
+        if (!(this.cbf_setpoint > 0.0)) this.cbf_setpoint = this._cbf_smooth;
+        if (!(this.cbv0 > 0.0)) this.cbv0 = cbv;
         this._seeded = true;
       }
     }

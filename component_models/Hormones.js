@@ -136,6 +136,8 @@ export class Hormones extends BaseModelClass {
     // local parameters
     this._update_interval = 1.0; // run the controller every 1 s (hormones are slow)
     this._update_counter = 0.0;
+    this._perf_sum = 0.0; // time integral of the sensed perfusion pressure since the last update (mmHg·s)
+    this._perf_time = 0.0; // time covered by _perf_sum (s)
     this._was_active = false; // tracks active→inactive for the one-shot channel release
     this._circ = null;
     this._kidneys = null;
@@ -145,7 +147,7 @@ export class Hormones extends BaseModelClass {
     this._plasma = null;
   }
 
-  init_model(args) {
+  init_model(args = []) {
     // base applies args (no components on this model)
     super.init_model(args);
   }
@@ -156,6 +158,17 @@ export class Hormones extends BaseModelClass {
       if (this._was_active) this._release_channels();
       this._was_active = false;
       return;
+    }
+
+    // integrate the (pulsatile) perfusion pressure every step, so the controller senses its mean
+    // over the update interval instead of one instantaneous sample per second
+    this._resolve_refs();
+    if (this._perf) {
+      const p = this._perf[this.perfusion_prop];
+      if (Number.isFinite(p)) {
+        this._perf_sum += p * this._t;
+        this._perf_time += this._t;
+      }
     }
 
     // run the (slow) control logic on the update interval, not every step
@@ -184,7 +197,9 @@ export class Hormones extends BaseModelClass {
     this._resolve_refs();
 
     // --- read sensors (keep last good value if a ref/prop is missing) ---
-    if (this._perf) this.sensed_perfusion = this._perf[this.perfusion_prop] ?? this.sensed_perfusion;
+    if (this._perf_time > 0.0) this.sensed_perfusion = this._perf_sum / this._perf_time;
+    this._perf_sum = 0.0;
+    this._perf_time = 0.0;
     if (this._vol) this.sensed_volume = this._vol[this.volume_prop] ?? this.sensed_volume;
     if (this._plasma?.solutes) {
       this.sensed_na = this._plasma.solutes.na ?? this.sensed_na;

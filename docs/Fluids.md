@@ -33,6 +33,9 @@ time has elapsed.
 | `fluids_temp` | °C | Temperature stamped on every administered fluid (default 37.0) |
 | `fluids` | object | Library `{ fluidType: { solute: concentration, … } }` of available fluids |
 | `default_volume` | mL | Default bolus volume offered to the UI |
+| `maintenance_rate` | mL/kg/h | Continuous maintenance intake (default `0` = off) |
+| `maintenance_fluid` | — | Key in `fluids` giving its composition (default `"maintenance"`; missing = water) |
+| `maintenance_site` | — | Compartment receiving it (default `IVCI`) |
 
 ### Local / internal (`_`-prefixed)
 
@@ -62,7 +65,7 @@ vol       = volume / 1000                                  (mL → L)
 time_left = in_time                                        (s)
 delta     = (volume/1000) / (in_time / _update_interval)   (L delivered per processing step)
 solutes   = { ...fluids[fluid_in] }                        (composition of the chosen fluid)
-to2 = tco2 = 0,  temp = fluids_temp,  viscosity = 1,  drugs = {}
+to2 = tco2 = 0,  temp = fluids_temp,  drugs = {}
 ```
 
 `delta` is sized so the full volume is delivered across the `in_time / _update_interval` processing
@@ -84,15 +87,24 @@ resets and `process_fluid_list` runs:
 
 The delivery happens **before** the timer/zeroing, so the final increment is actually administered.
 
+## Maintenance intake — `process_maintenance`
+
+Every update the maintenance fluid flows continuously into `maintenance_site`:
+`dvol = maintenance_rate · weight / 1000 · elapsed / 3600` litres, mixed in with `volume_in` like a
+bolus (no O2/CO2, `fluids_temp`). It stands for enteral feeding / maintenance IV fluid and replaces
+what the kidneys excrete, so blood volume and composition hold at rest. A scenario that sets it to its
+resting urine flow and urine composition is steady by construction; the kidneys then decide whether
+the patient gains or loses volume when perturbed.
+
 ## Notes & caveats
 
 - **Full dose is delivered.** The increment is applied before the timer is zeroed; an earlier ordering
   zeroed the last `delta` before delivering it, losing one step's worth — negligible for a long
   infusion but significant for a short bolus (a one-step bolus delivered nothing).
 - **Missing target site is skipped** (optional-chaining guard) rather than throwing.
-- **Composition is gas-free and low-viscosity.** Administered fluid carries `to2 = tco2 = 0` and
-  `viscosity = 1`, so a large bolus dilutes the compartment's oxygen/CO₂ content and lowers its
-  viscosity — the intended haemodilution effect.
+- **Composition is gas-free.** Administered fluid carries `to2 = tco2 = 0` and no haemoglobin, so a
+  large bolus dilutes the compartment's oxygen/CO₂ content and its Hb; [`Blood`](./Blood.md) derives
+  viscosity from the Hb, so the blood thins too — the intended haemodilution effect.
 - **Vestigial fields.** `fluid.vol` is decremented but not used as a stop condition (delivery is
   timer-driven); `_default_time` / `_default_type` are unused.
 

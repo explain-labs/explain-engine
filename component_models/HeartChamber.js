@@ -1,4 +1,5 @@
 import { TimeVaryingElastance } from "../base_models/TimeVaryingElastance";
+import { mix_blood_in } from "../helpers/BloodMixing";
 
 // This class represents a blood time-varying elastance model, which is a subclass of the TimeVaryingElastance class.
 // This class adds functionality to handle blood-specific properties such as temperature, viscosity, solute and drug concentrations.
@@ -88,50 +89,20 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.u_vol_factor_ps - 1) * this.u_vol
         + (this.u_vol_factor_scaling_ps - 1) * this.u_vol
         + (this.u_vol_remodel_factor - 1) * this.u_vol; // chronic eccentric cavity dilation (HeartFunction)
+    // the factor layers add up and can take the sum below zero; an unstressed volume can't be negative
+    if (this.u_vol_eff < 0.0) this.u_vol_eff = 0.0;
 
     // reset the non persistent factors
     this.u_vol_factor = 1.0;
   }
 
-  // the method overrides the 'volume_in' method of the TimeVaryingElastance class and 
-  // adds functionality to update the viscosity, temperature and to2, tco2, solutes and drug concentrations
+  // the method overrides the 'volume_in' method of the TimeVaryingElastance class and
+  // mixes the incoming blood composition (see helpers/BloodMixing.js)
   volume_in(dvol, comp_from) {
     // call the parent method from the TimeVaryingElastance class to update the volume
     super.volume_in(dvol, comp_from);
 
-    // a fixed-composition compartment is an infinite reservoir: hold its composition
-    // (and temperature/viscosity) constant
-    if (this.fixed_composition) return;
-
-    // guard against division by zero on an empty compartment (would produce NaN concentrations)
-    if (this.vol <= 0.0) return;
-
-    // process the gases o2 and co2
-    this.to2 += ((comp_from.to2 - this.to2) * dvol) / this.vol;
-    this.tco2 += ((comp_from.tco2 - this.tco2) * dvol) / this.vol;
-
-    // process the solutes (default to 0 if the source lacks the solute, to avoid NaN)
-    Object.keys(this.solutes).forEach((solute) => {
-      let solute_from = 0;
-      if (comp_from.solutes[solute]) {
-        solute_from = comp_from.solutes[solute];
-      }
-      this.solutes[solute] += ((solute_from - this.solutes[solute]) * dvol) / this.vol;
-    });
-
-    // process the temperature (treat it as a solute)
-    this.temp += ((comp_from.temp - this.temp) * dvol) / this.vol;
-
-    // process the viscosity (treat it as a solute)
-    this.viscosity += ((comp_from.viscosity - this.viscosity) * dvol) / this.vol;
-
-    // process the drug concentrations (default to 0 if the source lacks the drug, to avoid NaN)
-    Object.keys(this.drugs).forEach((drug) => {
-      let drug_from = 0.0;
-      if (comp_from.drugs[drug]) {
-        drug_from = comp_from.drugs[drug];
-      }
-      this.drugs[drug] += ((drug_from - this.drugs[drug]) * dvol) / this.vol;
-    });
+    // mix to2, tco2, solutes, drugs, temperature and viscosity by the incoming volume fraction
+    mix_blood_in(this, dvol, comp_from);
   }
 }

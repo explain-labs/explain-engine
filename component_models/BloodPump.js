@@ -43,10 +43,9 @@ export class BloodPump extends BloodCapacitance {
     this._outlet = this._model_engine.models[this.outlet];
 
     // calculate the recoil pressure
-    this.pres_in = this.el_k_eff * Math.pow(this.vol - this.u_vol_eff, 2) + this.el_eff * (this.vol - this.u_vol_eff);
-
-    // calculate the transmural pressure
-    this.pres_tm = this.pres_in - this.pres_ext;
+    // the non-linear term only acts above the unstressed volume (see Capacitance.calc_pressure)
+    const _s = this.vol - this.u_vol_eff;
+    this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
 
     // calculate the total pressure by incorporating the external pressures
     this.pres = this.pres_in + this.pres_ext + this.pres_cc + this.pres_mus;

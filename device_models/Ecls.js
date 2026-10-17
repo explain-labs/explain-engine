@@ -64,25 +64,13 @@ export class Ecls extends BaseModelClass {
   // static properties
   static model_type = "Ecls";
 
-  /*
-
-    */
-
   constructor(model_ref, name = "") {
     // initialize the base model class setting all the general properties of the model which all models have in common
-    
-    // Average umbilical cord length at term          : – 55 cm
-    // Mean luminal CSA per artery at 37–39 weeks     : – 0.147 cm² (overall mean across 300 normal pregnancies) DOI: http://dx.doi.org/10.18203/2320-1770.ijrcog20183851
-    // Mean volume of umbilical artery                : 55 * 0.147 = 8.1 cm3 = 8.1 ml per artery => 16.2 ml for two arteries
-    // Mean luminal CSA umbilical vein at 37-39 weeks : - 0.58 cm2
-    // Mean volume of umbilical vein                  : 55 * 0.58 = 31.9 cm3 = 31.9 ml  Spurway J, Logan P, Pak S. The development, structure and blood flow within the umbilical cord with particular reference to the venous system. Australas J Ultrasound Med. 2012 Aug;15(3):97-102. doi: 10.1002/j.2205-0140.2012.tb00013.x. Epub 2015 Dec 31. PMID: 28191152; PMCID: PMC5025097.
-    // Mean volume of fetal part of placenta          : 427 ml DOI: 10.7863/jum.2008.27.11.1583
-
     super(model_ref, name);
     // -----------------------------------------------
     // initialize independent parameters
     this.ecls_running = false;
-    this.ecls_clamped = true; // flags whether the umbilical vessels are clamped or not
+    this.ecls_clamped = true; // flags whether the ECLS circuit (cannulas, tubing, pump, oxygenator) is clamped
     
     
     this.drainage_res_factor = 1.0; // factor to adjust the drainage resistance
@@ -117,8 +105,6 @@ export class Ecls extends BaseModelClass {
     // unaffected. 30 cm is an assumed console position, putting neonatal VV p_ven at ~ -13 mmHg
     // (13 Fr double lumen, 0.44 L/min), inside the -10 to -20 mmHg seen at the bedside.
     this.pump_height = 30.0;
-    this.cannula_sizes_single = [6, 8, 10, 12]; // sizes of the drainage and return cannula in Fr
-    this.cannula_size_double = [13, 14, 15]; // sizes of the drainage cannula in Fr for double lumen cannula (the return cannula is always 1 Fr larger than the drainage cannula in this case)
     
     this.drainage_site = "RA"; // site of drainage cannula insertion
     this.drainage_cannula_diameter = 0.0027; // diameter of the drainage cannula (m)
@@ -321,16 +307,16 @@ export class Ecls extends BaseModelClass {
     this.p_int = 0.0; // filtered pressure at the interface between the drainage cannula and the tubing (mmHg)
     this.p_art = 0.0; // filtered arterial pressure (mmHg)
     this.p_hydrostatic = 0.0; // hydrostatic offset added to the measured circuit pressures (mmHg)
-    this.flow = 0.0; // blood flow through the ECLS circuit (L/s)
-    this.flow_avg = 0.0; // moving average of the blood flow through the ECLS circuit (L/s)
+    this.flow = 0.0; // blood flow through the ECLS circuit (L/min)
+    this.flow_avg = 0.0; // moving average of the blood flow through the ECLS circuit (L/min)
     this.sat_ven_o2 = 0.0; // venous oxygen saturation (%)
     this.sat_postoxy_o2 = 0.0; // post-oxygenator oxygen saturation (%)
     this.pco2_postoxy = 0.0; // post-oxygenator pCO2 (mmHg)
     // circuit resistances, re-derived every update (any scenario value is overwritten):
     this.tubing_in_res = 0.0; // Poiseuille resistance of the inflow tubing, from its geometry (mmHg/(L/s))
-    this.tubing_in_vol = 0.1; // volume of the tubing in (L)
+    this.tubing_in_vol = 0.0; // volume of the inflow tubing, from its geometry (L)
     this.tubing_out_res = 0.0; // Poiseuille resistance of the outflow tubing, from its geometry (mmHg/(L/s))
-    this.tubing_out_vol = 0.1; // volume of the tubing out (L)
+    this.tubing_out_vol = 0.0; // volume of the outflow tubing, from its geometry (L)
     this.drainage_res = 0.0; // drainage cannula/lumen resistance at the current flow, in blood (mmHg/(L/s))
     this.return_res = 0.0; // return cannula/lumen resistance at the current flow, in blood (mmHg/(L/s))
     this.drainage_dp = 0.0; // pressure drop over the drainage cannula/lumen at the current flow (mmHg)
@@ -340,10 +326,11 @@ export class Ecls extends BaseModelClass {
     // local parameters
     this.prev_fio2 = 0.0; // previous fio2 value to detect changes in fio2
     this.prev_fico2 = 0.0; // previous fico2 value to detect changes in fico2
-    this.prev_gas_flow = 0.0; // previous gas flow value to detect changes in gas flow
-    this.pressure_avg_window = 400; // number of samples used for real-time pressure moving averages
-    this.flow_avg_window = 400; // number of samples used for the real-time flow moving average (~0.9 s at 0.015 s updates)
-    this._update_interval = 0.015; // update interval of the placenta model (s)
+    this._prev_gas_temp = null; // sweep-gas temperature the gas source was last built at
+    this._prev_gas_humidity = null; // sweep-gas humidity the gas source was last built at
+    this.pressure_avg_window = 400; // number of samples used for the real-time pressure moving averages (~6 s at 0.015 s updates)
+    this.flow_avg_window = 400; // number of samples used for the real-time flow moving average (~6 s at 0.015 s updates)
+    this._update_interval = 0.015; // update interval of the ECLS model (s)
     this._update_counter = 0.0; // counter of the update interval (s)
     this._blood_comp_interval = 1.0; // low-frequency blood composition update interval (s)
     this._blood_comp_counter = 0.0; // counter for low-frequency blood composition updates (s)
@@ -354,6 +341,7 @@ export class Ecls extends BaseModelClass {
     this._pump_flow_ema = 0.0; // short-EMA of circuit flow (L/min): the H-Q / roller controller input
     this._pump_flow_ema_tc = 0.3; // time constant (s) for that EMA — tracks flow but damps the feedback loop
     this._roller_drive = 0.0; // integral-controller drive pressure (mmHg) for roller mode
+    this._stopped = false; // the stop work in calc_model has been done (edge-triggered)
 
 
     this._ecls_drainage = null; // reference to the drainage model instance
@@ -393,6 +381,7 @@ export class Ecls extends BaseModelClass {
     this.oxy_co2_cap = o.co2_cap ?? this.oxy_co2_cap;
     this.oxy_surface_area = o.surface_area ?? this.oxy_surface_area;
     this.oxy_rated_flow = o.rated_flow ?? this.oxy_rated_flow;
+    this.oxy_vol = o.prime ?? this.oxy_vol; // blood-side priming volume (L)
     if (o.dp_a !== undefined) {
       this.oxy_res_for = o.dp_a * 60.0; // mmHg per L/min -> mmHg/(L/s)
       this.oxy_res_back = o.dp_a * 60.0;
@@ -407,6 +396,7 @@ export class Ecls extends BaseModelClass {
     if (!p) return;
     this.pump_mode = p.type === "roller" ? 1 : 0;
     this.pump_max_rpm = p.max_rpm ?? this.pump_max_rpm;
+    this.pump_vol = p.prime ?? this.pump_vol; // priming volume (L)
     if (p.type === "roller") {
       this.roller_ml_per_rev = p.ml_per_rev ?? this.roller_ml_per_rev;
       this.roller_kp = p.roller_kp ?? this.roller_kp;
@@ -417,6 +407,23 @@ export class Ecls extends BaseModelClass {
       this.pump_hq_c = p.hq_c ?? this.pump_hq_c;
     }
     this._prev_pump_type = this.pump_type;
+  }
+
+  // set the unstressed volume of the circuit parts (tubing from its geometry, pump and oxygenator from
+  // their priming volumes), keeping each part's stressed volume, so the circuit holds what it is sized for
+  _apply_circuit_volumes() {
+    const tube = (d, l) => (d > 0.0 && l > 0.0 ? Math.PI * (d / 2.0) ** 2 * l * 1000.0 : 0.0); // m -> L
+    this.tubing_in_vol = tube(this.tubing_in_diameter, this.tubing_in_length);
+    this.tubing_out_vol = tube(this.tubing_out_diameter, this.tubing_out_length);
+    const set_u_vol = (comp, u_vol) => {
+      if (!comp || !(u_vol > 0.0) || Math.abs(comp.u_vol - u_vol) < 1e-9) return;
+      comp.vol += u_vol - comp.u_vol;
+      comp.u_vol = u_vol;
+    };
+    set_u_vol(this._ecls_tubing_in, this.tubing_in_vol);
+    set_u_vol(this._ecls_tubing_out, this.tubing_out_vol);
+    set_u_vol(this._ecls_pump, this.pump_vol);
+    set_u_vol(this._ecls_oxy, this.oxy_vol);
   }
 
   // restore ECLS_OXY's perfusion time constant to its pre-override value and hand thermal control
@@ -466,6 +473,10 @@ export class Ecls extends BaseModelClass {
     this._apply_cannulation();
 
     if (!this.ecls_running) {
+      // the stop work below only has to happen once, on the running→stopped edge (and on the first
+      // step after a load); repeating it every step re-allocated the four averaging windows
+      if (this._stopped) return;
+      this._stopped = true;
       this.flow = 0.0;
       this.flow_avg = 0.0;
       this.p_ven = 0.0;
@@ -478,6 +489,12 @@ export class Ecls extends BaseModelClass {
       this._blood_comp_counter = 0.0;
       this._pump_flow_ema = 0.0; // clear the pump-control state so a restart begins from rest
       this._roller_drive = 0.0;
+      this._update_counter = 0.0;
+      // a stopped circuit has no drive and no circuit blood gas to report
+      this.pump_pressure = 0.0;
+      this.sat_ven_o2 = 0.0;
+      this.sat_postoxy_o2 = 0.0;
+      this.pco2_postoxy = 0.0;
 
       // disable the circuit sub-models so a stopped ECLS no longer conducts. Resolve the refs here
       // too: scenarios ship the sub-models enabled, and a circuit that has never run would otherwise
@@ -495,11 +512,20 @@ export class Ecls extends BaseModelClass {
         const r = this._model_engine.models[name];
         if (r) r.flow = 0.0;
       }
+      // the sweep-gas valves too, and the pump drive: a BloodVessel keeps p1_ext/p2_ext and re-copies
+      // them to its resistors every step, so a stale drive would persist (and be saved with the state)
+      for (const valve of [this._ecls_gas_insp_valve, this._ecls_gas_exp_valve]) if (valve) valve.flow = 0.0;
+      for (const vessel of [this._ecls_pump, this._ecls_oxy]) {
+        if (vessel) { vessel.p1_ext = 0.0; vessel.p2_ext = 0.0; }
+      }
+      this._apply_circuit_volumes();
       // release the heater-cooler so a stopped circuit leaves ECLS_OXY as a neutral blood
       // compartment (Thermoregulation resumes warming it toward core), restoring its original tc
       this._release_heater_cooler();
       return;
     }
+
+    this._stopped = false;
 
     // blood-side heater-cooler: while active, take over the oxygenator blood compartment's thermal
     // target so it heads toward blood_temp instead of core. temp_ext_override tells Thermoregulation
@@ -591,6 +617,9 @@ export class Ecls extends BaseModelClass {
         this.tubing_in_res = poiseuille_resistance(this.tubing_in_diameter, this.tubing_in_length);
         this.tubing_out_res = poiseuille_resistance(this.tubing_out_diameter, this.tubing_out_length);
 
+        // circuit volumes: tubing from its geometry, pump and oxygenator from their priming volumes
+        this._apply_circuit_volumes();
+
         // re-apply the pump library entry if the selection changed (scenario/UI switch)
         if (this.pump_type !== this._prev_pump_type) {
           this._apply_pump_selection();
@@ -600,7 +629,7 @@ export class Ecls extends BaseModelClass {
           this._apply_oxygenator_selection();
         }
 
-        // make sure all the associated models are in the same enabled/disabled state as the placenta model
+        // make sure all the associated models are in the same enabled/disabled state as the ECLS model
         this._ecls_drainage.is_enabled = this.ecls_running;
         this._ecls_tubing_in.is_enabled = this.ecls_running;
         this._ecls_pump.is_enabled = this.ecls_running;
@@ -620,7 +649,7 @@ export class Ecls extends BaseModelClass {
         }
         this._ecls_gasex.is_enabled = this.ecls_running;
 
-        // clamp umbilical vessels if set to clamped
+        // clamp the circuit if set to clamped
         this._ecls_drainage.no_flow = this.ecls_clamped;
         this._ecls_tubing_in.no_flow = this.ecls_clamped;
         this._ecls_pump.no_flow = this.ecls_clamped;
@@ -629,9 +658,15 @@ export class Ecls extends BaseModelClass {
         this._ecls_return.no_flow = this.ecls_clamped;
         this._ecls_gasex.is_enabled = !this.ecls_clamped;
 
-        // set the resistances of the associated models
-        this._ecls_drainage.r_for = this.drainage_res * this.drainage_res_factor; // drainage cannula resistance
-        this._ecls_drainage.r_back = this.drainage_res * this.drainage_res_factor; // drainage cannula resistance
+        // set the resistances of the associated models. The circuit is calibrated at the patient's
+        // reference blood (BLOOD_VISCOSITY): the ECLS BloodVessels (pump, oxygenator, outflow tubing)
+        // already scale their resistance by viscosity / viscosity_ref, so the two cannula resistors
+        // follow the blood they carry the same way (haemodilution by the prime, transfusion)
+        const visc = (c) => (c && c.viscosity_ref > 0.0 ? c.viscosity / c.viscosity_ref : 1.0);
+        const drainage_r = this.drainage_res * this.drainage_res_factor * visc(this._ecls_tubing_in);
+        const return_r = this.return_res * this.return_res_factor * visc(this._ecls_tubing_out);
+        this._ecls_drainage.r_for = drainage_r; // drainage cannula resistance
+        this._ecls_drainage.r_back = drainage_r;
         // NB: ECLS_TUBING_IN is a BloodCapacitance (pure compliance, owns no resistor). The inflow
         // tubing's resistance therefore rides on the pump's own inlet resistor (ECLS_PUMP owns the
         // TUBING_IN->PUMP connector), in series with the pump's internal resistance.
@@ -642,14 +677,17 @@ export class Ecls extends BaseModelClass {
         this._ecls_oxy.r_back = this.oxy_res_back * this.oxy_res_factor; // set the oxygenator resistance to a medium value to simulate the oxygenator resistance
         this._ecls_tubing_out.r_for = this.tubing_out_res * this.tubing_res_factor; // set the tubing resistance to a low value to simulate the tubing resistance
         this._ecls_tubing_out.r_back = this.tubing_out_res * this.tubing_res_factor; // set the tubing resistance to a low value to simulate the tubing resistance
-        this._ecls_return.r_for = this.return_res * this.return_res_factor; // set the return resistance to a high value to simulate the umbilical vein resistance
-        this._ecls_return.r_back = this.return_res * this.return_res_factor; // set the return resistance to a high value to simulate the umbilical vein resistance
+        this._ecls_return.r_for = return_r; // return cannula resistance
+        this._ecls_return.r_back = return_r;
 
         // update the gas composition in the gas source model if fio2 or fico2 has changed
-        if (this.prev_fio2 !== this.gas_fio2 || this.prev_fico2 !== this.gas_fico2) {
+        if (this.prev_fio2 !== this.gas_fio2 || this.prev_fico2 !== this.gas_fico2 ||
+            this._prev_gas_temp !== this.gas_temp || this._prev_gas_humidity !== this.gas_humidity) {
           calc_gas_composition(this._ecls_gas_source, this.gas_fio2, this.gas_temp, this.gas_humidity, this.gas_fico2);
           this.prev_fio2 = this.gas_fio2;
           this.prev_fico2 = this.gas_fico2;
+          this._prev_gas_temp = this.gas_temp;
+          this._prev_gas_humidity = this.gas_humidity;
         }
 
         // size the inspiratory valve so the sweep-gas flow tracks the gas_flow set-point. The gas line
@@ -667,7 +705,6 @@ export class Ecls extends BaseModelClass {
           // gas_flow <= 0: shut the sweep gas off cleanly instead of dividing by zero
           this._ecls_gas_insp_valve.no_flow = true;
         }
-        this.prev_gas_flow = this.gas_flow;
 
         // update the gasexchanger diffusion constants and membrane transfer ceilings (rated-flow limit)
         this._ecls_gasex.dif_o2 = this.dif_o2;
@@ -701,7 +738,6 @@ export class Ecls extends BaseModelClass {
           this._roller_drive = Math.min(Math.max(this._roller_drive, 0.0), this.roller_drive_max);
           this.pump_pressure = -this._roller_drive;
         }
-        this._ecls_pump.pump_rpm = this.pump_rpm;
 
         // Apply the drive to the driven vessel's DOWNSTREAM node (p2_ext) and zero the other vessel, so
         // a runtime pump_mode switch cannot leave a stale drive applied (the BloodVessel never
@@ -730,7 +766,7 @@ export class Ecls extends BaseModelClass {
         this.p_ven = this._p_ven_avg_calculator.addValue(p_ven_raw);
         this.p_int = this._p_int_avg_calculator.addValue(p_int_raw);
         this.p_art = this._p_art_avg_calculator.addValue(p_art_raw);
-        this.flow = this._ecls_return.flow * 60.0; // blood flow through the ECLS circuit is the flow through the drainage cannula
+        this.flow = this._ecls_return.flow * 60.0; // circuit blood flow (L/min) = the flow through the return cannula (L/s x 60)
         this.flow_avg = this._flow_avg_calculator.addValue(this.flow);
 
         if (this._blood_comp_counter >= this._blood_comp_interval) {

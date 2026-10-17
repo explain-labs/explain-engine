@@ -45,16 +45,20 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 | `atrial_septal_width` | `3.0` | mm | FO channel length |
 | `ventricular_septal_width` | `5.0` | mm | VSD channel length |
 | `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
+| `discharge_coeff_fo` | `0.7` | — | FO discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (flap valve, between funnel and sharp edge) |
+| `discharge_coeff_vsd` | `0.64` | — | VSD discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (sharp-edged hole) |
 | `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
-| `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula |
+| `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula; read each step from `LA.viscosity` (fallback 6.0), so it follows the blood like `Pda` |
 
 ### Computed / reported (outputs)
 
 | Property | Unit | Description |
 |---|---|---|
-| `res_fo` | mmHg·s/L | computed FO resistance (per orifice, before `fo_lr_factor`) |
+| `res_fo` | mmHg·s/L | computed FO resistance (the whole orifice, before `fo_lr_factor`; each of the two resistors gets `2·res_fo`) |
 | `res_vsd` | mmHg·s/L | computed VSD resistance |
 | `flow_fo` | L/s | combined FO flow (`LA_RAIVCI.flow + LA_RASVC.flow`) |
+| `bernoulli_b_fo`, `bernoulli_b_vsd` | mmHg·s²/L² | orifice coefficient B of the whole FO / the VSD |
+| `velocity_fo_doppler`, `velocity_vsd_doppler` | m/s | modified-Bernoulli jet velocity (signed with the flow) |
 | `flow_vsd` | L/s | VSD flow |
 | `velocity_fo` | m/s | FO orifice velocity from combined flow |
 | `velocity_vsd` | m/s | VSD orifice velocity |
@@ -80,21 +84,23 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 ## Foramen ovale: flap-valve asymmetry and the split path
 
 The FO is driven through **two** resistors (`LA_RAIVCI`, `LA_RASVC`) because the model splits the
-right atrium into an IVC-stream and an SVC-stream. Each resistor receives:
+right atrium into an IVC-stream and an SVC-stream. Each resistor is half of a parallel pair, so it
+receives twice the FO resistance and the pair together equals one FO of `diameter_fo`:
 
 ```
-r_for  = res_fo · fo_lr_factor      (LA → RA, restricted)
-r_back = res_fo                     (RA → LA, easy)
+r_for  = 2 · res_fo · fo_lr_factor      (LA → RA, restricted)
+r_back = 2 · res_fo                     (RA → LA, easy)
 ```
 
 `fo_lr_factor` (default 10, often higher in scenarios — e.g. 25) makes left-to-right flow much harder
 than right-to-left, reproducing the **flap-valve** behaviour: in fetal/transitional physiology the FO
 shunts right-to-left, and reverses only under raised left-atrial pressure.
 
-> **Modelling note.** Because the FO is represented as two *parallel* resistors that each carry the
-> full `res_fo`, the orifice's effective resistance is `res_fo / 2`. `velocity_fo` is therefore
-> computed from the **combined** flow (`LA_RAIVCI.flow + LA_RASVC.flow`) over the single-orifice area
-> from `diameter_fo`.
+> **Modelling note.** Until the engine review, each of the two parallel resistors carried the full
+> `res_fo`, so the FO's effective resistance was `res_fo / 2`: twice the conductance its diameter
+> implies. Scenarios fitted before the fix were compensated by scaling `diameter_fo` by 2^(1/4) ≈ 1.19
+> (Poiseuille R ∝ d⁻⁴). `velocity_fo` is computed from the **combined** flow
+> (`LA_RAIVCI.flow + LA_RASVC.flow`) over the single-orifice area from `diameter_fo`.
 
 ## Velocity outputs
 
@@ -115,6 +121,30 @@ R = (8 · μ · L) / (π · r⁴)        in Pa·s/m³   →  × 0.00000750062  �
 
 with diameter/length in mm and viscosity in cP. Returns the sentinel `1e8` (no flow) when
 `diameter ≤ 0` or `length ≤ 0`. (This is a private copy of the same formula [Pda](./Pda.md) uses.)
+
+## Orifice (Bernoulli) loss
+
+A restrictive FO or VSD is limited by its orifice, not only by viscous friction: Doppler measures the
+gradient as ΔP = 4v². On top of the Poiseuille resistance each defect carries the same quadratic
+orifice term as [Pda](./Pda.md), from the shared [`helpers/Orifice.js`](../helpers/Orifice.js):
+
+```
+ΔP = R·Q + B·Q²,    B = K_BERNOULLI / A_eff²,   A_eff = Cd · π(d/2)²  (Cd: FO 0.7, VSD 0.64)
+```
+
+The quadratic term is linearised semi-implicitly as a flow-dependent resistance `B·|Q_prev|`
+(unconditionally stable). For the FO each of the two parallel resistors carries half the area, so
+it gets `2·res_fo + 4·B_fo·|q_i|`; the VSD gets `res_vsd + B_vsd·|q|`. `velocity_fo_doppler` /
+`velocity_vsd_doppler` give the jet velocity `√(B·Q²/4)` with the sign of the flow.
+
+Effect on `term_neonate` with a VSD opened (60 s):
+
+| VSD | Qp:Qs | peak LV−RV | peak jet (4v²) | before the orifice term |
+|---|---|---|---|---|
+| 3 mm | 1.34 | 26 mmHg | 2.5 m/s (25 mmHg) | Qp:Qs 1.98, peak gradient 14 mmHg |
+| 5 mm | 1.59 | 31 mmHg | 2.8 m/s (32 mmHg) | Qp:Qs 1.97, peak gradient 2 mmHg |
+
+Before, every VSD from 3 mm up behaved as unrestrictive; now the shunt depends on the defect size.
 
 ## Example definition (JSON)
 

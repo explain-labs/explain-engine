@@ -108,7 +108,12 @@ this.<factor> := new_factor
 ```
 
 The delta is computed **once** so every vessel in the group receives the same change, and
-`r_factor_ps` is clamped at 0 (a negative resistance factor is non-physical). The five methods differ
+`r_factor_ps` is clamped at 0 (a negative resistance factor is non-physical). The clamp makes the
+setters non-reversible past it: a delta that hits 0 is partly lost, so stepping a factor down past
+the floor and back does not restore the vessel. The lists must hold **vessel** names only (a
+resistor name is skipped silently), and every arteriole-type bed belongs in `systemic_arterioles`:
+`RUB`/`RLB` (the lumped upper/lower-body beds) carry 36 % of systemic organ flow in `term_neonate`.
+The five methods differ
 only in which list they drive:
 
 | Method | Vessel list | Role |
@@ -151,15 +156,15 @@ From `term_neonate.json` (lists trimmed for brevity):
   "heart_chambers": ["LA", "RAIVCI", "RASVC", "RV", "LV"],
   "coronaries": ["COR"],
   "systemic_arteries": ["AA", "AAR", "AD"],
-  "systemic_arterioles": ["INT_ART", "KID_ART", "LS_ART", "BR_ART"],
+  "systemic_arterioles": ["INT_ART", "KID_ART", "LS_ART", "BR_ART", "RUB", "RLB"],
   "systemic_capillaries": ["INT_CAP", "KID_CAP", "LS_CAP", "BR_CAP"],
   "systemic_venules": ["INT_VEN", "KID_VEN", "LS_VEN", "BR_VEN"],
-  "systemic_veins": ["IVCI", "SVC", "VLB", "VUB", "RLB", "RUB"],
+  "systemic_veins": ["IVCI", "SVC", "VLB", "VUB"],
   "pulmonary_arteries": ["PA", "PAAL", "PAAR"],
   "pulmonary_arterioles": ["LL_ART", "RL_ART"],
   "pulmonary_capillaries": ["LL_CAP", "RL_CAP"],
   "pulmonary_venules": ["LL_VEN", "RL_VEN"],
-  "pulmonary_veins": ["PV", "PV_LA"],
+  "pulmonary_veins": ["PV"],
   "ans_activity": 1.0,
   "svr_factor_art": 1.0,
   "svr_factor_ven": 1.0,

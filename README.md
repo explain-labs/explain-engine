@@ -101,7 +101,7 @@ class) now lives in the UI layer at `src/model-interface/`, keyed by
 
 Some component models create additional internal models in `init_model`.
 
-Example: `MicroVascularUnit` creates and configures internal `BloodVessel` components (arteriole/capillary/venule), then registers them in the engine model map. This allows a higher-level model to encapsulate a local network while still participating in global stepping.
+Example: `Circulation` creates and configures its `BloodVessel` and `Resistor` components (declared under `components` in the definition) and registers them in the engine model map. This allows a higher-level model to encapsulate a local network while still participating in global stepping.
 
 ## Adding a new model type
 
@@ -146,7 +146,7 @@ explain.stop();
 
 ## Notes and caveats
 
-A few things that bite newcomers: payloads crossing the worker boundary are JSON-stringified for `build`/`property_value`/`call`; UI metadata is **not** on the model classes (it lives in `src/model-interface/registry.ts`); cardiac/breathing timing counters live on the engine `model` object (`ncc_*`), not on the components; and the factor / `*_factor_ps` / `*_factor_scaling_ps` effective-value pattern means core physics params are never used raw. These and other gotchas are covered in [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+A few things that bite newcomers: payloads crossing the worker boundary are JSON-stringified for `build`/`property_value`/`call`; UI metadata is **not** on the model classes (it lives in `src/model-interface/registry.ts`); cardiac/breathing timing counters (`ncc_*`) are fields of `Heart`, `Breathing` and `Ventilator`; and the factor / `*_factor_ps` / `*_factor_scaling_ps` effective-value pattern means core physics params are never used raw. These and other gotchas are covered in [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ## Student onboarding manual
 
@@ -163,8 +163,8 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 
 ### 2. Observing & tweaking data
 
-- Fast telemetry: `explain.watchModelProps(["Heart.heart_rate", "Ventilator.peep"])`.
-- Change parameters with easing: `explain.setPropValue("Ventilator.peep", 10, 5 /* seconds */, 0 /* delay */)`.
+- Fast telemetry: `explain.watchModelProps(["Heart.heart_rate", "Ventilator.peep_cmh2o"])`.
+- Change parameters with easing: `explain.setPropValue("Ventilator.peep_cmh2o", 10, 5 /* seconds */, 0 /* delay */)`.
 - Trigger functions: `explain.callModelFunction("Heart.resetBaro", [], 0.25)`.
 
 ### 3. Adding models

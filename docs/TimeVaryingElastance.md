@@ -33,7 +33,7 @@ systolic curve. This is the standard time-varying-elastance model of cardiac con
 | `u_vol` | L | Unstressed volume |
 | `el_min` | mmHg/L | Minimal (end-diastolic) elastance — the EDPVR |
 | `el_max` | mmHg/L | Maximal (end-systolic) elastance — the ESPVR |
-| `el_k` | unitless | Non-linear elastance coefficient (diastolic curve only) |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient (diastolic curve only) |
 | `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
 | `act_factor` | unitless | Activation factor (0 → 1), supplied by the `Heart` model |
 
@@ -50,11 +50,10 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
 | `pres_in` | mmHg | Internal recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure (`pres_in − pres_ext`) |
 | `el_min_eff` | mmHg/L | Effective minimal elastance after the factor layers |
 | `el_max_eff` | mmHg/L | Effective maximal elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
+| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
 
 ## Calculation cycle (`calc_model`)
 
@@ -77,23 +76,22 @@ It then clamps `el_max_eff` to be ≥ `el_min_eff`, and resets the non-persisten
 u_vol_eff = u_vol + (u_vol_factor − 1)·u_vol + (u_vol_factor_ps − 1)·u_vol + (u_vol_factor_scaling_ps − 1)·u_vol
 ```
 
-Then resets the non-persistent factor `u_vol_factor` to `1.0`.
+A negative sum (the factor layers add up) is clamped to `0`, as in [Capacitance](./Capacitance.md); `HeartChamber`'s override, which adds the remodeling layer, does the same. Then resets the non-persistent factor `u_vol_factor` to `1.0`.
 
 ### `calc_pressure`
 
 ```
 p_ms = (vol − u_vol_eff) · el_max_eff                                  (end-systolic, linear)
-p_ed = el_k_eff · (vol − u_vol_eff)² + el_min_eff · (vol − u_vol_eff)  (end-diastolic, non-linear)
+p_ed = el_k_eff · s² · [s > 0] + el_min_eff · s,  s = vol − u_vol_eff   (end-diastolic, non-linear)
 pres_in = (p_ms − p_ed) · act_factor + p_ed
 pres    = pres_in + pres_ext                                          (total)
-pres_tm = pres_in − pres_ext                                          (transmural)
 pres_ext := 0                                                         (external pressure is non-persistent)
 ```
 
 `act_factor` runs `0 → 1` over a contraction: at 0 the chamber sits on its diastolic curve (`p_ed`), at
 1 on its systolic curve (`p_ms`), interpolating linearly in between. The non-linear `el_k` term lives
 only in the diastolic relation (the EDPVR stiffens at high filling), which is the physiologically
-expected shape.
+expected shape, and only above `u_vol` (same guard as [Capacitance](./Capacitance.md)).
 
 `act_factor` is supplied by the `Heart` model (the atrial/ventricular activation functions `aaf`/
 `vaf`); see [HeartChamber.md](./HeartChamber.md) for the ANS/MOB contractility coupling layered on top
@@ -102,9 +100,7 @@ of `el_max`.
 ## Volume flow
 
 `volume_in`/`volume_out` behave as in [Capacitance](./Capacitance.md): `volume_out` clamps at `0` and
-returns the un-removed volume; subclasses extend `volume_in` to mix the incoming blood composition. The
-`volume_out` negative-volume guard (`vol < 0 && vol < u_vol`) is functionally equivalent to `vol < 0`
-for any non-negative `u_vol`. Heart chambers can fall below their unstressed volume during ejection
+returns the un-removed volume; subclasses extend `volume_in` to mix the incoming blood composition. Heart chambers can fall below their unstressed volume during ejection
 (ventricular suction), which the formula handles naturally.
 
 ## Factor system

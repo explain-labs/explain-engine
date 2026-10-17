@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { orifice_b, jet_velocity } from "../helpers/Orifice";
 
 export class Shunts extends BaseModelClass {
   // static properties
@@ -22,7 +23,12 @@ export class Shunts extends BaseModelClass {
     this.atrial_septal_width = 3.0; // width of the atrial septum in mm
     this.ventricular_septal_width = 5.0; // width of the ventricular septum in mm
     this.fo_lr_factor = 10.0;
-    this.viscosity = 6.0; 
+    // discharge coefficients (vena-contracta area / anatomic area, A_eff = Cd · A) of the orifices in
+    // the Bernoulli loss (see helpers/Orifice.js): the FO flap is between a funnel and a sharp edge,
+    // a VSD is a sharp-edged hole
+    this.discharge_coeff_fo = 0.7;
+    this.discharge_coeff_vsd = 0.64;
+    this.viscosity = 6.0; // blood viscosity (cP), read each step from the left atrium (like Pda reads AAR); 6.0 if absent
 
     this.ips_res = 5000; // resistance of the left intrapulmonary shunt in mmHg * s / L
 
@@ -38,6 +44,10 @@ export class Shunts extends BaseModelClass {
     
     this.res_fo = 500;
     this.res_vsd = 500;
+    this.bernoulli_b_fo = 0.0; // orifice Bernoulli coefficient of the whole FO (mmHg·s²/L²)
+    this.bernoulli_b_vsd = 0.0; // orifice Bernoulli coefficient of the VSD (mmHg·s²/L²)
+    this.velocity_fo_doppler = 0.0; // modified-Bernoulli jet velocity through the FO (m/s)
+    this.velocity_vsd_doppler = 0.0; // modified-Bernoulli jet velocity through the VSD (m/s)
 
     // -----------------------------------------------
     // initialize local properties (preceded with _)
@@ -47,6 +57,7 @@ export class Shunts extends BaseModelClass {
     this._vsd = null; // muscular ventricular septal defect
     this._ipsl = null; // left intrapulmonar shunt
     this._ipsr = null; // right intrapulmonar shunt
+    this._la = null; // left atrium, source of the blood viscosity
     this._refs_resolved = false;
     this._refs_warned = false;
   }
@@ -83,6 +94,7 @@ export class Shunts extends BaseModelClass {
     this._vsd = vsd;
     this._ipsl = ipsl;
     this._ipsr = ipsr;
+    this._la = models["LA"] || null;
     this._refs_resolved = true;
     return true;
   }
@@ -99,19 +111,34 @@ export class Shunts extends BaseModelClass {
     this._fo_svc.no_flow = this.diameter_fo === 0;
     this._vsd.no_flow = this.diameter_vsd === 0;
 
+    // blood viscosity tracks the blood (hematocrit, fluids) instead of a fixed value
+    this.viscosity = this._la?.viscosity ?? 6.0;
+
     // calculate the resistance across the FO and VSD
     this.res_fo = this.calc_resistance(this.diameter_fo, this.atrial_septal_width, this.viscosity);
     this.res_vsd = this.calc_resistance(this.diameter_vsd, this.ventricular_septal_width, this.viscosity);
 
-    // transfer the resistances to the models
-    this._fo_ivci.r_for = this.res_fo * this.fo_lr_factor;
-    this._fo_ivci.r_back = this.res_fo;
+    // orifice (Bernoulli) loss on top of the viscous one: ΔP = R·Q + B·Q². Like Pda, the quadratic
+    // term is linearised semi-implicitly as a flow-dependent resistance B·|Q_prev|, which is
+    // unconditionally stable (the explicit r_k·Q² form diverges for restrictive defects)
+    this.bernoulli_b_fo = orifice_b(this.diameter_fo, this.discharge_coeff_fo);
+    this.bernoulli_b_vsd = orifice_b(this.diameter_vsd, this.discharge_coeff_vsd);
 
-    this._fo_svc.r_for = this.res_fo * this.fo_lr_factor;
-    this._fo_svc.r_back = this.res_fo;
+    // transfer the resistances to the models. The foramen ovale is two resistors in parallel
+    // (LA->RAIVCI and LA->RASVC); each is half of the orifice, so it gets twice the viscous
+    // resistance and four times the Bernoulli coefficient (half the area), and together they equal
+    // one FO of diameter_fo. The flap valve (fo_lr_factor) restricts the left-to-right direction.
+    const r_fo_ivci = 2.0 * this.res_fo + 4.0 * this.bernoulli_b_fo * Math.abs(this._fo_ivci.flow);
+    const r_fo_svc = 2.0 * this.res_fo + 4.0 * this.bernoulli_b_fo * Math.abs(this._fo_svc.flow);
+    this._fo_ivci.r_for = r_fo_ivci * this.fo_lr_factor;
+    this._fo_ivci.r_back = r_fo_ivci;
 
-    this._vsd.r_for = this.res_vsd;
-    this._vsd.r_back = this.res_vsd;
+    this._fo_svc.r_for = r_fo_svc * this.fo_lr_factor;
+    this._fo_svc.r_back = r_fo_svc;
+
+    const r_vsd = this.res_vsd + this.bernoulli_b_vsd * Math.abs(this._vsd.flow);
+    this._vsd.r_for = r_vsd;
+    this._vsd.r_back = r_vsd;
 
     // intrapulmonary shunts are not diameter-driven: they carry a fixed resistance (ips_res)
     this._ipsl.r_for = this.ips_res;
@@ -131,6 +158,10 @@ export class Shunts extends BaseModelClass {
     // calculate the velocities over the fo and vsd
     this.velocity_fo = area_fo > 0 ? (this.flow_fo * 0.001) / area_fo: 0.0;
     this.velocity_vsd = area_vsd > 0 ? (this.flow_vsd * 0.001) / area_vsd: 0.0;
+
+    // jet velocities from the orifice term (what Doppler measures across a restrictive defect)
+    this.velocity_fo_doppler = this.diameter_fo > 0 ? jet_velocity(this.bernoulli_b_fo, this.flow_fo) : 0.0;
+    this.velocity_vsd_doppler = this.diameter_vsd > 0 ? jet_velocity(this.bernoulli_b_vsd, this.flow_vsd) : 0.0;
 
   }
 

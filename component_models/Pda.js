@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { orifice_b, jet_velocity } from "../helpers/Orifice";
 
 /*
 Anatomy & Embryology
@@ -67,7 +68,7 @@ Elastance
         NSAIDs: lower PGE2 → raise active EE → pharmacologic closure
         Largest active-EE jumps correlate with post-closure hypotension and low CO
 
-    See also: docs/engine/Pda-velocity.md for the rationale behind the velocity outputs.
+    See also: docs/Pda-velocity.md for the rationale behind the velocity outputs.
 */
 
 // Hagen-Poiseuille resistance unit conversion: Pa·s/m^3 → mmHg·s/L.
@@ -80,12 +81,8 @@ const CONICAL_RESISTANCE_PREFACTOR = (8.0 / (3.0 * Math.PI)) * PA_S_PER_M3_TO_MM
 // Resistance returned when geometry collapses to zero (sentinel "no flow").
 const RESISTANCE_NO_FLOW = 1e8;
 
-// Bernoulli orifice coefficient prefactor: B = K_BERNOULLI / A_eff² gives the
-// quadratic pressure loss ΔP_kinetic (mmHg) = B · Q² with Q in L/s and A_eff in m².
-// Derivation: ΔP_kinetic = ½·ρ·v², v = (Q·1e-3)/A, ρ ≈ 1060 kg/m³, Pa→mmHg ÷133.322.
-//   ΔP[mmHg] = (0.5·ρ / 133.322) · (Q·1e-3 / A)² = (ρ · 3.75e-9) · Q²/A²
-// With ρ = 1060 this is ≈ 3.976e-6, i.e. ΔP ≈ 4·v² — the textbook modified-Bernoulli form.
-const K_BERNOULLI = 1060.0 * 3.75e-9;
+// The Bernoulli orifice coefficient B = K_BERNOULLI / A_eff² lives in ../helpers/Orifice.js
+// (shared with Shunts).
 
 export class Pda extends BaseModelClass {
   // static properties
@@ -104,8 +101,8 @@ export class Pda extends BaseModelClass {
     // discharge_coeff: effective vena-contracta contraction of the pulmonary-end orifice (Cd, 0..1).
     // The Bernoulli coefficient uses the *effective* orifice area A_eff = Cd · A_pa, so B scales as
     // 1/Cd². This is the single tuning knob for peak jet velocity (lower Cd → tighter jet → higher
-    // velocity). Cd ≈ 0.8 is typical for a smooth converging duct.
-    this.discharge_coeff = 0.8;
+    // velocity). Cd ≈ 0.9 is typical for a smooth converging duct (funnel from the aortic ampulla).
+    this.discharge_coeff = 0.9;
 
     // diameter_drug_factor: patency multiplier owned by the Drugs model (1.0 = neutral). Prostaglandin
     // E1 (alprostadil) drives this above 1.0 to hold the duct open in duct-dependent CHD; it multiplies
@@ -247,9 +244,7 @@ export class Pda extends BaseModelClass {
 
     // B: convective / Bernoulli orifice loss at the narrowest (pulmonary) end, the vena contracta.
     //   B = K_BERNOULLI / A_eff²,  A_eff = discharge_coeff · (anatomic pulmonary area)
-    const r_eff_m = this.discharge_coeff * d_pa * 0.0005; // effective orifice radius (mm/2 → m)
-    const area_eff = Math.PI * r_eff_m * r_eff_m;
-    const b = area_eff > 0 ? K_BERNOULLI / (area_eff * area_eff) : RESISTANCE_NO_FLOW;
+    const b = orifice_b(d_pa, this.discharge_coeff) || RESISTANCE_NO_FLOW;
     this.bernoulli_b = b;
 
     // Semi-implicit linearization of the quadratic term: fold B·Q² into the linear resistance as a
@@ -270,7 +265,7 @@ export class Pda extends BaseModelClass {
     // by the resistive flow, so it carries the sign of the shunt and reverses cleanly during
     // bidirectional / PHT shunting.
     const q = aar_da.flow; // L/s, +ve = L->R
-    this.velocity_doppler = aar_da.no_flow ? 0.0 : Math.sign(q) * Math.sqrt(Math.abs(b * q * q) / 4.0);
+    this.velocity_doppler = aar_da.no_flow ? 0.0 : jet_velocity(b, q);
 
     // Continuity (Q/A) bulk mean velocities at each *anatomic* end (for reference / open-duct flows).
     // diameter is in mm; convert to m by *1e-3, then radius = d/2, area = π·r².

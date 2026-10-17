@@ -20,6 +20,7 @@ SA node fires ─► PQ (atrial) ─► AV delay ─► QRS (ventricular) ─►
   the reference. `hr_chemo_factor` (default `1.0` = no effect) is the **peripheral-chemoreflex hypoxic
   bradycardia** lever, written by an `EF_HR_CHEMO` [Ans](./Ans.md) efferent in scenarios that model
   apnea of prematurity (see [Apnea](./Apnea.md)); it is neutral everywhere it is not wired.
+- The sum is floored at `0`: a sinus rate can't be negative, and at `0` the SA node is silent (sinus arrest), so the ventricular escape pacemaker takes over.
 - The **sinus interval** `60 / heart_rate` drives the SA node; `pq_time`, `av_delay`, `qrs_time` and
   the rate-corrected `qt_time` (Bazett) set the phase durations.
 
@@ -74,6 +75,14 @@ Throttled setters apply **deltas** to persistent chamber factors:
 - `set_contractillity(left, right)` → chamber `el_max_factor_ps` (inotropy).
 - `set_relaxation(left, right)` → chamber `el_min_factor_ps` (lusitropy).
 - `set_pericardium(el_factor, extra_volume)` → `PERICARDIUM.el_base_factor_ps` and `vol_extra`.
+
+They run when `cont_factor_left/right`, `relax_factor_left/right` or `pc_el_factor` change (checked
+every 15 ms). Two things to know:
+
+- **Shared layer.** The delta lands in the same `_ps` layer that users and scenarios edit, so the
+  chamber's `el_max_factor_ps` is the sum of both.
+- **The floor breaks reversibility.** Each result is floored at `0`. A delta that hits the floor is
+  partly lost, so stepping a factor down past it and back up doesn't return to the start.
 
 ## Per-beat measurements (`analyze`)
 

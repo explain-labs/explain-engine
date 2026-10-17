@@ -11,7 +11,7 @@ export class Capacitance extends BaseModelClass {
     // initialize independent properties
     this.u_vol = 0.0; // unstressed volume UV (L)
     this.el_base = 0.0; // baseline elastance E (mmHg/L)
-    this.el_k = 0.0; // non-linear elastance factor K2 (unitless)
+    this.el_k = 0.0; // non-linear elastance coefficient K2 (mmHg/L²), acts only above the unstressed volume
     this.pres_ext = 0.0; // non persistent external pressure p2(t) (mmHg)
     this.fixed_composition = false;
 
@@ -34,12 +34,11 @@ export class Capacitance extends BaseModelClass {
     this.vol = 0.0; // volume v(t) (L)
     this.pres = 0.0; // pressure p1(t) (mmHg)
     this.pres_in = 0.0; // recoil pressure of the elastance (mmHg)
-    this.pres_tm = 0.0; // transmural pressure (mmHg)
 
     // local variables
     this.el_eff = 0.0; // calculated elastance (mmHg/L)
     this.u_vol_eff = 0.0; // calculated unstressed volume (L)
-    this.el_k_eff = 0.0; // calculated elastance non-linear k (unitless)
+    this.el_k_eff = 0.0; // calculated non-linear elastance coefficient (mmHg/L²)
   }
 
   // this routine is called in every model step by the ModelEngine Class
@@ -83,10 +82,10 @@ export class Capacitance extends BaseModelClass {
   
   calc_pressure() {
     // calculate the recoil pressure
-    this.pres_in = this.el_k_eff * Math.pow(this.vol - this.u_vol_eff, 2) + this.el_eff * (this.vol - this.u_vol_eff);
-
-    // calculate the transmural pressure
-    this.pres_tm = this.pres_in - this.pres_ext;
+    // the non-linear term only stiffens a stretched compartment (above its unstressed volume): (V - U)^2
+    // is also positive below U, where it would push the wrong way and bend the P-V curve back up
+    const _s = this.vol - this.u_vol_eff;
+    this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
 
     // calculate the total pressure by incorporating the external pressures
     this.pres = this.pres_in + this.pres_ext;
@@ -100,9 +99,6 @@ export class Capacitance extends BaseModelClass {
       // add volume to the capacitance
       this.vol += dvol;
     }
-
-    // return if the volume is zero or lower
-    if (this.vol <= 0.0) return;
   }
 
   volume_out(dvol) {

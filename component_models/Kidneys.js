@@ -151,6 +151,9 @@ export class Kidneys extends BaseModelClass {
 
     // URINE is our OWN component (just instantiated by super) — safe to resolve now.
     this._urine = this._model_engine.models[this.urine_name] ?? null;
+    // the bladder holds urine, not blood: keep it out of the blood-pool loops (seeding, warming,
+    // lactate clearance, glucose, drugs)
+    if (this._urine) this._urine.blood_pool = false;
     // KID_CAP is a component of another model (Circulation) that may be instantiated
     // AFTER us in build order, so it is resolved lazily in calc_model().
   }
