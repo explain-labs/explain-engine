@@ -76,6 +76,14 @@ Throttled setters apply **deltas** to persistent chamber factors:
 - `set_relaxation(left, right)` → chamber `el_min_factor_ps` (lusitropy).
 - `set_pericardium(el_factor, extra_volume)` → `PERICARDIUM.el_base_factor_ps` and `vol_extra`.
 
+They run when `cont_factor_left/right`, `relax_factor_left/right` or `pc_el_factor` change (checked
+every 15 ms). Two things to know:
+
+- **Shared layer.** The delta lands in the same `_ps` layer that users and scenarios edit, so the
+  chamber's `el_max_factor_ps` is the sum of both.
+- **The floor breaks reversibility.** Each result is floored at `0`. A delta that hits the floor is
+  partly lost, so stepping a factor down past it and back up doesn't return to the start.
+
 ## Per-beat measurements (`analyze`)
 
 At the systole↔diastole transitions it latches the end-systolic and end-diastolic volumes and
