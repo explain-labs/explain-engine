@@ -52,7 +52,7 @@ Plus the inherited capacitance configuration (`u_vol`, `el_base`, `el_k`, `pres_
 `BloodPump` overrides `calc_pressure` (it does not override `calc_model`, so it inherits the elastance/volume steps from Capacitance):
 
 ```
-pres_in = el_k_eff·(vol − u_vol_eff)² + el_eff·(vol − u_vol_eff)
+pres_in = el_k_eff·s²·[s > 0] + el_eff·s,   s = vol − u_vol_eff
 pres_tm = pres_in − pres_ext
 pres    = pres_in + pres_ext + pres_cc + pres_mus
                                                   # then pres_ext, pres_cc, pres_mus reset to 0

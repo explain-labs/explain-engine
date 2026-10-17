@@ -79,15 +79,18 @@ plus atelectasis) could otherwise produce a negative unstressed volume. Then res
 ### `calc_pressure`
 
 ```
-pres_in = el_k_eff · (vol − u_vol_eff)² + el_eff · (vol − u_vol_eff)
+s       = vol − u_vol_eff
+pres_in = el_k_eff · s² · [s > 0] + el_eff · s
 pres_tm = pres_in − pres_ext                 (transmural)
 pres    = pres_in + pres_ext                 (total)
 pres_ext := 0                                (external pressure is non-persistent)
 ```
 
-The `el_k_eff` term adds non-linear stiffening; because it uses `(vol − u_vol_eff)²` (sign-independent)
-it also raises pressure *below* the unstressed volume — this is the engine convention, and `el_k` is
-`0` for most compartments. `pres_ext` is an external pressure (e.g. from a [`Container`](./Container.md)
+The `el_k_eff` term adds non-linear stiffening and acts **only above the unstressed volume** (`s > 0`).
+`s²` is positive on both sides of `u_vol`, so without the guard it would raise pressure *below* the
+unstressed volume, against the linear term, and far enough below it bends the P-V curve back up (an
+emptied aorta with the term_neonate `el_k` would read +17 mmHg at 6 mL below `u_vol`). Below `u_vol`
+the relation is linear. `el_k` is in mmHg/L² and is `0` for most compartments. `pres_ext` is an external pressure (e.g. from a [`Container`](./Container.md)
 or chest compression) applied this step and then cleared.
 
 ## Volume flow

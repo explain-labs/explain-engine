@@ -83,7 +83,10 @@ export class Capacitance extends BaseModelClass {
   
   calc_pressure() {
     // calculate the recoil pressure
-    this.pres_in = this.el_k_eff * Math.pow(this.vol - this.u_vol_eff, 2) + this.el_eff * (this.vol - this.u_vol_eff);
+    // the non-linear term only stiffens a stretched compartment (above its unstressed volume): (V - U)^2
+    // is also positive below U, where it would push the wrong way and bend the P-V curve back up
+    const _s = this.vol - this.u_vol_eff;
+    this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
 
     // calculate the transmural pressure
     this.pres_tm = this.pres_in - this.pres_ext;

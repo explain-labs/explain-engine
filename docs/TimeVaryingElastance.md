@@ -83,7 +83,7 @@ Then resets the non-persistent factor `u_vol_factor` to `1.0`.
 
 ```
 p_ms = (vol − u_vol_eff) · el_max_eff                                  (end-systolic, linear)
-p_ed = el_k_eff · (vol − u_vol_eff)² + el_min_eff · (vol − u_vol_eff)  (end-diastolic, non-linear)
+p_ed = el_k_eff · s² · [s > 0] + el_min_eff · s,  s = vol − u_vol_eff   (end-diastolic, non-linear)
 pres_in = (p_ms − p_ed) · act_factor + p_ed
 pres    = pres_in + pres_ext                                          (total)
 pres_tm = pres_in − pres_ext                                          (transmural)
@@ -93,7 +93,7 @@ pres_ext := 0                                                         (external 
 `act_factor` runs `0 → 1` over a contraction: at 0 the chamber sits on its diastolic curve (`p_ed`), at
 1 on its systolic curve (`p_ms`), interpolating linearly in between. The non-linear `el_k` term lives
 only in the diastolic relation (the EDPVR stiffens at high filling), which is the physiologically
-expected shape.
+expected shape, and only above `u_vol` (same guard as [Capacitance](./Capacitance.md)).
 
 `act_factor` is supplied by the `Heart` model (the atrial/ventricular activation functions `aaf`/
 `vaf`); see [HeartChamber.md](./HeartChamber.md) for the ANS/MOB contractility coupling layered on top

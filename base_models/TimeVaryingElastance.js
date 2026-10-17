@@ -97,8 +97,10 @@ export class TimeVaryingElastance extends BaseModelClass {
 
   calc_pressure() {
     // calculate the recoil pressure
-    let p_ms = (this.vol - this.u_vol_eff) * this.el_max_eff;
-    let p_ed = this.el_k_eff * Math.pow(this.vol - this.u_vol_eff, 2) + this.el_min_eff * (this.vol - this.u_vol_eff);
+    // the non-linear diastolic term only acts above the unstressed volume (see Capacitance.calc_pressure)
+    const _s = this.vol - this.u_vol_eff;
+    let p_ms = _s * this.el_max_eff;
+    let p_ed = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_min_eff * _s;
 
     // calculate the current recoil pressure
     this.pres_in = (p_ms - p_ed) * this.act_factor + p_ed;
