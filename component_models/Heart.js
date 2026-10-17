@@ -350,11 +350,16 @@ export class Heart extends BaseModelClass {
     if (this.hr_override) {
       this.heart_rate = this.heart_rate_ref;
     }
+    // the factors add up and can take the sum to (or, by rounding, just below) zero: a sinus rate
+    // can't be negative, and at zero the SA node is silent (sinus arrest → the escape pacemaker takes over)
+    if (!(this.heart_rate > 0.0)) this.heart_rate = 0.0;
+
     // calculate qtc time depending on heart rate
     this.cqt_time = this.calc_qtc(this.heart_rate);
 
-    // calculate the sinus node interval (in seconds) based on heart rate
-    this._sa_node_interval = 60.0 / this.heart_rate;
+    // calculate the sinus node interval (in seconds) based on heart rate; a negative interval
+    // would make the SA node fire on every step
+    this._sa_node_interval = this.heart_rate > 0.0 ? 60.0 / this.heart_rate : Infinity;
 
     // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over)
     if (this.sa_node_enabled && this._sa_node_timer > this._sa_node_interval) {

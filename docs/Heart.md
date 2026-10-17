@@ -20,6 +20,7 @@ SA node fires ─► PQ (atrial) ─► AV delay ─► QRS (ventricular) ─►
   the reference. `hr_chemo_factor` (default `1.0` = no effect) is the **peripheral-chemoreflex hypoxic
   bradycardia** lever, written by an `EF_HR_CHEMO` [Ans](./Ans.md) efferent in scenarios that model
   apnea of prematurity (see [Apnea](./Apnea.md)); it is neutral everywhere it is not wired.
+- The sum is floored at `0`: a sinus rate can't be negative, and at `0` the SA node is silent (sinus arrest), so the ventricular escape pacemaker takes over.
 - The **sinus interval** `60 / heart_rate` drives the SA node; `pq_time`, `av_delay`, `qrs_time` and
   the rate-corrected `qt_time` (Bazett) set the phase durations.
 
