@@ -148,7 +148,7 @@ export default class Datacollector {
     this.sample_interval = new_interval;
   }
 
-  set_sample_interval_slow(new_interval = 0.005) {
+  set_sample_interval_slow(new_interval = 1.0) {
     this.sample_interval_slow = new_interval;
   }
 
@@ -216,24 +216,34 @@ export default class Datacollector {
     return success;
   }
 
+  // drop watches whose model no longer exists in the engine (e.g. after a rebuild). A merely
+  // DISABLED model keeps its watch: the collectors report 0 (typed path) or omit the key (object
+  // paths) while it is off, so a model that is switched back on (ventilator, ECLS) is charted again
+  // and the forced Heart.ncc_* watches can never be dropped
+  _exists(dc_item) {
+    return this.model.models[dc_item.model.name] === dc_item.model;
+  }
+
   clean_up() {
-    this.watch_list = this.watch_list.filter((dc_item) => dc_item.model.is_enabled);
+    const n = this.watch_list.length;
+    this.watch_list = this.watch_list.filter((dc_item) => this._exists(dc_item));
+    if (this.watch_list.length === n) return;
     this.watch_list_labels = new Set(this.watch_list.map((item) => item.label));
     if (!this.legacy_mode) this._rebuild_chart_index();
   }
 
   clean_up_slow() {
-    this.watch_list_slow = this.watch_list_slow.filter((dc_item) => dc_item.model.is_enabled);
+    this.watch_list_slow = this.watch_list_slow.filter((dc_item) => this._exists(dc_item));
     this.watch_list_slow_labels = new Set(this.watch_list_slow.map((item) => item.label));
-
   }
 
   collect_data(model_clock) {
 
     // collect data at specific intervals set by the sample_interval
     if (this._interval_counter >= this.sample_interval) {
-      // reset the interval counter
-      this._interval_counter = 0;
+      // carry the remainder (no drift); a counter left over a shortened interval restarts at 0
+      this._interval_counter -= this.sample_interval;
+      if (this._interval_counter >= this.sample_interval) this._interval_counter = 0;
 
       const t = Math.round(model_clock * 10000) / 10000;
 
@@ -265,7 +275,7 @@ export default class Datacollector {
           if (parameter.model.is_enabled) {
             let value = parameter.model[parameter.prop1];
             if (parameter.prop2 !== null) {
-              value = value[parameter.prop2] || 0;
+              value = value ? value[parameter.prop2] || 0 : 0;
             }
             data_object[parameter.label] = value;
           }
@@ -275,8 +285,9 @@ export default class Datacollector {
     }
 
     if (this._interval_counter_slow >= this.sample_interval_slow) {
-      // reset the interval counter
-      this._interval_counter_slow = 0;
+      // carry the remainder (no drift); a counter left over a shortened interval restarts at 0
+      this._interval_counter_slow -= this.sample_interval_slow;
+      if (this._interval_counter_slow >= this.sample_interval_slow) this._interval_counter_slow = 0;
 
       // declare a data object holding the current model time
       const data_object_slow = { time: Math.round(model_clock * 10000) / 10000 };
@@ -284,10 +295,12 @@ export default class Datacollector {
       // process the watch_list
       for (let i = 0; i < this.watch_list_slow.length; i++) {
         const parameter = this.watch_list_slow[i];
+        // a disabled model is left out, as in the fast object path
+        if (!parameter.model.is_enabled) continue;
         // get the value of the model variable as stated in the watchlist
         let value = parameter.model[parameter.prop1];
         if (parameter.prop2 !== null) {
-          value = value[parameter.prop2] || 0;
+          value = value ? value[parameter.prop2] || 0 : 0;
         }
 
         // add the value to the data object
@@ -312,13 +325,11 @@ export default class Datacollector {
       // try to find the parameter in the model
       if (t[0] in this.model.models) {
         if (t[1] in this.model.models[t[0]]) {
-          const r = this.model.models[t[0]][t[1]];
           return {
             label: prop,
             model: this.model.models[t[0]],
             prop1: t[1],
             prop2: null,
-            ref: r,
           };
         }
       }
