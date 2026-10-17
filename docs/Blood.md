@@ -27,7 +27,10 @@ It does not move volume or compute pressure; flow mixing is done per-compartment
 
 | Property | Unit | Description |
 |---|---|---|
-| `viscosity` | cP | Reference blood viscosity (default 6.0) |
+| `viscosity_plasma` | cP | Plasma viscosity in the haematocrit relation (default 1.3) |
+| `viscosity_hct_k` | 1/Hct | Exponential haematocrit coefficient, low-shear in vivo value (default 3.13) |
+| `viscosity` | cP | Output: blood viscosity at the build-time Hb (derived in `init_model`; a definition value is overwritten) |
+| `viscosity_ref` | cP | Output: the viscosity the vessel resistances are calibrated at, from the volume-weighted Hb of the circulating blood at build; copied onto every compartment |
 | `temp` | degC | Reference blood temperature (default 37.0) |
 | `blood_temp_tc` | s | Perfusion equilibration time constant — how fast blood warms toward its perfusion target (default 10.0); seeded onto each compartment as `blood_temp_tc` |
 | `to2` | mmol/L | Reference total O₂ concentration seeded into compartments |
@@ -101,7 +104,7 @@ Each setter updates the reference value on `Blood` and/or pushes a value out to 
 | `set_temperature(temp, bc_site = "")` | Sets `temp` **directly** on all compartments (or one site); updates `this.temp`. Kept for build-time seeding / manual resets — **not** the runtime thermal path (see below) |
 | `set_perfusion_target(core)` | Sets `body_temp = core` on every compartment except those with `temp_ext_override` (device-controlled). The effector channel [`Thermoregulation`](./Thermoregulation.md) drives each update; blood then warms toward it over `blood_temp_tc` |
 | `get_thermal_state(density, cp)` | Returns `{ c_blood, t_mean }` — the blood pool heat capacity `Σ vol·density·cp` (J/K) and its heat-capacity-weighted mean temperature. Used by Thermoregulation's two-node balance |
-| `set_viscosity(viscosity)` | Sets `viscosity` on all compartments; updates `this.viscosity` |
+| `set_viscosity(viscosity)` | Sets the blood viscosity at the reference Hb by scaling `viscosity_plasma` (e.g. plasma proteins); vessel resistances follow `viscosity / viscosity_ref`. Hb-driven changes need no setter |
 | `set_haldane_coeff(coeff)` | Sets `haldane_coeff` on all compartments; updates `this.haldane_coeff` |
 | `set_P50(p50)` | Sets `P50_0` on all compartments; updates `this.P50_0` (pick the dissociation curve, e.g. fetal vs adult) |
 | `set_to2(to2, bc_site = "")` | Sets `to2` on all compartments (or one site) |
@@ -141,3 +144,19 @@ From `term_neonate.json` (`model_definition.models.Blood`):
 - The reference `to2`/`tco2`/`solutes` are **seeds only**; after build the simulation tracks per-compartment values updated by flow mixing ([BloodCapacitance](./BloodCapacitance.md)), diffusion ([BloodDiffusor](./BloodDiffusor.md)) and metabolism.
 - `set_P50` / `set_haldane_coeff` are the levers for selecting a dissociation curve (fetal vs neonatal vs adult) and tuning the arterio-venous CO₂ behaviour respectively.
 </content>
+
+## Viscosity from haematocrit
+
+Each step `calc_model` sets every compartment's viscosity from its own haemoglobin:
+
+```
+Hct = Hb[mmol/L] / 0.6206 / 33          (g/dL over an MCHC of 33 g/dL, clamped to 0..0.9)
+eta = viscosity_plasma · exp(viscosity_hct_k · Hct)
+```
+
+With the defaults a neonatal Hb of 10 mmol/L (Hct 0.49) gives ~6 cP. The coefficient is a low-shear
+(in vivo) value, steeper than the high-shear viscometer curve, which is what the microcirculation
+sees. `BloodVessel` scales its viscous resistance by `viscosity / viscosity_ref`, so haemodilution
+lowers and polycythaemia raises SVR and PVR (Poiseuille), while the scenario at its build-time Hb is
+unchanged. Viscosity is not mixed as a tracer any more: it follows the Hb wherever the blood goes.
+`Pda` and `Shunts` read the absolute viscosity for their Poiseuille terms.

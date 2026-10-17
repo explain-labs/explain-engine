@@ -62,7 +62,7 @@ vol       = volume / 1000                                  (mL → L)
 time_left = in_time                                        (s)
 delta     = (volume/1000) / (in_time / _update_interval)   (L delivered per processing step)
 solutes   = { ...fluids[fluid_in] }                        (composition of the chosen fluid)
-to2 = tco2 = 0,  temp = fluids_temp,  viscosity = 1,  drugs = {}
+to2 = tco2 = 0,  temp = fluids_temp,  drugs = {}
 ```
 
 `delta` is sized so the full volume is delivered across the `in_time / _update_interval` processing
@@ -90,9 +90,9 @@ The delivery happens **before** the timer/zeroing, so the final increment is act
   zeroed the last `delta` before delivering it, losing one step's worth — negligible for a long
   infusion but significant for a short bolus (a one-step bolus delivered nothing).
 - **Missing target site is skipped** (optional-chaining guard) rather than throwing.
-- **Composition is gas-free and low-viscosity.** Administered fluid carries `to2 = tco2 = 0` and
-  `viscosity = 1`, so a large bolus dilutes the compartment's oxygen/CO₂ content and lowers its
-  viscosity — the intended haemodilution effect.
+- **Composition is gas-free.** Administered fluid carries `to2 = tco2 = 0` and no haemoglobin, so a
+  large bolus dilutes the compartment's oxygen/CO₂ content and its Hb; [`Blood`](./Blood.md) derives
+  viscosity from the Hb, so the blood thins too — the intended haemodilution effect.
 - **Vestigial fields.** `fluid.vol` is decremented but not used as a stop condition (delivery is
   timer-driven); `_default_time` / `_default_type` are unused.
 

@@ -189,7 +189,7 @@ ways, with no net volume, using the pre-exchange concentrations
 c_a += (c_b − c_a) · dv / V_a        c_b += (c_a − c_b) · dv / V_b
 ```
 
-so `c_a·V_a + c_b·V_b` is conserved for to2, tco2, every solute and drug, temperature and viscosity.
+so `c_a·V_a + c_b·V_b` is conserved for to2, tco2, every solute and drug and temperature (viscosity follows the haemoglobin).
 `dv` is clamped to half the smaller volume; a `fixed_composition` end keeps its composition, and a
 `no_flow` connection does not exchange. It acts only when both ends carry blood (`to2`), and only on
 a plain `Resistor`/`HeartValve` (a `BloodVessel` overrides `calc_model`). The equilibration time

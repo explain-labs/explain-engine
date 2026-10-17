@@ -36,6 +36,7 @@ export class BloodVessel extends BloodCapacitance {
     this.alpha = 0.0; // determines relation between resistance change and elastance change. Veins/venules: 0.75, arterioles: 0.63, large arteries: 0.5
     this.ans_sens = 0.0; // sensitivity of this blood vessel for autonomic control. 0.0 is no effect, 1.0 is full effect
     this.ans_activity = 1.0; // ans activity factor (unitless)
+    this.viscosity_ref = 0.0; // viscosity at which r_for/r_back are calibrated (cP), set by Blood; 0 = no viscosity effect
     this.u_vol_ans_sens = 0.0; // sensitivity of the unstressed volume for autonomic control (venoconstriction mobilizes unstressed volume). 0.0 is no effect
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
@@ -191,8 +192,13 @@ export class BloodVessel extends BloodCapacitance {
       this.r_factor_scaling_ps *
       ans_mult;
 
-    this.r_for_eff = this.r_for * r_total_factor;
-    this.r_back_eff = this.r_back * r_total_factor;
+    // Poiseuille: the viscous resistance scales with blood viscosity (haematocrit). Not part of
+    // r_total_factor, so it does not drive the α R→E coupling (viscosity is not vasoconstriction),
+    // and not applied to r_k (the inertial term does not depend on viscosity).
+    const visc_mult = this.viscosity_ref > 0.0 ? this.viscosity / this.viscosity_ref : 1.0;
+
+    this.r_for_eff = this.r_for * r_total_factor * visc_mult;
+    this.r_back_eff = this.r_back * r_total_factor * visc_mult;
 
     // r_k carries its own factor stack but the same ANS coupling, composed
     // multiplicatively like the linear resistance above.

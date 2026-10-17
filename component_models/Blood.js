@@ -9,7 +9,14 @@ export class Blood extends BaseModelClass {
     super(model_ref, name);
 
     // initialize independent properties
-    this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
+    // Blood viscosity follows the haematocrit: eta = viscosity_plasma * exp(viscosity_hct_k * Hct), with
+    // Hct = Hb[g/dL] / MCHC (33 g/dL). k = 3.13 is a low-shear (in vivo) value; with plasma 1.3 cP a
+    // neonatal Hb of 10 mmol/L (Hct 0.49) gives ~6 cP. Each step every compartment's viscosity is
+    // derived from its own Hb, and BloodVessel resistances scale with viscosity / viscosity_ref.
+    this.viscosity_plasma = 1.3; // plasma viscosity (cP)
+    this.viscosity_hct_k = 3.13; // exponential haematocrit coefficient (per unit Hct)
+    this.viscosity = 6.0; // blood viscosity at the reference Hb (cP), derived in init_model
+    this.viscosity_ref = 0.0; // viscosity at which the vessel resistances are calibrated (cP), derived in init_model
     this.temp = 37.0; // temperature (dgs C)
     this.blood_temp_tc = 10.0; // perfusion equilibration time constant (s) for warming blood toward the body/core temperature
     this.to2 = 0.0; // total oxygen concentration (mmol/l)
@@ -77,7 +84,23 @@ export class Blood extends BaseModelClass {
       }
     }
 
-    // get the components where we measure the bloodgases
+    // the scenario's resistances are calibrated at the blood it was built with: take the reference
+    // viscosity from the volume-weighted Hb of the circulating blood (falls back to solutes.hemoglobin)
+    let hb_vol = 0.0;
+    let vol = 0.0;
+    this._blood_components.forEach((model) => {
+      if (model.is_enabled && model.vol > 0.0 && model.solutes["hemoglobin"] !== undefined) {
+        hb_vol += model.solutes["hemoglobin"] * model.vol;
+        vol += model.vol;
+      }
+    });
+    this.viscosity_ref = this.calc_viscosity(vol > 0.0 ? hb_vol / vol : this.solutes["hemoglobin"]);
+    this.viscosity = this.viscosity_ref;
+    this._blood_components.forEach((model) => {
+      model.viscosity_ref = this.viscosity_ref;
+    });
+
+        // get the components where we measure the bloodgases
     this._ascending_aorta = this._model_engine.models["AA"];
     this._descending_aorta = this._model_engine.models["AD"];
 
@@ -101,6 +124,8 @@ export class Blood extends BaseModelClass {
       const tc = model.blood_temp_tc > 0.0 ? model.blood_temp_tc : this.blood_temp_tc;
       const frac = tc > 0.0 ? Math.min(1.0, this._t / tc) : 1.0;
       model.temp += (model.body_temp - model.temp) * frac;
+      // viscosity follows the compartment's own haematocrit (dilution, transfusion, polycythaemia)
+      model.viscosity = this.calc_viscosity(model.solutes["hemoglobin"]);
     }
 
     this._update_counter += this._t;
@@ -181,11 +206,19 @@ export class Blood extends BaseModelClass {
     return { c_blood, t_mean };
   }
 
+  // blood viscosity (cP) from the haemoglobin concentration (mmol/L)
+  calc_viscosity(hemoglobin) {
+    const hct = Math.min(Math.max((hemoglobin ?? 0.0) / 0.6206 / 33.0, 0.0), 0.9);
+    return this.viscosity_plasma * Math.exp(this.viscosity_hct_k * hct);
+  }
+
+  // set the blood viscosity at the reference Hb (e.g. plasma proteins, cold agglutinins): scales the
+  // plasma viscosity, so the vessel resistances follow viscosity / viscosity_ref. Hb-driven changes
+  // need no setter (they follow the haemoglobin).
   set_viscosity(new_viscosity) {
+    if (!(new_viscosity > 0.0) || !(this.viscosity > 0.0)) return;
+    this.viscosity_plasma *= new_viscosity / this.viscosity;
     this.viscosity = new_viscosity;
-    this._blood_components.forEach((model) => {
-      model.viscosity = new_viscosity;
-    });
   }
 
   set_haldane_coeff(new_coeff) {

@@ -44,7 +44,6 @@ export class Fluids extends BaseModelClass {
       to2 : 0.0,
       tco2 : 0.0,
       temp: this.fluids_temp,
-      viscosity: 1,
       solutes: {...this.fluids[fluid_in]},
       drugs: {}
     }

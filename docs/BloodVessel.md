@@ -142,9 +142,11 @@ ANS modulates resistance directly, scaled by sensitivity. The ANS contribution i
 ans_mult       = 1 + (ans_activity - 1) * ans_sens
 r_total_factor = r_factor * r_factor_ps * r_factor_scaling_ps * ans_mult
 
-r_for_eff = r_for * r_total_factor
+r_for_eff = r_for * r_total_factor * visc_mult      (visc_mult = viscosity / viscosity_ref)
 r_back_eff = r_back * r_total_factor
 ```
+
+`visc_mult` is the blood viscosity relative to the viscosity the scenario was built at (`viscosity_ref`, set by [`Blood`](./Blood.md); 0 = off). It follows the haematocrit (Poiseuille), is not part of `r_total_factor` (viscosity is not vasoconstriction, so it does not drive the α-coupling) and is not applied to `r_k`.
 
 `r_k` carries its own factor stack with the same ANS coupling: `r_k_eff = r_k · r_k_factor · r_k_factor_ps · r_k_factor_scaling_ps · ans_mult`. The combined `r_total_factor` is cached and reused by the elastance step (single source of truth for the α-coupling).
 

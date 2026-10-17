@@ -2,7 +2,8 @@
 // BloodTimeVaryingElastance, HeartChamber). Call it from volume_in AFTER the volume has been added:
 // with V = the volume after the inflow, c += (c_from - c) * dvol / V is exact mass balance
 // (c_new * V = c_old * (V - dvol) + c_from * dvol). Mixed: to2, tco2, every solute and drug the
-// target carries (a key missing on the source counts as 0), temperature and viscosity.
+// target carries (a key missing on the source counts as 0) and temperature. Viscosity is not mixed:
+// Blood derives it from each compartment's haemoglobin every step.
 export function mix_blood_in(target, dvol, comp_from) {
   // a fixed-composition compartment is an infinite reservoir: hold its composition
   // (and temperature/viscosity) constant
@@ -35,9 +36,6 @@ export function mix_blood_in(target, dvol, comp_from) {
 
   // process the temperature (treat it as a solute)
   target.temp += ((comp_from.temp - target.temp) * dvol) / target.vol;
-
-  // process the viscosity (treat it as a solute)
-  target.viscosity += ((comp_from.viscosity - target.viscosity) * dvol) / target.vol;
 }
 
 // Dispersive exchange between two blood compartments that form one continuous pool (e.g. the two
@@ -67,5 +65,4 @@ export function exchange_blood(a, b, dv) {
     if (!a.drugs || !b.drugs) break;
     swap(a.drugs[key] ?? 0.0, b.drugs[key] ?? 0.0, (v) => (a.drugs[key] = v), (v) => (b.drugs[key] = v));
   }
-  swap(a.viscosity, b.viscosity, (v) => (a.viscosity = v), (v) => (b.viscosity = v));
 }
