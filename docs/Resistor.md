@@ -41,6 +41,7 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 | `comp_from` | string | Name of the upstream compartment |
 | `comp_to` | string | Name of the downstream compartment |
 | `no_flow` | bool | When true, block all flow (set `flow = 0` and return) |
+| `no_flow_ext` | bool | Same effect as `no_flow`, for a controller that does not own the resistor (an owning BloodVessel re-copies its own `no_flow` every step and would overwrite a gate written there; e.g. MaternalPlacenta's drainage) |
 | `no_back_flow` | bool | When true, block backward flow (valve behaviour) |
 | `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step) |
 | `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
@@ -82,7 +83,7 @@ Then resets the non-persistent factors `r_factor` and `r_k_factor` to `1.0`.
 
 1. Compute inlet/outlet pressures including the non-persistent `p1_ext`/`p2_ext`, then clear those and
    reset `flow` to `0`.
-2. If `no_flow`, set `_prev_flow = 0` and return.
+2. If `no_flow` or `no_flow_ext`, set `_prev_flow = 0` and return.
 3. Pick the direction by the sign of `ΔP` (forward if `ΔP ≥ 0`, else backward unless `no_back_flow`),
    guard against a non-positive effective resistance, and compute `flow` with the lagged non-linear
    term.

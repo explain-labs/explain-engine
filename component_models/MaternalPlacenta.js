@@ -119,7 +119,9 @@ export class MaternalPlacenta extends BaseModelClass {
     // (or stopped) placenta is perfectly inert and does not perturb the uterine baseline. PL_IVS
     // stays enabled (an inert pool) so it still has a defined pressure. Re-asserted every step.
     this._pl_ivs.no_flow = !active;
-    if (this._drain_res) this._drain_res.no_flow = !active;
+    // the drainage resistor is owned by UT_VEN, which re-copies its own no_flow every step: gate it
+    // through the resistor's external gate instead
+    if (this._drain_res) this._drain_res.no_flow_ext = !active;
 
     if (!active) {
       this._pl_ivs.r_factor_scaling_ps = 1.0; // restore the layer we own

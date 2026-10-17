@@ -17,6 +17,9 @@ export class Resistor extends BaseModelClass {
     this.comp_from = ""; // holds the name of the upstream component
     this.comp_to = ""; // holds the name of the downstream component
     this.no_flow = false; // flags whether flow is allowed across this resistor
+    // a second, independent gate for a controller that does NOT own this resistor: an owning
+    // BloodVessel re-copies its own no_flow every step and would overwrite a gate written there
+    this.no_flow_ext = false;
     this.no_back_flow = false; // flags whether backflow is allowed across this resistor
     // Numerical scheme, not physiology: when true the flow is computed backward-Euler for the pair
     // of compartments this resistor joins, flow = Δp / (R + dt·(E_from + E_to)), instead of the
@@ -72,7 +75,7 @@ export class Resistor extends BaseModelClass {
     this.calc_flow();
 
     // exchange without net flow (never across a closed connection)
-    if (this.mix_flow > 0.0 && !this.no_flow && this._comp_from && this._comp_to) {
+    if (this.mix_flow > 0.0 && !this.no_flow && !this.no_flow_ext && this._comp_from && this._comp_to) {
       if (typeof this._comp_from.to2 === "number" && typeof this._comp_to.to2 === "number") {
         exchange_blood(this._comp_from, this._comp_to, this.mix_flow * this._t);
       } else if (typeof this._comp_from._end_conc === "function" && typeof this._comp_to._end_conc === "function") {
@@ -133,7 +136,7 @@ export class Resistor extends BaseModelClass {
     this.flow = 0.0;
 
     // return if no flow is allowed across this resistor
-    if (this.no_flow) {
+    if (this.no_flow || this.no_flow_ext) {
       this._prev_flow = 0.0;
       // return from this function
       return;

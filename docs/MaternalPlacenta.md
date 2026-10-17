@@ -123,7 +123,7 @@ Runs every step. Steps in order:
    ```
 
 3. **Gating.** Re-asserted every step:
-   - `PL_IVS.no_flow = !active` and `drain_res.no_flow = !active`. A non-pregnant or stopped placenta
+   - `PL_IVS.no_flow = !active` and `drain_res.no_flow_ext = !active` (the drainage resistor is owned by `UT_VEN`, which re-copies its own `no_flow` every step, so the external gate is used). A non-pregnant or stopped placenta
      is perfectly inert (no perturbation of the uterine baseline), but `PL_IVS` stays `is_enabled` so
      it retains a defined pressure.
    - If **not active**: restore `PL_IVS.r_factor_scaling_ps = 1.0` (the layer this model owns), zero
