@@ -67,15 +67,26 @@ setpoints are both given responds to load from the first step.
 
 ## Acute layer (reversible, seconds–minutes)
 
-When end-systolic stress (afterload) or end-diastolic stress (over-dilation) exceeds its setpoint,
-contractility is depressed, smoothed by a first-order lag toward the target:
+When end-systolic stress (afterload) or end-diastolic stress (over-dilation) exceeds
+`stress_deadband` (1.5) × its setpoint, contractility is depressed, smoothed by a first-order lag
+toward the target:
 
 ```
-excess_es  = max(0, sigma_es − ref_es)
-excess_ed  = max(0, sigma_ed − ref_ed)
+excess_es  = max(0, sigma_es − stress_deadband·ref_es)
+excess_ed  = max(0, sigma_ed − stress_deadband·ref_ed)
 target     = clamp(1 − g_es·excess_es − g_ed·excess_ed, cont_floor, 1)
 load_factor += dt · (1/cont_tc) · (target − load_factor)
 ```
+
+The dead-band keeps normal loading out of it. Without it, any preload rise above rest
+depressed contractility. The depressed ventricle then dilated, which raised the stress further, so a
+normal Frank–Starling volume load (+8 % blood volume) ran away to `cont_floor`. 1.5× is reached in
+the term neonate (reflexes off) at a MAP of ~80 (LV afterload), LA ~9 mmHg (LV over-dilation) or a
+doubled PVR (RV). The gains are a quarter of their first values (`g_es_lv` 0.00125, `g_ed_lv` 0.005,
+`g_es_rv` 0.002, `g_ed_rv` 0.0075). With the original gains the loop gain above the dead-band
+exceeded 1 and a severe overload still collapsed to the floor; now the depression is graded and
+stable. For example, +50 mL blood volume gives an LV factor of 0.84 (LA 17.6), PVR ×4 an RV factor
+of 0.81 and arterioles ×3 an LV factor of 0.96.
 
 `load_factor` is written to the chamber's `el_max_load_factor`. It fully recovers to `1.0` within
 ~`cont_tc` when the load normalizes (afterload mismatch is reversible / inotrope-correctable).
@@ -112,7 +123,7 @@ left untouched (factors stay `1.0`).
 `scripts/probe_heartfunction.mjs` builds `term_neonate`, warms up, then applies an afterload challenge
 and a volume-overload challenge, printing wall stress, the acute factor, and the remodeling state.
 Observed behavior: at baseline factors stay ≈1.0; a transfusion drives `sigma_ed`/`sigma_es` well above
-setpoint, collapses ejection fraction, depresses `el_max_load_factor` to its floor, and—on a
+setpoint (beyond the dead-band), depresses ejection fraction and `el_max_load_factor` (graded), and—on a
 time-compressed run—dilates `u_vol_remodel_factor` and drops `el_max_remodel_factor` (the full
 both-timescale decompensation cascade). An afterload challenge raises `sigma_es` and depresses
 contractility directionally; note that the `term_neonate` circulation has a low-resistance runoff, so
@@ -127,6 +138,7 @@ a `HeartFunction` limitation).
 | `wall_frac_lv/rv`, `wall_volume_lv/rv`, `wall_density` | wall-volume geometry |
 | `g_es_lv/rv`, `g_ed_lv/rv` | acute contractility-depression gains (afterload / dilation) |
 | `cont_tc`, `cont_floor` | acute response time constant and lower bound |
+| `stress_deadband` | the acute response starts above this multiple of the resting setpoint (1.5) |
 | `remodel_tc`, `stress_avg_tc` | chronic remodeling and stress-averaging time constants |
 | `k_conc`, `k_ecc`, `mal_conc`, `mal_ecc`, `stiff_conc`, `dil_ecc`, `remodel_floor` | remodeling gains and bound |
 | `setpoint_warmup`, `sigma_*_ref_*` | setpoint auto-calibration window / overrides |
