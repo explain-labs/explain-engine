@@ -36,6 +36,7 @@ export class BloodVessel extends BloodCapacitance {
     this.alpha = 0.0; // determines relation between resistance change and elastance change. Veins/venules: 0.75, arterioles: 0.63, large arteries: 0.5
     this.ans_sens = 0.0; // sensitivity of this blood vessel for autonomic control. 0.0 is no effect, 1.0 is full effect
     this.ans_activity = 1.0; // ans activity factor (unitless)
+    this.u_vol_ans_sens = 0.0; // sensitivity of the unstressed volume for autonomic control (venoconstriction mobilizes unstressed volume). 0.0 is no effect
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
     this.r_factor = 1.0; // non-persistent resistance factor
@@ -163,6 +164,16 @@ export class BloodVessel extends BloodCapacitance {
     
     // calculate the net flow through this blood vessel
     this.flow = this.flow_forward - this.flow_backward;
+  }
+
+  calc_volumes() {
+    // the inherited additive factor layers (clamped at zero, non-persistent factor reset)
+    super.calc_volumes();
+
+    // sympathetic venoconstriction mobilizes unstressed volume: ans_activity > 1 (constriction)
+    // lowers u_vol, < 1 (withdrawal) raises it. Composed multiplicatively, like the ANS effect on R.
+    const u_vol_ans_mult = 1.0 - (this.ans_activity - 1.0) * this.u_vol_ans_sens;
+    this.u_vol_eff *= u_vol_ans_mult > 0.0 ? u_vol_ans_mult : 0.0;
   }
 
   calc_resistances() {

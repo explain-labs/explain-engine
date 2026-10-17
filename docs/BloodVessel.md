@@ -172,6 +172,17 @@ Typical alpha values:
 
 An alpha of 0.0 means resistance changes have no effect on elastance.
 
+### Unstressed volume (venous capacitance)
+
+Sympathetic venoconstriction acts mainly on the unstressed volume of the capacitance veins, not on their compliance. It shifts blood from the venous reservoir into the stressed volume, which raises mean filling pressure and venous return (Shoukas & Sagawa, *Circ Res* 1973: carotid-sinus hypotension mobilises unstressed volume with little change in compliance). `u_vol_ans_sens` (default `0.0`, no effect) sets how strongly `ans_activity` moves it:
+
+```
+u_vol_ans_mult = max(0, 1 − (ans_activity − 1) · u_vol_ans_sens)
+u_vol_eff      = (additive u_vol layers, clamped at 0) · u_vol_ans_mult
+```
+
+`ans_activity` comes from `EF_SVR` through `Circulation` (range 0.5–2; > 1 is constriction). For example, `u_vol_ans_sens = 0.3` gives `u_vol ×0.7` at full sympathetic drive and `×1.15` at full withdrawal. It is independent of `ans_sens`, which acts on R (and on E through α). Set it on the systemic capacitance veins; brain and pulmonary veins have little sympathetic venomotor control.
+
 ## Owned input resistors
 
 Each step `calc_model` writes the vessel's `r_for_eff`/`r_back_eff`/`r_k_eff` into the **base** `r_for`/`r_back`/`r_k` of every input resistor (plus `no_flow`, `no_back_flow`, `p1_ext`, `p2_ext`, `is_enabled`). Two consequences:
