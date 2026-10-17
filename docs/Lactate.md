@@ -80,8 +80,7 @@ by the model's position in the scenario JSON `models` map — insert it just aft
 ## Per-tissue-site mechanism (`_update_lactate`)
 
 `Lactate` reuses `Metabolism.metabolic_active_models` (the tissue consumption map, per-site VO₂
-fraction `fvo2`) plus the whole-body `vo2`, `vo2_factor` and `vo2_temp_factor`. For each active site
-(a `MicroVascularUnit` is followed to its `_CAP` compartment):
+fraction `fvo2`) plus the whole-body `vo2`, `vo2_factor` and `vo2_temp_factor`. For each active site:
 
 ```
 threshold = threshold_frac * resting_to2          (resting captured at warm-up, see below)

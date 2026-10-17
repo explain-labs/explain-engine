@@ -32,8 +32,7 @@ SINK    peripheral utilization, split over Metabolism.metabolic_active_models by
   (`_inject.solutes.glucose += prod_total / _inject.vol`), modulated by `production_factor`.
 - **SINK** — peripheral utilization distributed over the *same* compartments and fractions
   [`Metabolism`](./Metabolism.md) uses for O₂ (`metabolic_active_models`, a `site → fvo2` map),
-  scaled by `uptake_factor`. A `MicroVascularUnit` site redirects to its `<site>_CAP` compartment;
-  sites with `vol <= 0` are skipped, and concentration is floored at 0.
+  scaled by `uptake_factor`. Sites with `vol <= 0` are skipped, and concentration is floored at 0.
 - **CONTROL** — `insulin` rises with hyperglycemia (↑uptake, ↓hepatic output); `counterreg` rises
   with hypoglycemia (↑hepatic output). At the set-point both `== 1.0`.
 

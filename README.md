@@ -101,7 +101,7 @@ class) now lives in the UI layer at `src/model-interface/`, keyed by
 
 Some component models create additional internal models in `init_model`.
 
-Example: `MicroVascularUnit` creates and configures internal `BloodVessel` components (arteriole/capillary/venule), then registers them in the engine model map. This allows a higher-level model to encapsulate a local network while still participating in global stepping.
+Example: `Circulation` creates and configures its `BloodVessel` and `Resistor` components (declared under `components` in the definition) and registers them in the engine model map. This allows a higher-level model to encapsulate a local network while still participating in global stepping.
 
 ## Adding a new model type
 

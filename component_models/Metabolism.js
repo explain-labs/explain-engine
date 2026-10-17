@@ -36,10 +36,6 @@ export class Metabolism extends BaseModelClass {
     for (const [model, fvo2] of Object.entries(this.metabolic_active_models)) {
       // Get the volume, tco2, and to2 from the blood compartment
       let compartment = this._model_engine.models[model];
-      // if the model is a MVU then do the metabolism inside the capillaries
-      if (compartment && compartment.model_type == 'MicroVascularUnit') {
-        compartment = this._model_engine.models[model + "_CAP"]
-      }
 
       // skip if the compartment (or its capillary) is not present in this configuration
       if (!compartment) {

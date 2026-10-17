@@ -70,8 +70,7 @@ Runs every model step when `met_active` is true.
    - `weight` is the engine body weight (kg); `Δt` (`this._t`) is the model step size.
 
 2. **For each entry in `metabolic_active_models` (`{ compartment: fvo2 }`):**
-   - Resolve the compartment. If it is a `MicroVascularUnit`, metabolism is applied to its capillary
-     sub-compartment `<name>_CAP` instead (tissue gas exchange happens in the capillary).
+   - Resolve the compartment.
    - Skip silently (via `continue`) if the compartment is missing or its volume is ≤ 0, so the
      remaining compartments are still processed.
    - O₂ removed and CO₂ added this step (distributed by `fvo2`):

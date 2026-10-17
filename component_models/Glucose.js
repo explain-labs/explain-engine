@@ -164,7 +164,6 @@ export class Glucose extends BaseModelClass {
     const sites = this._metabolism?.metabolic_active_models ?? {};
     for (const [site, fvo2] of Object.entries(sites)) {
       let comp = this._model_engine.models[site];
-      if (comp && comp.model_type === "MicroVascularUnit") comp = this._model_engine.models[site + "_CAP"];
       if (!comp || !comp.solutes || comp.vol <= 0.0) continue;
       const dmol = use_total * fvo2; // mmol removed from this site
       const new_conc = (comp.solutes.glucose * comp.vol - dmol) / comp.vol;

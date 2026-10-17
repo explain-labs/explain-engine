@@ -138,7 +138,7 @@ export class Mob extends BaseModelClass {
     // Instantaneous oxygen balance reporter
     const o2_inflow = this._aa_cor.flow * this._aa.to2;
     const o2_use = this.mvo2_step / this._t;
-    this.mob = o2_inflow - o2_use + to2_cor;
+    this.mob = o2_inflow - o2_use; // myocardial O2 balance (mmol/s): coronary O2 delivery minus use
 
     // Update coronary blood pool
     if (vol_cor > 0) {

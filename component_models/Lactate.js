@@ -111,7 +111,6 @@ export class Lactate extends BaseModelClass {
       this._warmup_counter += u;
       for (const site of Object.keys(sites)) {
         let comp = this._model_engine.models[site];
-        if (comp && comp.model_type === "MicroVascularUnit") comp = this._model_engine.models[site + "_CAP"];
         if (!comp) continue;
         const prev = this._baseline_to2[site];
         this._baseline_to2[site] = prev === undefined ? comp.to2 : Math.min(prev, comp.to2);
@@ -125,7 +124,6 @@ export class Lactate extends BaseModelClass {
     if (this._seeded && this.lactate_running) {
       for (const [site, fvo2] of Object.entries(sites)) {
         let comp = this._model_engine.models[site];
-        if (comp && comp.model_type === "MicroVascularUnit") comp = this._model_engine.models[site + "_CAP"];
         if (!comp || !comp.solutes || comp.vol <= 0.0) continue;
         const resting = this._baseline_to2[site];
         if (resting === undefined || resting <= 0.0) continue;

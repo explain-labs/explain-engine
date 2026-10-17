@@ -52,7 +52,7 @@ Heart (rate, contractility, autonomic activity).
 | `mvo2_step` | mmol | O₂ consumed this step (`mob_vo2 · Δt`) |
 | `stroke_work_lv` / `stroke_work_rv` / `stroke_work_total` | mmHg·mL | Per-beat P-V loop area (left / right / sum) |
 | `hr_factor` / `cont_factor` / `ans_activity_factor` | unitless | Current values of the three hypoxia channels (1.0 = no effect) |
-| `mob` | — | Rough instantaneous O₂-balance reporter (not dimensionally meaningful — see caveats) |
+| `mob` | mmol/s | Myocardial O₂ balance: coronary O₂ delivery (`AA_COR.flow · AA.to2`) minus consumption |
 
 ## Oxygen consumption
 
@@ -128,9 +128,6 @@ responsiveness — the model of an ischemic, failing myocardium.
   whole coronary update is skipped (O₂ not floored to 0, no CO₂ added), so `COR.to2` cannot fall below
   one step's consumption. Under extreme ischemia the hypoxia signal therefore plateaus rather than
   reaching `to2_min`.
-- **`mob` is a rough reporter only.** The published `mob` value mixes a rate balance (mmol/s) with a
-  concentration (`to2_cor`, mmol/L) and is not dimensionally meaningful; do not use it as a true
-  balance.
 - **Negative stroke work is not guarded.** If the filling-phase P·dV area exceeds the ejection-phase
   area (`stroke_work_total < 0`), `sw_vo2` and hence `mob_vo2` can go negative, which would *add* O₂ to
   the coronary pool. This does not occur for a normally ejecting ventricle.
