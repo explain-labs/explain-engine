@@ -9183,7 +9183,9 @@
      "INT_ART",
      "KID_ART",
      "LS_ART",
-     "BR_ART"
+     "BR_ART",
+     "RUB",
+     "RLB"
     ],
     "systemic_capillaries": [
      "INT_CAP",
@@ -9201,13 +9203,7 @@
      "IVCI",
      "SVC",
      "VLB",
-     "VUB",
-     "RLB",
-     "RUB",
-     "IVCI_RAIVCI",
-     "SVC_RASVC",
-     "COR_RAIVCI",
-     "COR_RASVC"
+     "VUB"
     ],
     "pulmonary_arteries": [
      "PA",
@@ -9227,8 +9223,7 @@
      "RL_VEN"
     ],
     "pulmonary_veins": [
-     "PV",
-     "PV_LA"
+     "PV"
     ],
     "ans_activity": 1,
     "svr_factor_art": 0.980051779281397,
