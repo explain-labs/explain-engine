@@ -159,7 +159,7 @@ Note the two-pass structure: **all** instances are constructed before **any** ar
 
 `_model_step()` is the single time step:
 
-1. For each model in `model.models` **in insertion order**, call `step_model()`. When `ENABLE_STEP_ERROR_GUARD` (currently `true`) each call is wrapped in try/catch and a throw emits an `error` event but does not abort the loop — one bad model can't kill the simulation.
+1. For each model in `model.models` **in insertion order**, call `step_model()`. When `ENABLE_STEP_ERROR_GUARD` (currently `true`) each call is wrapped in try/catch and a throw emits an `error` event but does not abort the loop — one bad model can't kill the simulation. Only the **first** throw per model is reported (`step_errors`, reset on every `build`): a broken model usually throws on every step, which would otherwise post ~2000 errors per simulated second. Later throws are counted, not sent, and the model keeps being called each step.
 2. `DataCollector.collect_data(model.model_time_total)`.
 3. `TaskScheduler.run_tasks()`.
 4. `model.model_time_total += model.modeling_stepsize`.
