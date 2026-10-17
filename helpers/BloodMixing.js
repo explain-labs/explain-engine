@@ -12,30 +12,32 @@ export function mix_blood_in(target, dvol, comp_from) {
   // guard against division by zero on an empty compartment (would produce NaN concentrations)
   if (target.vol <= 0.0) return;
 
-  // process the gases o2 and co2
-  target.to2 += ((comp_from.to2 - target.to2) * dvol) / target.vol;
-  target.tco2 += ((comp_from.tco2 - target.tco2) * dvol) / target.vol;
+  // the inflow's share of the new volume (hot path: ~45 calls per step, so no per-call allocation —
+  // plain for-in loops instead of Object.keys().forEach)
+  const f = dvol / target.vol;
 
-  // process the solutes
-  Object.keys(target.solutes).forEach((solute) => {
-    let solute_from = 0;
-    if (comp_from.solutes[solute]) {
-      solute_from = comp_from.solutes[solute];
-    }
-    target.solutes[solute] += ((solute_from - target.solutes[solute]) * dvol) / target.vol;
-  });
+  // process the gases o2 and co2
+  target.to2 += (comp_from.to2 - target.to2) * f;
+  target.tco2 += (comp_from.tco2 - target.tco2) * f;
+
+  // process the solutes (a key missing, zero or NaN on the source counts as 0)
+  const ts = target.solutes;
+  const fs = comp_from.solutes;
+  for (const solute in ts) {
+    const from = fs[solute];
+    ts[solute] += ((from ? from : 0.0) - ts[solute]) * f;
+  }
 
   // process the drug concentrations
-  Object.keys(target.drugs).forEach((drug) => {
-    let drug_from = 0.0;
-    if (comp_from.drugs[drug]) {
-      drug_from = comp_from.drugs[drug];
-    }
-    target.drugs[drug] += ((drug_from - target.drugs[drug]) * dvol) / target.vol;
-  });
+  const td = target.drugs;
+  const fd = comp_from.drugs;
+  for (const drug in td) {
+    const from = fd[drug];
+    td[drug] += ((from ? from : 0.0) - td[drug]) * f;
+  }
 
   // process the temperature (treat it as a solute)
-  target.temp += ((comp_from.temp - target.temp) * dvol) / target.vol;
+  target.temp += (comp_from.temp - target.temp) * f;
 }
 
 // Dispersive exchange between two blood compartments that form one continuous pool (e.g. the two
