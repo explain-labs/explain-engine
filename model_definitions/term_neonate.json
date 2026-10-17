@@ -11147,7 +11147,7 @@
      "glucose": 4
     },
     "P50_0": 20,
-    "haldane_coeff": 1,
+    "haldane_coeff": 2.2,
     "blood_containing_modeltypes": [
      "BloodCapacitance",
      "MicroVascularUnit",
