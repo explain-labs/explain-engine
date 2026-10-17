@@ -103,12 +103,14 @@ export class Shunts extends BaseModelClass {
     this.res_fo = this.calc_resistance(this.diameter_fo, this.atrial_septal_width, this.viscosity);
     this.res_vsd = this.calc_resistance(this.diameter_vsd, this.ventricular_septal_width, this.viscosity);
 
-    // transfer the resistances to the models
-    this._fo_ivci.r_for = this.res_fo * this.fo_lr_factor;
-    this._fo_ivci.r_back = this.res_fo;
+    // transfer the resistances to the models. The foramen ovale is two resistors in parallel
+    // (LA->RAIVCI and LA->RASVC); each gets twice the FO resistance so that together they equal
+    // one FO of diameter_fo (each carrying half of it)
+    this._fo_ivci.r_for = 2.0 * this.res_fo * this.fo_lr_factor;
+    this._fo_ivci.r_back = 2.0 * this.res_fo;
 
-    this._fo_svc.r_for = this.res_fo * this.fo_lr_factor;
-    this._fo_svc.r_back = this.res_fo;
+    this._fo_svc.r_for = 2.0 * this.res_fo * this.fo_lr_factor;
+    this._fo_svc.r_back = 2.0 * this.res_fo;
 
     this._vsd.r_for = this.res_vsd;
     this._vsd.r_back = this.res_vsd;

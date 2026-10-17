@@ -52,7 +52,7 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 
 | Property | Unit | Description |
 |---|---|---|
-| `res_fo` | mmHg·s/L | computed FO resistance (per orifice, before `fo_lr_factor`) |
+| `res_fo` | mmHg·s/L | computed FO resistance (the whole orifice, before `fo_lr_factor`; each of the two resistors gets `2·res_fo`) |
 | `res_vsd` | mmHg·s/L | computed VSD resistance |
 | `flow_fo` | L/s | combined FO flow (`LA_RAIVCI.flow + LA_RASVC.flow`) |
 | `flow_vsd` | L/s | VSD flow |
@@ -80,21 +80,23 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 ## Foramen ovale: flap-valve asymmetry and the split path
 
 The FO is driven through **two** resistors (`LA_RAIVCI`, `LA_RASVC`) because the model splits the
-right atrium into an IVC-stream and an SVC-stream. Each resistor receives:
+right atrium into an IVC-stream and an SVC-stream. Each resistor is half of a parallel pair, so it
+receives twice the FO resistance and the pair together equals one FO of `diameter_fo`:
 
 ```
-r_for  = res_fo · fo_lr_factor      (LA → RA, restricted)
-r_back = res_fo                     (RA → LA, easy)
+r_for  = 2 · res_fo · fo_lr_factor      (LA → RA, restricted)
+r_back = 2 · res_fo                     (RA → LA, easy)
 ```
 
 `fo_lr_factor` (default 10, often higher in scenarios — e.g. 25) makes left-to-right flow much harder
 than right-to-left, reproducing the **flap-valve** behaviour: in fetal/transitional physiology the FO
 shunts right-to-left, and reverses only under raised left-atrial pressure.
 
-> **Modelling note.** Because the FO is represented as two *parallel* resistors that each carry the
-> full `res_fo`, the orifice's effective resistance is `res_fo / 2`. `velocity_fo` is therefore
-> computed from the **combined** flow (`LA_RAIVCI.flow + LA_RASVC.flow`) over the single-orifice area
-> from `diameter_fo`.
+> **Modelling note.** Until the engine review, each of the two parallel resistors carried the full
+> `res_fo`, so the FO's effective resistance was `res_fo / 2`: twice the conductance its diameter
+> implies. Scenarios fitted before the fix were compensated by scaling `diameter_fo` by 2^(1/4) ≈ 1.19
+> (Poiseuille R ∝ d⁻⁴). `velocity_fo` is computed from the **combined** flow
+> (`LA_RAIVCI.flow + LA_RASVC.flow`) over the single-orifice area from `diameter_fo`.
 
 ## Velocity outputs
 
