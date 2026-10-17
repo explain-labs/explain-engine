@@ -11,7 +11,7 @@ export class Capacitance extends BaseModelClass {
     // initialize independent properties
     this.u_vol = 0.0; // unstressed volume UV (L)
     this.el_base = 0.0; // baseline elastance E (mmHg/L)
-    this.el_k = 0.0; // non-linear elastance factor K2 (unitless)
+    this.el_k = 0.0; // non-linear elastance coefficient K2 (mmHg/L²), acts only above the unstressed volume
     this.pres_ext = 0.0; // non persistent external pressure p2(t) (mmHg)
     this.fixed_composition = false;
 
@@ -38,7 +38,7 @@ export class Capacitance extends BaseModelClass {
     // local variables
     this.el_eff = 0.0; // calculated elastance (mmHg/L)
     this.u_vol_eff = 0.0; // calculated unstressed volume (L)
-    this.el_k_eff = 0.0; // calculated elastance non-linear k (unitless)
+    this.el_k_eff = 0.0; // calculated non-linear elastance coefficient (mmHg/L²)
   }
 
   // this routine is called in every model step by the ModelEngine Class
@@ -99,9 +99,6 @@ export class Capacitance extends BaseModelClass {
       // add volume to the capacitance
       this.vol += dvol;
     }
-
-    // return if the volume is zero or lower
-    if (this.vol <= 0.0) return;
   }
 
   volume_out(dvol) {

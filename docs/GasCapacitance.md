@@ -37,7 +37,7 @@ See [`Capacitance`](./Capacitance.md) for the full list and the factor system. K
 |---|---|---|
 | `u_vol` | L | Unstressed volume (config) |
 | `el_base` | mmHg/L | Baseline elastance (config) |
-| `el_k` | unitless | Non-linear elastance coefficient (config) |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient (config) |
 | `pres_ext` | mmHg | External pressure, non-persistent — cleared each step (config) |
 | `fixed_composition` | bool | Freeze volume and composition (infinite reservoir) (config) |
 | `vol` | L | Current volume (computed) |

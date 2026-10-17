@@ -11,7 +11,7 @@ export class Resistor extends BaseModelClass {
     // initialize independent properties
     this.r_for = 1.0; // forward flow resistance Rf (mmHg*s/l)
     this.r_back = 1.0; // backward flow resistance Rb (mmHg*s/l )
-    this.r_k = 0.0; // non-linear resistance coefficient K1 (unitless)
+    this.r_k = 0.0; // non-linear resistance coefficient K1 (mmHg·s²/L²)
     this.comp_from = ""; // holds the name of the upstream component
     this.comp_to = ""; // holds the name of the downstream component
     this.no_flow = false; // flags whether flow is allowed across this resistor
@@ -49,7 +49,7 @@ export class Resistor extends BaseModelClass {
     this._comp_to = {}; // holds a reference to the downstream component
     this.r_for_eff = 1000;  // calculated forward resistance (mmHg/L*s)
     this.r_back_eff = 1000; // calculated backward resistance (mmHg/L*s)
-    this.r_k_eff = 0; // calculated non-linear resistance factor (unitless)
+    this.r_k_eff = 0; // calculated non-linear resistance coefficient (mmHg·s²/L²)
     this._prev_flow = 0.0; // flow from previous model step (L/s)
   }
 

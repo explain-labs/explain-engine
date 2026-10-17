@@ -33,7 +33,7 @@ of its own.
 |---|---|---|
 | `u_vol` | L | Unstressed volume (volume at which recoil pressure is zero) |
 | `el_base` | mmHg/L | Baseline (linear) elastance |
-| `el_k` | unitless | Non-linear elastance coefficient (quadratic stiffening term) |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient (quadratic stiffening term) |
 | `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
 | `fixed_composition` | bool | When true, `volume_in`/`volume_out` do not change `vol` (infinite reservoir) |
 
@@ -51,7 +51,7 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `pres_in` | mmHg | Internal recoil pressure of the elastance |
 | `el_eff` | mmHg/L | Effective elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
+| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
 
 ## Calculation cycle (`calc_model`)
 

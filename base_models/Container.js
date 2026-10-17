@@ -39,7 +39,7 @@ export class Container extends BaseModelClass {
     // local variables
     this.el_eff = 0.0; // calculated elastance (mmHg/L)
     this.u_vol_eff = 0.0; // calculated unstressed volume (L)
-    this.el_k_eff = 0.0; // calculated elastance non-linear k (unitless)
+    this.el_k_eff = 0.0; // calculated non-linear elastance coefficient (mmHg/L²)
   }
 
   calc_model() {

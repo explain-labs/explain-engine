@@ -42,10 +42,10 @@ Each model step executes in this order:
 |---|---|---|
 | `u_vol` | L | Unstressed volume -- the volume at which transmural pressure is zero |
 | `el_base` | mmHg/L | Baseline elastance (stiffness). Higher = stiffer vessel |
-| `el_k` | unitless | Non-linear elastance coefficient. Adds quadratic pressure term at high volumes |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient. Adds quadratic pressure term at high volumes |
 | `r_for` | mmHg·s/L | Forward flow resistance |
 | `r_back` | mmHg·s/L | Backward flow resistance |
-| `r_k` | unitless | Non-linear resistance coefficient. Adds flow-dependent resistance |
+| `r_k` | mmHg·s²/L² | Non-linear resistance coefficient. Adds flow-dependent resistance |
 | `inputs` | string[] | Names of upstream components (a Resistor is created for each) |
 | `alpha` | 0-1 | Resistance-elastance coupling factor (see ANS section) |
 | `ans_sens` | 0-1 | Sensitivity to ANS activity. 0 = no effect, 1 = full effect |
@@ -69,7 +69,7 @@ Each model step executes in this order:
 |---|---|---|
 | `r_for_eff` | mmHg·s/L | Effective forward resistance this step (after all factors) |
 | `r_back_eff` | mmHg·s/L | Effective backward resistance this step |
-| `r_k_eff` | unitless | Effective non-linear resistance coefficient |
+| `r_k_eff` | mmHg·s²/L² | Effective non-linear resistance coefficient |
 | `el_eff` | mmHg/L | Effective elastance (from Capacitance) |
 | `u_vol_eff` | L | Effective unstressed volume (from Capacitance) |
 

@@ -37,7 +37,7 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 |---|---|---|
 | `r_for` | mmHg·s/L | Forward flow resistance |
 | `r_back` | mmHg·s/L | Backward flow resistance |
-| `r_k` | unitless | Non-linear (turbulent) resistance coefficient |
+| `r_k` | mmHg·s²/L² | Non-linear (turbulent) resistance coefficient |
 | `comp_from` | string | Name of the upstream compartment |
 | `comp_to` | string | Name of the downstream compartment |
 | `no_flow` | bool | When true, block all flow (set `flow = 0` and return) |
@@ -59,7 +59,7 @@ both `r_for` and `r_back`.
 | `flow` | L/s | Current flow (positive = forward, negative = backward) |
 | `r_for_eff` | mmHg·s/L | Effective forward resistance after the factor layers |
 | `r_back_eff` | mmHg·s/L | Effective backward resistance after the factor layers |
-| `r_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
+| `r_k_eff` | mmHg·s²/L² | Effective non-linear coefficient after the factor layers |
 | `_comp_from` / `_comp_to` | ref | Resolved references to the up/downstream compartments |
 | `_prev_flow` | L/s | Flow from the previous step (used by the non-linear term) |
 

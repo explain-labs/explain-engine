@@ -26,7 +26,7 @@ All capacitance properties are available. See the Capacitance base model for the
 |---|---|---|
 | `u_vol` | L | Unstressed volume |
 | `el_base` | mmHg/L | Baseline elastance |
-| `el_k` | unitless | Non-linear elastance coefficient |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient |
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |

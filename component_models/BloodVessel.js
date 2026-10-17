@@ -28,7 +28,7 @@ export class BloodVessel extends BloodCapacitance {
     this.inputs = []; // list of inputs for this blood vessel
     this.r_for = 1.0; // forward flow resistance Rf (mmHg*s/l)
     this.r_back = 1.0; // backward flow resistance Rb (mmHg*s/l )
-    this.r_k = 0.0; // non-linear resistance coefficient K1 (unitless)
+    this.r_k = 0.0; // non-linear resistance coefficient K1 (mmHg·s²/L²)
     this.no_flow = false; // flags whether flow is allowed across this resistor
     this.no_back_flow = false; // flags whether backflow is allowed across this resistor
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
@@ -57,7 +57,7 @@ export class BloodVessel extends BloodCapacitance {
     // state variables to store the current resistance and elastance values
     this.r_for_eff = 1000;  // calculated forward resistance (mmHg/L*s)
     this.r_back_eff = 1000; // calculated backward resistance (mmHg/L*s)
-    this.r_k_eff = 0; // calculated non-linear resistance factor (unitless)
+    this.r_k_eff = 0; // calculated non-linear resistance coefficient (mmHg·s²/L²)
 
     // local properties
     this._resistors = {}; // list of connectors for this blood vessel

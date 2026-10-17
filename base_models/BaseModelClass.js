@@ -26,7 +26,7 @@ export class BaseModelClass {
     this._is_initialized = false; // flag whether the model is initialized or not
   }
 
-  init_model(args = {}) {
+  init_model(args = []) {
     // set the values of the independent properties
     args.forEach((arg) => {
       this[arg["key"]] = arg["value"];

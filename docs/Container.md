@@ -67,7 +67,7 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `pres_in` | mmHg | Internal recoil pressure |
 | `el_eff` | mmHg/L | Effective elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
+| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
 
 ## Calculation cycle (`calc_model`)
 

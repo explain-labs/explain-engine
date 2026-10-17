@@ -32,7 +32,7 @@ The `Heart` model also applies contractility (`cont_factor_left/right`) and rela
 | `u_vol` | L | Unstressed volume |
 | `el_min` | mmHg/L | Minimum elastance (diastolic stiffness) |
 | `el_max` | mmHg/L | Maximum elastance (systolic stiffness / contractility) |
-| `el_k` | unitless | Non-linear elastance coefficient |
+| `el_k` | mmHg/L² | Non-linear elastance coefficient |
 | `act_factor` | 0-1 | Activation factor (set by Heart model: `aaf` for atria, `vaf` for ventricles) |
 | `vol` | L | Current blood volume |
 | `pres` | mmHg | Total pressure |
@@ -69,7 +69,7 @@ The `Heart` model also applies contractility (`cont_factor_left/right`) and rela
 |---|---|---|
 | `el_min_eff` | mmHg/L | Effective minimum elastance this step |
 | `el_max_eff` | mmHg/L | Effective maximum elastance this step |
-| `el_k_eff` | unitless | Effective non-linear elastance coefficient |
+| `el_k_eff` | mmHg/L² | Effective non-linear elastance coefficient |
 | `u_vol_eff` | L | Effective unstressed volume |
 
 ## ANS elastance modulation

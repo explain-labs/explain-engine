@@ -12,7 +12,7 @@ export class TimeVaryingElastance extends BaseModelClass {
     this.u_vol = 0.0; // unstressed volume UV (L)
     this.el_min = 0.0; // minimal elastance Emin (mmHg/L)
     this.el_max = 0.0; // maximal elastance emax(n) (mmHg/L)
-    this.el_k = 0.0; // non-linear elastance coefficient K2 (unitless)
+    this.el_k = 0.0; // non-linear elastance coefficient K2 (mmHg/L²), diastolic curve, above the unstressed volume only
     this.pres_ext = 0.0; // non persistent external pressure p2(t) (mmHg)
     this.act_factor = 0.0; // activation factor from the heart model (unitless)
 
@@ -43,7 +43,7 @@ export class TimeVaryingElastance extends BaseModelClass {
     this.el_min_eff = 0.0; // calculated minimal elastance (mmHg/L)
     this.el_max_eff = 0.0; // calculated maximal elastance (mmHg/L)
     this.u_vol_eff = 0.0; // calculated unstressed volume (L)
-    this.el_k_eff = 0.0; // calculated elastance non-linear k (unitless)
+    this.el_k_eff = 0.0; // calculated non-linear elastance coefficient (mmHg/L²)
   }
 
   // this routine is called in every model step by the ModelEngine Class
@@ -89,6 +89,8 @@ export class TimeVaryingElastance extends BaseModelClass {
         + (this.u_vol_factor - 1) * this.u_vol
         + (this.u_vol_factor_ps - 1) * this.u_vol
         + (this.u_vol_factor_scaling_ps - 1) * this.u_vol; // apply scaling factor to the unstressed volume
+    // the factor layers add up and can take the sum below zero; an unstressed volume can't be negative
+    if (this.u_vol_eff < 0.0) this.u_vol_eff = 0.0;
 
     // reset the non persistent factors
     this.u_vol_factor = 1.0;
@@ -115,9 +117,6 @@ export class TimeVaryingElastance extends BaseModelClass {
   volume_in(dvol, comp_from) {
     // add volume to the capacitance
     this.vol += dvol;
-
-    // return if the volume is zero or lower
-    if (this.vol <= 0.0) return;
   }
 
   volume_out(dvol) {
@@ -125,7 +124,7 @@ export class TimeVaryingElastance extends BaseModelClass {
     this.vol -= dvol;
 
     // if the volume is zero or lower, handle it
-    if (this.vol < 0.0 && this.vol < this.u_vol) {
+    if (this.vol < 0.0) {
       let _vol_not_removed = -this.vol;
       // reset the volume to zero.
       this.vol = 0.0;
