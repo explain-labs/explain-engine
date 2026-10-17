@@ -35,7 +35,7 @@ vo2 (ml/kg/min) ──split by fvo2──► per-compartment O₂ draw ──×r
 | Property | Unit | Description |
 |---|---|---|
 | `met_active` | bool | Master on/off switch; when false `calc_model` returns immediately |
-| `vo2` | ml/kg/min | Whole-body oxygen consumption | Scenarios that run `Mob` set it to the NON-cardiac VO₂: the heart's own consumption (basal + stroke work) is added by `Mob` (term_neonate: 7.288 + 0.81 = 8.1 mL/kg/min at rest).
+| `vo2` | ml/kg/min | Body oxygen consumption distributed over `metabolic_active_models`. Scenarios that run `Mob` set it to the NON-cardiac VO₂: the heart's own consumption (basal + stroke work) is added by `Mob` (term_neonate: 7.288 + 0.81 = 8.1 mL/kg/min at rest) |
 | `vo2_factor` | unitless | External multiplier on VO₂ (set by other models / interventions); `1.0` = no effect |
 | `vo2_temp_factor` | unitless | Q10 temperature multiplier on VO₂, written by [`Thermoregulation`](./Thermoregulation.md); `1.0` at 37 °C / when that model is absent or disabled |
 | `resp_q` | unitless | Respiratory quotient (CO₂ produced / O₂ consumed), typically ~0.8 |
