@@ -12212,7 +12212,7 @@
         "diameter_vsd_max": 10,
         "atrial_septal_width": 3,
         "ventricular_septal_width": 5,
-        "fo_lr_factor": 25,
+        "fo_lr_factor": 1,
         "discharge_coeff_fo": 0.7,
         "discharge_coeff_vsd": 0.64,
         "viscosity": 6.010313388270639,

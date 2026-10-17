@@ -96,6 +96,15 @@ r_back = 2 · res_fo                     (RA → LA, easy)
 than right-to-left, reproducing the **flap-valve** behaviour: in fetal/transitional physiology the FO
 shunts right-to-left, and reverses only under raised left-atrial pressure.
 
+**Echo-measured diameters.** When `diameter_fo` comes from an echo, it is the colour-jet diameter of
+the opening that actually conducts. The flap's restriction is then already in the measured diameter,
+so the postnatal `term_neonate` (and patients built from it) use `fo_lr_factor` 1. With 25 an FO was
+almost a one-way valve: 5 mm gave Qp:Qs 0.99 and a Doppler peak of 0.2 m/s. Neonatal echo shows a
+predominantly left-to-right shunt in most term newborns (Hiraishi 1991, doi 10.1136/hrt.65.1.41) and a
+measurable Qp:Qs above ~3 mm (Evans & Iyer 1994, doi 10.1016/s0022-3476(94)70079-6). With 1, a 3 mm FO
+carries ~18 mL/kg/min (Qp:Qs 1.04, Doppler peak 0.66 m/s) and 5 mm ~32 mL/kg/min (Qp:Qs 1.14). Fetal
+and transitional scenarios keep a high factor.
+
 > **Modelling note.** Until the engine review, each of the two parallel resistors carried the full
 > `res_fo`, so the FO's effective resistance was `res_fo / 2`: twice the conductance its diameter
 > implies. Scenarios fitted before the fix were compensated by scaling `diameter_fo` by 2^(1/4) ≈ 1.19
