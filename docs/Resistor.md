@@ -45,6 +45,7 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 | `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step) |
 | `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
 | `fixed_composition` | bool | Passed through to the endpoints' volume handling |
+| `mix_flow` | L/s | Dispersive blood exchange without net flow (default `0` = off); see [Dispersive mixing](#dispersive-mixing--mix_flow) |
 
 Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 `r_factor`, `r_k_factor` (non-persistent); `r_factor_ps`, `r_k_factor_ps` (persistent);
@@ -172,3 +173,25 @@ on the 0.72 kg Bischoff infant (AA pressure range, mmHg):
 
 The patient builder and the live tuner set it on `AA_AAR` and `AAR_AD`; bundled scenarios do not
 (yet), so their numbers are unchanged.
+
+## Dispersive mixing — `mix_flow`
+
+Flow through a resistor carries upstream blood downstream (advection). Between two compartments that are
+really one continuous pool — the two halves of the right atrium, say — real blood also mixes by eddies
+and vortex flow, even when the net and oscillating flow between them is close to zero. Molecular
+diffusion cannot stand in for it (O2 needs minutes to diffuse a millimetre).
+
+`mix_flow` (L/s) adds that exchange. Each step an equal volume `dv = mix_flow · dt` is swapped both
+ways, with no net volume, using the pre-exchange concentrations
+([`helpers/BloodMixing.js`](../helpers/BloodMixing.js) `exchange_blood`):
+
+```
+c_a += (c_b − c_a) · dv / V_a        c_b += (c_a − c_b) · dv / V_b
+```
+
+so `c_a·V_a + c_b·V_b` is conserved for to2, tco2, every solute and drug, temperature and viscosity.
+`dv` is clamped to half the smaller volume; a `fixed_composition` end keeps its composition, and a
+`no_flow` connection does not exchange. It acts only when both ends carry blood (`to2`), and only on
+a plain `Resistor`/`HeartValve` (a `BloodVessel` overrides `calc_model`). The equilibration time
+constant between the two compartments is about `V_a·V_b / ((V_a + V_b) · mix_flow)`.
+
