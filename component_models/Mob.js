@@ -1,4 +1,5 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
+import { O2_MMOL_PER_ML } from "../helpers/Units";
 
 export class Mob extends BaseModelClass {
   // static properties
@@ -11,9 +12,9 @@ export class Mob extends BaseModelClass {
   gram of heart tissue:
 
     1. Basal MVO2:        bm_vo2 = bm_vo2_per_g · hw                [mmol/s]
-    2. Stroke-work MVO2:  sw_vo2 = sw_vo2_per_g · hw · (SW_lv + SW_rv) / cycle_time
-                                                                    [mmol/s]
-       where SW_* is the per-beat ventricular stroke work (mmHg·mL),
+    2. Stroke-work MVO2:  sw_vo2 = (SW_lv + SW_rv)[J] / (mech_efficiency · caloric_equiv_o2)
+                                   · O2_MMOL_PER_ML / cycle_time    [mmol/s]
+       where SW_* is the per-beat ventricular stroke work (P-V loop area, mmHg·L → J),
        computed as the area of the P-V loop via trapezoidal P·dV
        integration over the cardiac cycle.
 
@@ -34,13 +35,17 @@ export class Mob extends BaseModelClass {
     this.mob_active = true;
     this.to2_min = 0.0002;
     this.to2_ref = 0.2;
-    this.resp_q = 0.1;
+    this.resp_q = 0.8; // myocardial respiratory quotient (CO2 produced / O2 consumed)
 
     // mmol O2 per gram heart tissue per second (basal myocardial VO2)
     this.bm_vo2_per_g = 3.7e-5;
 
-    // mmol O2 per gram heart tissue per (mmHg·mL of stroke work)
-    this.sw_vo2_per_g = 2.0e-7;
+    // external (stroke) work costs O2 through the myocardial work efficiency: O2 energy = work /
+    // efficiency, at caloric_equiv_o2 J per mL O2 (STPD). This is the INCREMENTAL (contractile)
+    // efficiency, ~0.35, since the basal term is counted separately; with basal included the
+    // whole-heart efficiency comes out at the textbook ~15-20 %
+    this.mech_efficiency = 0.35;
+    this.caloric_equiv_o2 = 20.1; // J/mL O2
 
     // hw [g] = hw_intercept + hw_slope · weight_kg · 1000
     this.hw_intercept = 7.799;
@@ -155,14 +160,16 @@ export class Mob extends BaseModelClass {
     // Capture stroke work at the rising edge of cardiac_cycle_running
     if (
       this._heart.cardiac_cycle_running &&
-      !this._heart._prev_cardiac_cycle_running
+      !this._heart.prev_cardiac_cycle_running
     ) {
       this.stroke_work_lv = this._pv_area_lv_dec - this._pv_area_lv_inc;
       this.stroke_work_rv = this._pv_area_rv_dec - this._pv_area_rv_inc;
       this.stroke_work_total = this.stroke_work_lv + this.stroke_work_rv;
 
-      // O2 cost of this beat's stroke work [mmol]
-      this._sw_vo2_per_beat = this.sw_vo2_per_g * this.hw * this.stroke_work_total;
+      // O2 cost of this beat's stroke work [mmol]: mmHg·L → J (× 0.133322), then work / efficiency
+      const sw_joule = Math.max(this.stroke_work_total, 0.0) * 0.133322;
+      const eff = this.mech_efficiency > 0.0 ? this.mech_efficiency : 1.0;
+      this._sw_vo2_per_beat = (sw_joule / (eff * this.caloric_equiv_o2)) * O2_MMOL_PER_ML;
 
       this._pv_area_lv_inc = 0.0;
       this._pv_area_lv_dec = 0.0;
