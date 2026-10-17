@@ -5454,6 +5454,7 @@
       "p1_ext": 0,
       "p2_ext": 0,
       "fixed_composition": false,
+      "mix_flow": 0.01,
       "r_factor": 1,
       "r_k_factor": 1,
       "r_factor_ps": 1,
