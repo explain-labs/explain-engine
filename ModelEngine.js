@@ -55,6 +55,23 @@ const ENABLE_STEP_ERROR_GUARD = true;
 // every step (2000 per simulated second at 0.5 ms), so only the first one per model is reported.
 let step_errors = {};
 
+// the models stepped by _model_step, as arrays (model.models is a large, mutated dictionary, so a
+// for-in plus keyed lookup on every step is slow). Refreshed at the start of every calculate() call
+// and every realtime tick, so models added or removed between calls are picked up; insertion order
+// is the for-in order, so the step order is unchanged. Each refresh also bumps a non-enumerable
+// version on the model object (not serialized) that tells cached cross-model references (Resistor)
+// to re-resolve.
+let _model_list = [];
+let _model_names = [];
+const _refresh_model_list = function () {
+  _model_names = Object.keys(model.models);
+  _model_list = _model_names.map((n) => model.models[n]);
+  if (!Object.prototype.hasOwnProperty.call(model, "_models_version")) {
+    Object.defineProperty(model, "_models_version", { value: 0, writable: true, enumerable: false, configurable: true });
+  }
+  model._models_version += 1;
+};
+
 const _get_data_collector = function () {
   return model?.DataCollector || null;
 };
@@ -520,6 +537,7 @@ const calculate = function (time_to_calculate) {
       payload: [],
     });
     const start = performance.now();
+    _refresh_model_list();
     for (let i = 0; i < noOfSteps; i++) {
       _model_step();
     }
@@ -564,6 +582,7 @@ const tune_model = function (payload) {
   // advance the model by `seconds` without emitting per-step state
   const stepFn = (seconds) => {
     const n = Math.round(seconds / model.modeling_stepsize);
+    _refresh_model_list();
     for (let i = 0; i < n; i++) _model_step();
   };
 
@@ -915,9 +934,11 @@ const scale_model = function (payload) {
 };
 
 const _model_step = function () {
-  // iterate over all models
-  for (const model_name in model.models) {
-    const model_component = model.models[model_name];
+  // iterate over all models (cached arrays, see _refresh_model_list)
+  const list = _model_list;
+  for (let m = 0; m < list.length; m++) {
+    const model_component = list[m];
+    const model_name = _model_names[m];
     if (ENABLE_STEP_ERROR_GUARD) {
       try {
         model_component.step_model();
@@ -960,6 +981,7 @@ const _model_step_rt = function () {
   try {
     // so the rt_interval determines how often the model is calculated
     const noOfSteps = rtInterval / model.modeling_stepsize;
+    _refresh_model_list();
     for (let i = 0; i < noOfSteps; i++) {
       _model_step();
     }

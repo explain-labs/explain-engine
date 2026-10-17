@@ -60,13 +60,24 @@ export class Resistor extends BaseModelClass {
     this.r_back_eff = 1000; // calculated backward resistance (mmHg/L*s)
     this.r_k_eff = 0; // calculated non-linear resistance coefficient (mmHg·s²/L²)
     this._prev_flow = 0.0; // flow from previous model step (L/s)
+    this._ref_version = -1; // _models_version the cached _comp_from/_comp_to were resolved at
+    this._ref_from = null; // comp_from / comp_to names they were resolved for
+    this._ref_to = null;
   }
 
   // this routine is called in every model step by the ModelEngine Class
   calc_model() {
-    // find the up- and downstream components and store the references
-    this._comp_from = this._model_engine.models[this.comp_from];
-    this._comp_to = this._model_engine.models[this.comp_to];
+    // find the up- and downstream components and store the references. Cached: re-resolved when a
+    // name changes (e.g. ECLS re-cannulation) or the engine's model set may have changed
+    // (_models_version is bumped at every calculate() call and realtime tick)
+    const version = this._model_engine._models_version;
+    if (this._ref_version !== version || this._ref_from !== this.comp_from || this._ref_to !== this.comp_to) {
+      this._comp_from = this._model_engine.models[this.comp_from];
+      this._comp_to = this._model_engine.models[this.comp_to];
+      this._ref_version = version;
+      this._ref_from = this.comp_from;
+      this._ref_to = this.comp_to;
+    }
 
     // calculate the resistances
     this.calc_resistance();
