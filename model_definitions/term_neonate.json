@@ -9715,14 +9715,15 @@
        "albumin": 25,
        "phosphates": 1.64,
        "uma": 6.0933,
-       "hemoglobin": 10
+       "hemoglobin": 7.5
       },
       "drugs": {
        "adrenaline": 0,
        "noradrenaline": 0
       },
-      "to2": 6.85,
-      "tco2": 23,
+      "to2": 3.825,
+      "tco2": 24.29,
+      "P50_0": 26.7,
       "ph": -1,
       "pco2": -1,
       "po2": -1,
@@ -9764,8 +9765,8 @@
     "umb_ven_res_factor": 1,
     "plf_res": 2000,
     "plf_res_factor": 1,
-    "mat_to2": 6.85,
-    "mat_tco2": 23,
+    "mat_to2": 3.825,
+    "mat_tco2": 24.29,
     "dif_o2": 0.01,
     "dif_co2": 0.01,
     "umb_art_flow": 0,
