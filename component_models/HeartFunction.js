@@ -120,6 +120,20 @@ export class HeartFunction extends BaseModelClass {
     this._sigma_ed_slow_rv = 0.0;
     this._slow_init = false; // have the slow averages been seeded yet
     this._warmup_elapsed = 0.0; // model time elapsed since this model started running (s)
+    this._learn = {}; // which setpoints are auto-calibrated (those not given > 0 in the definition)
+  }
+
+  init_model(args = []) {
+    super.init_model(args);
+
+    // a setpoint given (> 0) in the model definition is kept as is; only the others are learned
+    // from the resting wall stress during the warm-up window
+    for (const tag of ["lv", "rv"]) {
+      for (const phase of ["es", "ed"]) {
+        const key = `sigma_${phase}_ref_${tag}`;
+        this._learn[key] = !(this[key] > 0.0);
+      }
+    }
   }
 
   calc_model() {
@@ -136,9 +150,9 @@ export class HeartFunction extends BaseModelClass {
     const vwall_lv = this.wall_volume_lv > 0.0 ? this.wall_volume_lv : (this.hw * this.wall_frac_lv) / this.wall_density;
     const vwall_rv = this.wall_volume_rv > 0.0 ? this.wall_volume_rv : (this.hw * this.wall_frac_rv) / this.wall_density;
 
-    // are we still learning resting setpoints? (use elapsed time since this model
-    // started, NOT the absolute engine clock — scenarios are saved with a non-zero
-    // model_time_total)
+    // are we still in the window for learning resting setpoints? (use elapsed time since this
+    // model started, NOT the absolute engine clock — scenarios are saved with a non-zero
+    // model_time_total). Only setpoints not given in the definition are learned.
     this._warmup_elapsed += this._t;
     const warming_up = this._warmup_elapsed < this.setpoint_warmup;
 
@@ -156,6 +170,10 @@ export class HeartFunction extends BaseModelClass {
         "rv", warming_up
       );
     }
+
+    // both ventricles have now seeded their slow averages (setting this inside
+    // _process_ventricle left the RV, processed second, unseeded at zero)
+    this._slow_init = true;
   }
 
   // process one ventricle: compute wall stress, the acute factor, and the chronic remodeling
@@ -173,10 +191,14 @@ export class HeartFunction extends BaseModelClass {
     let ref_es = this[`sigma_es_ref_${tag}`];
     let ref_ed = this[`sigma_ed_ref_${tag}`];
 
-    // auto-calibrate setpoints from resting wall stress during warm-up
+    // auto-calibrate the setpoints that were not given in the definition: during warm-up each
+    // tracks the highest resting wall stress seen. A given setpoint (> 0) is never changed.
+    const learn_es = this._learn[`sigma_es_ref_${tag}`] ?? !(ref_es > 0.0);
+    const learn_ed = this._learn[`sigma_ed_ref_${tag}`] ?? !(ref_ed > 0.0);
+    const learning = warming_up && (learn_es || learn_ed);
     if (warming_up) {
-      if (ref_es <= 0.0 || sigma_es > ref_es) this[`sigma_es_ref_${tag}`] = sigma_es;
-      if (ref_ed <= 0.0 || sigma_ed > ref_ed) this[`sigma_ed_ref_${tag}`] = sigma_ed;
+      if (learn_es && (ref_es <= 0.0 || sigma_es > ref_es)) this[`sigma_es_ref_${tag}`] = sigma_es;
+      if (learn_ed && (ref_ed <= 0.0 || sigma_ed > ref_ed)) this[`sigma_ed_ref_${tag}`] = sigma_ed;
       ref_es = this[`sigma_es_ref_${tag}`];
       ref_ed = this[`sigma_ed_ref_${tag}`];
     }
@@ -191,8 +213,8 @@ export class HeartFunction extends BaseModelClass {
     if (target < this.cont_floor) target = this.cont_floor;
     if (target > 1.0) target = 1.0;
 
-    // no acute effect while learning setpoints
-    if (warming_up) target = 1.0;
+    // no acute effect while this ventricle is still learning a setpoint
+    if (learning) target = 1.0;
 
     // first-order lag toward the target
     let load_factor = this[`el_max_load_factor_${tag}`];
@@ -215,7 +237,7 @@ export class HeartFunction extends BaseModelClass {
     let rc = this[`remodel_concentric_${tag}`];
     let re = this[`remodel_eccentric_${tag}`];
 
-    if (this.remodel_active && !warming_up) {
+    if (this.remodel_active && !learning) {
       const drive_conc = this.k_conc * Math.max(0.0, es_slow - ref_es);
       const drive_ecc = this.k_ecc * Math.max(0.0, ed_slow - ref_ed);
       rc += this._t * ((1.0 / this.remodel_tc) * (drive_conc - rc));
@@ -250,10 +272,6 @@ export class HeartFunction extends BaseModelClass {
       this.radius_ed_rv = r_ed;
       this.wall_thickness_rv = h_ed;
     }
-
-    // the slow averages are seeded after the first ventricle of the first step;
-    // flag once both ventricles have been visited at least once
-    this._slow_init = true;
   }
 
   // radius (cm) of a sphere holding cavity volume vol (given in L)
