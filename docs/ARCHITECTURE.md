@@ -164,6 +164,17 @@ Note the two-pass structure: **all** instances are constructed before **any** ar
 3. `TaskScheduler.run_tasks()`.
 4. `model.model_time_total += model.modeling_stepsize`.
 
+**What "insertion order" means in practice.** The top-level entries of `model_definition.models` are inserted first, in JSON order. Sub-models declared in a composite's `components` are inserted later, while that composite runs `init_model`, so every one of them steps **after all top-level entries**. For `term_neonate` (172 models):
+1. the 25 systems (`Heart` at position 1, which sets the chambers' `act_factor`);
+2. the 43 top-level resistors;
+3. the `Heart` components (chambers, valves, `PERICARDIUM`);
+4. the `Ans`, `Circulation` and `Respiration` sub-models, with `THORAX` at position 160.
+
+Consequences:
+- **Pressures within a step:** a resistor that steps before its compartments reads their pressure from the previous step, and one that steps after them reads this step's. The scheme is explicit either way.
+- **Container lag:** a `Container`'s `pres_ext` reaches its contents on their next `calc_pressure`. A nested container (`THORAX` → `PERICARDIUM` → chambers) therefore passes the thorax pressure on with a 2-step lag (1 ms at 0.5 ms).
+- **Size of the effect:** both are far below anything measurable at the 0.5 ms step, and volume is conserved exactly. Don't rely on a particular order between sibling models, though.
+
 Two ways to drive it:
 
 - **`calculate(seconds)`** — synchronous offline run of `seconds / model.modeling_stepsize` steps in a tight `for` loop, then emits one `data`/`data_slow`/`state` snapshot and reports timing via `status`. The chart ring is bypassed (object data path).
