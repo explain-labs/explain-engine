@@ -121,6 +121,9 @@ export class Drugs extends BaseModelClass {
     // -----------------------------------------------
     // local parameters
     this._was_active = false; // tracks active→inactive for the one-shot channel release
+    this._present = true; // any drug in the blood (start true: a loaded state may carry drug)
+    this._scan_counter = 0.0; // seconds since the last idle scan for drug in the blood
+    this._scan_interval = 1.0; // idle re-scan interval (s): picks up drug added by other paths (fluids)
     this._seeded = false; // whether the drugs{} keys have been seeded into the circuit
     this._blood_components = []; // resolved list of blood compartments (lazy)
     this._clearance_targets = []; // resolved [{ comp, drug, rate }] for organ-localized clearance
@@ -160,17 +163,25 @@ export class Drugs extends BaseModelClass {
   }
 
   calc_model() {
-    // master gate — release owned channels once, then idle
-    if (!this.drugs_running) {
-      if (this._was_active) this._release_channels();
-      this._was_active = false;
-      return;
-    }
-
     this._resolve_refs(); // resolves refs, seeds the drugs{} keys and clearance targets (once)
 
+    // idle fast path: no infusion running and no drug in the blood → nothing to clear and no effect.
+    // Release the channels once, then only re-scan the blood every _scan_interval (a drug can also
+    // arrive through a fluid or a direct write, not just through this model's dosing API)
+    const infusing = this.drugs_running && Object.values(this.infusions).some((r) => r > 0.0);
+    if (!infusing && !this._present) {
+      if (this._was_active) this._release_channels();
+      this._was_active = false;
+      this._scan_counter += this._t;
+      if (this._scan_counter < this._scan_interval) return;
+      this._scan_counter = 0.0;
+      this._present = this._blood_components.some((comp) =>
+        Object.keys(this.drug_defs).some((drug) => comp.drugs[drug] > 0.0));
+      if (!this._present) return;
+    }
+
     // 1. SOURCE — apply active continuous infusions at the injection site
-    if (this._injection && this._injection.vol > 0.0) {
+    if (infusing && this._injection && this._injection.vol > 0.0) {
       Object.keys(this.infusions).forEach((drug) => {
         const rate = this.infusions[drug]; // mcg/kg/min
         if (rate > 0.0 && this._injection.drugs[drug] !== undefined) {
@@ -180,20 +191,34 @@ export class Drugs extends BaseModelClass {
       });
     }
 
-    // 2. SINK — diffuse (global) clearance on every compartment ...
+    // 2. SINK — diffuse (global) clearance on every compartment. Elimination is physiology, not a
+    // controller: it keeps running while drugs_running is false, so stopped drug doesn't freeze in
+    // the blood. Concentrations below DRUG_FLOOR (ng/mL) are zeroed so the model can go idle.
+    const DRUG_FLOOR = 1e-6;
+    let present = false;
     Object.keys(this.drug_defs).forEach((drug) => {
       const kg = this.drug_defs[drug].clearance?.global ?? 0.0;
-      if (kg <= 0.0) return;
       this._blood_components.forEach((comp) => {
         const c = comp.drugs[drug];
-        if (c > 0.0) { const n = c - c * kg * this._t; comp.drugs[drug] = n > 0.0 ? n : 0.0; }
+        if (!(c > 0.0)) return;
+        if (comp.fixed_composition) { present = true; return; } // an infinite reservoir holds its composition
+        const n = c - c * kg * this._t;
+        if (n > DRUG_FLOOR) { comp.drugs[drug] = n; present = true; } else comp.drugs[drug] = 0.0;
       });
     });
+    this._present = present || infusing;
     // ... plus organ-localized intrinsic clearance at the clearing compartments (perfusion-scaled)
     this._clearance_targets.forEach(({ comp, drug, rate }) => {
       const c = comp.drugs[drug];
       if (c > 0.0) { const n = c - c * rate * this._t; comp.drugs[drug] = n > 0.0 ? n : 0.0; }
     });
+
+    // master gate — a stopped controller releases its owned channels once and has no effect
+    if (!this.drugs_running) {
+      if (this._was_active) this._release_channels();
+      this._was_active = false;
+      return;
+    }
 
     // 3. EFFECT — biophase lag (optional) then sum each effect across all enabled drugs
     let hr_sum = 0.0, cont_sum = 0.0, lus_sum = 0.0, svr_sum = 0.0, pda_sum = 0.0;
@@ -243,6 +268,7 @@ export class Drugs extends BaseModelClass {
     this._resolve_refs();
     if (this._injection && this._injection.vol > 0.0 && this._injection.drugs[drug] !== undefined) {
       this._injection.drugs[drug] += dose / this._injection.vol;
+      this._present = true;
     }
   }
 

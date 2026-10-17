@@ -354,6 +354,7 @@ export class Ecls extends BaseModelClass {
     this._pump_flow_ema = 0.0; // short-EMA of circuit flow (L/min): the H-Q / roller controller input
     this._pump_flow_ema_tc = 0.3; // time constant (s) for that EMA — tracks flow but damps the feedback loop
     this._roller_drive = 0.0; // integral-controller drive pressure (mmHg) for roller mode
+    this._stopped = false; // the stop work in calc_model has been done (edge-triggered)
 
 
     this._ecls_drainage = null; // reference to the drainage model instance
@@ -466,6 +467,10 @@ export class Ecls extends BaseModelClass {
     this._apply_cannulation();
 
     if (!this.ecls_running) {
+      // the stop work below only has to happen once, on the running→stopped edge (and on the first
+      // step after a load); repeating it every step re-allocated the four averaging windows
+      if (this._stopped) return;
+      this._stopped = true;
       this.flow = 0.0;
       this.flow_avg = 0.0;
       this.p_ven = 0.0;
@@ -500,6 +505,8 @@ export class Ecls extends BaseModelClass {
       this._release_heater_cooler();
       return;
     }
+
+    this._stopped = false;
 
     // blood-side heater-cooler: while active, take over the oxygenator blood compartment's thermal
     // target so it heads toward blood_temp instead of core. temp_ext_override tells Thermoregulation
