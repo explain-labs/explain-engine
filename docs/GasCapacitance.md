@@ -295,6 +295,12 @@ compartment keeps **one pressure/volume node**, so the network is unchanged, but
   geometry is needed). τ is the time the flow has run one way, capped at `dispersion_tau_max`
   (0.1 s), so fast oscillation disperses in proportion to f·Vt². The exchange is mass-conserving
   between unequal sub-tanks.
+- **Molecular diffusion.** `diffusion_rate` (L/s per interface, default 0; set by Respiration from
+  `dead_space_diffusion`) adds `e = diffusion_rate · dt` to every interface, also when no gas flows,
+  so the dead space keeps mixing during apnoea.
+- **Ends.** `_end_conc(neighbour)` / `_end_add(neighbour, dn)` read and change the sub-tank that faces
+  a neighbour (the bulk for a well-mixed compartment). The gas `mix_flow` of a
+  [`Resistor`](./Resistor.md) uses them.
 - **Bulk consistency.** The bulk concentrations (`co2`, `cco2`, …) are kept equal to the mean of the
   DS sub-tanks. Heat and water vapour act on the bulk, and the same affine change is replayed on
   every sub-tank. The partial pressures and fractions report the **airway-opening** sub-tank (what a

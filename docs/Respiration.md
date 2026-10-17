@@ -80,6 +80,7 @@ models, so it composes additively with other writers of that persistent layer.
 |---|---|---|
 | `dead_space_segments` | `32` | `series_segments` on each dead-space compartment (1 = classic well-mixed) |
 | `dead_space_dispersion` | `0.015` | `dispersion_coeff` (axial dispersion between the sub-tanks) |
+| `dead_space_diffusion` | `0` | `diffusion_rate` (L/s per interface: molecular diffusion along the dead space, also without flow) |
 
 Each update the loop also sets the dead space's `distal_models` to `lungs`, so gas leaves towards the
 alveoli from the distal end of the chain. See

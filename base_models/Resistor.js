@@ -1,5 +1,6 @@
 import { BaseModelClass } from "./BaseModelClass";
 import { exchange_blood } from "../helpers/BloodMixing";
+import { exchange_gas } from "../helpers/GasMixing";
 
 export class Resistor extends BaseModelClass {
   // static properties
@@ -28,10 +29,10 @@ export class Resistor extends BaseModelClass {
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
     this.p2_ext = 0.0; // external pressure on the outlet (mmHg)
     this.fixed_composition = false;
-    // Dispersive mixing (L/s): blood exchanged both ways each step with no net volume, for two
-    // compartments that are one continuous pool (eddies, vortex flow). Advection by `flow` only
-    // carries upstream blood downstream; this adds the mixing that happens without net flow.
-    // Blood compartments only; 0 (default) = off. See helpers/BloodMixing.js exchange_blood.
+    // Mixing without net flow (L/s): an equal volume exchanged both ways each step. Blood: eddies and
+    // vortex flow between compartments that are one continuous pool (helpers/BloodMixing.js
+    // exchange_blood). Gas: molecular diffusion and cardiogenic mixing (helpers/GasMixing.js
+    // exchange_gas). Advection by `flow` only carries upstream contents downstream. 0 (default) = off.
     this.mix_flow = 0.0;
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
@@ -70,9 +71,13 @@ export class Resistor extends BaseModelClass {
     // calculate the flow
     this.calc_flow();
 
-    // dispersive exchange without net flow (blood only, never across a closed connection)
-    if (this.mix_flow > 0.0 && !this.no_flow && typeof this._comp_from?.to2 === "number" && typeof this._comp_to?.to2 === "number") {
-      exchange_blood(this._comp_from, this._comp_to, this.mix_flow * this._t);
+    // exchange without net flow (never across a closed connection)
+    if (this.mix_flow > 0.0 && !this.no_flow && this._comp_from && this._comp_to) {
+      if (typeof this._comp_from.to2 === "number" && typeof this._comp_to.to2 === "number") {
+        exchange_blood(this._comp_from, this._comp_to, this.mix_flow * this._t);
+      } else if (typeof this._comp_from._end_conc === "function" && typeof this._comp_to._end_conc === "function") {
+        exchange_gas(this._comp_from, this._comp_to, this.mix_flow * this._t);
+      }
     }
   }
 

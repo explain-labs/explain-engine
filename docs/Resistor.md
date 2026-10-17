@@ -45,7 +45,7 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 | `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step) |
 | `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
 | `fixed_composition` | bool | Passed through to the endpoints' volume handling |
-| `mix_flow` | L/s | Dispersive blood exchange without net flow (default `0` = off); see [Dispersive mixing](#dispersive-mixing--mix_flow) |
+| `mix_flow` | L/s | Exchange without net flow, blood or gas (default `0` = off); see [Dispersive mixing](#dispersive-mixing--mix_flow) |
 
 Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 `r_factor`, `r_k_factor` (non-persistent); `r_factor_ps`, `r_k_factor_ps` (persistent);
@@ -194,4 +194,10 @@ so `c_a·V_a + c_b·V_b` is conserved for to2, tco2, every solute and drug and t
 `no_flow` connection does not exchange. It acts only when both ends carry blood (`to2`), and only on
 a plain `Resistor`/`HeartValve` (a `BloodVessel` overrides `calc_model`). The equilibration time
 constant between the two compartments is about `V_a·V_b / ((V_a + V_b) · mix_flow)`.
+
+**Gas.** Between two gas compartments the same swap runs on the five species (O2, CO2, N2, H2O,
+other) by [`helpers/GasMixing.js`](../helpers/GasMixing.js) `exchange_gas`. It stands for molecular
+diffusion and cardiogenic mixing at the airway–alveolus junction, which go on without flow (in
+apnoea). It uses the composition at the connecting ends, so a series dead space exchanges through its
+distal sub-tank, not its bulk.
 

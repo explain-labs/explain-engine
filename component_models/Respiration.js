@@ -54,6 +54,8 @@ export class Respiration extends BaseModelClass {
     // plug-flow (Fowler/Bohr) dead space, plus axial dispersion between them. 1 = classic well-mixed.
     this.dead_space_segments = 32;
     this.dead_space_dispersion = 0.015;
+    // molecular diffusion along the dead space (L/s per sub-tank interface), active without flow
+    this.dead_space_diffusion = 0.0;
 
     this.res_upper_airways_factor = 1.0;
     this.res_lower_airways_factor = 1.0;
@@ -151,6 +153,7 @@ export class Respiration extends BaseModelClass {
         ds.series_segments = this.dead_space_segments;
         ds.distal_models = this.lungs;
         ds.dispersion_coeff = this.dead_space_dispersion;
+        ds.diffusion_rate = this.dead_space_diffusion;
       }
 
       if (this._prev_el_lungs_factor !== this.el_lungs_factor) {

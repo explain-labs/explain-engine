@@ -53,6 +53,7 @@ export class GasCapacitance extends Capacitance {
     this.tube_segments = 3; // composition sub-tanks of the tube lumen
     this.dispersion_coeff = 0.0; // axial (Taylor-type) dispersion strength between sub-tanks (0 = none)
     this.dispersion_tau_max = 0.1; // s, cap on the dispersion mixing time
+    this.diffusion_rate = 0.0; // L/s per sub-tank interface: flow-independent (molecular) exchange (0 = none)
 
     // local properties
     this._gas_constant = GAS_CONSTANT; // ideal gas law constant (L·mmHg/(mol·K))
@@ -463,6 +464,38 @@ export class GasCapacitance extends Capacitance {
     return out;
   }
 
+  // composition (mmol/L per species) and volume (L) at the end of this compartment that faces
+  // neighbour: the matching sub-tank of a series dead space, otherwise the well-mixed bulk
+  _end_conc(neighbour) {
+    if (this._seg_active()) {
+      const t = this._seg_end_tank(neighbour);
+      return { c: [...t.c], v: t.rigid ? t.v : this.vol / this._segs_n };
+    }
+    return { c: GasCapacitance.SPECIES.map((k) => this[k]), v: this.vol };
+  }
+
+  // add dn (mmol per species, may be negative) at the end facing neighbour
+  _end_add(neighbour, dn) {
+    if (this.fixed_composition) return;
+    if (this._seg_active()) {
+      const t = this._seg_end_tank(neighbour);
+      const v = t.rigid ? t.v : this.vol / this._segs_n;
+      if (!(v > 0.0)) return;
+      for (let k = 0; k < 5; k++) t.c[k] += dn[k] / v;
+      this._seg_sync_bulk();
+      return;
+    }
+    if (!(this.vol > 0.0)) return;
+    GasCapacitance.SPECIES.forEach((key, k) => (this[key] += dn[k] / this.vol));
+  }
+
+  _seg_end_tank(neighbour) {
+    const port = this._seg_port(neighbour);
+    if (port === "distal") return this._segs[this._segs_nt + this._segs_n - 1];
+    if (port === "tube") return this._segs[0];
+    return this._segs[this._segs_nt];
+  }
+
   _seg_replay_bulk_change(pre) {
     // add_heat / add_watervapour scale every dry species by one factor s and set water to s*old + b;
     // apply the same affine change to each sub-tank so the chain stays consistent with the bulk
@@ -491,8 +524,12 @@ export class GasCapacitance extends Capacitance {
     } else {
       this._seg_t_rev += this._t;
     }
-    if (!(this.dispersion_coeff > 0.0) || sign === 0) return;
+    // flow-driven dispersion acts only while gas flows; molecular diffusion (diffusion_rate) always
+    const disperse = this.dispersion_coeff > 0.0 && sign !== 0;
+    const diffuse = this.diffusion_rate > 0.0;
+    if (!disperse && !diffuse) return;
     const tau = Math.min(this._seg_t_rev, this.dispersion_tau_max);
+    const e_diff = diffuse ? this.diffusion_rate * this._t : 0.0;
     const n = this._segs.length;
     const v_ds = this.vol / this._segs_n;
     for (let i = 0; i + 1 < n; i++) {
@@ -502,7 +539,8 @@ export class GasCapacitance extends Capacitance {
       if (!(v_seg > 0.0)) continue;
       // exchanged volume, capped at half the smaller sub-tank (fully mixed pair); mass-conserving
       // for unequal sub-tanks (tube lumen vs DS)
-      const e = Math.min(0.5 * v_seg, (this.dispersion_coeff * q * q * tau * this._t) / v_seg);
+      const e_disp = disperse ? (this.dispersion_coeff * q * q * tau * this._t) / v_seg : 0.0;
+      const e = Math.min(0.5 * v_seg, e_disp + e_diff);
       for (let k = 0; k < 5; k++) {
         const d = (b.c[k] - a.c[k]) * e;
         a.c[k] += d / va;
