@@ -48,13 +48,13 @@ This is the object the engine builds from. `build()` copies every key **except `
 
 | Key | Type | Meaning |
 |---|---|---|
-| `weight` | number (kg) | Patient weight. Frozen at build into `model._baseline_weight` (the allometric anchor for `reset()` / `scale_to_weight()`). |
+| `weight` | number (kg) | Patient weight. Frozen at build into `model._baseline_weight` (the weight-scaling anchor for `reset()` / `scale_to_weight()`). |
 | `height` | number (m) | Patient height. Engine-stored; used by models that need it. |
 | `gestational_age` | number (weeks) | Gestational age. |
 | `age` | number | Postnatal age. |
 | `modeling_stepsize` | number (s) | Integration step. `calculate(sec)` runs `sec / modeling_stepsize` steps; the realtime loop batches `rtInterval / modeling_stepsize` steps per tick. |
 | `model_time_total` | number (s) | Accumulated simulation time. **Non-zero in saved scenarios** — the file is a mid-run snapshot, not a fresh state (see below). |
-| `_baseline_weight` | number (kg) | Persisted allometric baseline. Note `build()` overwrites this from `weight` regardless, so the two normally match. |
+| `_baseline_weight` | number (kg) | Persisted weight-scaling baseline. Note `build()` overwrites this from `weight` regardless, so the two normally match. |
 | `scaler_config` | object | Named lists of component names per scaling group, read by `ModelScaler`. See [`scaler_config`](#scaler_config). |
 | `models` | object | `name → entry` map of every model instance. The heart of the file. See below. |
 | `diagram_definition` | object | Optional nested copy of the sprite diagram (else back-filled from top level). |
@@ -83,7 +83,7 @@ Core physics params (`el_base`, `u_vol`, `el_k`, `r_for`, `r_back`, `r_k`, …) 
 |---|---|---|
 | `<p>_factor` | non-persistent — reset to `1.0` every step | transient interventions |
 | `<p>_factor_ps` | persistent across steps | user / scenario / event adjustments |
-| `<p>_factor_scaling_ps` | persistent | **only** `ModelScaler` (allometric/manual scaling) |
+| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling); also the Calibrator's PAP lever on `IPSL`/`IPSR` `r_factor_scaling_ps` |
 
 `p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling_ps-1)*p`.
 

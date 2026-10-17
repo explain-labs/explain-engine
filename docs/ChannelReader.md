@@ -58,7 +58,7 @@ Returns every chart row appended since the last drain, in order, or `null` if no
 
 It clears `lastChartGap` at entry, then dispatches by transport:
 
-- **Shared (`_drainChartShared`):** loads `w = WRITE_IDX`; returns `null` if `w === _chartLastRead`. Otherwise `count = w - _chartLastRead`. **If `count > capacity` the reader stalled and the writer lapped it** — it keeps only the freshest `capacity` rows (`from = w - cap`) and sets `lastChartGap = true` as an overrun diagnostic. Rows are copied out of the ring with wrap (`(from + k) % cap`), `_chartLastRead` advances to `w`, and `READ_HINT` is published via `Atomics.store(ctrl, CHART_CTRL.READ_HINT, w)` so the writer can detect a stalled reader.
+- **Shared (`_drainChartShared`):** loads `w = WRITE_IDX`; returns `null` if `w === _chartLastRead`. Otherwise `count = w - _chartLastRead`. **If `count > capacity` the reader stalled and the writer lapped it** — it keeps only the freshest `capacity` rows (`from = w - cap`) and sets `lastChartGap = true` as an overrun diagnostic. Rows are copied out of the ring with wrap (`(from + k) % cap`), `_chartLastRead` advances to `w`, and `READ_HINT` is published via `Atomics.store(ctrl, CHART_CTRL.READ_HINT, w)` (informational: nothing on the writer side reads it).
 - **Transferable (`_drainChartTransferable`):** returns `null` if `_chartQueue` is empty; otherwise concatenates all queued batches into one `Float64Array` (`count` = sum of batch counts), clears the queue, and returns it.
 
 ### `readAnim()` — latest frame wins
@@ -85,8 +85,8 @@ Handles the transferable transport only — **it is a no-op unless `transport ==
 
 The reader uses the control-header indices from [RealtimeChannels](./RealtimeChannels.md):
 
-- **`CHART_CTRL`** — `WRITE_IDX` (0): monotonic total rows written (read via `Atomics.load` in `_drainChartShared`); `READ_HINT` (1): written back via `Atomics.store` so the writer can spot a stalled reader. (`VERSION` (2), `CAPACITY` (3), `STRIDE` (4) are written by the writer and carried in the descriptor; the reader takes capacity/stride from the descriptor rather than the header.)
-- **`ANIM_CTRL`** — `ACTIVE` (0): which of the two flip-buffer frames holds the newest data; `SEQ` (1): bumped on every publish (odd while a write is in progress) — the basis of the torn-read retry in `_readAnimShared`. (`VERSION` (2), `STRIDE` (3) likewise come from the descriptor.)
+- **`CHART_CTRL`** — `WRITE_IDX` (0): monotonic total rows written (read via `Atomics.load` in `_drainChartShared`); `READ_HINT` (1): written back via `Atomics.store` (the writer does not read it; there is no stall detection). (`VERSION` (2), `CAPACITY` (3), `STRIDE` (4) are written by the writer and carried in the descriptor; the reader takes capacity/stride from the descriptor rather than the header.)
+- **`ANIM_CTRL`** — `ACTIVE` (0): which of the two flip-buffer frames holds the newest data; `SEQ` (1): bumped by 1 after every publish (no odd/even "in progress" coding) — the basis of the torn-read retry in `_readAnimShared`, which re-copies when `SEQ` changed during the copy. (`VERSION` (2), `STRIDE` (3) likewise come from the descriptor.)
 - `RT_TRANSPORT.SHARED` / `.TRANSFERABLE` select the read path.
 
 ## Notes / caveats

@@ -10,10 +10,10 @@ export class BloodDiffusor extends BaseModelClass {
     super(model_ref, name);
 
     // initialize independent properties
-    this.comp_blood1 = "PLF"; // name of the first blood-containing model
-    this.comp_blood2 = "PLM"; // name of the second blood-containing model
-    this.dif_o2 = 0.01; // diffusion constant for o2 (mmol/mmHg * s)
-    this.dif_co2 = 0.01; // diffusion constant for co2 (mmol/mmHg * s)
+    this.comp_blood1 = "PLF"; // name of the first blood-containing model (legacy default; scenarios set it, e.g. PL_FETAL_CAP)
+    this.comp_blood2 = "PLM"; // name of the second blood-containing model (legacy default; scenarios set it, e.g. PL_MAT)
+    this.dif_o2 = 0.01; // diffusion constant for o2 (mmol/(mmHg*s))
+    this.dif_co2 = 0.01; // diffusion constant for co2 (mmol/(mmHg*s))
     this.dif_solutes = {}; // diffusion constant for the different solutes (L/s: mmol/s per mmol/L of gradient)
 
      // non-persistent property factors. These factors reset to 1.0 after each model step

@@ -31,13 +31,19 @@ injection_site.drugs{}   volume_in mixing carries    diffuse global term on     
 - **TRANSPORT** — handled entirely by the engine. `Drugs` only **seeds** the drug key (value `0.0`)
   into every blood-carrying compartment once (`_seed_drugs`, lazily on first step); the existing
   `volume_in` mixing then advects it for free, like solutes. Blood model types that participate:
-  `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance`, `BloodPump`.
+  `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance`, `BloodPump` —
+  except compartments flagged `blood_pool: false` (the `URINE` collection compartment, set by
+  `Kidneys`), which are not blood and are neither seeded, cleared nor scanned.
 - **SINK** — elimination is a **diffuse first-order** term (`clearance.global`, 1/s, e.g. COMT/MAO/
   uptake) decaying the drug on **every** compartment, **plus** organ-localized **intrinsic clearance**
   (`clearance.sites`, 1/s) at named clearing compartments (e.g. `KID_CAP` renal, `LS_CAP` hepatic).
   Because those organs are continuously perfused, the localized term behaves as a **well-stirred
   organ model**: whole-body clearance scales with organ blood flow — if perfusion falls the drug
-  lingers, exactly like real renal/hepatic clearance.
+  lingers, exactly like real renal/hepatic clearance. Clearance is physiology, not a controller: it
+  **runs even when `drugs_running` is false**, so a stopped controller does not freeze drug in the
+  blood. A `fixed_composition` compartment (an infinite reservoir) is skipped by the global term — its
+  concentration is held. Concentrations that fall below `1e-6` ng/mL are zeroed so the model can go
+  idle.
 - **BIOPHASE** — an optional effect compartment per drug, `dCe/dt = ke0·(C_site − Ce)`. With
   `ke0 > 0` the PD map is driven by the lagged biophase concentration `Ce`, giving onset/offset
   **hysteresis** (effect peak trails plasma peak). `ke0 = 0` (default) → PD uses the effect-site conc
@@ -115,12 +121,26 @@ Callable via `callModelFunction` / the `TaskScheduler` (see the engine docs):
 | `hr_drug_factor` / `cont_drug_factor` / `svr_drug_factor` / `pda_drug_factor` | applied (summed) effector factors (1.0 = no effect) |
 | `infusions` | active continuous infusions `{ drug: rate_mcg_kg_min }` |
 
+## Idle fast path
+
+With no infusion running and no drug present in the blood, `calc_model` does no per-step work: it
+releases the owned channels once (if they were active), then only **re-scans** the blood every
+`_scan_interval` (1 s) for any defined drug (a drug can also arrive through a fluid or a direct write,
+not only through the dosing API). When the scan finds drug, or an infusion starts, the full path
+(source, clearance, effect) resumes; it drops back to idle once clearance has taken every
+concentration below the floor.
+
 ## Notes / scope
 
 - While enabled, `Drugs` **owns** the four `*_drug_factor` channels (`Heart.hr_drug_factor`, each
   chamber's `el_max_drug_factor`, `Circulation.svr_factor_drug`, `Pda.diameter_drug_factor`) — manual
   edits are overwritten each step. The clean "off" switch is `drugs_running = false`, which releases
   all owned channels back to `1.0` exactly once.
+- **Known limitation — PK calibration is parked.** Adrenaline's global clearance (0.022 /s) gives a
+  plasma half-life of ~30 s (ln 2 / 0.022 ≈ 31 s), against ~2–3 min clinically. PGE1's pulmonary
+  first-pass metabolism is modelled as a **global** rate (0.08 /s on every compartment), not as an
+  extraction across the lung. Retuning the clearances is a separate calibration project, to be done
+  together with the EC50s (which were set against the current fast clearance).
 - Adding a drug = a new `drug_defs` entry; it is seeded, transported, cleared and aggregated
   automatically. Surfacing per-drug params + dosing methods to the UI registry is the next milestone.
 

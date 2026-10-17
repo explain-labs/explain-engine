@@ -132,7 +132,7 @@ Listeners are stored in an instance field `_listeners: Map<string, Set<Function>
 | `getPropValue(property)` | GET the current value at a dot path. |
 | `setPropValue(prop, value, it=1, at=0)` | PUT a scheduled property change. Splits `prop` into `model.prop1[.prop2]`; numeric targets **tween** over `it` s after an `at` s delay, others swap. |
 | `callModelFunction(fn, args, at=0)` | POST `call` — schedule a method call after `at` s. |
-| `scaleModel(group, factor=1.0)` | POST `scale` — allometric/manual scaling via ModelScaler. |
+| `scaleModel(group, factor=1.0)` | POST `scale` — weight/manual scaling via ModelScaler. |
 | `tune(targets, opts={})` | POST `calibrate` — live closed-loop tuning to target vitals; emits `tuned`. |
 
 ---
@@ -147,7 +147,7 @@ Listeners are stored in an instance field `_listeners: Map<string, Set<Function>
 4. **Instantiate.** For each entry in `model_definition.models`, look up the class by `sub_model_def.model_type` in `available_model_map`. If found, `new model_class(model, name, model_type)` and store on `model.models[name]`. A missing type or a constructor throw increments `errors` and emits a `status` `ERROR:` message. (The constructor's 3rd `model_type` arg is ignored by the base class.)
 5. **Initialize (only if `errors < 1`).** For each instance, build `args` as a `[{key, value}, …]` list from the definition entry and call `init_model(args)`. An init throw increments `errors` and emits a `status` `ERROR:`.
 6. **Attach helpers.** `model.DataCollector = new DataCollector(model)`, `model.TaskScheduler = new TaskScheduler(model)`, `model.ModelScaler = new ModelScaler(model, model.scaler_config)`.
-7. **Freeze baseline weight.** `model._baseline_weight = model.weight` (the allometric anchor `reset()`/`scale_to_weight()` use).
+7. **Freeze baseline weight.** `model._baseline_weight = model.weight` (the weight-scaling anchor `reset()`/`scale_to_weight()` use).
 8. **Wire the realtime data plane.** Construct `ChannelWriter` and `AnimationPacker`, acquire the anim snapshot, and `DataCollector.set_channels(...)`. Failures here are caught and degrade to the legacy object path (they do **not** fail the build).
 9. **Emit.** If `errors > 0`: `status` `ERROR: model build failed` and return `false`. Otherwise emit `model_ready` and return `true`.
 
@@ -204,9 +204,9 @@ Core physics params are never used raw. Each tunable has a base value plus three
 
 | Layer | Persistence | Set by |
 |---|---|---|
-| `<p>_factor` | **non-persistent** — reset to `1.0` at the end of each step | transient interventions (TaskScheduler type-0 tween targets, per-step effects) |
+| `<p>_factor` | **non-persistent** — reset to `1.0` at the end of each step | per-step effects that a model re-asserts every step (a one-off write is gone after one step, so a TaskScheduler tween belongs on `_factor_ps`) |
 | `<p>_factor_ps` | **persistent** | user/scenario adjustments |
-| scaling layer | **persistent** | `ModelScaler` only |
+| scaling layer | **persistent** | `ModelScaler` (and the Calibrator's PAP lever, on `IPSL`/`IPSR` `r_factor_scaling_ps`) |
 
 The formula (see `Capacitance.calc_elastances` / `Resistor.calc_resistance`):
 
@@ -244,7 +244,7 @@ applied to `to2`, `tco2`, every entry in `solutes` and `drugs`, plus `temp` and 
 
 ### 7d. ModelScaler touches only the scaling layer
 
-[`ModelScaler`](./ModelScaler.md) writes **only** the `*_factor_scaling_ps` layer (and direct volume adjustments) — never the base param or the `_ps` user layer — so allometric scaling composes cleanly with user/scenario adjustments. `scaleModel(group, factor)` routes through the big `switch` in `ModelEngine.scale_model` to the many `scale_*` methods (`scale_blood_volume`, `scale_systemic_resistances`, `scale_to_weight`, …). `reset` calls `ModelScaler.reset()` and restores `model.weight = model._baseline_weight`.
+[`ModelScaler`](./ModelScaler.md) writes the `*_factor_scaling_ps` layer (and direct volume adjustments) — never the `_ps` user layer — so its scaling composes cleanly with user/scenario adjustments. It is not the layer's only writer: the [Calibrator](./Calibrator.md)'s PAP lever writes `r_factor_scaling_ps` on `IPSL`/`IPSR`. The base params are written only by `incorporate()`, which bakes every scaling layer of every component named in the scaler config into its base and resets the factor to `1.0`. Weight scaling (`scale_to_weight`) is linear and volume-only — the inverse elastance/resistance scaling is commented out, and nothing scales heart rate or VO₂. `scaleModel(group, factor)` routes through the big `switch` in `ModelEngine.scale_model` to the many `scale_*` methods (`scale_blood_volume`, `scale_systemic_resistances`, `scale_to_weight`, …). `reset` calls `ModelScaler.reset()` and restores `model.weight = model._baseline_weight`.
 
 ---
 
@@ -282,7 +282,7 @@ One line each; follow the link for detail.
 
 - **[DataCollector](./DataCollector.md)** — fast (`watch_list`, default `sample_interval` 0.005 s) and slow (`watch_list_slow`, 1.0 s) watchlists of dot-path props; `collect_data()` buffers, `get_model_data()` drains, `clean_up()` drops disabled-model entries. Always watches `Heart.ncc_*`.
 - **[TaskScheduler](./TaskScheduler.md)** — deferred mutations every `_task_interval` (0.015 s): numeric tweens (type 0), instant boolean/string swaps (type 1), scheduled method calls (type 2). Writes directly to model props (usually a `*_factor_ps` or base param).
-- **[ModelScaler](./ModelScaler.md)** — allometric/manual scaling; touches only the `*_factor_scaling_ps` layer; routed via `ModelEngine.scale_model`.
+- **[ModelScaler](./ModelScaler.md)** — linear (volume-only) weight scaling and manual subsystem scaling; writes the `*_factor_scaling_ps` layer and raw volumes; routed via `ModelEngine.scale_model`.
 - **[Calibrator](./Calibrator.md)** — shared closed-loop secant calibration (`buildLiveControllers`/`runCalibration`/`measureWindow`); backs both offline patient-building and the live `tune_model` path.
 - **[ChannelWriter](./ChannelWriter.md)** — typed realtime data-plane writer (chart ring + anim snapshot); flushed each realtime tick.
 - **[RealtimeChannels](./RealtimeChannels.md)** — the `RT_MSG` message constants and channel/transport descriptors for the typed data plane.

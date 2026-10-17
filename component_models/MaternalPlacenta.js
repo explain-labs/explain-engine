@@ -29,7 +29,7 @@ import { O2_MMOL_PER_ML } from "../helpers/Units.js";
   pool is left untouched.
 */
 
-// O2 molar density at 37 C, 1 atm (mmol O2 per mL) — same constant Metabolism/Uterus use.
+// O2 volumes (mL) convert to mmol with helpers/Units.js O2_MMOL_PER_ML (1/22.414, STPD) — same constant Metabolism/Uterus use.
 
 export class MaternalPlacenta extends BaseModelClass {
   // static properties

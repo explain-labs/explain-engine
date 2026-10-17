@@ -9,9 +9,10 @@ export class Placenta extends BaseModelClass {
 
   /*
     The Placenta class models the placental circulation and gas exchange using core models of the Explain model.
-    The umbilical arteries and veins are modeled by BloodResistors connected to the descending aorta (DA) and
-    inferior vena cava (IVCI). The fetal (PLF) and maternal placenta (PLM) are modeled by two BloodCapacitances.
-    A BloodDiffusor model instance takes care of the GasExchange between the PLF and PLM.
+    The umbilical arteries (PL_UMB_ART, fed by AD) and vein (PL_UMB_VEN) are BloodVessels; the vein returns to
+    the inferior vena cava (IVCI) through the standalone resistor PL_UMB_VEN_IVCI. The fetal placenta is the
+    BloodVessel chain PL_FETAL_ART -> PL_FETAL_CAP -> PL_FETAL_VEN, the maternal side the fixed-composition
+    BloodCapacitance PL_MAT. A BloodDiffusor (PL_GASEX) exchanges gases between PL_FETAL_CAP and PL_MAT.
     */
 
   constructor(model_ref, name = "") {
@@ -39,16 +40,9 @@ export class Placenta extends BaseModelClass {
     this.plf_res_factor = 1.0; // factor for the resistance of the fetal placenta
     this.mat_to2 = 6.85; // maternal placenta total oxygen content (mmol/L)
     this.mat_tco2 = 23; // maternal placenta total carbon dioxide content (mmol/L)
-    this.dif_o2 = 0.0005; // diffusion constant for oxygen (mmol/mmHg * s)
-    this.dif_co2 = 0.001; // diffusion constant for carbon dioxide (mmol/mmHg * s)
+    this.dif_o2 = 0.0005; // diffusion constant for oxygen (mmol/(mmHg*s))
+    this.dif_co2 = 0.001; // diffusion constant for carbon dioxide (mmol/(mmHg*s))
 
-
-    // -----------------------------------------------
-    // initialize dependent parameters
-    this.umb_art_flow = 0.0; // flow in the umbilical artery (L/s)
-    this.umb_art_velocity = 0.0; // velocity in the umbilical artery (m/s)
-    this.umb_ven_flow = 0.0; // flow in the umbilical vein (L/s)
-    this.umb_ven_velocity = 0.0; // velocity in the umbilical vein (m/s)
 
     // -----------------------------------------------
     // local parameters

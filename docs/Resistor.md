@@ -43,7 +43,7 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 | `no_flow` | bool | When true, block all flow (set `flow = 0` and return) |
 | `no_flow_ext` | bool | Same effect as `no_flow`, for a controller that does not own the resistor (an owning BloodVessel re-copies its own `no_flow` every step and would overwrite a gate written there; e.g. MaternalPlacenta's drainage) |
 | `no_back_flow` | bool | When true, block backward flow (valve behaviour) |
-| `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step) |
+| `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step — but see the BloodVessel note below) |
 | `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
 | `fixed_composition` | bool | Passed through to the endpoints' volume handling |
 | `mix_flow` | L/s | Exchange without net flow, blood or gas (default `0` = off); see [Dispersive mixing](#dispersive-mixing--mix_flow) |
@@ -82,7 +82,10 @@ Then resets the non-persistent factors `r_factor` and `r_k_factor` to `1.0`.
 ### `calc_flow`
 
 1. Compute inlet/outlet pressures including the non-persistent `p1_ext`/`p2_ext`, then clear those and
-   reset `flow` to `0`.
+   reset `flow` to `0`. **On a resistor owned by a [BloodVessel](./BloodVessel.md)** (one of its
+   `inputs`) the clearing is moot: the vessel keeps its own `p1_ext`/`p2_ext` and copies them onto the
+   resistor every step, so a value written on the *vessel* acts as persistent until a writer sets it
+   back to 0.
 2. If `no_flow` or `no_flow_ext`, set `_prev_flow = 0` and return.
 3. Pick the direction by the sign of `ΔP` (forward if `ΔP ≥ 0`, else backward unless `no_back_flow`),
    guard against a non-positive effective resistance, and compute `flow` with the lagged non-linear

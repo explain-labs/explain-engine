@@ -64,25 +64,13 @@ export class Ecls extends BaseModelClass {
   // static properties
   static model_type = "Ecls";
 
-  /*
-
-    */
-
   constructor(model_ref, name = "") {
     // initialize the base model class setting all the general properties of the model which all models have in common
-    
-    // Average umbilical cord length at term          : – 55 cm
-    // Mean luminal CSA per artery at 37–39 weeks     : – 0.147 cm² (overall mean across 300 normal pregnancies) DOI: http://dx.doi.org/10.18203/2320-1770.ijrcog20183851
-    // Mean volume of umbilical artery                : 55 * 0.147 = 8.1 cm3 = 8.1 ml per artery => 16.2 ml for two arteries
-    // Mean luminal CSA umbilical vein at 37-39 weeks : - 0.58 cm2
-    // Mean volume of umbilical vein                  : 55 * 0.58 = 31.9 cm3 = 31.9 ml  Spurway J, Logan P, Pak S. The development, structure and blood flow within the umbilical cord with particular reference to the venous system. Australas J Ultrasound Med. 2012 Aug;15(3):97-102. doi: 10.1002/j.2205-0140.2012.tb00013.x. Epub 2015 Dec 31. PMID: 28191152; PMCID: PMC5025097.
-    // Mean volume of fetal part of placenta          : 427 ml DOI: 10.7863/jum.2008.27.11.1583
-
     super(model_ref, name);
     // -----------------------------------------------
     // initialize independent parameters
     this.ecls_running = false;
-    this.ecls_clamped = true; // flags whether the umbilical vessels are clamped or not
+    this.ecls_clamped = true; // flags whether the ECLS circuit (cannulas, tubing, pump, oxygenator) is clamped
     
     
     this.drainage_res_factor = 1.0; // factor to adjust the drainage resistance
@@ -319,8 +307,8 @@ export class Ecls extends BaseModelClass {
     this.p_int = 0.0; // filtered pressure at the interface between the drainage cannula and the tubing (mmHg)
     this.p_art = 0.0; // filtered arterial pressure (mmHg)
     this.p_hydrostatic = 0.0; // hydrostatic offset added to the measured circuit pressures (mmHg)
-    this.flow = 0.0; // blood flow through the ECLS circuit (L/s)
-    this.flow_avg = 0.0; // moving average of the blood flow through the ECLS circuit (L/s)
+    this.flow = 0.0; // blood flow through the ECLS circuit (L/min)
+    this.flow_avg = 0.0; // moving average of the blood flow through the ECLS circuit (L/min)
     this.sat_ven_o2 = 0.0; // venous oxygen saturation (%)
     this.sat_postoxy_o2 = 0.0; // post-oxygenator oxygen saturation (%)
     this.pco2_postoxy = 0.0; // post-oxygenator pCO2 (mmHg)
@@ -340,9 +328,9 @@ export class Ecls extends BaseModelClass {
     this.prev_fico2 = 0.0; // previous fico2 value to detect changes in fico2
     this._prev_gas_temp = null; // sweep-gas temperature the gas source was last built at
     this._prev_gas_humidity = null; // sweep-gas humidity the gas source was last built at
-    this.pressure_avg_window = 400; // number of samples used for real-time pressure moving averages
-    this.flow_avg_window = 400; // number of samples used for the real-time flow moving average (~0.9 s at 0.015 s updates)
-    this._update_interval = 0.015; // update interval of the placenta model (s)
+    this.pressure_avg_window = 400; // number of samples used for the real-time pressure moving averages (~6 s at 0.015 s updates)
+    this.flow_avg_window = 400; // number of samples used for the real-time flow moving average (~6 s at 0.015 s updates)
+    this._update_interval = 0.015; // update interval of the ECLS model (s)
     this._update_counter = 0.0; // counter of the update interval (s)
     this._blood_comp_interval = 1.0; // low-frequency blood composition update interval (s)
     this._blood_comp_counter = 0.0; // counter for low-frequency blood composition updates (s)
@@ -641,7 +629,7 @@ export class Ecls extends BaseModelClass {
           this._apply_oxygenator_selection();
         }
 
-        // make sure all the associated models are in the same enabled/disabled state as the placenta model
+        // make sure all the associated models are in the same enabled/disabled state as the ECLS model
         this._ecls_drainage.is_enabled = this.ecls_running;
         this._ecls_tubing_in.is_enabled = this.ecls_running;
         this._ecls_pump.is_enabled = this.ecls_running;
@@ -661,7 +649,7 @@ export class Ecls extends BaseModelClass {
         }
         this._ecls_gasex.is_enabled = this.ecls_running;
 
-        // clamp umbilical vessels if set to clamped
+        // clamp the circuit if set to clamped
         this._ecls_drainage.no_flow = this.ecls_clamped;
         this._ecls_tubing_in.no_flow = this.ecls_clamped;
         this._ecls_pump.no_flow = this.ecls_clamped;
@@ -778,7 +766,7 @@ export class Ecls extends BaseModelClass {
         this.p_ven = this._p_ven_avg_calculator.addValue(p_ven_raw);
         this.p_int = this._p_int_avg_calculator.addValue(p_int_raw);
         this.p_art = this._p_art_avg_calculator.addValue(p_art_raw);
-        this.flow = this._ecls_return.flow * 60.0; // blood flow through the ECLS circuit is the flow through the drainage cannula
+        this.flow = this._ecls_return.flow * 60.0; // circuit blood flow (L/min) = the flow through the return cannula (L/s x 60)
         this.flow_avg = this._flow_avg_calculator.addValue(this.flow);
 
         if (this._blood_comp_counter >= this._blood_comp_interval) {

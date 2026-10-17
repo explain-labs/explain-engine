@@ -62,7 +62,7 @@ export default class ModelScaler {
 
   // --- VOLUME SCALING ---
 
-  // Scale vol and u_vol_factor_scaling on a list of named components
+  // Scale the raw vol and u_vol of a list of named components by delta (not the scaling layer)
   _scale_vol(names, delta) {
     for (const name of names) {
       const comp = this._model.models[name];
@@ -324,10 +324,11 @@ export default class ModelScaler {
 
   // --- WEIGHT-BASED SCALING ---
 
-  // Allometric scaling driven by a single new_weight value.
-  // Volumes & u_vol scale linearly with weight; elastances & resistances
-  // scale inversely with weight, keeping pressures roughly constant across
-  // body sizes. Replaces all per-group scaling factors.
+  // Weight scaling driven by a single new_weight value: linear, volume-only.
+  // The five volume groups (vol and u_vol) scale linearly with weight. The
+  // inverse elastance/resistance scaling below is commented out, so pressures
+  // are NOT held constant across body sizes, and nothing here scales heart
+  // rate or VO2.
   scale_to_weight(new_weight) {
     const baseline = this._model._baseline_weight;
     if (!baseline || baseline <= 0 || !new_weight || new_weight <= 0) return;

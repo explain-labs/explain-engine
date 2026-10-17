@@ -138,7 +138,7 @@ Infrastructure that the worker attaches to the live `model` object — not physi
 |---|---|
 | [DataCollector](./DataCollector.md) | Dual-rate (fast 0.005 s / slow 1.0 s) property watchlists + sample buffers. |
 | [TaskScheduler](./TaskScheduler.md) | Deferred/tweened prop mutations and scheduled model-function calls. |
-| [ModelScaler](./ModelScaler.md) | Allometric/weight scaling; writes only the `*_factor_scaling_ps` layer. |
+| [ModelScaler](./ModelScaler.md) | Subsystem scaling and linear (volume-only) weight scaling; writes the `*_factor_scaling_ps` layer (the Calibrator also writes it on IPSL/IPSR) and raw volumes. |
 | [Calibrator](./Calibrator.md) | Closed-loop calibration controllers (shared by patient-build and live `tune_model`). |
 | [ChannelWriter](./ChannelWriter.md) | Worker→main realtime producer; writes samples into shared-memory ring buffers. |
 | [RealtimeChannels](./RealtimeChannels.md) | Shared constants/layout for the realtime channel protocol. |

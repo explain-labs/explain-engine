@@ -111,7 +111,7 @@ against the base** into an `*_eff` value:
 |---|---|---|
 | `<p>_factor` | reset to `1.0` every step | transient interventions |
 | `<p>_factor_ps` | persistent | user / scenario / regulator models (e.g. `Breathing`) |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (allometric/weight scaling) |
+| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling) |
 
 ```
 p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)·p

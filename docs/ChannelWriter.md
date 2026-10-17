@@ -86,7 +86,8 @@ Returns the transport descriptor merged by `ModelEngine` into the `RT_MSG.CHANNE
 The ring-buffer indices and frame layout are owned by [RealtimeChannels](./RealtimeChannels.md). In brief:
 
 - **Chart ring** is single-producer/single-consumer with a monotonic `WRITE_IDX`; the physical slot is `WRITE_IDX % capacity`. Writing data **before** advancing the cursor (and the reader reading the cursor before the data) is the synchronization invariant.
-- **Anim frames** use a seqlock: write inactive frame → flip `ACTIVE` → bump `SEQ`. Odd `SEQ` means a write is in progress; the reader retries if `SEQ` changes mid-copy.
+- **Anim frames** use a flip buffer with a sequence counter: write inactive frame → flip `ACTIVE` → bump `SEQ` by 1. `SEQ` is not odd/even-coded (there is no "write in progress" marker); the reader retries if `SEQ` changed during its copy, which catches a flip (and a rewrite of the frame it was copying) mid-read.
+- **`READ_HINT`** is written by the reader only (the last `WRITE_IDX` it drained). The writer never reads it and never blocks on a slow reader; a lapped reader recovers on its side (freshest `capacity` rows, `lastChartGap`).
 - Both control headers carry a `VERSION` so a reader holding a stale registry rejects mismatched data after a layout change.
 
 ## Notes / caveats

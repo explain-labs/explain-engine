@@ -40,8 +40,8 @@ import { O2_MMOL_PER_ML } from "../helpers/Units.js";
   placenta stays disabled by default).
 */
 
-// O2 molar density at 37 C, 1 atm (mmol O2 per mL) — same constant the Metabolism model uses, so
-// the VO2 (mL/min) and DO2 (mL/min) read-outs share one unit system and O2ER is self-consistent.
+// O2 volumes (mL) convert to mmol with helpers/Units.js O2_MMOL_PER_ML (1/22.414, STPD) — the constant
+// Metabolism uses, so the VO2 (mL/min) and DO2 (mL/min) read-outs share one unit system and O2ER is self-consistent.
 
 export class Uterus extends BaseModelClass {
   // static properties

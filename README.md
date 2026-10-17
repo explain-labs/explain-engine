@@ -163,8 +163,8 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 
 ### 2. Observing & tweaking data
 
-- Fast telemetry: `explain.watchModelProps(["Heart.heart_rate", "Ventilator.peep"])`.
-- Change parameters with easing: `explain.setPropValue("Ventilator.peep", 10, 5 /* seconds */, 0 /* delay */)`.
+- Fast telemetry: `explain.watchModelProps(["Heart.heart_rate", "Ventilator.peep_cmh2o"])`.
+- Change parameters with easing: `explain.setPropValue("Ventilator.peep_cmh2o", 10, 5 /* seconds */, 0 /* delay */)`.
 - Trigger functions: `explain.callModelFunction("Heart.resetBaro", [], 0.25)`.
 
 ### 3. Adding models

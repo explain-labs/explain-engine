@@ -95,13 +95,13 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `hfo_sigh_time` / `hfo_sigh_cmh2o` | s / cmH₂O | Duration and held pressure of an HFOV sigh (default 0.4 s, 10) |
 | `hfo_activity` | string | `HFOV_CMV`: oscillate in `both` phases (default) or in expiration only (`exp`) |
 | `vent_rate` | breaths/min | Mechanical rate; in `PS` it is the backup/apnea rate (default 40) |
-| `tidal_volume` | L | Target tidal volume for `PRVC` and `VC` (default 0.015) |
+| `tidal_volume` | L | Target tidal volume for `PRVC` and `VC`, and the volume-guarantee target (default 0.015) |
 | `insp_time` | s | Inspiratory time (default 0.4) |
 | `insp_pause` | s | End-inspiratory hold duration (default 0 = off); carved out of `insp_time`, must be `< insp_time` |
 | `insp_flow` | L/min | Maximal flow of the demand valve in `PC`/`PRVC`/`PS`/`CPAP`; the delivered (constant) flow in `VC` (default 12) |
 | `leak_size` | mm | Equivalent diameter of the gap around an uncuffed tube; 0 = no leak (default). Useful range ≈ 0.5–1.25 mm neonatal, 1–3 mm adult — see *Tube leak* |
 | `exp_valve_resistance` | mmHg·s/L | Expiratory limb + valve; 0 = auto by circuit size (default) — see *Expiratory valve* |
-| `volume_guarantee` | bool | Volume guarantee on top of `PC` (incl. synchronized A/C) or `PS`: the working pressure is servoed breath-to-breath to `tidal_volume`, limited by `pip_cmh2o_max` (default false) |
+| `volume_guarantee` | bool | Volume guarantee on top of `PC` (incl. synchronized A/C), `PS` or `SIMV`: the working pressure is servoed breath-to-breath to `tidal_volume`, limited by `pip_cmh2o_max` (default false) |
 | `rise_time` | s | Pressure rise time in `PC`/`PRVC`/`PS`: the target ramps PEEP → PIP over this time (default 0.1; 0 = as fast as `insp_flow` allows) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
 | `pip_cmh2o` | cmH₂O | Peak inspiratory pressure target in `PC` (default 14); not used in `PS` |
@@ -132,7 +132,7 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `compliance` | mL/cmH₂O | Dynamic compliance (= `compliance_dynamic`), measured per breath at end-expiration |
 | `compliance_dynamic` | mL/cmH₂O | `Vt / (p_peak − PEEP)` — always available |
 | `compliance_static` | mL/cmH₂O | `Vt / (p_plat − PEEP)` — only when an inspiratory pause produced a plateau (else 0) |
-| `resistance` | cmH₂O/(L/s) | Measured airway resistance `(p_peak − p_plat) / insp_flow` — needs a plateau; `null` when unmeasurable |
+| `resistance` | cmH₂O/(L/s) | Measured airway resistance `(p_peak − p_plat) / _insp_flow_at_pause` (the ET-tube flow interrupted by the hold; falls back to the set `insp_flow` when that is 0) — needs a plateau; `null` when unmeasurable |
 | `p_peak` | cmH₂O | Measured peak inspiratory (circuit) pressure over the breath (in CPAP: over the spontaneous breath) |
 | `p_plat` | cmH₂O | Measured plateau pressure, sampled during the inspiratory pause |
 | `exp_tidal_volume` | L | Expired tidal volume (per breath, an unsupported spontaneous breath included) |
@@ -162,18 +162,20 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 `peep_cmh2o + ps_cmh2o`). `_ett_k1`/`_ett_k2` are the ET-tube Rohrer coefficients derived from
 diameter. `_rate_avg` is the breath-averaged measured rate (minute volume), `_manual_breath` a
 pending `trigger_breath()` request, and `_humidifier_applied` guards the first-step humidifier
-setup. `_insp_time_counter`/`_exp_time_counter`,
+re-apply. `_insp_time_counter`/`_exp_time_counter`,
 `_insp_tidal_volume_counter`/`_exp_tidal_volume_counter`, `_trigger_volume_counter`, `_inspiration`,
-`_expiration`, `_peak_flow`, `_prev_et_tube_flow`, `_trigger_blocked`, `_trigger_start`,
-`_tv_tolerance` (0.0005 L), `_et_tube_resistance`, and the `_vent_*` sub-model references back the
-cycling/triggering logic. Added for the pause / VC / measured-mechanics paths: `_pause`,
-`_pause_counter`, `_had_pause`, `_pip_meas` (running peak → `p_peak`), `_insp_flow_at_pause`,
-`_min_exp_time` (0.1 s floor), `_mandatory_breath` and `_breath_interval_counter`/`_measured_rate`
-(PS backup + measured rate), and `_vc_vol_target` (the VC servo's flow-phase cut-off).
+`_expiration`, `_peak_flow`, `_trigger_blocked`, `_trigger_start`, `_tv_tolerance` (0.0005 L) and
+the `_vent_*` sub-model references back the cycling/triggering logic. Added for the pause / VC /
+measured-mechanics paths: `_pause`, `_pause_counter`, `_had_pause`, `_pip_meas` (running peak →
+`p_peak`), `_insp_flow_at_pause`, `_min_exp_time` (0.1 s floor), `_mandatory_breath`,
+`_breath_interval_counter` (PS backup + measured rate), and `_vc_vol_target` (the VC servo's
+flow-phase cut-off). `_measured_rate` (60 / the last breath interval) is a diagnostic read by the
+probe scripts only; nothing in the cycling logic uses it. The ET-tube resistance is not stored:
+`calc_ettube_resistance()` writes it straight onto `VENT_ETTUBE.r_for`/`r_back`.
 
 ## Calculation cycle (`calc_model`)
 
-1. On the first step, apply the humidifier settings (`_apply_humidifier`, see below). Convert
+1. On the first step, re-apply the humidifier settings (`_apply_humidifier`, see below). Convert
    `pip_cmh2o` (in `PS`: `peep_cmh2o + ps_cmh2o`) / `pip_cmh2o_max` / `peep_cmh2o` to mmHg
    (`÷ 1.35951`) into `_pip`/`_pip_max`/`_peep`.
 2. If the mode is `PS` or `SIMV`, or `synchronized` is set and the mode is not CPAP or HFOV, run
@@ -316,7 +318,8 @@ Called once per breath (at `_start_inspiration`) on the just-completed breath:
 `compliance_dynamic = Vt / (p_peak − PEEP)` (always, and copied to `compliance`); and when a plateau
 exists (`insp_pause > 0`), `compliance_static = Vt / (p_plat − PEEP)` and
 `resistance = (p_peak − p_plat) / flow` with `flow` the interrupted ET-tube flow (`_insp_flow_at_pause`,
-L/s). Without a plateau, `compliance_static = 0` and `resistance = null`.
+L/s), or the set `insp_flow / 60` when no flow was captured at the pause. Without a plateau,
+`compliance_static = 0` and `resistance = null`.
 
 ### `simv_cycling` (SIMV)
 
@@ -713,7 +716,7 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 
 | Method | Effect |
 |---|---|
-| `switch_ventilator(state)` | Enable/disable the device and all `_ventilator_parts`; sets `no_flow = !state` on each part; blocks `MOUTH_DS` (`no_flow = state`); resets read-outs when turned off |
+| `switch_ventilator(state)` | Enable/disable the device and all `_ventilator_parts`; sets `no_flow = !state` on each part; blocks `MOUTH_DS` (`no_flow = state`); on: re-applies the humidifier; off: ends the airway events, resets read-outs and empties `VENT_GASCIRCUIT` to its unstressed volume (so a circuit stopped mid-inspiration does not empty into the airway on the next switch-on) |
 | `set_pc(pip, peep, rate, t_in, insp_flow)` | Configure PC mode |
 | `set_prvc(pip_max, peep, rate, tv, t_in, insp_flow)` | Configure PRVC (`tv` in mL → L) |
 | `set_vc(peep, rate, tv, t_in, insp_flow, pip_max, insp_pause)` | Configure VC (`tv` in mL → L; `pip_max` is the pop-off ceiling; `insp_pause` clamped `< insp_time`) |
@@ -741,11 +744,17 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 > `humidity` on both. Note that `VENT_GASIN` is `fixed_composition`, so `add_heat`/`add_watervapour`
 > skip it entirely and it holds whatever it is given.
 >
-> **Humidifier at start-up.** `Gas.init_model` runs *after* the Ventilator and resets every gas
-> compartment to the ambient temperature. `_apply_humidifier()` (temp, target_temp and humidity on
-> `VENT_GASIN`/`VENT_GASCIRCUIT`, then their composition) therefore runs on the ventilator's first
-> step and on every `switch_ventilator(true)`. Before this fix the circuit sat at the scenario's
-> 20 °C instead of 37 °C.
+> **Humidifier at start-up.** `_apply_humidifier()` (temp, target_temp and humidity on
+> `VENT_GASIN`/`VENT_GASCIRCUIT`, then their composition) runs in `init_model`, but `Gas.init_model`
+> runs *after* the Ventilator and resets every gas compartment to the ambient temperature and FiO₂.
+> `init_model` therefore clears `_humidifier_applied` again, so the humidifier is re-applied on the
+> ventilator's first step; `switch_ventilator(true)` applies it too. Before this fix the circuit sat
+> at the scenario's 20 °C instead of 37 °C.
+>
+> **The composition setters do not step the compartment.** `calc_gas_composition` (in
+> `GasComposition.js`) reads the compartment pressure as it stands; it no longer calls the
+> compartment's `calc_model`, which used to add an extra heat / water-vapour step on every setter
+> call.
 
 ## Example definition (JSON)
 
