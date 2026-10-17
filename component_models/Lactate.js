@@ -101,7 +101,7 @@ export class Lactate extends BaseModelClass {
     const sites = this._metabolism?.metabolic_active_models ?? {};
     const vo2 = this._metabolism?.vo2 ?? 8.1;
     const vo2_factor = this._metabolism?.vo2_factor ?? 1.0;
-    const vo2_temp_factor = this._metabolism?.vo2_temp_factor ?? 1.0;
+    const vo2_temp_factor = (this._metabolism?.vo2_temp_factor ?? 1.0) * (this._metabolism?.vo2_bat_factor ?? 1.0);
 
     // Capture each site's resting to2 as the running MINIMUM across the warm-up window, then arm. Using
     // the minimum (not a single instant) makes the threshold sit below the operating trough, so the model

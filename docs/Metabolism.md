@@ -38,6 +38,7 @@ vo2 (ml/kg/min) ──split by fvo2──► per-compartment O₂ draw ──×r
 | `vo2` | ml/kg/min | Body oxygen consumption distributed over `metabolic_active_models`. Scenarios that run `Mob` set it to the NON-cardiac VO₂: the heart's own consumption (basal + stroke work) is added by `Mob` (term_neonate: 7.288 + 0.81 = 8.1 mL/kg/min at rest) |
 | `vo2_factor` | unitless | External multiplier on VO₂ (set by other models / interventions); `1.0` = no effect |
 | `vo2_temp_factor` | unitless | Q10 temperature multiplier on VO₂, written by [`Thermoregulation`](./Thermoregulation.md); `1.0` at 37 °C / when that model is absent or disabled |
+| `vo2_bat_factor` | unitless | O₂ cost of brown-fat (non-shivering) thermogenesis, written by [`Thermoregulation`](./Thermoregulation.md): `1 + VO2_bat / (vo2 · vo2_factor · vo2_temp_factor)`, with `VO2_bat = brown_fat_heat / caloric_equiv_o2`; `1.0` when no brown fat is active |
 | `resp_q` | unitless | Respiratory quotient (CO₂ produced / O₂ consumed), typically ~0.8 |
 | `metabolic_active_models` | object | `{ compartmentName: fvo2 }` — where O₂ is consumed and CO₂ produced; `fvo2` are fractions of `vo2` and must sum to 1.0 (Glucose distributes its uptake over the same map, so a larger sum also unbalances glucose) |
 
@@ -62,7 +63,7 @@ Runs every model step when `met_active` is true.
 1. **Whole-body O₂ use for this step**, converted ml → mmol and per-minute → per-step:
 
    ```
-   vo2_step = (O2_MMOL_PER_ML · vo2 · vo2_factor · vo2_temp_factor · weight) / 60 · Δt        [mmol]
+   vo2_step = (O2_MMOL_PER_ML · vo2 · vo2_factor · vo2_temp_factor · vo2_bat_factor · weight) / 60 · Δt        [mmol]
    ```
 
    - `O2_MMOL_PER_ML = 1/22.414` mmol/mL ([`helpers/Units.js`](../helpers/Units.js)): clinical VO₂ is STPD

@@ -130,6 +130,7 @@ export class Thermoregulation extends BaseModelClass {
     this.q_perfusion = 0.0; // heat flowing tissue → blood pool this update (W), read-out
     this.q_respiratory = 0.0; // heat spent conditioning inspired gas this update (W), read-out
     this.vo2_temp_factor = 1.0; // → Metabolism.vo2_temp_factor (Q10), read-out
+    this.vo2_bat_factor = 1.0; // → Metabolism.vo2_bat_factor (brown-fat O2 cost), read-out
     this.hr_temp_factor = 1.0; // → Heart.hr_temp_factor, read-out
 
     // -----------------------------------------------
@@ -300,6 +301,18 @@ export class Thermoregulation extends BaseModelClass {
     this.vo2_temp_factor = this._clamp(Math.pow(this.q10, (this.core_temp - 37.0) / 10.0), this.vo2_temp_factor_min, this.vo2_temp_factor_max);
     if (this._metabolism) this._metabolism.vo2_temp_factor = this.vo2_temp_factor;
 
+    // brown-fat thermogenesis burns O2: its heat costs brown_fat_heat / caloric_equiv_o2 mL O2/s,
+    // added to Metabolism's oxygen use (and CO2 production) as a factor on its current VO2. The heat
+    // balance above already counts this heat once (as brown_fat_heat), so it is not counted again.
+    this.vo2_bat_factor = 1.0;
+    if (this._metabolism && this.brown_fat_heat > 0.0) {
+      const weight = this._model_engine.weight;
+      const vo2_base = (this._metabolism.vo2 ?? 0.0) * (this._metabolism.vo2_factor ?? 1.0) * this.vo2_temp_factor; // mL/kg/min
+      const vo2_bat = (this.brown_fat_heat / this.caloric_equiv_o2) * 60.0 / weight; // mL/kg/min
+      if (vo2_base > 0.0) this.vo2_bat_factor = 1.0 + vo2_bat / vo2_base;
+    }
+    if (this._metabolism) this._metabolism.vo2_bat_factor = this.vo2_bat_factor;
+
     // temperature → heart rate (drives the previously-dormant Heart.hr_temp_factor channel)
     this.hr_temp_factor = this._clamp(1.0 + this.hr_temp_gain * (this.core_temp - this.setpoint_temp), this.hr_temp_factor_min, this.hr_temp_factor_max);
     if (this._heart) this._heart.hr_temp_factor = this.hr_temp_factor;
@@ -318,8 +331,10 @@ export class Thermoregulation extends BaseModelClass {
   _release_channels() {
     this._resolve_refs();
     this.vo2_temp_factor = 1.0;
+    this.vo2_bat_factor = 1.0;
     this.hr_temp_factor = 1.0;
     if (this._metabolism) this._metabolism.vo2_temp_factor = 1.0;
+    if (this._metabolism) this._metabolism.vo2_bat_factor = 1.0;
     if (this._heart) this._heart.hr_temp_factor = 1.0;
     if (this._blood) this._blood.set_perfusion_target(37.0);
     // restore the gas targets to their build values (set-point + offset) so the airway is neutral
