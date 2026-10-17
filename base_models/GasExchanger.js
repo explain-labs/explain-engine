@@ -1,5 +1,6 @@
 import { BaseModelClass } from "./BaseModelClass";
 import { calc_blood_composition } from "../component_models/BloodComposition"
+import { GAS_CONSTANT } from "../helpers/Units";
 
 export class GasExchanger extends BaseModelClass {
   // static properties
@@ -136,6 +137,27 @@ export class GasExchanger extends BaseModelClass {
     if (!this._gas.fixed_composition) {
       this._gas.co2 = new_co2_gas;
       this._gas.cco2 = new_cco2_gas;
+
+      // the net molar exchange changes the gas volume (O2 uptake exceeds CO2 output when RQ < 1): at
+      // the compartment's pressure and temperature dn mmol occupy dn / c_ideal litres. Every species
+      // keeps its moles in the new volume, so the alveolar gas shrinks and the pressure drop draws
+      // gas in through the airways (the mass flow behind apnoeic oxygenation and absorption)
+      const gas = this._gas;
+      const dn = this.flux_o2 + this.flux_co2;
+      const c_ideal = gas.pres > 0.0 ? (gas.pres / (GAS_CONSTANT * (273.15 + gas.temp))) * 1000.0 : 0.0;
+      if (dn !== 0.0 && c_ideal > 0.0) {
+        const v0 = gas.vol;
+        const v1 = v0 + dn / c_ideal;
+        if (v1 > 0.0) {
+          const k = v0 / v1;
+          gas.co2 *= k;
+          gas.cco2 *= k;
+          gas.cn2 *= k;
+          gas.ch2o *= k;
+          gas.cother *= k;
+          gas.vol = v1;
+        }
+      }
     }
 
     // reset the non-persistent factors
