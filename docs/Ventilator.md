@@ -203,10 +203,6 @@ The ventilator tracks its breath phase on the **instance** counters `this.ncc_in
 increments it every subsequent step, so a value of `1` marks the first full step of inspiration /
 expiration (the same `ncc === 1` convention the `Breathing` model uses for spontaneous breaths).
 
-> Drift note: the engine `model` object also initializes `model.ncc_ventilator_insp` and
-> `model.ncc_ventilator_exp` (in `ModelEngine.build`), but the current `Ventilator` does **not** read
-> or write those — it drives its own `ncc_insp`/`ncc_exp`. The engine-level counters are reserved/
-> vestigial for the ventilator.
 
 ### `time_cycling` (PC / PRVC / VC)
 

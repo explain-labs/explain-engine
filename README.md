@@ -146,7 +146,7 @@ explain.stop();
 
 ## Notes and caveats
 
-A few things that bite newcomers: payloads crossing the worker boundary are JSON-stringified for `build`/`property_value`/`call`; UI metadata is **not** on the model classes (it lives in `src/model-interface/registry.ts`); cardiac/breathing timing counters live on the engine `model` object (`ncc_*`), not on the components; and the factor / `*_factor_ps` / `*_factor_scaling_ps` effective-value pattern means core physics params are never used raw. These and other gotchas are covered in [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
+A few things that bite newcomers: payloads crossing the worker boundary are JSON-stringified for `build`/`property_value`/`call`; UI metadata is **not** on the model classes (it lives in `src/model-interface/registry.ts`); cardiac/breathing timing counters (`ncc_*`) are fields of `Heart`, `Breathing` and `Ventilator`; and the factor / `*_factor_ps` / `*_factor_scaling_ps` effective-value pattern means core physics params are never used raw. These and other gotchas are covered in [`./docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md).
 
 ## Student onboarding manual
 

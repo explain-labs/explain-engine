@@ -142,7 +142,7 @@ Listeners are stored in an instance field `_listeners: Map<string, Set<Function>
 `build(model_definition)` runs synchronously and returns a boolean (`model_initialized`). Ordered steps:
 
 1. **Reset.** `errors = 0`; `model_initialized = false`; clear `model_data`/`model_data_slow`; `clearInterval(rtClock)`.
-2. **Fresh `model` object** with empty `models: {}`, empty `scaler_config`, and the six `ncc_*` counters zeroed (`ncc_atrial`, `ncc_ventricular`, `ncc_breathing_insp`, `ncc_breathing_exp`, `ncc_ventilator_insp`, `ncc_ventilator_exp`).
+2. **Fresh `model` object** with empty `models: {}`, and empty `scaler_config`.
 3. **Copy engine-level settings.** Every top-level key of the definition except `models` is copied onto `model` (`weight`, `modeling_stepsize`, `model_time_total`, `scaler_config`, …).
 4. **Instantiate.** For each entry in `model_definition.models`, look up the class by `sub_model_def.model_type` in `available_model_map`. If found, `new model_class(model, name, model_type)` and store on `model.models[name]`. A missing type or a constructor throw increments `errors` and emits a `status` `ERROR:` message. (The constructor's 3rd `model_type` arg is ignored by the base class.)
 5. **Initialize (only if `errors < 1`).** For each instance, build `args` as a `[{key, value}, …]` list from the definition entry and call `init_model(args)`. An init throw increments `errors` and emits a `status` `ERROR:`.
@@ -228,9 +228,9 @@ When adding a tunable param, follow this convention so it composes with interven
 
 If you scale a diffusor through the `*_scaling_ps` name it will silently do nothing.
 
-### 7b. `ncc_*` cycle counters live on the engine `model` object
+### 7b. `ncc_*` cycle counters live on the components
 
-The cardiac/breathing/ventilator timing counters are **not** component fields — they are initialized on `model` in `build()`: `model.ncc_atrial`, `model.ncc_ventricular`, `model.ncc_breathing_insp`, `model.ncc_breathing_exp`, `model.ncc_ventilator_insp`, `model.ncc_ventilator_exp`. The `Heart`, `Breathing`, and `Ventilator` models read/advance them through `this._model_engine`. The `DataCollector` **always** watches `Heart.ncc_ventricular` and `Heart.ncc_atrial` (pushed onto the watchlist in its constructor and on reset) so the ECG is available regardless of the user watchlist.
+The cycle counters are fields of the models that drive them, advanced once per step: `Heart.ncc_atrial` and `Heart.ncc_ventricular` (reset to `-1` at SA firing / ventricular activation; `Pda` and `Monitor` read `Heart.ncc_ventricular`), and `ncc_insp`/`ncc_exp` on `Breathing` and `Ventilator`. A value of `1` marks the first full step of a phase. The engine `model` object holds no counters. The `DataCollector` **always** watches `Heart.ncc_ventricular` and `Heart.ncc_atrial` (pushed onto the watchlist in its constructor and on reset) so the ECG is available regardless of the user watchlist.
 
 ### 7c. Blood/gas composition propagation
 

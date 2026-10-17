@@ -142,8 +142,8 @@ coupling), and `HeartChamber` adds drug/Mob/load/remodel/ANS terms. See `ARCHITE
 > uses `*_factor_scaling_ps`; the diffusor/exchanger family uses `*_factor_scaling` (**no `_ps`**).
 > Scaling a diffusor through the `_ps` name silently does nothing. Verify before copying.
 
-**`ncc_*` cycle counters live on the engine `model` object**, not on components — `Heart`,
-`Breathing`, and `Ventilator` reach them through `this._model_engine`.
+**`ncc_*` cycle counters live on the components**: `Heart.ncc_atrial`/`ncc_ventricular`,
+`Breathing`/`Ventilator` `ncc_insp`/`ncc_exp`. The engine `model` object holds none.
 
 **Composition rides the flow.** There is no global solver. `Resistor.calc_flow` moves volume, and
 `volume_in` dilution-mixes gases, solutes, drugs, temp, and viscosity into the receiving
