@@ -110,7 +110,6 @@ This is the most important thing to understand about the format. A `models` entr
   "p1_ext": 0,
   "p2_ext": 0,
   "fixed_composition": false,
-  "is_externally_managed": false,
   "r_factor": 1,
   "r_k_factor": 1,
   "r_factor_ps": 1,

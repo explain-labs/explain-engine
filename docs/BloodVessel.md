@@ -19,7 +19,7 @@ When the ANS changes vascular tone, the vessel's resistance **and** elastance ch
 
 ## Initialization
 
-During `init_model()`, the BloodVessel creates a `Resistor` instance for each entry in its `inputs` array. Each resistor is named `{inputName}_{vesselName}` (e.g., `AA_AD1`) and is registered in the model engine. These resistors are marked as `is_externally_managed = true`, meaning the BloodVessel controls their properties directly -- the resistors do not apply their own factors.
+During `init_model()`, the BloodVessel creates a `Resistor` instance for each entry in its `inputs` array. Each resistor is named `{inputName}_{vesselName}` (e.g., `AA_AD1`) and is registered in the model engine. Each step the BloodVessel overwrites their `r_for`/`r_back`/`r_k` with its own effective values (see [Owned input resistors](#owned-input-resistors)).
 
 If a resistor already exists in the model engine (e.g., when loading from a saved state), the existing instance is reused.
 
@@ -172,9 +172,14 @@ Typical alpha values:
 
 An alpha of 0.0 means resistance changes have no effect on elastance.
 
-## Externally managed mode
+## Owned input resistors
 
-`is_externally_managed` is a flag (default `false`) read by an owning model to indicate that it controls this object directly. A `BloodVessel` sets it to `true` on every input `Resistor` it creates, then overwrites that resistor's `r_for`/`r_back`/`r_k` from its own effective values each step (so the resistor never applies its own factor stack). The same pattern is used when a `BloodVessel` is itself a sub-component of a parent model (typically a `MicroVascularUnit`): the parent sets the base properties (`el_base`, `r_for`, `r_back`, `u_vol`, etc.) directly each step, and the non-persistent tier-1 factors reset to 1.0 automatically — the parent is expected to leave the persistent (`_ps`) and scaling (`_scaling_ps`) tiers at 1.0 so its directly-set values are not double-modulated.
+Each step `calc_model` writes the vessel's `r_for_eff`/`r_back_eff`/`r_k_eff` into the **base** `r_for`/`r_back`/`r_k` of every input resistor (plus `no_flow`, `no_back_flow`, `p1_ext`, `p2_ext`, `is_enabled`). Two consequences:
+
+- **The resistor's own factor stack still applies on top.** `Resistor.calc_resistance` multiplies that base by its own `r_factor`/`r_factor_ps`/`r_factor_scaling_ps` (additively). Models that need to change one input without touching the vessel use this layer, and the vessel's `r_for_eff` does **not** show it. In `term_neonate`: `Kidneys` writes `KID_CAP_KID_VEN.r_factor_ps` (efferent arteriole), and `Brain` writes `AA_BR_ART.r_factor_ps` (cerebral autoregulation). `ModelScaler` never scales an owned resistor (the scaler groups list the vessels), so nothing is scaled twice.
+- **One lag step.** In a loaded scenario the owned resistors are top-level entries, so they step before their vessel and use the values the vessel wrote in the previous step.
+
+`flow`/`flow_forward`/`flow_backward` are summed over the vessel's **input** resistors: `flow` is the net inflow into this vessel, not its outflow.
 
 ## Pressure calculation
 
@@ -211,5 +216,4 @@ Where `pres_ext` is a non-persistent external pressure (e.g., intrathoracic pres
 ## Usage in the model hierarchy
 
 - **Standalone**: Used for large arteries (AA, AD1, AD2) and veins (IVCI, SVCI) that are directly defined in the model.
-- **Inside MicroVascularUnit**: Three BloodVessels (ART, CAP, VEN) are created as sub-components. They are marked `is_externally_managed = true` and the MVU distributes properties across them.
 - **Inside Heart (indirectly)**: Heart valves use standalone `Resistor` objects that connect HeartChamber components, not BloodVessels.

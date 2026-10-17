@@ -45,7 +45,6 @@ and hands the volume across via their `volume_out`/`volume_in` methods.
 | `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step) |
 | `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
 | `fixed_composition` | bool | Passed through to the endpoints' volume handling |
-| `is_externally_managed` | bool | Flag read by owning models to skip their own flow calc |
 
 Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 `r_factor`, `r_k_factor` (non-persistent); `r_factor_ps`, `r_k_factor_ps` (persistent);
@@ -139,8 +138,7 @@ p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)
   "no_back_flow": false,
   "p1_ext": 0,
   "p2_ext": 0,
-  "fixed_composition": false,
-  "is_externally_managed": false
+  "fixed_composition": false
 }
 ```
 

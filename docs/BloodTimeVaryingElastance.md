@@ -109,10 +109,6 @@ Inherits from `TimeVaryingElastance`:
 2. `calc_volumes()` -- compute u_vol_eff from base + all factor tiers
 3. `calc_pressure()` -- compute time-varying recoil pressure from activation factor
 
-## Externally managed mode
-
-When `is_externally_managed = true`, all three tiers of factors are reset to 1.0 every step. The parent model sets base properties directly.
-
 ## Example definition (JSON)
 
 ```json
