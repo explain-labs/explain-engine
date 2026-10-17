@@ -48,7 +48,8 @@ export class Monitor extends BaseModelClass {
     this.hr_avg_beats = 12;
     this.flow_avg_beats = 1;
     this.rr_avg_time = 20;
-    this.sat_avg_time = 5;
+    this.asystole_time = 6.0; // s without a beat after which HR, the beat-averaged flows and the
+                              // per-beat pressures read 0 / the flat-line value instead of the last beat
     this.etco2_source = "DS"; // airway (dead-space) gas compartment whose end-expiratory pCO2 is the
                               // spontaneous end-tidal CO2; mirrored from the ventilator instead when ventilated
 
@@ -61,6 +62,8 @@ export class Monitor extends BaseModelClass {
     this._breathing = null; // reference to the spontaneous breathing model (breath events)
     this._ventilator = null; // reference to the mechanical ventilator model (breath events)
     this._ds = null; // reference to the airway gas compartment for spontaneous end-tidal CO2
+    this._vent_was_on = false; // ventilator state at the previous step (resets the etCO2 peak on a switch)
+    this._asystole_counter = 0.0; // time since the last beat or the last asystole latch (s)
     this._etco2_peak = 0.0; // running peak airway pCO2 over the current breath (latched as etco2 at breath onset)
     this._rr_intervals = []; // rolling window of breath-to-breath intervals spanning ~rr_avg_time s
     this._rr_window_sum = 0.0; // running sum of _rr_intervals (s)
@@ -187,34 +190,45 @@ export class Monitor extends BaseModelClass {
       // rolling average heart rate over the last hr_avg_beats beats. The beat-to-beat rate is
       // derived from the interval since the previous beat; keep a moving window and average it,
       // so heart_rate updates every beat.
-      const btb_hr = this._qrs_interval_counter > 0 ? 60.0 / this._qrs_interval_counter : 0.0;
+      const interval = this._qrs_interval_counter;
       this._qrs_interval_counter = 0.0;
-      this._hr_list.push(btb_hr);
-      this._hr_sum += btb_hr;
+      this._asystole_counter = 0.0;
+      // the interval that ends an asystole is not a beat-to-beat interval (cf. the RR window)
+      if (interval > 0.0 && interval <= this.asystole_time) {
+        const btb_hr = 60.0 / interval;
+        this._hr_list.push(btb_hr);
+        this._hr_sum += btb_hr;
+      }
       while (this._hr_list.length > this.hr_avg_beats) {
         this._hr_sum -= this._hr_list.shift();
       }
       this.heart_rate = this._hr_list.length > 0 ? this._hr_sum / this._hr_list.length : 0.0;
 
-      // latch the JSON-configured per-beat min/max read-outs as flat keys (pressure in mmHg,
-      // volume in mL) — Monitor.minmax.<name>_pres_max etc.
-      this._minmax_targets.forEach((t) => {
-        this.minmax[t.name + "_pres_min"] = t.pres_min;
-        this.minmax[t.name + "_pres_max"] = t.pres_max;
-        // true time-averaged mean over the beat. The arterial estimate (2·min+max)/3 is only
-        // valid for arterial waveforms; it badly underestimates atrial/venous means (CVP), whose
-        // a/c/v waves dip well below the diastolic value. A real integral mean is correct for all.
-        this.minmax[t.name + "_pres_mean"] = t.pres_n > 0 ? t.pres_sum / t.pres_n : 0.0;
-        this.minmax[t.name + "_vol_min"] = t.vol_min * 1000.0;
-        this.minmax[t.name + "_vol_max"] = t.vol_max * 1000.0;
-        t.pres_min = 1000.0; t.pres_max = -1000.0;
-        t.pres_sum = 0.0; t.pres_n = 0;
-        t.vol_min = 1000.0; t.vol_max = -1000.0;
-      });
+      this._latch_minmax();
     }
 
-    // determine the end of the beat-averaging window for the flow read-outs, and if so calculate the beat-averaged flows
-    if (this._beats_counter > this.flow_avg_beats) {
+    // asystole: no beat for asystole_time → HR 0, beat-averaged flows 0 and the per-beat pressures
+    // latched from the flat line (repeated every asystole_time), instead of holding the last beat
+    if (this._asystole_counter > this.asystole_time) {
+      this._asystole_counter = 0.0;
+      this.heart_rate = 0.0;
+      this._hr_list = [];
+      this._hr_sum = 0.0;
+      this._flow_targets.forEach((t) => {
+        this.flows[t.name] = 0.0;
+        t.counter = 0.0;
+      });
+      this.fo_flow = 0.0;
+      this.do2_br = 0.0;
+      this.do2_lb = 0.0;
+      this._beats_counter = 0;
+      this._beats_time = 0.0;
+      this._latch_minmax();
+    }
+
+    // determine the end of the beat-averaging window (every flow_avg_beats beats) for the flow
+    // read-outs, and if so calculate the beat-averaged flows
+    if (this._beats_counter >= this.flow_avg_beats) {
 
       // report the JSON-configured flow targets, beat-averaged in L/min
       this._flow_targets.forEach((t) => {
@@ -235,9 +249,34 @@ export class Monitor extends BaseModelClass {
     
     // increase the timers
     this._qrs_interval_counter += this._t;
+    this._asystole_counter += this._t;
     this._beats_time += this._t;
 
   }
+  // latch the JSON-configured per-beat min/max read-outs as flat keys (pressure in mmHg,
+  // volume in mL) — Monitor.minmax.<name>_pres_max etc. — and restart the accumulators
+  _latch_minmax() {
+    this._minmax_targets.forEach((t) => {
+      // a target with no numeric samples in the window keeps its last value instead of publishing
+      // the ±1000 accumulator placeholders
+      if (t.pres_n > 0) {
+        this.minmax[t.name + "_pres_min"] = t.pres_min;
+        this.minmax[t.name + "_pres_max"] = t.pres_max;
+        // true time-averaged mean over the beat. The arterial estimate (2·min+max)/3 is only
+        // valid for arterial waveforms; it badly underestimates atrial/venous means (CVP), whose
+        // a/c/v waves dip well below the diastolic value. A real integral mean is correct for all.
+        this.minmax[t.name + "_pres_mean"] = t.pres_sum / t.pres_n;
+      }
+      if (t.vol_max >= t.vol_min) {
+        this.minmax[t.name + "_vol_min"] = t.vol_min * 1000.0;
+        this.minmax[t.name + "_vol_max"] = t.vol_max * 1000.0;
+      }
+      t.pres_min = 1000.0; t.pres_max = -1000.0;
+      t.pres_sum = 0.0; t.pres_n = 0;
+      t.vol_min = 1000.0; t.vol_max = -1000.0;
+    });
+  }
+
   calc_resp_rate() {
     // a breath starts when an ACTIVE breathing source reaches the start of inspiration
     // (ncc_insp === 1); both the spontaneous and the ventilator source are considered, but one breath
@@ -245,6 +284,10 @@ export class Monitor extends BaseModelClass {
     // effort triggered (or landed on), and an effort that starts during a ventilator inspiration is
     // fused into it. Efforts between ventilator breaths still count.
     const vent_on = !!(this._ventilator && this._ventilator.is_enabled);
+    // a ventilator switch starts a fresh spontaneous etCO2 peak (otherwise the first spontaneous
+    // breath after weaning reports the maximum over the whole ventilated period)
+    if (vent_on !== this._vent_was_on) this._etco2_peak = 0.0;
+    this._vent_was_on = vent_on;
     const spont_on = !!(this._breathing && this._breathing.breathing_enabled);
     const spont_onset = spont_on && this._breathing.ncc_insp === 1;
     const vent_onset = vent_on && this._ventilator.ncc_insp === 1;
@@ -280,6 +323,11 @@ export class Monitor extends BaseModelClass {
       this.resp_rate = 60.0 / this._resp_interval_counter;
       this._rr_intervals = [];
       this._rr_window_sum = 0.0;
+      // no expired breath to measure: the spontaneous end-tidal CO2 reads 0 (as a capnograph does)
+      if (!vent_on) {
+        this.etco2 = 0.0;
+        this._etco2_peak = 0.0;
+      }
     }
 
     // accumulate the per-breath peak airway pCO2 for the spontaneous end-tidal read-out
