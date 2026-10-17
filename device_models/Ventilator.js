@@ -269,8 +269,11 @@ export class Ventilator extends BaseModelClass {
       this._vent_exp_valve,
     ];
 
-    // calculate the gas composition of the ventilator circuits
+    // calculate the gas composition of the ventilator circuits. Gas.init_model runs after this
+    // model and resets every gas compartment to ambient, so the humidifier is applied again on the
+    // first step (or by switch_ventilator(true))
     this._apply_humidifier();
+    this._humidifier_applied = false;
     calc_gas_composition(this._vent_gasout, 0.205, 20.0, 0.5);
 
     // calculate the et-tube diameter and resistance
@@ -1561,6 +1564,9 @@ export class Ventilator extends BaseModelClass {
     if (!state) this._set_tube_dead_space(false);
     if (!state) {
       this.reset_dependent_properties();
+      // empty the circuit to its unstressed volume: a circuit switched off mid-inspiration would
+      // otherwise keep its PIP volume and empty into the airway when it is switched on again
+      if (this._vent_gascircuit) this._vent_gascircuit.vol = this._vent_gascircuit.u_vol;
     }
 
     for (const vp of this._ventilator_parts) {

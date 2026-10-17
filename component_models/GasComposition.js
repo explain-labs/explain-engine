@@ -21,8 +21,11 @@ export function calc_gas_composition(
   let new_fn2_dry = (_fn2_dry * (1.0 - (fio2 + fico2))) / (1.0 - (_fo2_dry + _fco2_dry));
   let new_fother_dry = (_fother_dry * (1.0 - (fio2 + fico2))) / (1.0 - (_fo2_dry + _fco2_dry));
 
-  // make sure the latest pressure is available
-  gc.calc_model();
+  // make sure the latest pressure is available, without stepping the compartment: calc_model would
+  // also add heat and water vapour (an extra integration step on every setter call)
+  gc.calc_elastances();
+  gc.calc_volumes();
+  gc.calc_pressure();
 
   // get the gas capacitance pressure
   let pressure = gc.pres;
