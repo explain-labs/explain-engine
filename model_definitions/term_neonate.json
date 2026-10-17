@@ -12642,8 +12642,7 @@
      "VLB",
      "VUB",
      "RLB",
-     "RUB",
-     "COR"
+     "RUB"
     ],
     "el_base": [
      "PA",
@@ -12742,9 +12741,7 @@
      "LL_VEN",
      "RL_VEN",
      "PV",
-     "PV_LA",
-     "PV_RAIVCI",
-     "PV_RASVC"
+     "PV_LA"
     ]
    },
    "blood_systemic": {

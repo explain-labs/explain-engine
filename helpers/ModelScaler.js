@@ -63,7 +63,7 @@ export default class ModelScaler {
   // --- VOLUME SCALING ---
 
   // Scale vol and u_vol_factor_scaling on a list of named components
-  _scale_vol(names, factor, delta) {
+  _scale_vol(names, delta) {
     for (const name of names) {
       const comp = this._model.models[name];
       if (!comp) continue;
@@ -78,30 +78,30 @@ export default class ModelScaler {
   scale_blood_volume(factor) {
     const delta = factor / this._prev.blood_vol;
     this._prev.blood_vol = factor;
-    this._scale_vol(this._config.blood.volume, factor, delta);
+    this._scale_vol(this._config.blood.volume, delta);
   }
 
   scale_heart_volume(factor) {
     const delta = factor / this._prev.heart_vol;
-    this._scale_vol(this._config.heart.volume, factor, delta);
+    this._scale_vol(this._config.heart.volume, delta);
     this._prev.heart_vol = factor;
   }
 
   scale_lung_volume(factor) {
     const delta = factor / this._prev.lung_vol;
-    this._scale_vol(this._config.lung.volume, factor, delta);
+    this._scale_vol(this._config.lung.volume, delta);
     this._prev.lung_vol = factor;
   }
 
   scale_thorax_volume(factor) {
     const delta = factor / this._prev.thorax_vol;
-    this._scale_vol(this._config.thorax, factor, delta);
+    this._scale_vol(this._config.thorax, delta);
     this._prev.thorax_vol = factor;
   }
 
   scale_pericardium_volume(factor) {
     const delta = factor / this._prev.pericardium_vol;
-    this._scale_vol(this._config.pericardium, factor, delta);
+    this._scale_vol(this._config.pericardium, delta);
     this._prev.pericardium_vol = factor;
   }
 
@@ -272,46 +272,24 @@ export default class ModelScaler {
 
   // --- INCORPORATE ---
 
-  // Bake all scaling factors into base properties, then reset factors to 1.0
+  // Bake all scaling factors into base properties, then reset factors to 1.0. Every component named
+  // anywhere in the scaler config is baked on every scaling layer it carries (_bake skips a layer the
+  // component doesn't have or that is at 1.0), so no group can be missed and a group the scenario's
+  // config doesn't define can't throw
   incorporate() {
-    // bake u_vol factors
-    const u_vol_groups = [
-      ...this._config.blood.volume,
-      ...this._config.blood_pulmonary.el_base,
-      ...this._config.blood_systemic.el_base,
-      ...this._config.heart.volume,
-      ...this._config.heart_left.el_min,
-      ...this._config.heart_right.el_min,
-      ...this._config.lung.volume,
-      ...this._config.thorax,
-      ...this._config.pericardium,
-    ];
-    this._bake(u_vol_groups, "u_vol", "u_vol_factor_scaling_ps");
+    const names = new Set();
+    const collect = (v) => {
+      if (Array.isArray(v)) v.forEach((n) => typeof n === "string" && names.add(n));
+      else if (v && typeof v === "object") Object.values(v).forEach(collect);
+    };
+    collect(this._config);
+    const all = [...names];
 
-    // bake el_base factors
-    const el_base_groups = [
-      ...this._config.blood.el_base,
-      ...this._config.blood_pulmonary.el_base,
-      ...this._config.blood_systemic.el_base,
-      ...this._config.lung.el_base,
-      ...this._config.thorax,
-      ...this._config.pericardium,
-    ];
-    this._bake(el_base_groups, "el_base", "el_base_factor_scaling_ps");
-
-    // bake heart el_min and el_max factors
-    this._bake(this._config.heart.el_min, "el_min", "el_min_factor_scaling_ps");
-    this._bake(this._config.heart.el_max, "el_max", "el_max_factor_scaling_ps");
-
-    // bake resistance factors
-    const res_groups = [
-      ...this._config.blood.resistance,
-      ...this._config.blood_pulmonary.resistance,
-      ...this._config.blood_systemic.resistance,
-      ...this._config.lung.resistance,
-      ...this._config.heart.resistance,
-    ];
-    this._bake_resistance(res_groups);
+    this._bake(all, "u_vol", "u_vol_factor_scaling_ps");
+    this._bake(all, "el_base", "el_base_factor_scaling_ps");
+    this._bake(all, "el_min", "el_min_factor_scaling_ps");
+    this._bake(all, "el_max", "el_max_factor_scaling_ps");
+    this._bake_resistance(all);
 
     // reset all tracking
     for (const key of Object.keys(this._prev)) {
