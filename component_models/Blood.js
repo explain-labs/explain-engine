@@ -23,7 +23,6 @@ export class Blood extends BaseModelClass {
       "BloodCapacitance",
       "BloodTimeVaryingElastance",
       "BloodPump",
-      "MicroVascularUnit"
     ];
 
     // initialize dependent properties
@@ -40,7 +39,7 @@ export class Blood extends BaseModelClass {
     this._blood_components = [];
   }
 
-  init_model(args = {}) {
+  init_model(args = []) {
     // set the values of the independent properties
     args.forEach((arg) => {
       this[arg["key"]] = arg["value"];
