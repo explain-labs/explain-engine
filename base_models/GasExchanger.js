@@ -102,12 +102,13 @@ export class GasExchanger extends BaseModelClass {
       else if (this.flux_o2 < -o2_lim) this.flux_o2 = -o2_lim;
     }
 
+    // never move more than the donor holds (flooring the donor afterwards would leave the receiver
+    // with the full flux and create molecules)
+    this.flux_o2 = this._limit(this.flux_o2, to2_blood * this._blood.vol, co2_gas * this._gas.vol);
+
     // calculate the new O2 concentrations of the gas and blood compartments
     let new_to2_blood = (to2_blood * this._blood.vol - this.flux_o2) / this._blood.vol;
-    if (new_to2_blood < 0) new_to2_blood = 0.0;
-
     let new_co2_gas = (co2_gas * this._gas.vol + this.flux_o2) / this._gas.vol;
-    if (new_co2_gas < 0) new_co2_gas = 0.0;
 
     // calculate the CO2 flux from the blood to the gas compartment (same invalid-partial-pressure guard
     // as O2: a failed acid-base solve leaves pco2 at the -1 sentinel, which would drive a spurious flux).
@@ -120,12 +121,11 @@ export class GasExchanger extends BaseModelClass {
       else if (this.flux_co2 < -co2_lim) this.flux_co2 = -co2_lim;
     }
 
+    this.flux_co2 = this._limit(this.flux_co2, tco2_blood * this._blood.vol, cco2_gas * this._gas.vol);
+
     // calculate the new CO2 concentrations of the gas and blood compartments
     let new_tco2_blood = (tco2_blood * this._blood.vol - this.flux_co2) / this._blood.vol;
-    if (new_tco2_blood < 0) new_tco2_blood = 0.0;
-
     let new_cco2_gas = (cco2_gas * this._gas.vol + this.flux_co2) / this._gas.vol;
-    if (new_cco2_gas < 0) new_cco2_gas = 0.0;
 
     // transfer the new concentrations, guarding each compartment by fixed_composition so a fixed
     // (infinite-reservoir) compartment stays constant, mirroring BloodDiffusor/GasDiffusor
@@ -141,5 +141,12 @@ export class GasExchanger extends BaseModelClass {
     // reset the non-persistent factors
     this.dif_o2_factor = 1.0;
     this.dif_co2_factor = 1.0;
+  }
+
+  // clamp a flux (mmol, + = blood to gas) to the amount the donor side holds
+  _limit(flux, n_blood, n_gas) {
+    if (flux > 0.0) return Math.min(flux, Math.max(n_blood, 0.0));
+    if (flux < 0.0) return Math.max(flux, -Math.max(n_gas, 0.0));
+    return flux;
   }
 }
