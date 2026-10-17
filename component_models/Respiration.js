@@ -42,7 +42,7 @@ export class Respiration extends BaseModelClass {
     this.lungs = ["ALL", "ALR"]
     this.left_lung = ["ALL"]
     this.right_lung = ["ALR"]
-    this.gas_echangers = ["GASEX_LL", "GASEX_RL"]
+    this.gas_exchangers = ["GASEX_LL", "GASEX_RL"]
     this.gas_exchanger_left_lung = ["GASEX_LL"]
     this.gas_exchanger_right_lung = ["GASEX_RL"]
     this.intrapulmonary_shunt = ["IPS"]
@@ -121,6 +121,15 @@ export class Respiration extends BaseModelClass {
     this._trapped_fo2_right = 0.21;
     this._trapped_pres_left = 0.0; // recoil pressure of the trapped lung, captured at obstruction (mmHg)
     this._trapped_pres_right = 0.0;
+  }
+
+  init_model(args = []) {
+    super.init_model(args);
+    // older scenarios store the list under the misspelled key gas_echangers
+    if (Array.isArray(this.gas_echangers)) {
+      this.gas_exchangers = this.gas_echangers;
+      delete this.gas_echangers;
+    }
   }
 
   calc_model() {
@@ -239,7 +248,7 @@ export class Respiration extends BaseModelClass {
 
   set_gasexchange(new_factor) {
     const delta = new_factor - this._prev_gex_factor;
-    this.gas_echangers.forEach(gex_name => {
+    this.gas_exchangers.forEach(gex_name => {
       const m = this._model_engine.models[gex_name];
       if (!m) return;
       // the O2 and CO2 diffusion factors track the same target; clamp each at 0 independently

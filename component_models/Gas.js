@@ -1,5 +1,6 @@
 import { BaseModelClass } from "../base_models/BaseModelClass";
 import { calc_gas_composition } from "./GasComposition"
+import { svp_h2o } from "../helpers/Units";
 
 export class Gas extends BaseModelClass {
   // static properties
@@ -27,7 +28,7 @@ export class Gas extends BaseModelClass {
     this._body_temp_delta = {};
   }
 
-  init_model(args = {}) {
+  init_model(args = []) {
     // set the values of the independent properties
     args.forEach((arg) => {
       this[arg["key"]] = arg["value"];
@@ -86,7 +87,7 @@ export class Gas extends BaseModelClass {
       // work from the concentrations rather than the derived ph2o, which on a compartment that is
       // never stepped still reflects whatever temperature it was last bootstrapped at
       const p_h2o = (model.ch2o / ctotal) * model.pres_atm;
-      const p_sat = Math.exp(20.386 - 5132 / (model.temp + 273.15));
+      const p_sat = svp_h2o(model.temp);
       if (p_h2o <= p_sat) return;
 
       calc_gas_composition(model, this.fio2, model.temp, model.humidity);

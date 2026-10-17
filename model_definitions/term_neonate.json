@@ -10875,10 +10875,6 @@
     "right_lung": [
      "ALR"
     ],
-    "gas_echangers": [
-     "GASEX_LL",
-     "GASEX_RL"
-    ],
     "gas_exchanger_left_lung": [
      "GASEX_LL"
     ],
@@ -10895,17 +10891,6 @@
     "res_lower_airways_factor": 1,
     "gex_factor": 1,
     "pres_atm": 760,
-    "pres_pl_left": 755.8398378387278,
-    "pres_pl_right": 755.8398378387278,
-    "pres_alv_left": 760.0528301974218,
-    "pres_alv_right": 760.0528301974218,
-    "pres_tp_left": 4.2129923586940095,
-    "pres_tp_right": 4.2129923586940095,
-    "prev_el_lungs_factor": 1,
-    "prev_el_thorax_factor": 1,
-    "prev_gex_factor": 1,
-    "prev_res_upper_airways_factor": 1,
-    "prev_res_lower_airways_factor": 1,
     "gas_exchangers": [
      "GASEX_LL",
      "GASEX_RL"

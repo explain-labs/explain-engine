@@ -1,4 +1,5 @@
 import { Capacitance } from "../base_models/Capacitance";
+import { GAS_CONSTANT, svp_h2o } from "../helpers/Units";
 
 // This class represents a gas capacitance model, which is a subclass of the Capacitance class.
 // This class adds functionality to handle gas-specific properties such as temperature, humidity ans gas concentrations.
@@ -54,7 +55,7 @@ export class GasCapacitance extends Capacitance {
     this.dispersion_tau_max = 0.1; // s, cap on the dispersion mixing time
 
     // local properties
-    this._gas_constant = 62.36367; // ideal gas law constant (L·mmHg/(mol·K))
+    this._gas_constant = GAS_CONSTANT; // ideal gas law constant (L·mmHg/(mol·K))
     this._cp_molar = 29.1; // molar heat capacity of air at constant pressure (J/(mol·K))
     this._latent_h2o = 43400.0; // latent heat of vaporisation of water near 37 C (J/mol)
 
@@ -274,7 +275,7 @@ export class GasCapacitance extends Capacitance {
 
   calc_watervapour_pressure() {
     // calculate the water vapor pressure based on the temperature
-    return Math.exp(20.386 - 5132 / (this.temp + 273.15));
+    return svp_h2o(this.temp);
   }
 
   calc_gas_composition() {

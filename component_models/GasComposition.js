@@ -1,3 +1,5 @@
+import { GAS_CONSTANT, svp_h2o } from "../helpers/Units";
+
 export function calc_gas_composition(
   gc,
   fio2 = 0.205,
@@ -9,7 +11,6 @@ export function calc_gas_composition(
   const _fco2_dry = 0.000392;
   const _fn2_dry = 0.794608;
   const _fother_dry = 0.0;
-  const _gas_constant = 62.36367;
 
   // calculate the dry gas composition depending on the supplied fio2
   let new_fo2_dry = fio2;
@@ -32,10 +33,10 @@ export function calc_gas_composition(
   if (!(pressure > 0)) return;
 
   // calculate the concentration at this pressure and temperature in mmol/l using the gas law
-  gc.ctotal = (pressure / (_gas_constant * (273.15 + temp))) * 1000.0;
+  gc.ctotal = (pressure / (GAS_CONSTANT * (273.15 + temp))) * 1000.0;
 
   // calculate the water vapor pressure, concentration, and fraction for this temperature and humidity (0 - 1)
-  gc.ph2o = Math.exp(20.386 - 5132 / (temp + 273.15)) * humidity;
+  gc.ph2o = svp_h2o(temp) * humidity;
   gc.fh2o = gc.ph2o / pressure;
   gc.ch2o = gc.fh2o * gc.ctotal;
 

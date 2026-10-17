@@ -43,13 +43,12 @@ models, so it composes additively with other writers of that persistent layer.
 | `dead_space` | `["DS"]` | conducting-airway gas compartment |
 | `thorax` | `["THORAX"]` | chest-wall container |
 | `lungs` (`left_lung`/`right_lung`) | `["ALL", "ALR"]` | alveolar gas compartments |
-| `gas_echangers` (`_left`/`_right`) | `["GASEX_LL", "GASEX_RL"]` | blood↔gas exchangers |
+| `gas_exchangers` (`_left`/`_right`) | `["GASEX_LL", "GASEX_RL"]` | blood↔gas exchangers |
 | `pleural_space_left`/`_right` | `[]` | reserved (declared, not driven) |
 | `intrapulmonary_shunt` | `["IPS"]` (scenarios override, e.g. `["IPSL","IPSR"]`) | reserved (declared, not driven) |
 
-> Note: `gas_echangers` is a (consistent) misspelling of "exchangers" — both the property and the
-> definition key use it, so it is left as-is. Some definitions also carry a correctly-spelled
-> `gas_exchangers` field; the source reads only `gas_echangers`.
+> Note: older definitions store this list under the misspelled key `gas_echangers`; `init_model`
+> maps it onto `gas_exchangers`.
 
 ### Factor inputs (set in the model definition)
 
@@ -281,7 +280,7 @@ From `term_neonate.json`:
   "lungs": ["ALL", "ALR"],
   "left_lung": ["ALL"],
   "right_lung": ["ALR"],
-  "gas_echangers": ["GASEX_LL", "GASEX_RL"],
+  "gas_exchangers": ["GASEX_LL", "GASEX_RL"],
   "intrapulmonary_shunt": ["IPSL", "IPSR"],
   "el_lungs_factor": 1.0,
   "el_thorax_factor": 1.0,
