@@ -45,7 +45,8 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 | `atrial_septal_width` | `3.0` | mm | FO channel length |
 | `ventricular_septal_width` | `5.0` | mm | VSD channel length |
 | `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
-| `discharge_coeff` | `0.8` | — | orifice discharge coefficient for the Bernoulli term (scales the effective radius, as in Pda) |
+| `discharge_coeff_fo` | `0.7` | — | FO discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (flap valve, between funnel and sharp edge) |
+| `discharge_coeff_vsd` | `0.64` | — | VSD discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (sharp-edged hole) |
 | `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
 | `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula; read each step from `LA.viscosity` (fallback 6.0), so it follows the blood like `Pda` |
 
@@ -128,7 +129,7 @@ gradient as ΔP = 4v². On top of the Poiseuille resistance each defect carries 
 orifice term as [Pda](./Pda.md), from the shared [`helpers/Orifice.js`](../helpers/Orifice.js):
 
 ```
-ΔP = R·Q + B·Q²,    B = K_BERNOULLI / A_eff²,   A_eff from diameter and discharge_coeff (0.8)
+ΔP = R·Q + B·Q²,    B = K_BERNOULLI / A_eff²,   A_eff = Cd · π(d/2)²  (Cd: FO 0.7, VSD 0.64)
 ```
 
 The quadratic term is linearised semi-implicitly as a flow-dependent resistance `B·|Q_prev|`

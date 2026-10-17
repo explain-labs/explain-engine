@@ -7,12 +7,13 @@
 // With ρ = 1060 this is ≈ 3.976e-6, i.e. ΔP ≈ 4·v², the textbook modified-Bernoulli form.
 export const K_BERNOULLI = 1060.0 * 3.75e-9;
 
-// B for an orifice of the given anatomic diameter (mm). The discharge coefficient cd scales the
-// effective RADIUS (r_eff = cd · d/2), so A_eff = cd² · A. Returns 0 for a closed orifice; callers
-// decide what a closed orifice means for them.
+// B for an orifice of the given anatomic diameter (mm). The discharge coefficient cd is the standard
+// one: the vena-contracta area over the anatomic area, A_eff = cd · A, so B ∝ 1/cd² and the jet
+// (Doppler) velocity is Q/(cd·A). Typical cd: ~0.6-0.65 sharp-edged hole, ~0.9 smooth funnel.
+// Returns 0 for a closed orifice; callers decide what a closed orifice means for them.
 export function orifice_b(diameter_mm, cd) {
-  const r_eff_m = cd * diameter_mm * 0.0005; // effective orifice radius (mm/2 → m)
-  const area_eff = Math.PI * r_eff_m * r_eff_m;
+  const r_m = diameter_mm * 0.0005; // anatomic orifice radius (mm/2 → m)
+  const area_eff = cd * Math.PI * r_m * r_m;
   return area_eff > 0 ? K_BERNOULLI / (area_eff * area_eff) : 0.0;
 }
 

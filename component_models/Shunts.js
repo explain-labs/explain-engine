@@ -23,9 +23,11 @@ export class Shunts extends BaseModelClass {
     this.atrial_septal_width = 3.0; // width of the atrial septum in mm
     this.ventricular_septal_width = 5.0; // width of the ventricular septum in mm
     this.fo_lr_factor = 10.0;
-    // discharge coefficient of the FO and VSD orifices (vena contracta), as in Pda: scales the
-    // effective orifice radius in the Bernoulli loss (see helpers/Orifice.js)
-    this.discharge_coeff = 0.8;
+    // discharge coefficients (vena-contracta area / anatomic area, A_eff = Cd · A) of the orifices in
+    // the Bernoulli loss (see helpers/Orifice.js): the FO flap is between a funnel and a sharp edge,
+    // a VSD is a sharp-edged hole
+    this.discharge_coeff_fo = 0.7;
+    this.discharge_coeff_vsd = 0.64;
     this.viscosity = 6.0; // blood viscosity (cP), read each step from the left atrium (like Pda reads AAR); 6.0 if absent
 
     this.ips_res = 5000; // resistance of the left intrapulmonary shunt in mmHg * s / L
@@ -119,8 +121,8 @@ export class Shunts extends BaseModelClass {
     // orifice (Bernoulli) loss on top of the viscous one: ΔP = R·Q + B·Q². Like Pda, the quadratic
     // term is linearised semi-implicitly as a flow-dependent resistance B·|Q_prev|, which is
     // unconditionally stable (the explicit r_k·Q² form diverges for restrictive defects)
-    this.bernoulli_b_fo = orifice_b(this.diameter_fo, this.discharge_coeff);
-    this.bernoulli_b_vsd = orifice_b(this.diameter_vsd, this.discharge_coeff);
+    this.bernoulli_b_fo = orifice_b(this.diameter_fo, this.discharge_coeff_fo);
+    this.bernoulli_b_vsd = orifice_b(this.diameter_vsd, this.discharge_coeff_vsd);
 
     // transfer the resistances to the models. The foramen ovale is two resistors in parallel
     // (LA->RAIVCI and LA->RASVC); each is half of the orifice, so it gets twice the viscous

@@ -101,8 +101,8 @@ export class Pda extends BaseModelClass {
     // discharge_coeff: effective vena-contracta contraction of the pulmonary-end orifice (Cd, 0..1).
     // The Bernoulli coefficient uses the *effective* orifice area A_eff = Cd · A_pa, so B scales as
     // 1/Cd². This is the single tuning knob for peak jet velocity (lower Cd → tighter jet → higher
-    // velocity). Cd ≈ 0.8 is typical for a smooth converging duct.
-    this.discharge_coeff = 0.8;
+    // velocity). Cd ≈ 0.9 is typical for a smooth converging duct (funnel from the aortic ampulla).
+    this.discharge_coeff = 0.9;
 
     // diameter_drug_factor: patency multiplier owned by the Drugs model (1.0 = neutral). Prostaglandin
     // E1 (alprostadil) drives this above 1.0 to hold the duct open in duct-dependent CHD; it multiplies
