@@ -89,7 +89,7 @@ Core physics params (`el_base`, `u_vol`, `el_k`, `r_for`, `r_back`, `r_k`, …) 
 
 ### Entries are full state snapshots, not pure config
 
-This is the most important thing to understand about the format. A `models` entry is **not** a clean config block — it is a serialized dump of the live object, including computed outputs: `*_eff` effective values, `vol`, `pres`/`pres_in`/`pres_tm`, `flow`/`flow_forward`/`flow_backward`, and the full blood composition (`to2`, `tco2`, `ph`, `pco2`, `po2`, `so2`, `hco3`, `be`, `solutes`, `drugs`, `temp`, `viscosity`). `init_model` re-seeds these computed fields straight from the entry, which is why `model_time_total` is non-zero and a loaded scenario **resumes mid-run** at a settled steady state rather than starting from a transient. Authoring a scenario by hand means setting these consistently (or accepting a startup transient); the normal workflow is to let the engine settle, then save the snapshot.
+This is the most important thing to understand about the format. A `models` entry is **not** a clean config block — it is a serialized dump of the live object, including computed outputs: `*_eff` effective values, `vol`, `pres`/`pres_in`, `flow`/`flow_forward`/`flow_backward`, and the full blood composition (`to2`, `tco2`, `ph`, `pco2`, `po2`, `so2`, `hco3`, `be`, `solutes`, `drugs`, `temp`, `viscosity`). `init_model` re-seeds these computed fields straight from the entry, which is why `model_time_total` is non-zero and a loaded scenario **resumes mid-run** at a settled steady state rather than starting from a transient. Authoring a scenario by hand means setting these consistently (or accepting a startup transient); the normal workflow is to let the engine settle, then save the snapshot.
 
 ### Example — a `Resistor` entry (verbatim from `term_neonate.json`)
 
@@ -146,7 +146,7 @@ In `term_neonate.json` the blood compartments are `BloodVessel` (a `BloodCapacit
   "u_vol_factor_ps": 1, "el_base_factor_ps": 1, "el_k_factor_ps": 1,
   "u_vol_factor_scaling_ps": 1, "el_base_factor_scaling_ps": 1, "el_k_factor_scaling_ps": 1,
 
-  "vol": 0.006732, "pres": 68.105, "pres_in": 70.524, "pres_tm": 72.942,
+  "vol": 0.006732, "pres": 68.105, "pres_in": 70.524,
   "el_eff": 20547.20, "u_vol_eff": 0.0033, "el_k_eff": 0,
 
   "temp": 37, "viscosity": 6,

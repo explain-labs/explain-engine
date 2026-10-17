@@ -34,7 +34,6 @@ export class Capacitance extends BaseModelClass {
     this.vol = 0.0; // volume v(t) (L)
     this.pres = 0.0; // pressure p1(t) (mmHg)
     this.pres_in = 0.0; // recoil pressure of the elastance (mmHg)
-    this.pres_tm = 0.0; // transmural pressure (mmHg)
 
     // local variables
     this.el_eff = 0.0; // calculated elastance (mmHg/L)
@@ -87,9 +86,6 @@ export class Capacitance extends BaseModelClass {
     // is also positive below U, where it would push the wrong way and bend the P-V curve back up
     const _s = this.vol - this.u_vol_eff;
     this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
-
-    // calculate the transmural pressure
-    this.pres_tm = this.pres_in - this.pres_ext;
 
     // calculate the total pressure by incorporating the external pressures
     this.pres = this.pres_in + this.pres_ext;

@@ -30,7 +30,6 @@ All capacitance properties are available. See the Capacitance base model for the
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 
 ### Blood composition (unique to BloodCapacitance)
 
@@ -102,7 +101,7 @@ BloodCapacitance does not override `calc_model()` -- it inherits the Capacitance
 
 1. `calc_elastances()` -- compute effective elastance from base + all factor tiers
 2. `calc_volumes()` -- compute effective unstressed volume from base + all factor tiers
-3. `calc_pressure()` -- compute recoil, transmural, and total pressure
+3. `calc_pressure()` -- compute recoil (`pres_in`) and total pressure
 
 ## Example definition (JSON)
 

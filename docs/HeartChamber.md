@@ -37,7 +37,6 @@ The `Heart` model also applies contractility (`cont_factor_left/right`) and rela
 | `vol` | L | Current blood volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 | `pres_ext` | mmHg | External pressure (non-persistent, e.g., pericardial pressure) |
 
 ### ANS properties (unique to HeartChamber)

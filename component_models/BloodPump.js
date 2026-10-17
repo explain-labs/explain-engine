@@ -47,9 +47,6 @@ export class BloodPump extends BloodCapacitance {
     const _s = this.vol - this.u_vol_eff;
     this.pres_in = (_s > 0.0 ? this.el_k_eff * _s * _s : 0.0) + this.el_eff * _s;
 
-    // calculate the transmural pressure
-    this.pres_tm = this.pres_in - this.pres_ext;
-
     // calculate the total pressure by incorporating the external pressures
     this.pres = this.pres_in + this.pres_ext + this.pres_cc + this.pres_mus;
 

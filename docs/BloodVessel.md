@@ -31,7 +31,7 @@ Each model step executes in this order:
 2. **`calc_elastances()`** -- compute effective elastance with ANS and resistance-elastance coupling
 3. **Update resistors** -- push the calculated values to all internal `Resistor` objects
 4. **`calc_volumes()`** -- compute effective unstressed volume (inherited from Capacitance)
-5. **`calc_pressure()`** -- compute recoil, transmural, and total pressure (inherited from Capacitance)
+5. **`calc_pressure()`** -- compute recoil (`pres_in`) and total pressure (inherited from Capacitance)
 7. **`get_flows()`** -- sum forward and backward flows from all internal resistors
 
 ## Properties
@@ -59,7 +59,6 @@ Each model step executes in this order:
 | `vol` | L | Current blood volume in the vessel |
 | `pres` | mmHg | Total pressure (recoil + external) |
 | `pres_in` | mmHg | Recoil pressure from elastance |
-| `pres_tm` | mmHg | Transmural pressure (recoil - external) |
 | `flow` | L/s | Net flow (forward - backward) |
 | `flow_forward` | L/s | Total forward flow across all input resistors |
 | `flow_backward` | L/s | Total backward flow across all input resistors |
@@ -183,7 +182,6 @@ Pressure is calculated by the inherited `Capacitance.calc_pressure()`:
 
 ```
 pres_in = el_k_eff * (vol - u_vol_eff)^2 + el_eff * (vol - u_vol_eff)
-pres_tm = pres_in - pres_ext
 pres    = pres_in + pres_ext
 ```
 

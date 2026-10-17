@@ -43,7 +43,6 @@ See [`Capacitance`](./Capacitance.md) for the full list and the factor system. K
 | `vol` | L | Current volume (computed) |
 | `pres` | mmHg | Total pressure (computed) |
 | `pres_in` | mmHg | Recoil pressure (computed) |
-| `pres_tm` | mmHg | Transmural pressure (computed) |
 
 `GasCapacitance` also re-initializes `fixed_composition` to `false` in its own constructor.
 

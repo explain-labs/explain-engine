@@ -32,7 +32,6 @@ A compartment whose elastance varies over time between a minimum (`el_min`) and 
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 | `pres_ext` | mmHg | External pressure (non-persistent, resets each step) |
 
 ### Blood composition (unique to BloodTimeVaryingElastance)

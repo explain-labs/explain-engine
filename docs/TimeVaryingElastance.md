@@ -50,7 +50,6 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
 | `pres_in` | mmHg | Internal recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure (`pres_in − pres_ext`) |
 | `el_min_eff` | mmHg/L | Effective minimal elastance after the factor layers |
 | `el_max_eff` | mmHg/L | Effective maximal elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
@@ -86,7 +85,6 @@ p_ms = (vol − u_vol_eff) · el_max_eff                                  (end-s
 p_ed = el_k_eff · s² · [s > 0] + el_min_eff · s,  s = vol − u_vol_eff   (end-diastolic, non-linear)
 pres_in = (p_ms − p_ed) · act_factor + p_ed
 pres    = pres_in + pres_ext                                          (total)
-pres_tm = pres_in − pres_ext                                          (transmural)
 pres_ext := 0                                                         (external pressure is non-persistent)
 ```
 

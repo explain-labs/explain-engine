@@ -49,7 +49,6 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `vol` | L | Current volume |
 | `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
 | `pres_in` | mmHg | Internal recoil pressure of the elastance |
-| `pres_tm` | mmHg | Transmural pressure (`pres_in − pres_ext`) |
 | `el_eff` | mmHg/L | Effective elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
 | `el_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
@@ -81,7 +80,6 @@ plus atelectasis) could otherwise produce a negative unstressed volume. Then res
 ```
 s       = vol − u_vol_eff
 pres_in = el_k_eff · s² · [s > 0] + el_eff · s
-pres_tm = pres_in − pres_ext                 (transmural)
 pres    = pres_in + pres_ext                 (total)
 pres_ext := 0                                (external pressure is non-persistent)
 ```

@@ -65,7 +65,6 @@ Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
 | `vol` | L | Container volume (`vol_extra + Σ contained.vol`) |
 | `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
 | `pres_in` | mmHg | Internal recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure (`pres_in − pres_ext`) |
 | `el_eff` | mmHg/L | Effective elastance after the factor layers |
 | `u_vol_eff` | L | Effective unstressed volume after the factor layers |
 | `el_k_eff` | unitless | Effective non-linear coefficient after the factor layers |
@@ -94,7 +93,6 @@ Then resets the non-persistent `u_vol_factor` to `1.0`. Members are looked up by
 
 ```
 pres_in = el_k_eff · (vol − u_vol_eff)² + el_eff · (vol − u_vol_eff)
-pres_tm = pres_in − pres_ext
 pres    = pres_in + pres_ext
 for each contained component (existing & enabled):  component.pres_ext += pres
 pres_ext := 0

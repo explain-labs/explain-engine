@@ -15,7 +15,7 @@ It inherits the full capacitance cycle, the blood-composition mixing in [`BloodC
 
 ## What it models
 
-A pumped blood chamber. Its own recoil/transmural pressure is computed exactly as a `BloodCapacitance`, but in addition it imposes a **pump pressure** on a connected resistor: a flow-dependent head-flow (H-Q) characteristic in centrifugal mode, or an integral flow-source controller in roller mode. The negative external pressure creates the pressure gradient that moves blood through the resistor, i.e. the pump head.
+A pumped blood chamber. Its own recoil pressure is computed exactly as a `BloodCapacitance`, but in addition it imposes a **pump pressure** on a connected resistor: a flow-dependent head-flow (H-Q) characteristic in centrifugal mode, or an integral flow-source controller in roller mode. The negative external pressure creates the pressure gradient that moves blood through the resistor, i.e. the pump head.
 
 ## Properties
 
@@ -40,7 +40,6 @@ Plus the inherited capacitance configuration (`u_vol`, `el_base`, `el_k`, `pres_
 |---|---|---|
 | `pump_pressure` | mmHg | Pump drive = `−head` (centrifugal H-Q) or `−`roller-controller output |
 | `pres_in` | mmHg | Recoil pressure |
-| `pres_tm` | mmHg | Transmural pressure |
 | `pres` | mmHg | Total pressure incl. external pressures |
 
 ### Local references (`_`-prefixed)
@@ -53,7 +52,6 @@ Plus the inherited capacitance configuration (`u_vol`, `el_base`, `el_k`, `pres_
 
 ```
 pres_in = el_k_eff·s²·[s > 0] + el_eff·s,   s = vol − u_vol_eff
-pres_tm = pres_in − pres_ext
 pres    = pres_in + pres_ext + pres_cc + pres_mus
                                                   # then pres_ext, pres_cc, pres_mus reset to 0
 
@@ -73,7 +71,7 @@ independent), driving the driven resistor's **downstream** node. The connector w
 
 ## Status
 
-> ⚠️ **Currently unused.** No scenario instantiates a `BloodPump`. The ECLS pump (`ECLS_PUMP`) is a [`BloodVessel`](./BloodVessel.md) driven directly by the [`Ecls`](./Ecls.md) device, which carries the same H-Q pump-pressure logic (kept in sync with this class). The class is registered (exported in `ModelIndex.js`) and UI-exposed, and was made defensively correct — it declares `pres_cc`/`pres_mus`/`inlet`/`outlet`, null-guards the connectors and computes `pres_tm` — so it will not crash or produce `NaN` if instantiated, but it is legacy/standby code.
+> ⚠️ **Currently unused.** No scenario instantiates a `BloodPump`. The ECLS pump (`ECLS_PUMP`) is a [`BloodVessel`](./BloodVessel.md) driven directly by the [`Ecls`](./Ecls.md) device, which carries the same H-Q pump-pressure logic (kept in sync with this class). The class is registered (exported in `ModelIndex.js`) and UI-exposed, and was made defensively correct — it declares `pres_cc`/`pres_mus`/`inlet`/`outlet` and null-guards the connectors — so it will not crash or produce `NaN` if instantiated, but it is legacy/standby code.
 
 ## Pump characteristic (H-Q coefficient fit)
 
