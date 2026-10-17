@@ -370,7 +370,7 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
   // body redistributes + some leaves, so 1-2 iters converge). Uses a custom step.
   if (targets.blood_volume != null && model.models.Circulation) {
     const bloodComps = Object.entries(model.models).filter(
-      ([n, x]) => x && typeof x.vol === "number" && x.solutes && Object.keys(x.solutes).length && !n.startsWith("ECLS") && n !== "URINE",
+      ([n, x]) => x && typeof x.vol === "number" && x.solutes && Object.keys(x.solutes).length && !n.startsWith("ECLS") && x.blood_pool !== false && x.is_enabled,
     );
     const c = makeController({
       key: "blood_volume", readKey: "total_blood_volume", target: targets.blood_volume, tol: tol("blood_volume"),

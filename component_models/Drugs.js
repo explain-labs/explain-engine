@@ -312,7 +312,7 @@ export class Drugs extends BaseModelClass {
     this._blood_components = [];
     for (const model_name in this._model_engine.models) {
       const m = this._model_engine.models[model_name];
-      if (m && this._blood_modeltypes.includes(m.model_type) && m.drugs) {
+      if (m && this._blood_modeltypes.includes(m.model_type) && m.drugs && m.blood_pool !== false) {
         this._blood_components.push(m);
         Object.keys(this.drug_defs).forEach((drug) => {
           if (m.drugs[drug] === undefined) m.drugs[drug] = 0.0;

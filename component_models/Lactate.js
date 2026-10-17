@@ -90,7 +90,7 @@ export class Lactate extends BaseModelClass {
       this._blood_components = [];
       for (const name in this._model_engine.models) {
         const m = this._model_engine.models[name];
-        if (m && m.solutes && m.solutes.lact !== undefined) this._blood_components.push(m);
+        if (m && m.solutes && m.solutes.lact !== undefined && m.blood_pool !== false) this._blood_components.push(m);
       }
     }
   }

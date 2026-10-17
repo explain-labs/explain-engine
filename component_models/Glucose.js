@@ -126,7 +126,7 @@ export class Glucose extends BaseModelClass {
   _seed_keys() {
     for (const name in this._model_engine.models) {
       const m = this._model_engine.models[name];
-      if (m && m.solutes && m.solutes.glucose === undefined) {
+      if (m && m.solutes && m.solutes.glucose === undefined && m.blood_pool !== false) {
         m.solutes.glucose = this.glucose_default;
       }
     }

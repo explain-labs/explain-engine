@@ -103,7 +103,7 @@ Each setter updates the reference value on `Blood` and/or pushes a value out to 
 |---|---|
 | `set_temperature(temp, bc_site = "")` | Sets `temp` **directly** on all compartments (or one site); updates `this.temp`. Kept for build-time seeding / manual resets — **not** the runtime thermal path (see below) |
 | `set_perfusion_target(core)` | Sets `body_temp = core` on every compartment except those with `temp_ext_override` (device-controlled). The effector channel [`Thermoregulation`](./Thermoregulation.md) drives each update; blood then warms toward it over `blood_temp_tc` |
-| `get_thermal_state(density, cp)` | Returns `{ c_blood, t_mean }` — the blood pool heat capacity `Σ vol·density·cp` (J/K) and its heat-capacity-weighted mean temperature. Used by Thermoregulation's two-node balance |
+| `get_thermal_state(density, cp)` | Returns `{ c_blood, t_mean }` — the heat capacity of the enabled blood pool `Σ vol·density·cp` (J/K) and its heat-capacity-weighted mean temperature. Used by Thermoregulation's two-node balance |
 | `set_viscosity(viscosity)` | Sets the blood viscosity at the reference Hb by scaling `viscosity_plasma` (e.g. plasma proteins); vessel resistances follow `viscosity / viscosity_ref`. Hb-driven changes need no setter |
 | `set_haldane_coeff(coeff)` | Sets `haldane_coeff` on all compartments; updates `this.haldane_coeff` |
 | `set_P50(p50)` | Sets `P50_0` on all compartments; updates `this.P50_0` (pick the dissociation curve, e.g. fetal vs adult) |

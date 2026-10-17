@@ -55,7 +55,7 @@ export class Blood extends BaseModelClass {
     this._blood_components = [];
     for (const model_name in this._model_engine.models) {
       const model = this._model_engine.models[model_name];
-      if (this.blood_containing_modeltypes.includes(model.model_type)) {
+      if (this.blood_containing_modeltypes.includes(model.model_type) && model.blood_pool !== false) {
         this._blood_components.push(model);
         // propagate the Haldane coefficient and O2-Hb affinity baseline to every blood component
         // (outside the bootstrap guard). P50_0 lets a scenario pick the dissociation curve —
@@ -198,6 +198,7 @@ export class Blood extends BaseModelClass {
     let c_blood = 0.0;
     let ct = 0.0;
     this._blood_components.forEach((model) => {
+      if (!model.is_enabled) return; // disabled compartments (placenta, idle ECLS prime) are not perfused
       const c_i = model.vol * density * cp;
       c_blood += c_i;
       ct += c_i * model.temp;

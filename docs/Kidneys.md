@@ -114,7 +114,9 @@ concentrated in urine).
 
 The `URINE` compartment is a `BloodCapacitance` declared in the Kidneys
 `components` block (auto-instantiated by the base `init_model`), a pure sink with
-no resistor connections (it never feeds back into the circulation).
+no resistor connections (it never feeds back into the circulation). `init_model` sets its
+`blood_pool = false`, so the blood-pool loops (Blood seeding and warming, Lactate clearance,
+Glucose and Drugs seeding) leave it alone.
 
 > **Wiring note.** `KID_CAP` is a component of the `Circulation` model and may be
 > instantiated *after* `Kidneys` in build order, so `_kid_cap` is resolved **lazily**

@@ -5696,6 +5696,7 @@
      "URINE": {
       "name": "URINE",
       "description": "bladder / urine sink",
+      "blood_pool": false,
       "is_enabled": true,
       "model_type": "BloodCapacitance",
       "components": {},

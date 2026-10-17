@@ -16,6 +16,7 @@ export class BloodCapacitance extends Capacitance {
     this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
+    this.blood_pool = true; // false for a non-circulating sink (e.g. URINE): skipped by Blood, Lactate, Glucose and Drugs
 
     // initialize dependent properties unique to a BloodCapacitance
     this.to2 = 0.0; // total oxygen concentration (mmol/l)
