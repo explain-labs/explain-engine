@@ -5949,10 +5949,12 @@
       "components": {},
       "input_model": "AA",
       "input_prop": "po2",
-      "efferents": [],
-      "effect_weight": 1,
+      "efferents": [
+         "EF_MV"
+        ],
+      "effect_weight": -0.15,
       "min_value": 30,
-      "set_value": 80,
+      "set_value": 70.3,
       "max_value": 150,
       "tc": 1,
       "ans_active": true,
