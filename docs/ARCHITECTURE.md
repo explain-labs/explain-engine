@@ -216,6 +216,11 @@ p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling-1)*p
 
 When adding a tunable param, follow this convention so it composes with interventions and scaling.
 
+**⚠️ Two classes compose differently.** Verify before you copy:
+
+- **[`BloodVessel`](./BloodVessel.md)** — most of the circulation — overrides `calc_resistances`/`calc_elastances` and composes **multiplicatively**. The three R layers are multiplied by the ANS multiplier, `r_eff = r · factor · factor_ps · factor_scaling_ps · (1 + (ans_activity − 1)·ans_sens)`. Elastance follows R through the α-coupling: `el_eff = el_base · (el layers) · (R multiplier)^α`. Its `u_vol` uses the inherited additive layers, then is multiplied by the ANS unstressed-volume multiplier.
+- **[`HeartChamber`](./HeartChamber.md)** stays additive but adds extra terms: drug, Mob, load and remodelling factors, plus an ANS term that is *subtracted* for `el_min` (lusitropy).
+
 **⚠️ The scaling-layer suffix is NOT uniform across the engine.** Verify before you copy:
 
 - The **capacitance / resistor / time-varying-elastance** family uses **`*_factor_scaling_ps`** (e.g. `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `r_factor_scaling_ps` in [`Capacitance.js`](../base_models/Capacitance.js) / [`Resistor.js`](../base_models/Resistor.js)).

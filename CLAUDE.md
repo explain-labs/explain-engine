@@ -134,7 +134,9 @@ spread; both fail at module-evaluation time, not at build time.
 combines three multiplier layers additively against the base:
 `p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling-1)*p`, where `_factor` is
 non-persistent (reset to 1.0 each step), `_factor_ps` is the persistent user/scenario layer, and the
-scaling layer belongs to `ModelScaler` alone. Follow this for any new tunable.
+scaling layer belongs to `ModelScaler` alone. Follow this for any new tunable. **Exceptions:**
+`BloodVessel` composes its R and E layers *multiplicatively* (with the ANS multiplier and the α R→E
+coupling), and `HeartChamber` adds drug/Mob/load/remodel/ANS terms. See `ARCHITECTURE.md` §7a.
 
 > ⚠️ **The scaling suffix is not uniform.** The capacitance/resistor/time-varying-elastance family
 > uses `*_factor_scaling_ps`; the diffusor/exchanger family uses `*_factor_scaling` (**no `_ps`**).
