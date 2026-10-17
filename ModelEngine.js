@@ -106,6 +106,14 @@ let rtInterval = 0.015;
 let rtSlowInterval = 1.0;
 let rtSlowCounter = 0.0;
 let rtClock = null;
+// wall-clock pacing of the realtime loop: setInterval ticks are not exact (late timers, a slow tick),
+// so each tick runs the steps the wall clock is owed instead of a fixed batch. The debt is capped at
+// RT_MAX_CATCHUP nominal batches, so a slow machine runs slower than real time instead of spiralling.
+const RT_MAX_CATCHUP = 4;
+let rtLastWall = 0.0; // performance.now() of the previous tick (ms)
+let rtDebt = 0.0; // simulated time owed to the wall clock (s)
+let rtPerfSim = 0.0; // simulated / wall time accumulated for the realtime factor (s)
+let rtPerfWall = 0.0;
 
 // realtime typed data-plane (chart ring + anim snapshot)
 let channel_writer = null;
@@ -486,6 +494,10 @@ const start = function () {
     _post_rt_channels();
     // call the modelStep every rt_interval seconds
     clearInterval(rtClock);
+    rtLastWall = performance.now();
+    rtDebt = rtInterval; // the first tick runs one nominal batch
+    rtPerfSim = 0.0;
+    rtPerfWall = 0.0;
     rtClock = setInterval(_model_step_rt, rtInterval * 1000.0);
     // send status update
     _send({
@@ -979,12 +991,21 @@ const save_state = function() {
 // define the local model functions
 const _model_step_rt = function () {
   try {
-    // so the rt_interval determines how often the model is calculated
-    const noOfSteps = rtInterval / model.modeling_stepsize;
+    // run the steps the wall clock is owed since the previous tick (nominally rtInterval / stepsize)
+    const now = performance.now();
+    const wall = (now - rtLastWall) / 1000.0;
+    rtLastWall = now;
+    rtDebt = Math.min(rtDebt + wall, RT_MAX_CATCHUP * rtInterval);
+    const dt = model.modeling_stepsize;
+    // the small epsilon keeps a tick that is owed exactly n steps from rounding down to n - 1
+    const noOfSteps = Math.floor(rtDebt / dt + 1e-9);
+    rtDebt -= noOfSteps * dt;
     _refresh_model_list();
     for (let i = 0; i < noOfSteps; i++) {
       _model_step();
     }
+    rtPerfSim += noOfSteps * dt;
+    rtPerfWall += wall;
 
     // fast stream
     if (channel_writer && model.DataCollector && !model.DataCollector.legacy_mode) {
@@ -999,10 +1020,13 @@ const _model_step_rt = function () {
       _get_model_data_rt();
     }
 
-    // get slow model data
+    // get slow model data, with the realtime factor (simulated / wall time) since the last report
     if (rtSlowCounter > rtSlowInterval) {
       rtSlowCounter = 0;
       _get_model_data_rt_slow();
+      if (rtPerfWall > 0.0) postMessage({ type: "rt_perf", message: "", payload: rtPerfSim / rtPerfWall });
+      rtPerfSim = 0.0;
+      rtPerfWall = 0.0;
     }
     rtSlowCounter += rtInterval;
   } catch (err) {
