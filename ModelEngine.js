@@ -609,7 +609,8 @@ const tune_model = function (payload) {
 };
 
 const set_property = function (new_prop_value) {
-  _get_task_scheduler()?.add_task(new_prop_value);
+  const err = _get_task_scheduler()?.add_task(new_prop_value);
+  if (err) _send_error("set_property", err);
 };
 
 const get_property = function (prop) {
@@ -665,7 +666,8 @@ const get_model_types = function () {
 }
 
 const call_function = function (new_function_call) {
-  _get_task_scheduler()?.add_function_call(new_function_call);
+  const err = _get_task_scheduler()?.add_function_call(new_function_call);
+  if (err) _send_error("call_function", err);
 };
 
 const clear_watchlist = function () {
