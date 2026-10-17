@@ -122,7 +122,7 @@ export class Brain extends BaseModelClass {
     this._oxy = null;
   }
 
-  init_model(args) {
+  init_model(args = []) {
     super.init_model(args);
     this.icp = this.icp_baseline;
   }

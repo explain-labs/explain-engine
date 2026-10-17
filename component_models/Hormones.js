@@ -145,7 +145,7 @@ export class Hormones extends BaseModelClass {
     this._plasma = null;
   }
 
-  init_model(args) {
+  init_model(args = []) {
     // base applies args (no components on this model)
     super.init_model(args);
   }
