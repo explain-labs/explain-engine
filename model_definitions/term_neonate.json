@@ -5603,10 +5603,10 @@
     "model_type": "Breathing",
     "components": {},
     "breathing_enabled": true,
-    "minute_volume_ref": 0.25254138523405295,
+    "minute_volume_ref": 0.2399143159723503,
     "minute_volume_ref_factor": 1,
     "minute_volume_ref_scaling_factor": 1,
-    "vt_rr_ratio": 0.00015145976329288975,
+    "vt_rr_ratio": 0.00014388677512824525,
     "vt_rr_ratio_factor": 1,
     "vt_rr_ratio_scaling_factor": 1,
     "rmp_gain_max": 100,
@@ -5637,19 +5637,19 @@
     "model_type": "Metabolism",
     "components": {},
     "met_active": true,
-    "vo2": 8.1,
+    "vo2": 7.288,
     "vo2_factor": 1,
     "vo2_temp_factor": 1,
     "resp_q": 0.8,
     "metabolic_active_models": {
-     "RLB": 0.15,
-     "INT_CAP": 0.15,
-     "LS_CAP": 0.1,
-     "KID_CAP": 0.1,
-     "RUB": 0.1,
-     "AA": 0.005,
-     "AD": 0.01,
-     "BR_CAP": 0.453
+     "RLB": 0.14045,
+     "INT_CAP": 0.14045,
+     "LS_CAP": 0.09363,
+     "KID_CAP": 0.09363,
+     "RUB": 0.09363,
+     "AA": 0.00468,
+     "AD": 0.00936,
+     "BR_CAP": 0.42417
     }
    },
    "Thermoregulation": {
@@ -5673,7 +5673,7 @@
     "glucose_running": true,
     "glu_use_rate": 0.03,
     "hgp_rate": 0.03,
-    "glucose_setpoint": 4
+    "glucose_setpoint": 3.998
    },
    "Lactate": {
     "name": "Lactate",
