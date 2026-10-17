@@ -72,7 +72,7 @@ Two neutral-by-default hooks were added to `Kidneys` for this layer (see [`Kidne
 | `svr_factor` / `svr_ven_factor` | applied systemic arteriolar / venular constriction factor |
 | `efferent_factor` | applied renal efferent `r_factor_ps` |
 | `na_reabs_factor` / `k_reabs_factor` / `water_reabs_factor` | applied Kidneys reabsorption factors |
-| `sensed_perfusion` / `sensed_volume` / `sensed_na` / `sensed_osmolality` / `sensed_k` | sensor read-outs |
+| `sensed_perfusion` / `sensed_volume` / `sensed_na` / `sensed_osmolality` / `sensed_k` | sensor read-outs (`sensed_perfusion` is the mean `KID_ART.pres` over each 1 s update, integrated every step) |
 
 ## Configuration & calibration
 Anchor `perfusion_setpoint` ≈ baseline `KID_ART.pres` (neonate ≈ 40, adult ≈ 82 mmHg),
