@@ -7,8 +7,10 @@ const kw              = 2.5119e-8; // water dissociation constant (mmol²/L², p
 const kc              = 7.94328235e-4; // carbonic acid dissociation constant
 const kd              = 6.0255959e-8; // bicarbonate dissociation constant
 const alpha_co2p      = 0.03067; // CO2 solubility coefficient
-const left_hp_wide    = 5.848931925e-6; // lower bound for H⁺ concentration
-const right_hp_wide   = 3.16227766017e-4; // upper bound for H⁺ concentration
+const left_hp_wide    = 3.16227766017e-6; // lower bound for H⁺ concentration (mmol/L): pH 8.5
+const right_hp_wide   = 1.0e-3; // upper bound for H⁺ concentration (mmol/L): pH 6.0. The wide window
+// must hold every state the circulation can reach: a solve outside it fails and the gases keep their
+// last value (it was pH 6.5-8.23; an acute acid load below 6.5 then froze the gases for good)
 const delta_ph_limits = 0.1; // delta for pH limits
 const n               = 2.7; // Hill coefficient
 const alpha_o2        = 1.38e-5; // O2 solubility coefficient
@@ -38,8 +40,8 @@ let log10_p50 = 0;
 let P50_n = 0;
 let left_o2 = 0; // lower bound for pO2
 let right_o2 = 800.0; // upper bound for pO2
-let left_hp = 5.848931925e-6; // lower bound for H⁺ concentration
-let right_hp = 3.16227766017e-4; // upper bound for H⁺ concentration
+let left_hp = left_hp_wide; // lower bound for H⁺ concentration
+let right_hp = right_hp_wide; // upper bound for H⁺ concentration
 
 // -----------------------------------------------------------------------------
 // State variables
