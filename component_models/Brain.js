@@ -128,6 +128,9 @@ export class Brain extends BaseModelClass {
     // a scenario that stores its baseline (cbf_setpoint, cbv0) is neutral from the first step, without
     // a warm-up re-seed whose result depends on when the scenario was loaded
     this._seeded = this.cbf_setpoint > 0.0 && this.cbv0 > 0.0;
+    // start the flow smoother at the stored baseline, not at one pulsatile sample (which would kick
+    // the integrator at the first step)
+    if (this._seeded) this._cbf_smooth = this.cbf_setpoint;
   }
 
   calc_model() {
