@@ -51,6 +51,9 @@ const model_types_cached = [...new Set(available_models.map((mt) => mt.model_typ
 // publish the merged map so composite models can instantiate sub-components by model_type
 set_model_registry(available_model_map);
 const ENABLE_STEP_ERROR_GUARD = true;
+// step_model errors per model name since the last build. A model that throws usually throws on
+// every step (2000 per simulated second at 0.5 ms), so only the first one per model is reported.
+let step_errors = {};
 
 const _get_data_collector = function () {
   return model?.DataCollector || null;
@@ -262,6 +265,9 @@ const build = function (model_definition) {
 
   // stop all timers
   clearInterval(rtClock);
+
+  // re-arm the step error report for the new model
+  step_errors = {};
 
   // clear the current model object
   model = {
@@ -917,8 +923,13 @@ const _model_step = function () {
       try {
         model_component.step_model();
       } catch(e) {
-        console.error("Step model error: ", model_component.name, e);
-        _send_error(`step_model error in ${model_component.name}: ${e.message}`, e);
+        // report the first error per model only; later ones are counted, not sent
+        const count = (step_errors[model_name] || 0) + 1;
+        step_errors[model_name] = count;
+        if (count === 1) {
+          console.error("Step model error: ", model_component.name, e);
+          _send_error(`step_model error in ${model_component.name}: ${e.message} (further errors from this model are not reported until the next build)`, e);
+        }
       }
     } else {
       model_component.step_model();
