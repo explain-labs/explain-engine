@@ -45,6 +45,7 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 | `atrial_septal_width` | `3.0` | mm | FO channel length |
 | `ventricular_septal_width` | `5.0` | mm | VSD channel length |
 | `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
+| `discharge_coeff` | `0.8` | — | orifice discharge coefficient for the Bernoulli term (scales the effective radius, as in Pda) |
 | `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
 | `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula; read each step from `LA.viscosity` (fallback 6.0), so it follows the blood like `Pda` |
 
@@ -55,6 +56,8 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 | `res_fo` | mmHg·s/L | computed FO resistance (the whole orifice, before `fo_lr_factor`; each of the two resistors gets `2·res_fo`) |
 | `res_vsd` | mmHg·s/L | computed VSD resistance |
 | `flow_fo` | L/s | combined FO flow (`LA_RAIVCI.flow + LA_RASVC.flow`) |
+| `bernoulli_b_fo`, `bernoulli_b_vsd` | mmHg·s²/L² | orifice coefficient B of the whole FO / the VSD |
+| `velocity_fo_doppler`, `velocity_vsd_doppler` | m/s | modified-Bernoulli jet velocity (signed with the flow) |
 | `flow_vsd` | L/s | VSD flow |
 | `velocity_fo` | m/s | FO orifice velocity from combined flow |
 | `velocity_vsd` | m/s | VSD orifice velocity |
@@ -117,6 +120,30 @@ R = (8 · μ · L) / (π · r⁴)        in Pa·s/m³   →  × 0.00000750062  �
 
 with diameter/length in mm and viscosity in cP. Returns the sentinel `1e8` (no flow) when
 `diameter ≤ 0` or `length ≤ 0`. (This is a private copy of the same formula [Pda](./Pda.md) uses.)
+
+## Orifice (Bernoulli) loss
+
+A restrictive FO or VSD is limited by its orifice, not only by viscous friction: Doppler measures the
+gradient as ΔP = 4v². On top of the Poiseuille resistance each defect carries the same quadratic
+orifice term as [Pda](./Pda.md), from the shared [`helpers/Orifice.js`](../helpers/Orifice.js):
+
+```
+ΔP = R·Q + B·Q²,    B = K_BERNOULLI / A_eff²,   A_eff from diameter and discharge_coeff (0.8)
+```
+
+The quadratic term is linearised semi-implicitly as a flow-dependent resistance `B·|Q_prev|`
+(unconditionally stable). For the FO each of the two parallel resistors carries half the area, so
+it gets `2·res_fo + 4·B_fo·|q_i|`; the VSD gets `res_vsd + B_vsd·|q|`. `velocity_fo_doppler` /
+`velocity_vsd_doppler` give the jet velocity `√(B·Q²/4)` with the sign of the flow.
+
+Effect on `term_neonate` with a VSD opened (60 s):
+
+| VSD | Qp:Qs | peak LV−RV | peak jet (4v²) | before the orifice term |
+|---|---|---|---|---|
+| 3 mm | 1.34 | 26 mmHg | 2.5 m/s (25 mmHg) | Qp:Qs 1.98, peak gradient 14 mmHg |
+| 5 mm | 1.59 | 31 mmHg | 2.8 m/s (32 mmHg) | Qp:Qs 1.97, peak gradient 2 mmHg |
+
+Before, every VSD from 3 mm up behaved as unrestrictive; now the shunt depends on the defect size.
 
 ## Example definition (JSON)
 
