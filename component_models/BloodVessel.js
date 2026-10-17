@@ -66,7 +66,7 @@ export class BloodVessel extends BloodCapacitance {
   }
 
   // override the parent class method
-  init_model(args={}) {
+  init_model(args = []) {
     // call parent class method
     super.init_model(args);
 

@@ -138,7 +138,7 @@ During diastole (`act_factor = 0`), pressure is determined by `el_min_eff` (and 
 
 ## Mixing logic (`volume_in`)
 
-Overrides `volume_in` to perform composition mixing when blood flows in:
+Overrides `volume_in` to perform composition mixing when blood flows in, through the shared `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), the same as `BloodCapacitance`:
 
 ```
 concentration += ((concentration_from - concentration) * dvol) / vol

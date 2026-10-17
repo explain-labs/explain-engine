@@ -93,7 +93,7 @@ When `act_factor = 0` (diastole), pressure equals `p_ed`. When `act_factor = 1` 
 
 ## Mixing logic (`volume_in`)
 
-Overrides `volume_in` to perform composition mixing when blood flows in, identical to `BloodCapacitance`:
+Overrides `volume_in` to perform composition mixing when blood flows in, through the shared `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), identical to `BloodCapacitance`:
 
 ```
 concentration += ((concentration_from - concentration) * dvol) / vol

@@ -70,7 +70,7 @@ right-shifts P50, reducing O₂ affinity), which is modelled separately via the 
 
 ## Mixing logic (`volume_in`)
 
-BloodCapacitance overrides the `volume_in` method to perform composition mixing when blood flows in from another compartment. For each tracked substance, the mixing uses a linear dilution formula:
+BloodCapacitance overrides the `volume_in` method to perform composition mixing when blood flows in from another compartment. The mixing itself lives in [`helpers/BloodMixing.js`](../helpers/BloodMixing.js) (`mix_blood_in`), shared with `BloodTimeVaryingElastance` and `HeartChamber`. Because it runs after the volume is added, the formula is exact mass balance. For each tracked substance, the mixing uses a linear dilution formula:
 
 ```
 concentration += ((concentration_from - concentration) * dvol) / vol
