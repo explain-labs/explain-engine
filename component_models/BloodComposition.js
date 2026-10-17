@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------------------
 // Constants
 // -----------------------------------------------------------------------------
-const kw              = 2.5119e-11; // water dissociation constant
+const kw              = 2.5119e-8; // water dissociation constant (mmol²/L², pKw 13.6 at 37 °C)
 const kc              = 7.94328235e-4; // carbonic acid dissociation constant
 const kd              = 6.0255959e-8; // bicarbonate dissociation constant
 const alpha_co2p      = 0.03067; // CO2 solubility coefficient
@@ -166,6 +166,7 @@ function _calc_blood_composition_js(bc) {
         bc.pco2 = pco2;
         bc.hco3 = hco3;
         bc.be = be;
+        bc.prev_ph = ph;
     } else {
         //console.log('small limit ab root finding failed in:', bc.name)
         // If the root finding failed, we will use the wide limits
@@ -179,8 +180,13 @@ function _calc_blood_composition_js(bc) {
             bc.pco2 = pco2;
             bc.hco3 = hco3;
             bc.be = be;
+            bc.prev_ph = ph;
         } else {
           console.log('definitive ab root finding failed in:', bc.name)
+          // keep the last valid acid-base state for the O2 curve below (the globals hold the
+          // last root-finding estimate, not a solution)
+          ph = bc.ph > 0 ? bc.ph : 7.4;
+          pco2 = bc.pco2 > 0 ? bc.pco2 : 40.0;
         }
     }
 
@@ -314,8 +320,8 @@ function _brent_root_finding(f, x0, x1, max_iter, tolerance) {
     }
 
     if (
-      new_point < (3 * x0 + x1) / 4 ||
-      new_point > x1 ||
+      // the new point must lie between (3a+b)/4 and b, whichever side a is on
+      (new_point - (3 * x0 + x1) / 4) * (new_point - x1) >= 0 ||
       (mflag && Math.abs(new_point - x1) >= Math.abs(x1 - x2) / 2) ||
       (!mflag && Math.abs(new_point - x1) >= Math.abs(x2 - d) / 2) ||
       (mflag && Math.abs(x1 - x2) < tolerance) ||
