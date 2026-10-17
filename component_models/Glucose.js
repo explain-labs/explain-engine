@@ -50,7 +50,7 @@ export class Glucose extends BaseModelClass {
     this.hgp_rate = 0.03; // hepatic glucose production (default == utilization → neutral at rest)
 
     // set-point + controller dynamics (1.0 = baseline activity)
-    this.glucose_setpoint = 4.0; // mmol/L (~72 mg/dL); auto-seeded to the resting arterial value
+    this.glucose_setpoint = 0.0; // mmol/L; a stored value is kept, <= 0 → auto-seeded to the resting arterial value
     this.insulin_gain = 6.0; // insulin drive per fractional glucose excess
     this.counterreg_gain = 6.0; // counter-regulatory drive per fractional glucose deficit
     this.insulin_tc = 120.0; // s — insulin responds over a couple of minutes
@@ -92,8 +92,10 @@ export class Glucose extends BaseModelClass {
     this._inject = null;
   }
 
-  init_model(args) {
+  init_model(args = []) {
     super.init_model(args);
+    // a scenario that stores its set-point is neutral from the first step, without a warm-up re-seed
+    this._seeded = this.glucose_setpoint > 0.0;
   }
 
   calc_model() {
