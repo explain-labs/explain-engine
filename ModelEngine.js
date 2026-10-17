@@ -430,7 +430,8 @@ const remove_model_from_engine = function (model_name) {
 
 const add_model_to_engine = function (new_model) {
 
-  const base_model = available_models.find(item => item.model_type === new_model.model_type );
+  // same lookup as build(): the merged map, where a custom model overrides a built-in one
+  const base_model = available_model_map[new_model.model_type];
   // make a key value list of the args
   let arg_list = []
   Object.keys(new_model).forEach(arg => {
@@ -448,11 +449,13 @@ const add_model_to_engine = function (new_model) {
       message: `Submodel added to the model`,
       payload: [],
     });
-  } catch {
-    console.log('Failed to add model to engine: ')
+  } catch (e) {
+    console.error('Failed to add model to engine: ', new_model.name, e)
     _send({
       type: "status",
-      message: `ERROR: failed to add model`,
+      message: base_model
+        ? `ERROR: failed to add model ${new_model.name}: ${e.message}`
+        : `ERROR: failed to add model ${new_model.name}: model type ${new_model.model_type} not found`,
       payload: [],
     });
   }
