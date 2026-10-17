@@ -74,7 +74,11 @@ export class GasCapacitance extends Capacitance {
   calc_model() {
     // series dead space: heat and water act on the bulk; replay the same change on every sub-tank
     const seg = this._seg_active();
-    const pre = seg ? GasCapacitance.SPECIES.map((k) => this[k]) : null;
+    let pre = null;
+    if (seg) {
+      pre = this._seg_pre;
+      pre[0] = this.co2; pre[1] = this.cco2; pre[2] = this.cn2; pre[3] = this.ch2o; pre[4] = this.cother;
+    }
 
     // add heat to the gas
     this.add_heat();
@@ -156,7 +160,9 @@ export class GasCapacitance extends Capacitance {
 
     // series dead space: the parcel enters the sub-tank chain at the end it arrives from
     if (this._seg_active()) {
-      this._seg_receive(comp_from, dvol, [in_co2, in_cco2, in_cn2, in_ch2o, in_cother]);
+      const c_in = this._seg_in;
+      c_in[0] = in_co2; c_in[1] = in_cco2; c_in[2] = in_cn2; c_in[3] = in_ch2o; c_in[4] = in_cother;
+      this._seg_receive(comp_from, dvol, c_in);
       this.temp = (this.temp * this.vol + (comp_from.temp - this.temp) * dvol) / this.vol;
       return;
     }
@@ -356,6 +362,12 @@ export class GasCapacitance extends Capacitance {
     this._seg_q = 0.0; // net proximal flow this step (L/s, + = towards distal)
     this._seg_t_rev = 0.0; // time since the proximal flow last reversed (s)
     this._seg_q_sign = 0;
+    // scratch buffers (the hot path allocates nothing): the composition handed out by _seg_take, the
+    // parcel received, the bulk before heat/water, and the exit-first order of the DS sub-tanks
+    this._seg_out = [0, 0, 0, 0, 0];
+    this._seg_in = [0, 0, 0, 0, 0];
+    this._seg_pre = [0, 0, 0, 0, 0];
+    this._seg_order = new Array(n);
   }
 
   _seg_first_ds() {
@@ -371,19 +383,26 @@ export class GasCapacitance extends Capacitance {
   }
 
   _seg_sync_bulk() {
-    const n = this._segs_n, f = this._segs_nt;
-    for (let k = 0; k < 5; k++) {
-      let sum = 0.0;
-      for (let i = f; i < f + n; i++) sum += this._segs[i].c[k];
-      this[GasCapacitance.SPECIES[k]] = sum / n;
+    const n = this._segs_n, f = this._segs_nt, segs = this._segs;
+    let s0 = 0.0, s1 = 0.0, s2 = 0.0, s3 = 0.0, s4 = 0.0;
+    for (let i = f; i < f + n; i++) {
+      const c = segs[i].c;
+      s0 += c[0]; s1 += c[1]; s2 += c[2]; s3 += c[3]; s4 += c[4];
     }
+    this.co2 = s0 / n;
+    this.cco2 = s1 / n;
+    this.cn2 = s2 / n;
+    this.ch2o = s3 / n;
+    this.cother = s4 / n;
   }
 
   _mix(a, va, b, vb) {
-    // concentration of va of a mixed with vb of b
+    // concentration of va of a mixed with vb of b, written IN PLACE into a (no allocation). Every
+    // caller replaces a with the result, and b is never a (it is the next sub-tank or the carry)
     const v = va + vb;
     if (v <= 0.0) return a;
-    return [0, 1, 2, 3, 4].map((k) => (a[k] * va + b[k] * vb) / v);
+    for (let k = 0; k < 5; k++) a[k] = (a[k] * va + b[k] * vb) / v;
+    return a;
   }
 
   _ds_receive(from_distal, dvol, c_in, v_old) {
@@ -393,7 +412,7 @@ export class GasCapacitance extends Capacitance {
     let carry = c_in, amount = dvol;
     for (let s = 0; s < n; s++) {
       const t = this._segs[from_distal ? f + n - 1 - s : f + s];
-      t.c = this._mix(t.c, v, carry, amount);
+      this._mix(t.c, v, carry, amount);
       carry = t.c;
       amount -= keep;
     }
@@ -402,15 +421,15 @@ export class GasCapacitance extends Capacitance {
   _ds_remove(from_distal, dvol, v_old) {
     // dvol leaves one end of the DS chain; every sub-tank shrinks by dvol/n, so gas shifts towards
     // the exit. Uses the old compositions (explicit), exit tank first.
-    const n = this._segs_n, f = this._segs_nt, v = v_old / n;
-    const order = [];
-    for (let s = 0; s < n; s++) order.push(this._segs[from_distal ? f + n - 1 - s : f + s]);
-    const old = order.map((t) => t.c);
-    for (let m = 0; m < n; m++) {
+    // in place, exit tank first: tank m mixes with tank m+1, which is not updated yet, so it still
+    // holds its old composition (the explicit scheme)
+    const n = this._segs_n, f = this._segs_nt, v = v_old / n, order = this._seg_order;
+    for (let s = 0; s < n; s++) order[s] = this._segs[from_distal ? f + n - 1 - s : f + s];
+    for (let m = 0; m + 1 < n; m++) {
       const out = (dvol * (n - m)) / n;
       const inn = (dvol * (n - m - 1)) / n;
       const keepv = Math.max(v - out, 0.0);
-      order[m].c = m + 1 < n ? this._mix(old[m], keepv, old[m + 1], inn) : old[m];
+      this._mix(order[m].c, keepv, order[m + 1].c, inn);
     }
   }
 
@@ -427,7 +446,7 @@ export class GasCapacitance extends Capacitance {
         // rigid lumen: each sub-tank takes the parcel in and passes the same volume on
         for (let i = 0; i < this._segs_nt; i++) {
           const t = this._segs[i];
-          t.c = this._mix(t.c, t.v, carry, dvol);
+          this._mix(t.c, t.v, carry, dvol);
           carry = t.c;
         }
       }
@@ -445,26 +464,33 @@ export class GasCapacitance extends Capacitance {
     const v_old = this.vol + dvol;
     let out;
     if (port === "distal") {
-      out = [...this._segs[this._segs_nt + this._segs_n - 1].c];
+      out = this._seg_copy_out(this._segs[this._segs_nt + this._segs_n - 1].c);
       this._ds_remove(true, dvol, v_old);
       this._seg_q += dvol / this._t;
     } else if (port === "tube") {
       // rigid lumen shifts one parcel towards the tube port, refilled from the first DS sub-tank
-      out = [...this._segs[0].c];
+      out = this._seg_copy_out(this._segs[0].c);
       for (let i = 0; i < this._segs_nt; i++) {
         const t = this._segs[i];
         const next = i + 1 < this._segs_nt ? this._segs[i + 1].c : this._segs[this._segs_nt].c;
-        t.c = this._mix(t.c, Math.max(t.v - dvol, 0.0), next, dvol);
+        this._mix(t.c, Math.max(t.v - dvol, 0.0), next, dvol);
       }
       this._ds_remove(false, dvol, v_old);
       this._seg_q -= dvol / this._t;
     } else {
-      out = [...this._segs[this._segs_nt].c];
+      out = this._seg_copy_out(this._segs[this._segs_nt].c);
       this._ds_remove(false, dvol, v_old);
       this._seg_q -= dvol / this._t;
     }
     this._seg_sync_bulk();
     return out;
+  }
+
+  // copy c into the hand-out scratch buffer (read by the receiver at once, before any other transfer)
+  _seg_copy_out(c) {
+    const o = this._seg_out;
+    o[0] = c[0]; o[1] = c[1]; o[2] = c[2]; o[3] = c[3]; o[4] = c[4];
+    return o;
   }
 
   // composition (mmol/L per species) and volume (L) at the end of this compartment that faces
@@ -475,6 +501,17 @@ export class GasCapacitance extends Capacitance {
       return { c: [...t.c], v: t.rigid ? t.v : this.vol / this._segs_n };
     }
     return { c: GasCapacitance.SPECIES.map((k) => this[k]), v: this.vol };
+  }
+
+  // allocation-free form of _end_conc for the hot path: writes the composition into out, returns the volume
+  _end_conc_into(neighbour, out) {
+    if (this._seg_active()) {
+      const t = this._seg_end_tank(neighbour), c = t.c;
+      out[0] = c[0]; out[1] = c[1]; out[2] = c[2]; out[3] = c[3]; out[4] = c[4];
+      return t.rigid ? t.v : this.vol / this._segs_n;
+    }
+    out[0] = this.co2; out[1] = this.cco2; out[2] = this.cn2; out[3] = this.ch2o; out[4] = this.cother;
+    return this.vol;
   }
 
   // add dn (mmol per species, may be negative) at the end facing neighbour
@@ -489,7 +526,12 @@ export class GasCapacitance extends Capacitance {
       return;
     }
     if (!(this.vol > 0.0)) return;
-    GasCapacitance.SPECIES.forEach((key, k) => (this[key] += dn[k] / this.vol));
+    const v = this.vol;
+    this.co2 += dn[0] / v;
+    this.cco2 += dn[1] / v;
+    this.cn2 += dn[2] / v;
+    this.ch2o += dn[3] / v;
+    this.cother += dn[4] / v;
   }
 
   _seg_end_tank(neighbour) {
