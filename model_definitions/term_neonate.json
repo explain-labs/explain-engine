@@ -6612,9 +6612,21 @@
      },
      "d10": {
       "glucose": 555
+     },
+     "maintenance": {
+      "na": 69.31,
+      "k": 20.6,
+      "ca": 1.252,
+      "cl": 63.9,
+      "mg": 1.868,
+      "phosphates": 14.27,
+      "uma": 88.27
      }
     },
-    "default_volume": 10
+    "default_volume": 10,
+    "maintenance_rate": 1.352,
+    "maintenance_fluid": "maintenance",
+    "maintenance_site": "IVCI"
    },
    "Circulation": {
     "name": "Circulation",
