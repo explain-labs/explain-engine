@@ -67,7 +67,7 @@ Written back to the compartment `bc`:
 | `n` | 2.7 | Hill coefficient |
 | `alpha_o2` | 1.38e-5 | O₂ solubility coefficient (declared) |
 | `gas_constant` | 62.36367 | For the mmol/L → mL conversion factor |
-| `left_hp_wide` / `right_hp_wide` | 5.85e-6 / 3.16e-4 | Wide H⁺ brackets (mmol/L) |
+| `left_hp_wide` / `right_hp_wide` | 3.16e-6 / 1.0e-3 | Wide H⁺ brackets (mmol/L): pH 8.5–6.0. Outside them both solves fail and the gases keep their last value |
 | `left_o2_wide` / `right_o2_wide` | 0 / 800.0 | Wide pO₂ brackets (mmHg) |
 | `delta_ph_limits` | 0.1 | ± window for the narrow pH bracket |
 | `delta_o2_limits` | 10.0 | ± window for the narrow pO₂ bracket |
