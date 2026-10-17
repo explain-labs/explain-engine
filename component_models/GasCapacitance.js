@@ -137,11 +137,14 @@ export class GasCapacitance extends Capacitance {
     // temperature, and add_heat performs the thermal expansion (and matching dilution) once the
     // compartment relaxes toward target_temp. Doing it here as well would double-count.
     //
-    // This is a no-op (k = 1) between compartments at equal pressure, which is every pairing in
-    // the model except the pressurised supplies. Those are all fixed_composition reservoirs whose
-    // volume_out is a no-op, so no donor-side amount is contradicted by rescaling here.
+    // Only a fixed_composition donor (a pressurised supply, e.g. VENT_GASIN) is rescaled: its
+    // volume_out is a no-op, so no donor-side amount is contradicted. Between two ordinary
+    // compartments the donor has already lost dvol·c, so the receiver must gain exactly dvol·c
+    // (k = 1) or moles vanish: every advective transfer crosses a pressure drop, and scaling by
+    // P_to / P_from there loses ~ΔP/P of every species per transfer (about 1 % of VO2 in the
+    // spontaneously breathing term neonate).
     let k = 1.0;
-    if (comp_from.pres > 0.0 && this.pres > 0.0) k = this.pres / comp_from.pres;
+    if (comp_from.fixed_composition && comp_from.pres > 0.0 && this.pres > 0.0) k = this.pres / comp_from.pres;
 
     // every species scales by the same k, so the gas FRACTIONS delivered are unchanged — this
     // corrects molar density only, never composition
