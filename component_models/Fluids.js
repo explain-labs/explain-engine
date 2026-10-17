@@ -11,6 +11,11 @@ export class Fluids extends BaseModelClass {
     this.fluids_temp = 37.0
     this.fluids = {}
     this.default_volume = 10;
+    // continuous maintenance intake (enteral/IV) that replaces what the kidneys excrete, so blood
+    // volume and composition stay steady at rest. 0 = off
+    this.maintenance_rate = 0.0; // mL/kg/h
+    this.maintenance_fluid = "maintenance"; // key in `fluids` (its solutes, mmol/L); missing = water
+    this.maintenance_site = "IVCI"; // blood compartment receiving it
 
     // initialize dependent properties
     
@@ -22,15 +27,17 @@ export class Fluids extends BaseModelClass {
     this._update_counter = 0.0;         // update interval counter (s)
   }
   
-  init_model(args = {}) {
+  init_model(args = []) {
     super.init_model(args)
   }
 
   calc_model() {
     this._update_counter += this._t
     if (this._update_counter > this._update_interval) {
+        const elapsed = this._update_counter;
         this._update_counter = 0;
         this.process_fluid_list();
+        this.process_maintenance(elapsed);
     }
   }
 
@@ -70,6 +77,21 @@ export class Fluids extends BaseModelClass {
       })
     }
   }
+  process_maintenance(elapsed) {
+    if (!(this.maintenance_rate > 0.0)) return;
+    const site = this._model_engine.models[this.maintenance_site];
+    if (!site) return;
+    // mL/kg/h → L over the elapsed time
+    const dvol = (this.maintenance_rate * this._model_engine.weight / 1000.0) * (elapsed / 3600.0);
+    site.volume_in(dvol, {
+      to2: 0.0,
+      tco2: 0.0,
+      temp: this.fluids_temp,
+      solutes: this.fluids[this.maintenance_fluid] ?? {},
+      drugs: {},
+    });
+  }
+
   removeByProperty(arr, propName, valueToRemove) {
     return arr.filter(item => item[propName] > valueToRemove);
   }

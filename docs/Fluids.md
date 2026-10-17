@@ -33,6 +33,9 @@ time has elapsed.
 | `fluids_temp` | °C | Temperature stamped on every administered fluid (default 37.0) |
 | `fluids` | object | Library `{ fluidType: { solute: concentration, … } }` of available fluids |
 | `default_volume` | mL | Default bolus volume offered to the UI |
+| `maintenance_rate` | mL/kg/h | Continuous maintenance intake (default `0` = off) |
+| `maintenance_fluid` | — | Key in `fluids` giving its composition (default `"maintenance"`; missing = water) |
+| `maintenance_site` | — | Compartment receiving it (default `IVCI`) |
 
 ### Local / internal (`_`-prefixed)
 
@@ -83,6 +86,15 @@ resets and `process_fluid_list` runs:
      reaches 0, zero the delta so no further volume is added before the fluid is removed next cycle.
 
 The delivery happens **before** the timer/zeroing, so the final increment is actually administered.
+
+## Maintenance intake — `process_maintenance`
+
+Every update the maintenance fluid flows continuously into `maintenance_site`:
+`dvol = maintenance_rate · weight / 1000 · elapsed / 3600` litres, mixed in with `volume_in` like a
+bolus (no O2/CO2, `fluids_temp`). It stands for enteral feeding / maintenance IV fluid and replaces
+what the kidneys excrete, so blood volume and composition hold at rest. A scenario that sets it to its
+resting urine flow and urine composition is steady by construction; the kidneys then decide whether
+the patient gains or loses volume when perturbed.
 
 ## Notes & caveats
 
