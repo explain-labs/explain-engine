@@ -10560,6 +10560,7 @@
         "p1_ext": 0,
         "p2_ext": 0,
         "fixed_composition": false,
+        "mix_flow": 0.001,
         "r_factor": 1,
         "r_k_factor": 1,
         "r_factor_ps": 1,
@@ -10589,6 +10590,7 @@
         "p1_ext": 0,
         "p2_ext": 0,
         "fixed_composition": false,
+        "mix_flow": 0.001,
         "r_factor": 1,
         "r_k_factor": 1,
         "r_factor_ps": 1,
@@ -10890,6 +10892,7 @@
     "res_upper_airways_factor": 1,
     "res_lower_airways_factor": 1,
     "gex_factor": 1,
+    "dead_space_diffusion": 1e-05,
     "pres_atm": 760,
     "gas_exchangers": [
      "GASEX_LL",
