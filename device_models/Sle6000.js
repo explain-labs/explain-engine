@@ -211,6 +211,23 @@ export class Sle6000 extends Ventilator {
     }
   }
 
+  // the device's own O2 delivery (the O2 control, O2 Boost, OxyGenie): sets the fresh gas only.
+  // A boost delivers more than the set O2, so these paths must not move sle_o2 themselves
+  _deliver_fio2(fio2) {
+    super.set_fio2(fio2);
+  }
+
+  // the generic FiO2 setter, called directly (Resuscitation, scripts, the bot): the O2 control
+  // follows it, so the next sle_apply doesn't put the old O2 back. Like turning the O2 control on
+  // the device, it replaces a running O2 Boost
+  set_fio2(new_fio2) {
+    super.set_fio2(new_fio2);
+    if (this._in_apply) return;
+    this.sle_o2 = sle_clamp("o2", this.fio2 * 100.0);
+    this._o2_boost_base = null;
+    this.o2_boost_remaining = 0.0;
+  }
+
   // the generic setters, called directly (Resuscitation, scripts): the device settings follow them
   set_pc(...args) {
     super.set_pc(...args);
@@ -239,6 +256,16 @@ export class Sle6000 extends Ventilator {
 
   set_hfov_cmv(...args) {
     super.set_hfov_cmv(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
+  set_vc(...args) {
+    super.set_vc(...args);
+    if (!this._in_apply) this._sync_from_generic();
+  }
+
+  set_prvc(...args) {
+    super.set_prvc(...args);
     if (!this._in_apply) this._sync_from_generic();
   }
 
@@ -349,7 +376,7 @@ export class Sle6000 extends Ventilator {
     this.leak_term_max_flow = 5;
     this.term_sens_perc = this.sle_term_sens;
     this.insp_pause = 0.0;
-    if (this._o2_boost_base === null) this.set_fio2(this.sle_o2 / 100.0);
+    if (this._o2_boost_base === null) this._deliver_fio2(this.sle_o2 / 100.0);
 
     // VTV: PIP becomes PIP Max and the working pressure is servoed on Vte (p126); off restores the
     // set PIP, which the volume targeting never changes
@@ -444,7 +471,9 @@ export class Sle6000 extends Ventilator {
   _sync_from_generic() {
     // mirror the generic mode and settings into the device's, clamped to its ranges; the generic
     // ventilator keeps running as set (no _apply_mode), so a device-range clamp only shows
-    const modes = { PC: this.synchronized ? "PTV" : "CMV", PS: "PSV", SIMV: "SIMV", CPAP: "CPAP", HFOV: "HFOV", HFOV_CMV: "HFOV+CMV" };
+    // the SLE6000 has no VC or PRVC: volume-targeted mandatory ventilation is CMV/PTV with VTV on
+    const cmv = this.synchronized ? "PTV" : "CMV";
+    const modes = { PC: cmv, VC: cmv, PRVC: cmv, PS: "PSV", SIMV: "SIMV", CPAP: "CPAP", HFOV: "HFOV", HFOV_CMV: "HFOV+CMV" };
     const mode = modes[this.vent_mode];
     if (!mode || !this.is_enabled) return;
     const set = (k, v) => {
@@ -455,6 +484,7 @@ export class Sle6000 extends Ventilator {
     set("peep", this.peep_cmh2o / MBAR_TO_CMH2O);
     set("pip", (mode === "PSV" ? this.peep_cmh2o + this.ps_cmh2o : this.pip_cmh2o) / MBAR_TO_CMH2O);
     set("o2", this.fio2 * 100.0);
+    if (this.vent_mode === "VC" || this.vent_mode === "PRVC") set("vtv", this.tidal_volume * 1000.0);
     if (mode === "HFOV" || mode === "HFOV+CMV") {
       set("freq", this.hfo_freq);
       set("dp", this.hfo_amplitude_cmh2o / MBAR_TO_CMH2O);
@@ -642,7 +672,7 @@ export class Sle6000 extends Ventilator {
     let v = Math.min(100.0, Math.max(21.0, o2));
     if (round) v = Math.round(v * 2.0) / 2.0;
     this.sle_o2 = v;
-    this.set_fio2(v / 100.0);
+    this._deliver_fio2(v / 100.0);
   }
 
   _oxy_stop() {
@@ -658,7 +688,7 @@ export class Sle6000 extends Ventilator {
       if (this._o2_boost_base === null) {
         this._o2_boost_base = this.sle_o2;
         const boosted = this.sle_o2_boost_inc >= 100 ? 100 : Math.min(100, this.sle_o2 + this.sle_o2_boost_inc);
-        this.set_fio2(boosted / 100.0);
+        this._deliver_fio2(boosted / 100.0);
       }
       this.o2_boost_remaining = Math.max(0.0, this.o2_boost_remaining - this._t);
       if (this.o2_boost_remaining === 0.0) this._end_o2_boost();
@@ -668,7 +698,7 @@ export class Sle6000 extends Ventilator {
   _end_o2_boost() {
     if (this._o2_boost_base === null) return;
     this._o2_boost_base = null;
-    this.set_fio2(this.sle_o2 / 100.0);
+    this._deliver_fio2(this.sle_o2 / 100.0);
   }
 
   // ------------------------------------------------------------------------------------------------
