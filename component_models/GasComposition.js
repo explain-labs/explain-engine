@@ -12,7 +12,10 @@ export function calc_gas_composition(
   const _fn2_dry = 0.794608;
   const _fother_dry = 0.0;
 
-  // calculate the dry gas composition depending on the supplied fio2
+  // calculate the dry gas composition depending on the supplied fio2. The CO2 fraction gives way to
+  // the O2 fraction, so fio2 + fico2 never exceeds 1 (at fio2 1.0 the N2 fraction would go negative)
+  fio2 = Math.min(Math.max(fio2, 0.0), 1.0);
+  fico2 = Math.min(Math.max(fico2, 0.0), 1.0 - fio2);
   let new_fo2_dry = fio2;
   let new_fco2_dry = fico2;
   let new_fn2_dry = (_fn2_dry * (1.0 - (fio2 + fico2))) / (1.0 - (_fo2_dry + _fco2_dry));
