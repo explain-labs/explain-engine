@@ -65,11 +65,21 @@ export class HeartFunction extends BaseModelClass {
     // ---- acute (afterload mismatch / over-dilation) --------------------
     this.cont_tc = 30.0; // time constant of the acute contractility response (s)
     this.cont_floor = 0.2; // lowest the acute factor may drive el_max (fraction of baseline)
+    // dead-band: the acute response starts only when a wall stress exceeds stress_deadband x its
+    // resting setpoint. Without it any preload or afterload rise above rest depressed
+    // contractility, and the depression dilates the ventricle, which raises the stress further: a
+    // normal Frank-Starling volume load (+8 % blood volume) ran away to the floor. 1.5 is reached
+    // at a MAP of ~80 (LV afterload), LA ~9 mmHg (LV over-dilation) or a doubled PVR (RV) in the term
+    // neonate with the reflexes off
+    this.stress_deadband = 1.5;
     // gains: contractility depression per unit wall stress above the setpoint
-    this.g_es_lv = 0.005; // afterload (end-systolic stress) gain, LV
-    this.g_ed_lv = 0.02; // over-dilation (end-diastolic stress) gain, LV
-    this.g_es_rv = 0.008; // afterload gain, RV (thinner wall, more load-sensitive)
-    this.g_ed_rv = 0.03; // over-dilation gain, RV
+    // (a quarter of the original 0.005 / 0.02 / 0.008 / 0.03: with those the loop gain exceeded 1 above
+    // the dead-band, so a severe overload collapsed the ventricle to cont_floor instead of a graded,
+    // stable depression; e.g. +50 mL blood volume now gives LV 0.84, PVR x4 RV 0.81)
+    this.g_es_lv = 0.00125; // afterload (end-systolic stress) gain, LV
+    this.g_ed_lv = 0.005; // over-dilation (end-diastolic stress) gain, LV
+    this.g_es_rv = 0.002; // afterload gain, RV (thinner wall, more load-sensitive)
+    this.g_ed_rv = 0.0075; // over-dilation gain, RV
 
     // ---- chronic (remodeling) ------------------------------------------
     this.remodel_active = true;
@@ -206,8 +216,8 @@ export class HeartFunction extends BaseModelClass {
     // --- acute layer: afterload mismatch (end-systolic) + over-dilation (end-diastolic) ---
     const g_es = this[`g_es_${tag}`];
     const g_ed = this[`g_ed_${tag}`];
-    const excess_es = Math.max(0.0, sigma_es - ref_es);
-    const excess_ed = Math.max(0.0, sigma_ed - ref_ed);
+    const excess_es = Math.max(0.0, sigma_es - this.stress_deadband * ref_es);
+    const excess_ed = Math.max(0.0, sigma_ed - this.stress_deadband * ref_ed);
 
     let target = 1.0 - (g_es * excess_es + g_ed * excess_ed);
     if (target < this.cont_floor) target = this.cont_floor;
