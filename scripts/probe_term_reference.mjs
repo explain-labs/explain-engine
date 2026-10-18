@@ -5,7 +5,7 @@
 // deviation in SD where an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference,
 // n/a = no model read-out). Reference sets:
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
-//   scripts/reference/preterm_28wk_72h.json    (docs/Preterm28wkReference.md)
+//   scripts/reference/preterm_28wk.json    (docs/Preterm28wkReference.md)
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]

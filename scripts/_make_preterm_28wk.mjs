@@ -1,15 +1,15 @@
-// Generator: term_neonate.json -> preterm_28wk_72h.json, a preterm neonate born at 28 weeks (1.0 kg)
+// Generator: term_neonate.json -> preterm_28wk.json, a preterm neonate born at 28 weeks (1.0 kg)
 // at 72 h, stable on nasal CPAP 6 cmH2O with FiO2 0.25, a small restrictive left-to-right PDA, a
 // small PFO, untransfused (delayed cord clamping), trophic feeds + PN, caffeine, in an incubator.
 //
-//   node scripts/_make_preterm_28wk_72h.mjs [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
+//   node scripts/_make_preterm_28wk.mjs [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //
 // The reference set it is validated against: docs/Preterm28wkReference.md and
-// scripts/reference/preterm_28wk_72h.json (probe: scripts/probe_term_reference.mjs --ref ...).
+// scripts/reference/preterm_28wk.json (probe: scripts/probe_term_reference.mjs --ref ...).
 //
 // Pipeline (all re-runnable):
 //   1. live-build today's validated term_neonate, scale it to 1.0 kg and apply the levers below
-//   2. write model_definitions/preterm_28wk_72h.json (un-warmed)
+//   2. write model_definitions/preterm_28wk.json (un-warmed)
 //   3. scripts/_add_surfactant.mjs  - dynamic RDS recruitment model (neutral at baseline)
 //   4. scripts/reseed_preterm.mjs   - warm to rest, set the preterm renal reference (< 34 wk), warm, bake
 //   5. scripts/_add_apnea.mjs       - apnea controller (shipped OFF) + hypoxic-bradycardia chemoreflex,
@@ -36,7 +36,7 @@ import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.
 
 const argv = process.argv.slice(2);
 const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 300; })();
-const NAME = (() => { const i = argv.indexOf("--name"); return i >= 0 ? argv[i + 1] : "preterm_28wk_72h"; })();
+const NAME = (() => { const i = argv.indexOf("--name"); return i >= 0 ? argv[i + 1] : "preterm_28wk"; })();
 
 // Levers. "--set NAME=value" overrides one for a prototype run (with --name, so the scenario file is
 // not overwritten).
@@ -250,7 +250,7 @@ for (const [key, st] of Object.entries(SHUNT_STYLE)) {
 j.user = "timothy";
 j.description = desc;
 j.provenance = "hand-authored";
-j.provenance_note = "generated from term_neonate by scripts/_make_preterm_28wk_72h.mjs; reference set docs/Preterm28wkReference.md";
+j.provenance_note = "generated from term_neonate by scripts/_make_preterm_28wk.mjs; reference set docs/Preterm28wkReference.md";
 model.name = NAME;
 model.description = desc;
 
