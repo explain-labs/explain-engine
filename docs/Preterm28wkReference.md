@@ -220,6 +220,94 @@ term_neonate after every change (`--name` and `--set LEVER=value` run prototypes
 | 6.4 | Flows: `Brain.cbf_setpoint` 0.10592 → 0.028 L/min (rest anchors re-seeded), cerebral bed r ×1.2; `Shunts.diameter_fo` 1.5 → 0.75 mm; coronary inflow `AA_COR` r ×2.4; heart `el_min` ×2.4 → ×3.5 and `el_max` ×2.4 → ×3.4; baroreceptor window `BR_MAP` min/max 25/100 → 16.9/67.5 (scaled with the set-point); systemic resistances ×2.3, pulmonary ×3.0 | CBF 56 → 28 with autoregulation 0.15 → 1.06; SVC 114 → 86; DAo 101 → 102; PFO 20 → 4.3; coronaries 27.6 → 12.7; LVO/RVO 279/264 → 238/206; LV EDV/ESV/SV/EF 2.70/0.95/1.75/65 % → 2.31/0.72/1.59/69 %; BP 52/30 (42) → 51/31 (41.5); HR 160 → 150; baroreflex ×0.97 | Each was still term-sized: the brain defended term's absolute CBF, the PFO and coronary bed were term-size, and the term baroreceptor window (25–100) is lopsided around 39 so the pulse's diastolic dip dominated. Greisen 1986 (CBF); Bischoff 2021 (atrial shunt); Groves 2011 (EF, volumes). The duct stays 1 mm (author) and carries ~37 mL/kg/min |
 | 6.5 | Kidney: `Kidneys.reabsorption_fraction` (water) 0.98 → 0.9175; `reabsorption_fractions` na/cl 0.99/0.988 → 0.95; `Fluids.maintenance_rate` 1.352 → 3.0 mL/kg/h with the matching urine composition | urine 0.74 → 2.99 mL/kg/h; FENa 1.0 → 5.0 %; GFR 10.5 and plasma Na 138 unchanged; hormones neutral; blood volume 80.6 mL/kg, steady over 15 min | Immature tubule in the diuretic phase (Lorenz 1995). Intake = resting urine keeps the infant in balance (docs/Fluids.md). The probe's blood volume now excludes the bladder (URINE is a BloodCapacitance) |
 | 6.6 | Acid–base and glucose: `uma` +2.85 mmol/L in Blood and every patient blood compartment; glucose and `Glucose.glucose_setpoint` 4.0 → 6.5 | BE −2.65 → −5.49; HCO₃ 22.9 → 20.5; pH 7.31 → 7.27; pCO₂ 45.4; glucose 4.0 → 6.5; urine, GFR, blood volume and circulation unchanged | Bonsante 2017 (BE with early PN); Liu 2026 (glucose on PN, calm value). The maintenance fluid composition follows the new blood solutes, so the balance holds |
+| final | `Shunts.ips_res` 14 000 → 10 500; VLB/VUB `u_vol` ×0.82 → ×0.77; systemic resistances ×2.3 → ×2.0 | SpO₂ 94.8 → 93.3 %; PaO₂ 63.8 → 58.0; CVP 1.65 → 2.0; MAP 41.4 → 40.3 with the baroreflex neutral (×0.99); HR 150 → 153; SVC 85 → 91; DAo 102 → 110 | Final touch after the flow step. A 10-minute rest run shows no drift in vitals, gases, glucose, blood volume, temperature or any controller |
+
+## Validation result (step 6 complete, 2026-10-18)
+
+Of the 61 variables with a numeric reference and a model read-out, 29 were inside their range at the
+first look and **58 are now**. The three remaining flags sit at the edge of their range:
+- mean PAP 25.0 (≤ 25, grade C, derived)
+- PaO₂ 58.0 (≤ 58; follows from matching SpO₂ 93 % on the fetal curve at pH 7.27)
+- liver + spleen flow 32 (≤ 30, grade C, a Doppler ratio)
+
+The controllers rest near neutral, all within about 3 % of 1:
+- baroreflex HR/SVR ×0.99, breathing ×0.98
+- brain autoregulation ~1.26, glucose insulin ~1.0
+- ADH, angiotensin and aldosterone ~1.0
+
+A 10-minute rest run is steady.
+
+Recurring theme: the generator starts from term_neonate and `weight_scale` shrinks volumes only. Every value
+that stayed term-sized had to be re-set for 1 kg:
+- stiffness of the heart, arteries and chest wall
+- the frozen breathing-effort gain
+- brain autoregulation target
+- PFO and coronary bed
+- baroreceptor window, tubular reabsorption and maintenance intake
+
+| Variable | First look | Final | Reference | Range | Grade | Final flag |
+|---|---|---|---|---|---|---|
+| Heart rate | 186 | **153** | 155 | 140–170 | B | ok |
+| Systolic BP | 22.7 | **49.8** | 54.0 | 43.0–64.0 | A | ok |
+| Diastolic BP | 18.0 | **30.1** | 29.0 | 25.0–36.0 | A | ok |
+| Mean arterial pressure | 20.7 | **40.5** | 39.0 | 30.0–47.0 | A | ok |
+| Pulse pressure | 4.75 | **19.8** | 25.0 | — | B | ok |
+| Central venous pressure | 2.48 | **2.05** | 4.00 | 2.00–6.00 | A/B | ok |
+| Pulmonary artery pressure, systolic | 18.9 | **31.4** | 30.0 | 24.0–38.0 | C | ok |
+| Pulmonary artery pressure, mean | 15.3 | **25.0** | 20.0 | 16.0–25.0 | C | HIGH |
+| Pulmonary artery pressure, diastolic | 10.6 | **17.9** | — | < 27.0 | C | ok |
+| LV end-diastolic volume | 3.23 | **2.33** | 2.20 | 1.80–2.70 | B | ok |
+| LV end-systolic volume | 2.23 | **0.71** | 0.75 | 0.40–1.20 | B | ok |
+| LV stroke volume | 0.99 | **1.62** | 1.40 | 1.10–1.70 | B | ok |
+| LV ejection fraction | 30.9 | **69.6** | 65.0 | 58.0–80.0 | B | ok |
+| RV end-diastolic volume | 3.97 | **2.90** | 2.70 | 2.20–3.20 | C | ok |
+| RV end-systolic volume | 2.97 | **1.47** | 1.40 | 1.00–1.80 | C | ok |
+| RV stroke volume | 1.00 | **1.42** | 1.25 | 1.00–1.60 | C | ok |
+| RV ejection fraction | 25.3 | **49.1** | 50.0 | 45.0–60.0 | B/C | ok |
+| Left ventricular output | 186 | **248** | 215 | 180–280 | B | ok |
+| Right ventricular output | 188 | **218** | 195 | 160–260 | B | ok |
+| LVO/RVO ratio | 0.99 | **1.14** | 1.10 | 1.00–1.25 | B | ok |
+| SVC flow | 79.7 | **91.7** | 85.0 | 60.0–115 | B | ok |
+| Descending aorta flow | 79.5 | **110** | 110 | 80.0–150 | B | ok |
+| Cerebral blood flow | 45.2 | **28.1** | 28.0 | 18.0–40.0 | B | ok |
+| Intestinal (SMA) flow | 20.6 | **32.1** | 25.0 | 15.0–40.0 | C | ok |
+| Renal blood flow | 20.5 | **13.6** | 10.0 | 6.00–15.0 | C | ok |
+| Coeliac (liver + spleen) flow | 20.6 | **32.1** | 20.0 | 12.0–30.0 | C | HIGH |
+| Ductal shunt flow (L->R) | 13.5 | **34.1** | 22.0 | 10.0–40.0 | C | ok |
+| Ductal diameter | 1.00 | **1.00** | 1.00 | 0.80–1.40 | B | ok |
+| Foramen ovale shunt (L->R) | 16.1 | **3.92** | 5.00 | 0.00–15.0 | C | ok |
+| Respiratory rate | 111 | **61.2** | 62.0 | 50.0–80.0 | A | ok |
+| Tidal volume | 3.27 | **4.83** | 5.00 | 4.20–6.00 | B | ok |
+| Minute ventilation | 362 | **296** | 300 | 250–380 | B | ok |
+| Inspiratory time fraction (Ti/Ttot) | 0.38 | **0.38** | 0.38 | 0.33–0.44 | B | ok |
+| Respiratory system compliance | 0.47 | **0.69** | 0.69 | 0.45–1.00 | B | ok |
+| Lung compliance (both lungs) | 0.49 | **0.80** | 0.80 | 0.50–1.20 | B | ok |
+| Chest wall compliance | 14.7 | **5.00** | 5.00 | 3.00–7.00 | B/C | ok |
+| Respiratory system resistance | 53.9 | **53.9** | 65.0 | 50.0–100 | B | ok |
+| Functional residual capacity | 14.2 | **23.6** | 22.0 | 18.0–28.0 | B | ok |
+| Anatomic dead space | 2.20 | **2.99** | 3.00 | 2.20–3.50 | B/C | ok |
+| Physiological dead space fraction (Vd/Vt) | 0.67 | **0.62** | 0.60 | 0.55–0.70 | B | ok |
+| Inspired O2 fraction | 0.25 | **0.25** | 0.25 | 0.21–0.30 | state | ok |
+| SpO2 (pre-ductal) | 60.9 | **93.3** | 93.0 | 90.0–95.0 | B | ok |
+| pH | 7.28 | **7.27** | 7.26 | 7.22–7.32 | A/B | ok |
+| pCO2 | 48.7 | **45.5** | 46.0 | 42.0–52.0 | A/B | ok |
+| HCO3 | 22.8 | **20.5** | 20.5 | 19.0–22.0 | B | ok |
+| Base excess | -3.13 | **-5.50** | -5.50 | -8.00–-3.00 | A | ok |
+| PaO2 | 25.5 | **58.0** | 50.0 | 42.0–58.0 | A | HIGH |
+| Hb-O2 P50 (standard) | 18.5 | **18.5** | 18.5 | 17.7–19.3 | A/B | ok |
+| Mixed venous O2 saturation | 44.5 | **81.3** | 77.0 | 70.0–82.0 | C | ok |
+| Oxygen consumption | 6.57 | **6.18** | 6.00 | 5.00–7.00 | B | ok |
+| Respiratory quotient | 0.81 | **0.92** | 0.95 | 0.85–1.00 | B | ok |
+| Core temperature | 37.0 | **37.0** | 37.0 | 36.5–37.5 | C | ok |
+| Incubator air temperature | 35.0 | **35.0** | 35.0 | 34.0–36.0 | C | ok |
+| Incubator relative humidity | 70.0 | **70.0** | 70.0 | 60.0–80.0 | B | ok |
+| Plasma glucose | 4.00 | **6.50** | 6.50 | 4.00–8.00 | A/B | ok |
+| Lactate | 1.50 | **1.50** | 1.40 | 1.00–2.00 | A | ok |
+| Hemoglobin | 14.4 | **14.5** | 14.5 | 13.0–16.0 | B/C | ok |
+| Hematocrit | 43.8 | **43.9** | 43.0 | 38.0–47.0 | B/C | ok |
+| Blood volume | 85.5 | **80.6** | 80.0 | 70.0–90.0 | B | ok |
+| GFR | 0.00 | **10.6** | 8.50 | 5.00–13.5 | C | ok |
+| Urine output | 0.00 | **3.02** | 3.00 | 2.00–5.00 | B | ok |
 
 ## Decisions log (2026-10-18)
 
@@ -241,6 +329,7 @@ All choices were made by the model's author after the evidence was presented.
 | Gases | VO₂ 6.0; BE −5.5 (so pH ~7.26); SpO₂ 93; SvO₂ by Fick | Bonsante 2017; European Consensus 2022 |
 | 6.1 lungs | Match SpO₂ 93 and accept PaO₂ ~57 rather than 50 | Dissociation curve at pH 7.28 |
 | 6.2 heart/BP | Arterial stiffness ×5 (match the invasive pulse pressure) instead of the PWV rule ×1.88; MAP (41.5) and SpO₂ (96 %) fine-tuned after the flow step | Elsayed 2023 |
+| final | MAP settles at ~40 with the baroreflex neutral (its set-point is 39; the pulse shape biases the receptor slightly) | Within P25–P75 (34–43) |
 | 6.4 flows | Keep the duct at 1 mm (shunt ~37, in range) rather than shrinking it to reach the derived ~22 | Echo diameter is the measured quantity |
 | Blood | Delayed clamping: Hb 14.5 / Hct 43 | Jopling 2009, Banerjee 2015, sampling losses |
 | Glucose / GFR | Glucose 6.5 (calm); GFR ~0.5 mL/min/kg on day 3 | Liu 2026; Vieux 2010 −20 % |

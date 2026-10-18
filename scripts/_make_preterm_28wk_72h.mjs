@@ -52,7 +52,7 @@ const L = {
   BR_WINDOW: 1,         // 6.4: scale the baroreceptor window (BR_MAP min/max, term 25/100) with the set-point (x39/57.8 ->
                         //      16.9-67.5); the lopsided term window weighted the diastolic dip ~4x and read "low" at MAP 42
   BR_MAP: 39,           // reference: the MAP the baroreflex defends = Elsayed 2023 day-3 invasive median
-  SVR: 2.3,             // 6.2/6.4: systemic resistances x -> MAP ~41 with the baroreflex ~neutral (term 1.0)
+  SVR: 2.0,             // 6.2/6.4/final: systemic resistances x -> MAP ~40 with the baroreflex neutral (term 1.0)
   PVR: 3.0,             // 6.2/6.4: pulmonary resistances x -> PAP ~31/25 (term 1.0); reference ratio 0.55
   CONT: 1.0,            // 6.2: Heart.cont_factor_* (was 0.90): preterm EF is normal (Groves 2011, no GA effect)
   RELAX: 1.10,          // starting point: immature diastolic function, Heart.relax_factor_*
@@ -61,7 +61,7 @@ const L = {
   HEART_EL_MIN: 3.5,    // 6.2/6.4: heart chambers el_min x (el_min_factor_scaling_ps) -> EDV 2.3 mL/kg (at x2.4 the heart over-filled)
   ART_EL: 5.0,          // 6.2: artery el_base x (el_base_factor_scaling_ps, implicit aorta) -> pulse pressure ~22
                         //      (Elsayed 2023 54/29). The PWV rule of build_patient (x1.88) leaves PP ~10
-  VEN_UVOL: 0.82,       // starting point: VLB/VUB unstressed volume (restores CVP after scaling)
+  VEN_UVOL: 0.77,       // final: VLB/VUB unstressed volume x (_make_preterm 0.82) -> CVP ~2 (more stressed venous volume)
   PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (Pda.diameter_pa_max = 3 mm)
   FO_DIAM: 0.75,        // 6.4: Shunts.diameter_fo, mm (term 1.5) -> PFO shunt ~4 mL/kg/min L->R
   COR_R: 2.4,           // 6.4: coronary inflow (AA_COR) r x -> 12.7 mL/kg/min (term 11.7; was 27.6, a term-size bed)
@@ -74,7 +74,7 @@ const L = {
   RDS_UVOL: 0.80,       // 6.1: alveolar u_vol x -> FRC 22 mL/kg, the lung recruited by CPAP 6 (da Silva 1994)
   THORAX_EL: 2.94,      // 6.1: chest-wall (THORAX) el_base x -> 5 mL/cmH2O/kg (Gerhardt 1980); weight scaling leaves it at the term absolute value
   GASEX: 0.45,          // alveolar-capillary diffusion x (kept in 6.1: absolute, so already generous for 1 kg)
-  IPS_RES: 14000,       // 6.1: intrapulmonary shunt resistance -> SpO2 93 % at FiO2 0.25 (mild residual shunt; was 1900)
+  IPS_RES: 10500,       // 6.1/final: intrapulmonary shunt resistance -> SpO2 93 % at FiO2 0.25 (mild residual shunt; was 1900)
   SURFACTANT: 0.25,     // starting point: surfactant maturity (_add_surfactant 28 wk); post-surfactant may sit higher
   FIO2: 0.25,           // reference: state definition
   MV_REF: 0.300,        // reference: minute volume 300 mL/kg/min (L/kg/min, per kg)
