@@ -216,6 +216,7 @@ term_neonate after every change (`--name` and `--set LEVER=value` run prototypes
 |---|---|---|---|
 | 6.1 | Lungs and oxygenation: alveolar `el_base` ×9.067 → ×5.55; alveolar `u_vol` ×0.50 → ×0.80; chest wall (`THORAX.el_base`) ×1 → ×2.94; `Shunts.ips_res` 1 900 → 14 000 | lung compliance 0.49 → 0.80 /kg; chest wall 14.7 → 5.0 /kg; FRC 14 → 22 mL/kg; SpO₂ 61 → 93 %; PaO₂ 25 → 57; SvO₂ 45 → 72 | Bhutani 1988, Reiterer 1993 (compliance); Gerhardt 1980 (chest wall); da Silva 1994 (FRC on PEEP); SpO₂ target (Sweet 2023). PaO₂ follows from P50 18.5 at pH 7.28 (in vivo ~21): SpO₂ 93 % is matched, PaO₂ lands at ~57, inside 42–58 |
 | 6.2 | BP and heart: heart chambers `el_max`/`el_min` ×2.4 (`*_factor_scaling_ps`); arteries `el_base` ×5 (implicit aorta); systemic resistances ×1 → ×2.2; pulmonary ×1.75 → ×2.5; `cont_factor` 0.9 → 1.0 | BP 22/18 (20) → 52/30 (41.5); HR 186 → 160 with the baroreflex near neutral (HR ×1.5 → ×1.03, SVR ×2.0 → ×1.07); LV EDV/ESV/EF 3.1/2.2/30 % → 2.65/0.94/65 %; RV EF 23 → 50 %; PAP 20/16 → 31.5/25; GFR 0 → 10.6 | Weight scaling shrinks volumes but keeps term stiffness, so the 1 kg heart and arteries were ~3.5× too compliant per kg. Elsayed 2023 (BP shape), Groves 2011 (EF, volumes), Skinner 1992 (PAP). The pulse-wave-velocity size rule of `build_patient.mjs` (×1.88) leaves a pulse pressure of ~10; ×5 matches the invasive 54/29 |
+| 6.3 | Breathing: Breathing effort gain recalibrated (`rmp_calibrated` reset; term's frozen ~334 → ~1230 mmHg/L); dead space `DS.u_vol` ×1.36; `Metabolism.resp_q` 0.8 → 0.95 | RR 81 → 61; Vt 3.2 → 4.8; MV 262 → 293; dead space 2.2 → 3.0 mL/kg; pCO₂ 49.1 → 46.1; RQ at the lung 0.80 → 0.93; breathing chemoreflex ×1.68 → ×0.98 | The scenario inherited term's effort gain, calibrated on ~5× more compliant lungs, so breaths fell short. Liew 2020, Welty 2018 (pattern); Numa & Newth 1996 (dead space); Bauer 2003, Forsyth 1992 (RQ on PN) |
 
 ## Decisions log (2026-10-18)
 
@@ -245,6 +246,7 @@ All choices were made by the model's author after the evidence was presented.
 - **Full texts that could raise grades:** Alonzo 2018 and Eenkhoorn 2026 (HR centiles), Kluckow & Evans
   2000 tables (SVC/LVO by hour), Kehrer 2005 (day-3 CBF by GA), the CPAP mechanics studies listed above,
   Vieux 2010 day-2 data, Sauer 1984 thermoneutral tables.
+- **Follow-up:** other scenarios generated from term_neonate (the archived preterm rows, `bischoff_cohort`) also carry term's frozen breathing effort gain (`Breathing.rmp_calibrated`).
 - **Model implications to check in the first look:** dead space must rise from the term ~2.2 to ~3 mL/kg;
   the dissociation curve must be fetal (P50 ~18.5–19); the kidney bed must be small.
 

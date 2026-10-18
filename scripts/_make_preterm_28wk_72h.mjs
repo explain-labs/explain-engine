@@ -74,8 +74,13 @@ const L = {
   MV_REF: 0.300,        // reference: minute volume 300 mL/kg/min (L/kg/min, per kg)
   RR: 62,               // reference: respiratory rate
   IE: 0.38,             // reference: Ti/Ttot
+  RMP_RECAL: 1,         // 6.3: 1 = discard term_neonate's frozen muscle-effort gain (rmp_calibrated) so Breathing
+                        //      recalibrates on these ~5x stiffer lungs; with the term gain Vt stayed at 3.4 of 6.3 mL/kg
+  DS_UVOL: 1.36,        // 6.3: anatomic dead space (DS u_vol) x -> 3.0 mL/kg (was 2.2); nCPAP does not wash out the
+                        //      nasopharynx (Liew 2020; Numa & Newth 1996)
 
   // --- metabolism, blood, environment ---
+  RESP_Q: 0.95,         // 6.3: Metabolism.resp_q (term 0.8) -> RQ on glucose-rich PN (Bauer 2003, Forsyth 1992)
   VO2_METABOLISM: 5.19, // reference total 6.0 minus term's Mob (myocardium) ~0.81 (starting point split)
   HB_MMOL: 14.5 / 1.611, // reference: Hb 14.5 g/dL -> 9.0 mmol/L
   P50: 18.5,            // reference: De Halleux 2002, untransfused <= 27 wk, standard conditions
@@ -88,7 +93,7 @@ for (let i = 0; i < argv.length; i++) {
   if (!(k in L)) { console.error(`unknown lever ${k}; levers: ${Object.keys(L).join(", ")}`); process.exit(1); }
   L[k] = Number(v);
 }
-const { WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
+const { RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
   IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
 // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
@@ -136,8 +141,10 @@ B.breathing_enabled = true;
 B.minute_volume_ref = MV_REF;
 B.vt_rr_ratio = VT_RR;
 B.ie_ratio = IE;
+if (RMP_RECAL) { B.rmp_calibrated = false; B.rmp_gain = 0.0; B.load_factor = 1.0; }
+M.DS.u_vol *= DS_UVOL;
 for (const [n, v] of Object.entries(CR)) M[n].set_value = v;
-log.push(`breathing: minute_volume_ref ${MV_REF} L/kg/min, vt_rr_ratio ${VT_RR.toExponential(3)}, ie_ratio ${IE}; CR set-points ${JSON.stringify(CR)}`);
+log.push(`breathing: minute_volume_ref ${MV_REF} L/kg/min, vt_rr_ratio ${VT_RR.toExponential(3)}, ie_ratio ${IE}; effort gain ${RMP_RECAL ? "recalibrated" : "term"}; dead space u_vol x${DS_UVOL}; CR set-points ${JSON.stringify(CR)}`);
 
 // 4. CPAP: FiO2 at the airway reservoir; the device stays off and MOUTH_DS open
 calc_gas_composition(M.MOUTH, FIO2, M.MOUTH.temp || 37, M.MOUTH.humidity || 1.0);
@@ -159,11 +166,12 @@ log.push(`preload: VLB/VUB u_vol x${VEN_UVOL}; myocardium cont ${CONT}, relax ${
 
 // 6. metabolism, blood, environment
 M.Metabolism.vo2 = VO2_METABOLISM;
+M.Metabolism.resp_q = RESP_Q;
 M.Blood.set_solute("hemoglobin", HB_MMOL);
 M.Blood.set_P50(P50);
 M.Thermoregulation.env_temp = ENV_TEMP;
 M.Thermoregulation.rel_humidity = REL_HUMIDITY;
-log.push(`metabolism: vo2 ${VO2_METABOLISM}; Hb ${HB_MMOL.toFixed(2)} mmol/L; P50 ${P50}; incubator ${ENV_TEMP} degC / ${REL_HUMIDITY * 100} %`);
+log.push(`metabolism: vo2 ${VO2_METABOLISM}, resp_q ${RESP_Q}; Hb ${HB_MMOL.toFixed(2)} mmol/L; P50 ${P50}; incubator ${ENV_TEMP} degC / ${REL_HUMIDITY * 100} %`);
 
 model.weight = WEIGHT;
 model.height = HEIGHT;
