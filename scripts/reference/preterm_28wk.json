@@ -1,5 +1,5 @@
 {
- "name": "preterm_28wk_72h",
+ "name": "preterm_28wk",
  "description": "Literature reference values for a preterm neonate born at 28 weeks (~1 kg) at ~72 h postnatal age, stable on nasal CPAP 6 cmH2O with FiO2 0.25, a small restrictive left-to-right PDA (~1 mm), untransfused, delayed cord clamping, trophic feeds + PN, caffeine, humidified incubator. Grades: A = 27-30 wk infants on day 2-4, B = wider GA band / other day / figure readout / guideline, C = textbook / extrapolation / derived.",
  "state": "stable on nCPAP 6, FiO2 0.25, small restrictive L->R PDA, PFO, untransfused (delayed clamping), trophic feeds + PN, caffeine, incubator ~35 degC / 70 % RH",
  "compiled": "2026-10-18",
