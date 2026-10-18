@@ -183,8 +183,8 @@ export const NEONATE_PAP_BY_AGE = [
   { upToHours: 60, pap_s: [22, 55], pap_d: [5, 25], pap_m: [11, 41] },
 ];
 
-// The range table for a profile at a postnatal age (days; null/undefined = day 1, like the
-// term_neonate baseline). Only the term `neonate` profile is age-dependent, and only its PAP keys.
+// The range table for a profile at a postnatal age (days; null/undefined = day 1). The
+// term_neonate baseline itself is 72 h old, so builds from it default to the day-3 table. Only the term `neonate` profile is age-dependent, and only its PAP keys.
 export function rangesFor(profile, { ageDays } = {}) {
   const base = RANGES[profile] || RANGES.adult;
   if (profile !== "neonate") return base;

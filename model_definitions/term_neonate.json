@@ -14142,7 +14142,7 @@
     "weight": 3.545,
     "height": 0.519,
     "gestational_age": 40,
-    "age": 0,
+    "age": 0.00821917808219178,
     "modeling_stepsize": 0.0005,
     "model_time_total": 149.54999999991955,
     "_baseline_weight": 3.545
