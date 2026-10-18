@@ -109,7 +109,7 @@ inflow comes through the intestinal bed (INT), which the model drains into the l
 | Base excess | — | −4 to +2 | — | C | textbook |
 | PaO₂ | — | 60–90 mmHg | arterial | C | textbook (Koch & Wendel 1968 unavailable) |
 | EtCO₂ | ≈ PaCO₂ | gap 0 ± 7 mmHg | capnography | C | Lopez 2011 (healthy preterm controls) |
-| SvO₂ | — | 70–80 % | not measured in healthy neonates | C | textbook; NIRS day 2: cerebral 78, renal 89, splanchnic 75 % (Bailey 2013); cerebral venous 63.9 ± 8.2 % (Liu 2014) |
+| SvO₂ | **~83 %** (derived) | 80–86 | Fick from the references: output 177–200 mL/kg/min, VO₂ 6.3–7.0, Hb 17, SaO₂ 97 | B | derived; not measured in healthy neonates. The textbook 70–80 % stems from sick/older patients. NIRS day 2: cerebral 78, renal 89, splanchnic 75 % (Bailey 2013); cerebral venous 63.9 ± 8.2 % (Liu 2014) |
 
 ## Metabolism, blood, kidneys
 
@@ -164,6 +164,7 @@ outside `model_definitions/`).
 | Date | Change | Before → after | Basis |
 |---|---|---|---|
 | 2026-10-18 | Brain flow and O₂ use (`scripts/_fix_term_brain_mri.mjs`); freed flow → upper body (RUB) | CBF 144 → 106 mL/min (20 → 15 % of LVO); brain VO₂ 11.0 → 8.1 mL/min (42 → 31 %); extraction unchanged at 35 %; SVC stays 81 | Kooi 2019 term median; Liu 2014 extraction |
+| 2026-10-18 | Whole-body VO₂ (`scripts/_fix_term_vo2.mjs`): `Metabolism.vo2` 7.288 → 6.1396 (Mob's ~0.81 for the heart kept); `minute_volume_ref` and chemoreceptor set-points re-anchored | total VO₂ 8.1 → 7.0 mL/kg/min; MV 235 → 207; RR 40.4 → 37.5; Vt 5.8 → 5.5; SvO₂ 78.7 → 81.5; PaO₂ 73 → 76 | 6.26 ± 1.51 (first week, rest); REE 45–50 kcal/kg/d ≈ 6.5–7.2; calm mixed state |
 
 ## Open items
 

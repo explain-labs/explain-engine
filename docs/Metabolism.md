@@ -137,7 +137,8 @@ scenario uses `vo2: 3.5` with a slightly different split.)
 ### The brain's share in `term_neonate` (calibrated assumption)
 
 The example above is the original split. The current `term_neonate` stores:
-- `vo2` 7.288; `Mob` adds the myocardium's ~0.8 ml/kg/min on top
+- `vo2` 6.1396; `Mob` adds the myocardium's ~0.8 ml/kg/min on top, so lung uptake is 7.0
+  ml/kg/min (see below)
 - `BR_CAP` **0.31311**
 - `RLB`/`INT_CAP` 0.16754
 - `LS_CAP`/`KID_CAP`/`RUB` 0.11169
@@ -156,6 +157,25 @@ extraction (~35 %, cerebral venous saturation ~62 %, as measured by Liu 2014):
 The other beds took over the remainder proportionally, so total VO₂ is unchanged. See
 `scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md). A scenario
 derived from term_neonate inherits this split.
+
+### Whole-body VO₂ in `term_neonate` (calibrated assumption)
+
+`vo2` is **not** the whole-body O₂ uptake when [`Mob`](./Mob.md) is present: Mob consumes the
+myocardium's O₂ (basal plus stroke work, ~0.8 ml/kg/min at rest) on top of it.
+
+The scenario used to take up 8.1 ml/kg/min (7.288 + Mob). The first-week references are lower:
+- 6.26 ± 1.51 at thermoneutral rest
+- resting energy expenditure of 45–50 kcal/kg/d, i.e. ~6.5–7.2 ml O₂/kg/min
+
+So in 2026-10 `vo2` was set to 6.1396, for a lung uptake of **7.0 ml/kg/min**. That sits slightly
+above quiet rest, matching the scenario's calm, mixed sleep/awake state. Knock-on changes:
+- CO₂ production falls with VO₂, so `Breathing.minute_volume_ref` and the chemoreceptor set-points
+  were re-anchored to keep the chemoreflex neutral
+- at the measured output and Hb, Fick puts SvO₂ at ~81–85 % (scenario 81.5 %)
+- Thermoregulation re-seeds its heat-loss trim at load, so the lower metabolic heat does not cool
+  the patient
+
+See `scripts/_fix_term_vo2.mjs`.
 
 ## Usage in the model
 
