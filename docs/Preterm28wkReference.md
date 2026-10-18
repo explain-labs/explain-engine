@@ -207,6 +207,15 @@ contractility 0.9). Probe: `node scripts/probe_term_reference.mjs preterm_28wk_7
   - flows: brain 45 against 28; descending aorta 80 against 110; FO shunt 16 against ~5; LVO/RVO 0.99
   - others: dead space 2.2 against 3.0; glucose 4.0 against 6.5; RQ 0.81 against 0.95
 
+## Recalibrations made from this reference
+
+Each change is a named lever in `scripts/_make_preterm_28wk_72h.mjs`; the scenario is regenerated from
+term_neonate after every change (`--name` and `--set LEVER=value` run prototypes without touching it).
+
+| Step | Change | Before → after | Basis |
+|---|---|---|---|
+| 6.1 | Lungs and oxygenation: alveolar `el_base` ×9.067 → ×5.55; alveolar `u_vol` ×0.50 → ×0.80; chest wall (`THORAX.el_base`) ×1 → ×2.94; `Shunts.ips_res` 1 900 → 14 000 | lung compliance 0.49 → 0.80 /kg; chest wall 14.7 → 5.0 /kg; FRC 14 → 22 mL/kg; SpO₂ 61 → 93 %; PaO₂ 25 → 57; SvO₂ 45 → 72 | Bhutani 1988, Reiterer 1993 (compliance); Gerhardt 1980 (chest wall); da Silva 1994 (FRC on PEEP); SpO₂ target (Sweet 2023). PaO₂ follows from P50 18.5 at pH 7.28 (in vivo ~21): SpO₂ 93 % is matched, PaO₂ lands at ~57, inside 42–58 |
+
 ## Decisions log (2026-10-18)
 
 All choices were made by the model's author after the evidence was presented.
@@ -225,6 +234,7 @@ All choices were made by the model's author after the evidence was presented.
 | Organ flows | Brain 28, coeliac 20 accepted; kidneys lowered 30 → 10 | Filtration fraction with GFR ~0.5 |
 | Breathing | No-mask Vt 5.0; dead space ~3 mL/kg; lung compliance 0.8 /kg | Liew 2020; Numa & Newth 1996 |
 | Gases | VO₂ 6.0; BE −5.5 (so pH ~7.26); SpO₂ 93; SvO₂ by Fick | Bonsante 2017; European Consensus 2022 |
+| 6.1 lungs | Match SpO₂ 93 and accept PaO₂ ~57 rather than 50 | Dissociation curve at pH 7.28 |
 | Blood | Delayed clamping: Hb 14.5 / Hct 43 | Jopling 2009, Banerjee 2015, sampling losses |
 | Glucose / GFR | Glucose 6.5 (calm); GFR ~0.5 mL/min/kg on day 3 | Liu 2026; Vieux 2010 −20 % |
 

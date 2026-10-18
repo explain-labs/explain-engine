@@ -2,7 +2,7 @@
 // at 72 h, stable on nasal CPAP 6 cmH2O with FiO2 0.25, a small restrictive left-to-right PDA, a
 // small PFO, untransfused (delayed cord clamping), trophic feeds + PN, caffeine, in an incubator.
 //
-//   node scripts/_make_preterm_28wk_72h.mjs [--seconds 300]
+//   node scripts/_make_preterm_28wk_72h.mjs [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //
 // The reference set it is validated against: docs/Preterm28wkReference.md and
 // scripts/reference/preterm_28wk_72h.json (probe: scripts/probe_term_reference.mjs --ref ...).
@@ -36,45 +36,58 @@ import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.
 
 const argv = process.argv.slice(2);
 const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 300; })();
-const NAME = "preterm_28wk_72h";
+const NAME = (() => { const i = argv.indexOf("--name"); return i >= 0 ? argv[i + 1] : "preterm_28wk_72h"; })();
 
-// --- patient (reference) ---
-const WEIGHT = 1.0;          // kg
-const HEIGHT = 0.355;        // m (_make_preterm 28 wk row)
-const GA = 28;               // weeks
-const AGE = 3 / 365;         // years (scenario age is in years): 72 h
+// Levers. "--set NAME=value" overrides one for a prototype run (with --name, so the scenario file is
+// not overwritten).
+const L = {
+  // --- patient (reference) ---
+  WEIGHT: 1.0,          // kg
+  HEIGHT: 0.355,        // m (_make_preterm 28 wk row)
+  GA: 28,               // weeks
+  AGE: 3 / 365,         // years (scenario age is in years): 72 h
 
-// --- circulation ---
-const HR_REF = 155;          // reference: HR 155 (Deshpande 2023, Bischoff 2021)
-const BR_MAP = 39;           // reference: the MAP the baroreflex defends = Elsayed 2023 day-3 invasive median
-const SVR = 1.0;             // starting point (_make_preterm 28 wk)
-const PVR = 1.75;            // starting point (_make_preterm 28 wk); reference PAP ratio 0.55
-const CONT = 0.90;           // starting point: immature contractility, Heart.cont_factor_*
-const RELAX = 1.10;          // starting point: immature diastolic function, Heart.relax_factor_*
-const VEN_UVOL = 0.82;       // starting point: VLB/VUB unstressed volume (restores CVP after scaling)
-const PDA_REL = 1.0 / 3.0;   // reference: ductal diameter 1.0 mm (Pda.diameter_pa_max = 3 mm)
-// the foramen ovale keeps term_neonate's 1.5 mm with fo_lr_factor 1 (starting point)
+  // --- circulation ---
+  HR_REF: 155,          // reference: HR 155 (Deshpande 2023, Bischoff 2021)
+  BR_MAP: 39,           // reference: the MAP the baroreflex defends = Elsayed 2023 day-3 invasive median
+  SVR: 1.0,             // starting point (_make_preterm 28 wk)
+  PVR: 1.75,            // starting point (_make_preterm 28 wk); reference PAP ratio 0.55
+  CONT: 0.90,           // starting point: immature contractility, Heart.cont_factor_*
+  RELAX: 1.10,          // starting point: immature diastolic function, Heart.relax_factor_*
+  VEN_UVOL: 0.82,       // starting point: VLB/VUB unstressed volume (restores CVP after scaling)
+  PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (Pda.diameter_pa_max = 3 mm)
+  // the foramen ovale keeps term_neonate's 1.5 mm with fo_lr_factor 1 (starting point)
 
-// --- lungs and breathing ---
-const RDS_EL = 9.067;        // starting point: alveolar el_base x (_make_preterm 28 wk, unsupported severe RDS)
-const RDS_UVOL = 0.50;       // starting point: alveolar u_vol x
-const GASEX = 0.45;          // starting point: alveolar-capillary diffusion x
-const IPS_RES = 1900;        // starting point: intrapulmonary shunt resistance (Shunts.ips_res)
-const SURFACTANT = 0.25;     // starting point: surfactant maturity (_add_surfactant 28 wk); post-surfactant may sit higher
-const FIO2 = 0.25;           // reference: state definition
-const MV_REF = 0.300;        // reference: minute volume 300 mL/kg/min (L/kg/min, per kg)
-const RR = 62;               // reference: respiratory rate
+  // --- lungs and breathing ---
+  RDS_EL: 5.55,         // 6.1: alveolar el_base x -> lung compliance 0.8 mL/cmH2O/kg (was 9.067, the unsupported severe-RDS row)
+  RDS_UVOL: 0.80,       // 6.1: alveolar u_vol x -> FRC 22 mL/kg, the lung recruited by CPAP 6 (da Silva 1994)
+  THORAX_EL: 2.94,     // 6.1: chest-wall (THORAX) el_base x -> 5 mL/cmH2O/kg (Gerhardt 1980); weight scaling leaves it at the term absolute value
+  GASEX: 0.45,          // alveolar-capillary diffusion x (kept in 6.1: absolute, so already generous for 1 kg)
+  IPS_RES: 14000,       // 6.1: intrapulmonary shunt resistance -> SpO2 93 % at FiO2 0.25 (mild residual shunt; was 1900)
+  SURFACTANT: 0.25,     // starting point: surfactant maturity (_add_surfactant 28 wk); post-surfactant may sit higher
+  FIO2: 0.25,           // reference: state definition
+  MV_REF: 0.300,        // reference: minute volume 300 mL/kg/min (L/kg/min, per kg)
+  RR: 62,               // reference: respiratory rate
+  IE: 0.38,             // reference: Ti/Ttot
+
+  // --- metabolism, blood, environment ---
+  VO2_METABOLISM: 5.19, // reference total 6.0 minus term's Mob (myocardium) ~0.81 (starting point split)
+  HB_MMOL: 14.5 / 1.611, // reference: Hb 14.5 g/dL -> 9.0 mmol/L
+  P50: 18.5,            // reference: De Halleux 2002, untransfused <= 27 wk, standard conditions
+  ENV_TEMP: 35.0,       // reference: incubator air (degC)
+  REL_HUMIDITY: 0.70,   // reference: incubator humidity
+};
+for (let i = 0; i < argv.length; i++) {
+  if (argv[i] !== "--set") continue;
+  const [k, v] = argv[i + 1].split("=");
+  if (!(k in L)) { console.error(`unknown lever ${k}; levers: ${Object.keys(L).join(", ")}`); process.exit(1); }
+  L[k] = Number(v);
+}
+const { WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
+  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
-const IE = 0.38;             // reference: Ti/Ttot
 // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
 const CR = { CR_PCO2: 46, CR_PO2: 50, CR_PH: 7.26 };
-
-// --- metabolism, blood, environment ---
-const VO2_METABOLISM = 5.19; // reference total 6.0 minus term's Mob (myocardium) ~0.81 (starting point split)
-const HB_MMOL = 14.5 / 1.611; // reference: Hb 14.5 g/dL -> 9.0 mmol/L
-const P50 = 18.5;            // reference: De Halleux 2002, untransfused <= 27 wk, standard conditions
-const ENV_TEMP = 35.0;       // reference: incubator air (degC)
-const REL_HUMIDITY = 0.70;   // reference: incubator humidity
 
 const eng = await createEngine();
 // imported after createEngine, which registers the extensionless-import hook the engine modules need
@@ -99,7 +112,8 @@ log.push(`resistances: systemic x${SVR}, pulmonary x${PVR}`);
 for (const n of ["ALL", "ALR"]) { M[n].el_base *= RDS_EL; M[n].u_vol *= RDS_UVOL; }
 for (const n of ["GASEX_LL", "GASEX_RL"]) { M[n].dif_o2 *= GASEX; M[n].dif_co2 *= GASEX; }
 M.Shunts.ips_res = IPS_RES;
-log.push(`lungs: el_base x${RDS_EL}, u_vol x${RDS_UVOL}, diffusion x${GASEX}, ips_res ${IPS_RES}`);
+M.THORAX.el_base *= THORAX_EL;
+log.push(`lungs: el_base x${RDS_EL}, u_vol x${RDS_UVOL}, diffusion x${GASEX}, ips_res ${IPS_RES}; chest wall el_base x${THORAX_EL}`);
 
 // 3. breathing: spontaneous, per-kg reference minute volume, rapid-shallow pattern
 const B = M.Breathing;
