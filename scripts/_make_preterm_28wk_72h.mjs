@@ -86,6 +86,12 @@ const L = {
                         //      nasopharynx (Liew 2020; Numa & Newth 1996)
 
   // --- metabolism, blood, environment ---
+  REABS_WATER: 0.9175,  // 6.5: Kidneys.reabsorption_fraction (water; term 0.98) -> urine 3 mL/kg/h at GFR ~0.54
+                        //      mL/min/kg, the diuretic phase of the immature tubule (Lorenz 1995)
+  REABS_NACL: 0.95,     // 6.5: Kidneys.reabsorption_fractions na and cl (term 0.99 / 0.988) -> FENa 5 % (Lorenz 1995)
+  MAINT_RATE: 3.0,      // 6.5: Fluids.maintenance_rate, mL/kg/h (term 1.352) = the resting urine; the maintenance fluid's
+                        //   composition is set to the urine these fractions make (plasma x (1-f_s)/(1-f_water); lactate
+                        //   excluded, as in term_neonate)
   RESP_Q: 0.95,         // 6.3: Metabolism.resp_q (term 0.8) -> RQ on glucose-rich PN (Bauer 2003, Forsyth 1992)
   VO2_METABOLISM: 5.19, // reference total 6.0 minus term's Mob (myocardium) ~0.81 (starting point split)
   HB_MMOL: 14.5 / 1.611, // reference: Hb 14.5 g/dL -> 9.0 mmol/L
@@ -99,7 +105,7 @@ for (let i = 0; i < argv.length; i++) {
   if (!(k in L)) { console.error(`unknown lever ${k}; levers: ${Object.keys(L).join(", ")}`); process.exit(1); }
   L[k] = Number(v);
 }
-const { COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
+const { REABS_WATER, REABS_NACL, MAINT_RATE, COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
   IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
 // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
@@ -182,6 +188,20 @@ log.push(`preload: VLB/VUB u_vol x${VEN_UVOL}; myocardium cont ${CONT}, relax ${
 // 6. metabolism, blood, environment
 M.Metabolism.vo2 = VO2_METABOLISM;
 M.Metabolism.resp_q = RESP_Q;
+// immature tubule: lower water and NaCl reabsorption (diuretic phase), intake matched to the urine
+const K = M.Kidneys;
+K.reabsorption_fraction = REABS_WATER;
+if (REABS_NACL !== 0.99) { K.reabsorption_fractions.na = REABS_NACL; K.reabsorption_fractions.cl = REABS_NACL; }
+if (MAINT_RATE > 0) {
+  M.Fluids.maintenance_rate = MAINT_RATE;
+  const urine = {};
+  for (const [sol, f] of Object.entries(K.reabsorption_fractions)) {
+    const c = M.Blood.solutes?.[sol];
+    if (typeof c === "number" && sol !== "lact") urine[sol] = +(c * (1 - f) / (1 - REABS_WATER)).toFixed(3);
+  }
+  M.Fluids.fluids[M.Fluids.maintenance_fluid] = urine;
+}
+log.push(`kidney: water reabsorption ${REABS_WATER}, Na/Cl ${K.reabsorption_fractions.na}/${K.reabsorption_fractions.cl}; maintenance ${M.Fluids.maintenance_rate} mL/kg/h ${JSON.stringify(M.Fluids.fluids[M.Fluids.maintenance_fluid])}`);
 M.Blood.set_solute("hemoglobin", HB_MMOL);
 M.Blood.set_P50(P50);
 M.Thermoregulation.env_temp = ENV_TEMP;
