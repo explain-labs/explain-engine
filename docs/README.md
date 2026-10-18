@@ -162,4 +162,5 @@ Not tied to a single class — physiology/clinical background and scenario-build
 |---|---|
 | [fetal_circulation](./fetal_circulation.md) | Fetal scenarios (`term_fetus`, `fetus_30wk`): the fetal invariants, why a gestational age costs a calibration pass, measured operating points, known limitations. |
 | [TermNeonateReference](./TermNeonateReference.md) | Literature reference values for a healthy term neonate at ~72 h (hemodynamics, heart, flows, breathing, gases, metabolism, shunts), graded by evidence, with the matching JSON for validating `term_neonate`. |
+| [Preterm28wkReference](./Preterm28wkReference.md) | Literature reference values for a preterm neonate born at 28 weeks (~1 kg) at ~72 h on nasal CPAP with a small PDA (hemodynamics, heart, flows, shunts, breathing, gases, metabolism, blood, kidneys), graded by evidence, with the balance rules and the matching JSON for validating `preterm_28wk_72h`. |
 | [chd_duct_fo_dependent](./chd_duct_fo_dependent.md) | Duct- & foramen-ovale-dependent CHD taxonomy, lesion catalog, engine-lever mapping, build roadmap, bibliography. |
