@@ -55,7 +55,7 @@ Most preterm values depend on the clinical state, so the state is part of the re
 
 The model enforces conservation, so the targets were chosen to close:
 
-- **Aortic side:** LVO 215 = SVC 85 + descending aorta 110 + ductal shunt ~20 (+ coronaries)
+- **Aortic side:** LVO = SVC + descending aorta + ductal shunt + coronaries (~12 mL/kg/min, ~6 % of LVO; echo LVO at the aortic valve includes them). The targets (215 = 85 + 110 + ~20) were set without the coronaries, so the model sits at a slightly higher LVO or slightly lower systemic flow
 - **Venous side:** RVO 195 = systemic venous return + PFO shunt
 - **Upper body:** SVC 85 = brain 28 + rest ~57
 - **Lower body:** descending aorta 110 = gut 25 + liver/spleen 20 + kidneys 10 + rest ~55
@@ -217,6 +217,7 @@ term_neonate after every change (`--name` and `--set LEVER=value` run prototypes
 | 6.1 | Lungs and oxygenation: alveolar `el_base` ×9.067 → ×5.55; alveolar `u_vol` ×0.50 → ×0.80; chest wall (`THORAX.el_base`) ×1 → ×2.94; `Shunts.ips_res` 1 900 → 14 000 | lung compliance 0.49 → 0.80 /kg; chest wall 14.7 → 5.0 /kg; FRC 14 → 22 mL/kg; SpO₂ 61 → 93 %; PaO₂ 25 → 57; SvO₂ 45 → 72 | Bhutani 1988, Reiterer 1993 (compliance); Gerhardt 1980 (chest wall); da Silva 1994 (FRC on PEEP); SpO₂ target (Sweet 2023). PaO₂ follows from P50 18.5 at pH 7.28 (in vivo ~21): SpO₂ 93 % is matched, PaO₂ lands at ~57, inside 42–58 |
 | 6.2 | BP and heart: heart chambers `el_max`/`el_min` ×2.4 (`*_factor_scaling_ps`); arteries `el_base` ×5 (implicit aorta); systemic resistances ×1 → ×2.2; pulmonary ×1.75 → ×2.5; `cont_factor` 0.9 → 1.0 | BP 22/18 (20) → 52/30 (41.5); HR 186 → 160 with the baroreflex near neutral (HR ×1.5 → ×1.03, SVR ×2.0 → ×1.07); LV EDV/ESV/EF 3.1/2.2/30 % → 2.65/0.94/65 %; RV EF 23 → 50 %; PAP 20/16 → 31.5/25; GFR 0 → 10.6 | Weight scaling shrinks volumes but keeps term stiffness, so the 1 kg heart and arteries were ~3.5× too compliant per kg. Elsayed 2023 (BP shape), Groves 2011 (EF, volumes), Skinner 1992 (PAP). The pulse-wave-velocity size rule of `build_patient.mjs` (×1.88) leaves a pulse pressure of ~10; ×5 matches the invasive 54/29 |
 | 6.3 | Breathing: Breathing effort gain recalibrated (`rmp_calibrated` reset; term's frozen ~334 → ~1230 mmHg/L); dead space `DS.u_vol` ×1.36; `Metabolism.resp_q` 0.8 → 0.95 | RR 81 → 61; Vt 3.2 → 4.8; MV 262 → 293; dead space 2.2 → 3.0 mL/kg; pCO₂ 49.1 → 46.1; RQ at the lung 0.80 → 0.93; breathing chemoreflex ×1.68 → ×0.98 | The scenario inherited term's effort gain, calibrated on ~5× more compliant lungs, so breaths fell short. Liew 2020, Welty 2018 (pattern); Numa & Newth 1996 (dead space); Bauer 2003, Forsyth 1992 (RQ on PN) |
+| 6.4 | Flows: `Brain.cbf_setpoint` 0.10592 → 0.028 L/min (rest anchors re-seeded), cerebral bed r ×1.2; `Shunts.diameter_fo` 1.5 → 0.75 mm; coronary inflow `AA_COR` r ×2.4; heart `el_min` ×2.4 → ×3.5 and `el_max` ×2.4 → ×3.4; baroreceptor window `BR_MAP` min/max 25/100 → 16.9/67.5 (scaled with the set-point); systemic resistances ×2.3, pulmonary ×3.0 | CBF 56 → 28 with autoregulation 0.15 → 1.06; SVC 114 → 86; DAo 101 → 102; PFO 20 → 4.3; coronaries 27.6 → 12.7; LVO/RVO 279/264 → 238/206; LV EDV/ESV/SV/EF 2.70/0.95/1.75/65 % → 2.31/0.72/1.59/69 %; BP 52/30 (42) → 51/31 (41.5); HR 160 → 150; baroreflex ×0.97 | Each was still term-sized: the brain defended term's absolute CBF, the PFO and coronary bed were term-size, and the term baroreceptor window (25–100) is lopsided around 39 so the pulse's diastolic dip dominated. Greisen 1986 (CBF); Bischoff 2021 (atrial shunt); Groves 2011 (EF, volumes). The duct stays 1 mm (author) and carries ~37 mL/kg/min |
 
 ## Decisions log (2026-10-18)
 
@@ -238,6 +239,7 @@ All choices were made by the model's author after the evidence was presented.
 | Gases | VO₂ 6.0; BE −5.5 (so pH ~7.26); SpO₂ 93; SvO₂ by Fick | Bonsante 2017; European Consensus 2022 |
 | 6.1 lungs | Match SpO₂ 93 and accept PaO₂ ~57 rather than 50 | Dissociation curve at pH 7.28 |
 | 6.2 heart/BP | Arterial stiffness ×5 (match the invasive pulse pressure) instead of the PWV rule ×1.88; MAP (41.5) and SpO₂ (96 %) fine-tuned after the flow step | Elsayed 2023 |
+| 6.4 flows | Keep the duct at 1 mm (shunt ~37, in range) rather than shrinking it to reach the derived ~22 | Echo diameter is the measured quantity |
 | Blood | Delayed clamping: Hb 14.5 / Hct 43 | Jopling 2009, Banerjee 2015, sampling losses |
 | Glucose / GFR | Glucose 6.5 (calm); GFR ~0.5 mL/min/kg on day 3 | Liu 2026; Vieux 2010 −20 % |
 

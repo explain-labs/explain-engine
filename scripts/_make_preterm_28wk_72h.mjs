@@ -49,24 +49,30 @@ const L = {
 
   // --- circulation ---
   HR_REF: 155,          // reference: HR 155 (Deshpande 2023, Bischoff 2021)
+  BR_WINDOW: 1,         // 6.4: scale the baroreceptor window (BR_MAP min/max, term 25/100) with the set-point (x39/57.8 ->
+                        //      16.9-67.5); the lopsided term window weighted the diastolic dip ~4x and read "low" at MAP 42
   BR_MAP: 39,           // reference: the MAP the baroreflex defends = Elsayed 2023 day-3 invasive median
-  SVR: 2.2,             // 6.2: systemic resistances x -> same flow per kg at the preterm's lower MAP (was 1.0)
-  PVR: 2.5,             // 6.2: pulmonary resistances x -> PAP ~31/25 (was 1.75); reference ratio 0.55
+  SVR: 2.3,             // 6.2/6.4: systemic resistances x -> MAP ~41 with the baroreflex ~neutral (term 1.0)
+  PVR: 3.0,             // 6.2/6.4: pulmonary resistances x -> PAP ~31/25 (term 1.0); reference ratio 0.55
   CONT: 1.0,            // 6.2: Heart.cont_factor_* (was 0.90): preterm EF is normal (Groves 2011, no GA effect)
   RELAX: 1.10,          // starting point: immature diastolic function, Heart.relax_factor_*
-  HEART_EL_MAX: 2.4,    // 6.2: heart chambers el_max x (el_max_factor_scaling_ps) ~ (W/W0)^-0.69; weight scaling
-                        //      shrinks the chambers but leaves their term stiffness -> EF 30 -> 65 %, EDV 3.1 -> 2.6
-  HEART_EL_MIN: 2.4,    // 6.2: heart chambers el_min x (el_min_factor_scaling_ps), same size rule
+  HEART_EL_MAX: 3.4,    // 6.2/6.4: heart chambers el_max x (el_max_factor_scaling_ps): weight scaling shrinks the chambers
+                        //      but keeps term stiffness -> EF 69 %, ESV 0.72 mL/kg (was x1: EF 30 %)
+  HEART_EL_MIN: 3.5,    // 6.2/6.4: heart chambers el_min x (el_min_factor_scaling_ps) -> EDV 2.3 mL/kg (at x2.4 the heart over-filled)
   ART_EL: 5.0,          // 6.2: artery el_base x (el_base_factor_scaling_ps, implicit aorta) -> pulse pressure ~22
                         //      (Elsayed 2023 54/29). The PWV rule of build_patient (x1.88) leaves PP ~10
   VEN_UVOL: 0.82,       // starting point: VLB/VUB unstressed volume (restores CVP after scaling)
   PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (Pda.diameter_pa_max = 3 mm)
-  // the foramen ovale keeps term_neonate's 1.5 mm with fo_lr_factor 1 (starting point)
+  FO_DIAM: 0.75,        // 6.4: Shunts.diameter_fo, mm (term 1.5) -> PFO shunt ~4 mL/kg/min L->R
+  COR_R: 2.4,           // 6.4: coronary inflow (AA_COR) r x -> 12.7 mL/kg/min (term 11.7; was 27.6, a term-size bed)
+  BRAIN_R: 1.2,         // 6.4: cerebral bed (BR_ART, BR_CAP, BR_VEN) r x, so autoregulation rests near 1 at CBF 28
+  CBF_SET: 0.028,       // 6.4: Brain.cbf_setpoint, L/min absolute (28 mL/kg/min; term 0.10592 kept the bed fully dilated);
+                        //      the CPP/CBV rest anchors re-seed after the warm-up
 
   // --- lungs and breathing ---
   RDS_EL: 5.55,         // 6.1: alveolar el_base x -> lung compliance 0.8 mL/cmH2O/kg (was 9.067, the unsupported severe-RDS row)
   RDS_UVOL: 0.80,       // 6.1: alveolar u_vol x -> FRC 22 mL/kg, the lung recruited by CPAP 6 (da Silva 1994)
-  THORAX_EL: 2.94,     // 6.1: chest-wall (THORAX) el_base x -> 5 mL/cmH2O/kg (Gerhardt 1980); weight scaling leaves it at the term absolute value
+  THORAX_EL: 2.94,      // 6.1: chest-wall (THORAX) el_base x -> 5 mL/cmH2O/kg (Gerhardt 1980); weight scaling leaves it at the term absolute value
   GASEX: 0.45,          // alveolar-capillary diffusion x (kept in 6.1: absolute, so already generous for 1 kg)
   IPS_RES: 14000,       // 6.1: intrapulmonary shunt resistance -> SpO2 93 % at FiO2 0.25 (mild residual shunt; was 1900)
   SURFACTANT: 0.25,     // starting point: surfactant maturity (_add_surfactant 28 wk); post-surfactant may sit higher
@@ -93,7 +99,7 @@ for (let i = 0; i < argv.length; i++) {
   if (!(k in L)) { console.error(`unknown lever ${k}; levers: ${Object.keys(L).join(", ")}`); process.exit(1); }
   L[k] = Number(v);
 }
-const { RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
+const { COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
   IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
 // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
@@ -156,12 +162,21 @@ log.push(`CPAP: FiO2 ${FIO2} at MOUTH, Ventilator off (ET tube 2.5 mm if used)`)
 M.Heart.heart_rate_ref = HR_REF;
 const termBrMap = M.BR_MAP.set_value;
 M.BR_MAP.set_value = BR_MAP;
-log.push(`heart: heart_rate_ref ${HR_REF}; BR_MAP ${termBrMap} -> ${BR_MAP}`);
+if (BR_WINDOW) { const k = BR_MAP / termBrMap; M.BR_MAP.min_value *= k; M.BR_MAP.max_value *= k; }
+log.push(`heart: heart_rate_ref ${HR_REF}; BR_MAP ${termBrMap} -> ${BR_MAP} (window ${M.BR_MAP.min_value.toFixed(1)}-${M.BR_MAP.max_value.toFixed(1)})`);
 log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor: volFactor, mapRef: BR_MAP, mapRefBaseline: termBrMap })));
 for (const n of ["VLB", "VUB"]) if (M[n]) M[n].u_vol *= VEN_UVOL;
 M.Heart.cont_factor_left = CONT; M.Heart.cont_factor_right = CONT;
 M.Heart.relax_factor_left = RELAX; M.Heart.relax_factor_right = RELAX;
 M.Pda.diameter_relative = PDA_REL;
+M.Shunts.diameter_fo = FO_DIAM;
+for (const n of ["BR_ART", "BR_CAP", "BR_VEN"]) { M[n].r_for *= BRAIN_R; M[n].r_back *= BRAIN_R; }
+M.AA_COR.r_for *= COR_R; M.AA_COR.r_back *= COR_R;
+if (CBF_SET > 0) {
+  // the autoregulation target is absolute (term: 0.10592 L/min); the rest anchors re-seed after the warm-up
+  M.Brain.cbf_setpoint = CBF_SET; M.Brain.cpp_setpoint = 0.0; M.Brain.cbv0 = 0.0;
+}
+log.push(`FO ${FO_DIAM} mm; coronary r x${COR_R}; brain bed r x${BRAIN_R}, cbf_setpoint ${M.Brain.cbf_setpoint} L/min`);
 log.push(`preload: VLB/VUB u_vol x${VEN_UVOL}; myocardium cont ${CONT}, relax ${RELAX}; PDA ${(PDA_REL * M.Pda.diameter_pa_max).toFixed(2)} mm; FO ${M.Shunts.diameter_fo} mm`);
 
 // 6. metabolism, blood, environment
