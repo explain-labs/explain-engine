@@ -66,7 +66,7 @@
       "pmid": "2403678"
     },
     "agata1994": {
-      "cite": "Agata Y et al. Pediatr Res 1994;36:805-10 (values pending, full text not yet read)",
+      "cite": "Agata Y et al. Pediatr Res 1994;36:805-10 (n=23 term, 2862 g, GA 38 wk; Fig 2 read at 96 h)",
       "doi": "10.1203/00006450-199412000-00022",
       "pmid": "7898989"
     },
@@ -193,7 +193,7 @@
       ],
       "grade": "A",
       "model_readout": "Monitor.heart_rate",
-      "notes": "Quiet sleep 112 (87-133, Hannover); resting day 1 120-122 (Norway); USCOM 126 to 120 from day 1 to 3 (He). Mean set between Satoh 117 and He 120."
+      "notes": "Quiet sleep 112 (87-133, Hannover); resting day 1 120-122 (Norway); USCOM 126 to 120 from day 1 to 3 (He). Mean set between Satoh 117 and He 120. Agata 1994 (echo, n=23): 121 +/- 12 at 24 h, ~120 at 96 h."
     },
     {
       "key": "sbp",
@@ -399,7 +399,7 @@
       ],
       "grade": "A/B",
       "model_readout": "Heart.lv_sv / weight",
-      "notes": "Groves cine 1.73 +/- 0.28 (HR 142). SV/kg is more robust than CO because HR differs between studies."
+      "notes": "Groves cine 1.73 +/- 0.28 (HR 142). SV/kg is more robust than CO because HR differs between studies. Echo (Agata 1994): 2.2 +/- 0.4 mL/kg at 24 and 96 h, with LVO 272 +/- 48 / 258 +/- 54; echo runs above MRI."
     },
     {
       "key": "lv_ef",
@@ -604,7 +604,7 @@
       ],
       "grade": "B",
       "model_readout": "AA_BR_ART.flow / weight",
-      "notes": "Term median 106.2 mL/min; 23.6 mL/100 g/min (mean 25.6 +/- 9.9). Liu: 14.9 +/- 4.9 mL/100 g/min (n=10)."
+      "notes": "Term median 106.2 mL/min; 23.6 mL/100 g/min (mean 25.6 +/- 9.9). Liu: 14.9 +/- 4.9 mL/100 g/min (n=10). Agata 1994 (Doppler, LEFT MCA only): ~46 mL/kg/min at 24 and 96 h, implausibly high for one artery, which illustrates the Doppler overestimate."
     },
     {
       "key": "sma",
@@ -625,7 +625,7 @@
       ],
       "grade": "B",
       "model_readout": "AD_INT_ART.flow / weight",
-      "notes": "Agata 1994 values pending."
+      "notes": "Agata 1994 (Doppler, 96 h, Fig 2): ~48 mL/kg/min, consistent with Van Bel. Doppler volume flows overestimate absolute flow (Agata's left MCA + coeliac + SMA + one renal artery = ~203 of LVO 258), so treat as an upper estimate."
     },
     {
       "key": "renal",
@@ -637,15 +637,15 @@
       "low": null,
       "high": null,
       "range_type": null,
-      "method": "Doppler",
-      "age": "24 h / 96 h",
+      "method": "Doppler volume flow, LEFT renal artery only",
+      "age": "24-96 h (unchanged over 1-96 h)",
       "n": 23,
       "sources": [
         "agata1994"
       ],
-      "grade": "pending",
+      "grade": "C",
       "model_readout": "AD_KID_ART.flow / weight",
-      "notes": "Pending Agata 1994."
+      "notes": "Agata 1994 Fig 2: left renal artery ~32 (24 h) and ~37 (96 h) mL/kg/min. Single-vessel Doppler volume flows are implausibly high in absolute terms (see sma), so no numeric reference; the stable time course is the usable finding."
     },
     {
       "key": "hepatic_art",
@@ -657,15 +657,15 @@
       "low": null,
       "high": null,
       "range_type": null,
-      "method": "Doppler",
+      "method": "Doppler volume flow, coeliac artery",
       "age": "24 h / 96 h",
       "n": 23,
       "sources": [
         "agata1994"
       ],
-      "grade": "pending",
+      "grade": "C",
       "model_readout": "AD_LS_ART.flow / weight",
-      "notes": "LS (liver + spleen) is compared with coeliac/hepatic arterial flow; portal flow ~ INT. Pending Agata 1994."
+      "notes": "Agata 1994 Fig 2: coeliac ~75 (24 h), ~72 (96 h) mL/kg/min. Same absolute-overestimation caveat; coeliac also feeds the stomach and spleen."
     },
     {
       "key": "rr",

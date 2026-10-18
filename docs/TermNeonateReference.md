@@ -72,9 +72,15 @@ HR 142. RVEDV/LVEDV is 1.2 ± 0.2.
 | SVC flow | **~83** | 28–138 | PC-MRI (Fig 3C) | B | Groves 2011 |
 | Descending aorta | **~99** | 57–141 | PC-MRI (Fig 3D) | B | Groves 2011 |
 | Brain | **28.5** (median; term 106 mL/min) | 9.8–94 | PC-MRA at TEA ~41 wk, n=344 | B | Kooi 2019; Liu 2014 14.9 ± 4.9 mL/100 g/min |
-| Intestine (SMA) | **43 ± 13** | — | Doppler volume flow, preterm + term | B | Van Bel 1990 |
-| Kidney | pending | — | Doppler, 24/96 h | — | Agata 1994 (full text not yet read) |
-| Liver/spleen (coeliac) | pending | — | Doppler, 24/96 h | — | Agata 1994 |
+| Intestine (SMA) | **43 ± 13** | — | Doppler volume flow, preterm + term | B | Van Bel 1990; Agata 1994 ~48 at 96 h |
+| Kidney | no credible absolute value | — | Doppler, left renal artery only: ~32 (24 h) / ~37 (96 h), unchanged over 1–96 h | C | Agata 1994 (Fig 2) |
+| Liver/spleen (coeliac) | no credible absolute value | — | Doppler, coeliac: ~75 (24 h) / ~72 (96 h) | C | Agata 1994 (Fig 2) |
+
+**Doppler volume flows are upper estimates.** Agata's single vessels (left MCA ~46, coeliac ~72,
+SMA ~48, one renal artery ~37 mL/kg/min at 96 h) add up to ~203 of an LVO of 258 mL/kg/min, which is
+not possible. The usable findings are the time course (organ flows stable from 24 to 96 h; renal flow
+unchanged from 1 h) and the SMA agreement with Van Bel. Kidney and coeliac have no credible
+absolute reference.
 
 The model's LS bed is liver + spleen, so it compares with coeliac / hepatic arterial flow. Portal
 inflow comes through the intestinal bed (INT), which the model drains into the lower-body veins.
@@ -161,7 +167,5 @@ outside `model_definitions/`).
 
 ## Open items
 
-- **Agata 1994** (Pediatr Res 36:805): Doppler flow volumes of the brain, coeliac, SMA and renal
-  arteries in normal term infants at 24 and 96 h; will fill in the kidney and liver/spleen rows.
 - **Koch & Wendel 1968** (arterial gases, first week): unavailable, so PaO₂ and BE stay grade C.
 - The PAP rows rely on the source cited in `scripts/_probe.mjs` and were not re-read in this pass.
