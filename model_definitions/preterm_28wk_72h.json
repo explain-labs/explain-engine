@@ -2443,7 +2443,7 @@
    },
    "DA": {
     "type": "Connector",
-    "label": "ductus arteriosus",
+    "label": "PDA",
     "picto": "container.png",
     "enabled": true,
     "models": [
@@ -2460,8 +2460,9 @@
      },
      "path": {
       "type": "straight",
-      "width": 7,
-      "color": "#333333"
+      "width": 5,
+      "color": "#333333",
+      "accent": "#f5a623"
      },
      "sprite": {
       "color": "#ffffff",
@@ -2482,11 +2483,13 @@
       "rotation": 0
      },
      "label": {
-      "pos_x": -50,
-      "pos_y": -43,
-      "size": 8,
+      "pos_x": 0,
+      "pos_y": -10,
+      "size": 11,
       "rotation": 0,
-      "color": "#ffffff"
+      "color": "#f5a623",
+      "visible": true,
+      "at": 0.72
      }
     }
    },
@@ -3342,7 +3345,7 @@
    },
    "FO": {
     "type": "Connector",
-    "label": "foramen ovale",
+    "label": "PFO",
     "picto": "container.png",
     "enabled": true,
     "models": [
@@ -3360,8 +3363,9 @@
      },
      "path": {
       "type": "straight",
-      "width": 7,
-      "color": "#333333"
+      "width": 5,
+      "color": "#333333",
+      "accent": "#43c463"
      },
      "sprite": {
       "color": "#ffffff",
@@ -3383,10 +3387,12 @@
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
-      "size": 10,
+      "pos_y": -10,
+      "size": 11,
       "rotation": 0,
-      "color": "#ffffff"
+      "color": "#43c463",
+      "visible": true,
+      "at": 0.75
      }
     }
    },
