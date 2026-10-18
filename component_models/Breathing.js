@@ -33,7 +33,7 @@ export class Breathing extends BaseModelClass {
     this.vt_rr_ratio_factor = 1.0; // factor influencing the ratio
     this.vt_rr_ratio_scaling_factor = 1.0; // scaling factor for vt-rr ratio
     this.rmp_gain_max = 100.0; // maximum pressure the respiratory muscles can exert (mmHg)
-    this.ie_ratio = 0.3; // ratio of inspiratory and expiratory time
+    this.ie_ratio = 0.3; // inspiratory fraction of the breath (Ti/Ttot), not an I:E ratio
     this.mv_ans_factor = 1.0; // factor from the autonomic nervous system
     this.ans_activity_factor = 1.0; // global ANS activity factor
     this.load_compensation = 0.5; // 0-1, partial compensation of the effort for loads and support

@@ -44,6 +44,17 @@ change whatsoever to the solver. The coupling is one-directional (the O₂ senso
 each tissue's `to2` for the step) and **before** `Blood` (which solves composition). This is handled
 by the model's position in the scenario JSON `models` map — insert it just after `Metabolism`.
 
+**Changing the resting lactate without changing pH.** `uma` (unmeasured anions) enters the same
+charge balance with the same sign as `lact`. A different resting lactate can therefore be swapped in
+against `uma` (lact +x, uma −x in every blood compartment), which leaves pH, HCO₃ and BE untouched.
+
+**term_neonate (calibrated assumption, 2026-10):**
+- `lact_baseline` 1.5 mmol/L, which lies inside both day-3 references:
+  - GLOW 2021: plasma after 48 h, 1.4 (0.8–3.3)
+  - Cousineau 2005: capillary whole blood at 48 ± 12 h, 2.6 ± 0.7 (1.4–4.1)
+- applied as lact +0.5 / uma −0.5 (uma 6.09 → 5.59)
+- see `scripts/_fix_term_lactate.mjs` and [TermNeonateReference](./TermNeonateReference.md)
+
 ## Properties
 
 ### Configuration (independent)

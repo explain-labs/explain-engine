@@ -134,6 +134,49 @@ largest sink), lower/upper body (`RLB`/`RUB`), gut/liver/kidney capillaries (`IN
 `KID_CAP`), and small fractions on the aortic compartments `AA`/`AD`. (The adult `adult_female.json`
 scenario uses `vo2: 3.5` with a slightly different split.)
 
+### The brain's share in `term_neonate` (calibrated assumption)
+
+The example above is the original split. The current `term_neonate` stores:
+- `vo2` 6.1396; `Mob` adds the myocardium's ~0.8 ml/kg/min on top, so lung uptake is 7.0
+  ml/kg/min (see below)
+- `BR_CAP` **0.31311**
+- `RLB`/`INT_CAP` 0.16754
+- `LS_CAP`/`KID_CAP`/`RUB` 0.11169
+- `AA` 0.00558, `AD` 0.01117
+
+The old brain share (0.42–0.45) was a Holliday-type estimate: adult CMRO₂ per gram × neonatal brain
+mass. Neonatal MRI finds lower values:
+- cerebral blood flow at a term median of 106 mL/min (Kooi 2019, PC-MRA, 172 term infants)
+- CMRO₂ well below adult values (Liu 2014)
+
+In 2026-10 the brain's flow and O₂ use were therefore brought down together, keeping its O₂
+extraction (~35 %, cerebral venous saturation ~62 %, as measured by Liu 2014):
+- CBF 144 → 106 mL/min
+- brain VO₂ 11.0 → 8.1 mL/min, 31 % of the Metabolism VO₂
+
+The other beds took over the remainder proportionally, so total VO₂ is unchanged. See
+`scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md). A scenario
+derived from term_neonate inherits this split.
+
+### Whole-body VO₂ in `term_neonate` (calibrated assumption)
+
+`vo2` is **not** the whole-body O₂ uptake when [`Mob`](./Mob.md) is present: Mob consumes the
+myocardium's O₂ (basal plus stroke work, ~0.8 ml/kg/min at rest) on top of it.
+
+The scenario used to take up 8.1 ml/kg/min (7.288 + Mob). The first-week references are lower:
+- 6.26 ± 1.51 at thermoneutral rest
+- resting energy expenditure of 45–50 kcal/kg/d, i.e. ~6.5–7.2 ml O₂/kg/min
+
+So in 2026-10 `vo2` was set to 6.1396, for a lung uptake of **7.0 ml/kg/min**. That sits slightly
+above quiet rest, matching the scenario's calm, mixed sleep/awake state. Knock-on changes:
+- CO₂ production falls with VO₂, so `Breathing.minute_volume_ref` and the chemoreceptor set-points
+  were re-anchored to keep the chemoreflex neutral
+- at the measured output and Hb, Fick puts SvO₂ at ~81–85 % (scenario 81.5 %)
+- Thermoregulation re-seeds its heat-loss trim at load, so the lower metabolic heat does not cool
+  the patient
+
+See `scripts/_fix_term_vo2.mjs`.
+
 ## Usage in the model
 
 - One Metabolism instance per scenario; it is the sole driver of resting tissue O₂ extraction and CO₂
