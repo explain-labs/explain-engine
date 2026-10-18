@@ -45,8 +45,9 @@ pitfalls found while compiling this set:
 | Mean BP | **58** mmHg | 45–72 | NIBP (Fig 4b) | A | van Zadelhoff 2023 |
 | Pulse pressure | ≈ 28 mmHg | — | derived | B | as above |
 | CVP | — | 2–8 mmHg | invasive, sick infants only | C | textbook |
-| PAP systolic | 38.1 ± 8.3 at 48 h | upper 95 % limit 40 at 72 h | echo, TR jet | B | PMID 26817918 (as cited in `scripts/_probe.mjs`) |
-| PAP mean | 26.2 ± 7.5 at 48 h | — | echo | B | same |
+| PAP systolic | **36.0 ± 6.5** mmHg | (24 h 43.8, 48 h 38.1) | echo, 72 h, n=76 | A/B | Kang 2016; its "upper 95 % limit 39.97" looks like a CI of the mean, not a normal limit |
+| PAP diastolic | **13.3 ± 6.2** mmHg | — | echo, 72 h | A/B | Kang 2016 |
+| PAP mean | **25.3 ± 8.3** mmHg | — | echo, 72 h | A/B | Kang 2016 |
 
 ## Heart (cardiac MRI)
 
@@ -164,9 +165,9 @@ outside `model_definitions/`).
 | Date | Change | Before → after | Basis |
 |---|---|---|---|
 | 2026-10-18 | Brain flow and O₂ use (`scripts/_fix_term_brain_mri.mjs`); freed flow → upper body (RUB) | CBF 144 → 106 mL/min (20 → 15 % of LVO); brain VO₂ 11.0 → 8.1 mL/min (42 → 31 %); extraction unchanged at 35 %; SVC stays 81 | Kooi 2019 term median; Liu 2014 extraction |
+| 2026-10-18 | Heart rate and contractility (`scripts/_fix_term_hr_contractility.mjs`): `heart_rate_ref` 131.15 → 120.33; LV `el_max` ×1.15, RV ×1.3; chemoreflex and HeartFunction stress references re-anchored | HR 131 → 120; LV ESV/SV/EF 1.01/1.51/59.9 → 0.92/1.66/64.4; RV 1.65/1.51/47.8 → 1.54/1.66/51.8; output unchanged; PAP 38.9 → 40.6 systolic | Satoh 2016, He 2011, Agata 1994 (HR); Jhaveri 2023 (CMR volumes) |
 | 2026-10-18 | Whole-body VO₂ (`scripts/_fix_term_vo2.mjs`): `Metabolism.vo2` 7.288 → 6.1396 (Mob's ~0.81 for the heart kept); `minute_volume_ref` and chemoreceptor set-points re-anchored | total VO₂ 8.1 → 7.0 mL/kg/min; MV 235 → 207; RR 40.4 → 37.5; Vt 5.8 → 5.5; SvO₂ 78.7 → 81.5; PaO₂ 73 → 76 | 6.26 ± 1.51 (first week, rest); REE 45–50 kcal/kg/d ≈ 6.5–7.2; calm mixed state |
 
 ## Open items
 
 - **Koch & Wendel 1968** (arterial gases, first week): unavailable, so PaO₂ and BE stay grade C.
-- The PAP rows rely on the source cited in `scripts/_probe.mjs` and were not re-read in this pass.

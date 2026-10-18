@@ -88,7 +88,7 @@ const hb = (AA?.solutes?.hemoglobin ?? NaN) * HB_MMOL_TO_GDL;
 const toKgMl = (L) => (L * 1000) / W;
 
 const model_values = {
-  hr: vit.hr, sbp: vit.sys, dbp: vit.dia, map: vit.map, pp: vit.sys - vit.dia, cvp: vit.cvp, pap_s: vit.pap_s, pap_m: vit.pap_m,
+  hr: vit.hr, sbp: vit.sys, dbp: vit.dia, map: vit.map, pp: vit.sys - vit.dia, cvp: vit.cvp, pap_s: vit.pap_s, pap_d: vit.pap_d, pap_m: vit.pap_m,
   lv_edv: toKgMl(acc.lv_edv), lv_esv: toKgMl(acc.lv_esv), lv_sv: toKgMl(acc.lv_sv), lv_ef: acc.lv_ef * 100,
   rv_edv: toKgMl(acc.rv_edv), rv_esv: toKgMl(acc.rv_esv), rv_sv: toKgMl(acc.rv_sv), rv_ef: acc.rv_ef * 100,
   lvo: perKgMin(acc.LV_AA), rvo: perKgMin(acc.RV_PA), svc: perKgMin(acc.SVC_RASVC), dao: perKgMin(acc.AAR_AD),

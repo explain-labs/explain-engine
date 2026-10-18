@@ -35,11 +35,6 @@
       "doi": "10.1016/j.bja.2023.01.024",
       "pmid": null
     },
-    "pap2016": {
-      "cite": "Healthy term newborn PAP by echo, Medicine 2016 (as cited in scripts/_probe.mjs; not re-read in this pass)",
-      "doi": null,
-      "pmid": "26817918"
-    },
     "jhaveri2023": {
       "cite": "Jhaveri S et al. J Cardiovasc Magn Reson 2023;25:26",
       "doi": "10.1186/s12968-023-00932-1",
@@ -169,6 +164,11 @@
       "cite": "General neonatal textbook range; no healthy-term primary source found",
       "doi": null,
       "pmid": null
+    },
+    "kang2016": {
+      "cite": "Kang C et al. Medicine (Baltimore) 2016;95:e2599 (76 healthy term newborns, echo 2-72 h)",
+      "doi": "10.1097/MD.0000000000002599",
+      "pmid": "26817918"
     }
   },
   "variables": [
@@ -303,40 +303,60 @@
       "group": "hemodynamics",
       "label": "Pulmonary artery pressure, systolic",
       "unit": "mmHg",
-      "mean": 38.1,
-      "sd": 8.3,
+      "mean": 36.0,
+      "sd": 6.48,
       "low": null,
-      "high": 40,
-      "range_type": "upper 95% limit at 72 h",
-      "method": "echo (TR jet)",
-      "age": "48 h (mean), 72 h (upper limit)",
-      "n": null,
+      "high": null,
+      "range_type": null,
+      "method": "echo, estimated from the ductal gradient and brachial BP",
+      "age": "72 h",
+      "n": 76,
       "sources": [
-        "pap2016"
+        "kang2016"
       ],
-      "grade": "B",
+      "grade": "A/B",
       "model_readout": "Monitor.minmax.pap_pres_max",
-      "notes": "24 h 43.8 +/- 7.9; 48 h 38.1 +/- 8.3; upper 95% limit 40 at 72 h."
+      "notes": "24 h 43.8 +/- 7.9; 48 h 38.1 +/- 8.3. The paper's 'upper 95 % limit 39.97' at 72 h is far below mean + 2 SD (~49) and looks like a confidence interval of the mean, so it is not used as a normal limit."
     },
     {
       "key": "pap_m",
       "group": "hemodynamics",
       "label": "Pulmonary artery pressure, mean",
       "unit": "mmHg",
-      "mean": 26.2,
-      "sd": 7.5,
+      "mean": 25.25,
+      "sd": 8.29,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "echo, PAMP = PADP + (PASP-PADP)/3",
+      "age": "72 h",
+      "n": 76,
+      "sources": [
+        "kang2016"
+      ],
+      "grade": "A/B",
+      "model_readout": "Monitor.minmax.pap_pres_mean",
+      "notes": "48 h 26.2 +/- 7.5."
+    },
+    {
+      "key": "pap_d",
+      "group": "hemodynamics",
+      "label": "Pulmonary artery pressure, diastolic",
+      "unit": "mmHg",
+      "mean": 13.25,
+      "sd": 6.18,
       "low": null,
       "high": null,
       "range_type": null,
       "method": "echo",
-      "age": "48 h",
-      "n": null,
+      "age": "72 h",
+      "n": 76,
       "sources": [
-        "pap2016"
+        "kang2016"
       ],
-      "grade": "B",
-      "model_readout": "Monitor.minmax.pap_pres_mean",
-      "notes": "24 h 34.4 +/- 9.9."
+      "grade": "A/B",
+      "model_readout": "Monitor.minmax.pap_pres_min",
+      "notes": "48 h 13.85 +/- 5.58."
     },
     {
       "key": "lv_edv",

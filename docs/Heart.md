@@ -107,6 +107,14 @@ isoelectric at 0 mV.
 `first_degree_pq_factor`, `vent_pacemaker_mode`, `vent_escape_rate`, `vt_rate`, `pvc_coupling`
 (+ the `trigger_pvc()` method).
 
+**term_neonate (calibrated assumption, 2026-10):**
+- `heart_rate_ref` 120.33, for a resting HR of 120: calm day-3 term infants measure 117–121 (Satoh
+  2016, He 2011, Agata 1994)
+- LV `el_max` ×1.15 and RV `el_max` ×1.3, so stroke volume and ejection fraction match neonatal CMR
+  (Jhaveri 2023: SV 1.6 mL/kg, EF 63 / 52.5 %) at unchanged output. Lowering HR alone is largely
+  compensated by Frank–Starling filling but leaves EF low.
+- see `scripts/_fix_term_hr_contractility.mjs` and [TermNeonateReference](./TermNeonateReference.md)
+
 ## Notes & caveats
 
 - **End-diastolic pressures.** The diastole-branch in `analyze` now writes `*_edp` (it previously
