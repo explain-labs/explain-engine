@@ -94,6 +94,7 @@ inflow comes through the intestinal bed (INT), which the model drains into the l
 | Tidal volume | **5.57 ± 1.06** mL/kg | — | flow-through, day 7, n=48 | A/B | Schmalisch 2005 |
 | Minute ventilation | **215 ± 52** mL/kg/min | — | flow-through | A/B | Schmalisch 2005 |
 | Ti/Ttot | **0.40** (Ti 0.65 s, Te 0.98 s) | — | flow-through | A/B | Schmalisch 2005 |
+| Peak tidal insp / exp flow | **0.83 ± 0.20 / 0.64 ± 0.19** L/min/kg | — | flow-through | A/B | Schmalisch 2005 |
 | Compliance (Crs) | **~3.6** mL/cmH₂O (~1.0–1.1 /kg) | 3.2–4.0 | passive occlusion | B | Katier 2006 (prediction 4.0), Stocks 1994, Migdal 1987, Nowotny 1998 |
 | Resistance (Rrs) | **52 ± 6** cmH₂O/L/s | (Katier ~75–80) | passive occlusion, n=9 | B | Nowotny 1998 |
 | FRC | **27.1** mL/kg | 23.8–32.0 | helium, median day 2, n=24 | A | Yüksel 1995; nitrogen 24.0, plethysmography 29.8–31.1 |
@@ -165,6 +166,7 @@ outside `model_definitions/`).
 | Date | Change | Before → after | Basis |
 |---|---|---|---|
 | 2026-10-18 | Brain flow and O₂ use (`scripts/_fix_term_brain_mri.mjs`); freed flow → upper body (RUB) | CBF 144 → 106 mL/min (20 → 15 % of LVO); brain VO₂ 11.0 → 8.1 mL/min (42 → 31 %); extraction unchanged at 35 %; SVC stays 81 | Kooi 2019 term median; Liu 2014 extraction |
+| 2026-10-18 | Breathing pattern (`scripts/_fix_term_breathing_pattern.mjs`): `ie_ratio` 0.30 → 0.40; `vt_rr_ratio` → 1.29795e-4; `minute_volume_ref` and chemoreceptor set-points re-anchored | Ti/Ttot 0.30 → 0.40; RR 37.7 → 40.0; Vt 5.51 → 5.34; MV 208 → 213; peak flows 0.90/0.58 → 0.70/0.66 L/min/kg | Schmalisch 2005 (Ti, Vt, MV, peak flows); Hannover 2018 (RR) |
 | 2026-10-18 | Heart rate and contractility (`scripts/_fix_term_hr_contractility.mjs`): `heart_rate_ref` 131.15 → 120.33; LV `el_max` ×1.15, RV ×1.3; chemoreflex and HeartFunction stress references re-anchored | HR 131 → 120; LV ESV/SV/EF 1.01/1.51/59.9 → 0.92/1.66/64.4; RV 1.65/1.51/47.8 → 1.54/1.66/51.8; output unchanged; PAP 38.9 → 40.6 systolic | Satoh 2016, He 2011, Agata 1994 (HR); Jhaveri 2023 (CMR volumes) |
 | 2026-10-18 | Whole-body VO₂ (`scripts/_fix_term_vo2.mjs`): `Metabolism.vo2` 7.288 → 6.1396 (Mob's ~0.81 for the heart kept); `minute_volume_ref` and chemoreceptor set-points re-anchored | total VO₂ 8.1 → 7.0 mL/kg/min; MV 235 → 207; RR 40.4 → 37.5; Vt 5.8 → 5.5; SvO₂ 78.7 → 81.5; PaO₂ 73 → 76 | 6.26 ± 1.51 (first week, rest); REE 45–50 kcal/kg/d ≈ 6.5–7.2; calm mixed state |
 

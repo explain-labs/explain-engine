@@ -58,6 +58,7 @@ const flowNames = ["LV_AA", "RV_PA", "AA_BR_ART", "AA_RUB", "AAR_AD", "AD_LS_ART
 const acc = {};
 const add = (k, v) => { acc[k] = (acc[k] || 0) + (Number.isFinite(v) ? v : 0); };
 let frcMin = Infinity;
+const peaks = { insp: [], exp: [] }; let curIn = 0, curEx = 0, seenBreath = false; // per-breath peak airway flows
 const steps = Math.round(WINDOW / dt);
 for (let i = 0; i < steps; i++) {
   for (const k in M) M[k].step_model();
@@ -68,12 +69,18 @@ for (let i = 0; i < steps; i++) {
   add("vt", M.Breathing?.exp_tidal_volume);
   add("mv", M.Breathing?.minute_volume);
   add("ds_vol", M.DS?.vol);
+  add("gfr", M.Kidneys?.gfr); // pressure-following, so averaged rather than read at the end
+  add("urine", M.Kidneys?.urine_flow);
   add("o2_uptake", -((M.GASEX_LL?.flux_o2 ?? 0) + (M.GASEX_RL?.flux_o2 ?? 0))); // mmol per step, +ve = blood takes up O2
+  const fl = M.MOUTH_DS?.flow ?? 0;
+  if (M.Breathing?.ncc_insp === 1) { if (seenBreath) { peaks.insp.push(curIn); peaks.exp.push(curEx); } curIn = 0; curEx = 0; seenBreath = true; }
+  if (fl > curIn) curIn = fl; if (fl < curEx) curEx = fl;
   const gas = (M.ALL?.vol ?? 0) + (M.ALR?.vol ?? 0) + (M.DS?.vol ?? 0);
   if (gas < frcMin) frcMin = gas;
 }
 for (const k in acc) acc[k] /= steps;
 const perKgMin = (lps) => (lps * 60000) / W; // L/s -> mL/kg/min
+const meanOf = (a) => (a.length ? a.reduce((x, y) => x + y, 0) / a.length : NaN);
 
 // static read-outs at the end of the window
 const AA = M.AA;
@@ -93,11 +100,11 @@ const model_values = {
   rv_edv: toKgMl(acc.rv_edv), rv_esv: toKgMl(acc.rv_esv), rv_sv: toKgMl(acc.rv_sv), rv_ef: acc.rv_ef * 100,
   lvo: perKgMin(acc.LV_AA), rvo: perKgMin(acc.RV_PA), svc: perKgMin(acc.SVC_RASVC), dao: perKgMin(acc.AAR_AD),
   cbf: perKgMin(acc.AA_BR_ART), sma: perKgMin(acc.AD_INT_ART), renal: perKgMin(acc.AD_KID_ART), hepatic_art: perKgMin(acc.AD_LS_ART),
-  rr: vit.rr, vt: toKgMl(acc.vt), mv: toKgMl(acc.mv), ti_ttot: M.Breathing?.ie_ratio, crs, rrs, frc: toKgMl(frcMin), vd: toKgMl(acc.ds_vol),
+  rr: vit.rr, vt: toKgMl(acc.vt), mv: toKgMl(acc.mv), ti_ttot: M.Breathing?.ie_ratio, ptif: meanOf(peaks.insp) * 60 / W, ptef: -meanOf(peaks.exp) * 60 / W, crs, rrs, frc: toKgMl(frcMin), vd: toKgMl(acc.ds_vol),
   spo2: vit.spo2_pre, ph: vit.ph, pco2: vit.pco2, hco3: vit.hco3, be: vit.be, po2: vit.po2, etco2: vit.etco2, svo2: vit.svo2,
   vo2: (acc.o2_uptake / dt) * 60 * O2_ML_PER_MMOL / W, temp: vit.temp, glucose: AA?.solutes?.glucose, lactate: M.Lactate?.arterial_lactate,
   hb, hct: hb / MCHC * 100, blood_volume: toKgMl(bloodVol),
-  gfr: (M.Kidneys?.gfr ?? NaN) * 1.73 / bsa, urine: (M.Kidneys?.urine_flow ?? NaN) * 60 / W,
+  gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,
   pda: perKgMin(acc.AAR_DA), fo: perKgMin(acc.LA_RAIVCI + acc.LA_RASVC),
 };
 const extras = {

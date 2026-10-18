@@ -771,6 +771,46 @@
       "notes": ""
     },
     {
+      "key": "ptif",
+      "group": "breathing",
+      "label": "Peak tidal inspiratory flow",
+      "unit": "L/min/kg",
+      "mean": 0.83,
+      "sd": 0.2,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "dead-space-free flow-through, quiet sleep",
+      "age": "day 7 (3-12)",
+      "n": 48,
+      "sources": [
+        "schmalisch2005"
+      ],
+      "grade": "A/B",
+      "model_readout": "per-breath max of MOUTH_DS.flow / weight",
+      "notes": "The model ramps muscle pressure linearly over inspiration; infants peak earlier."
+    },
+    {
+      "key": "ptef",
+      "group": "breathing",
+      "label": "Peak tidal expiratory flow",
+      "unit": "L/min/kg",
+      "mean": 0.64,
+      "sd": 0.19,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "dead-space-free flow-through, quiet sleep",
+      "age": "day 7 (3-12)",
+      "n": 48,
+      "sources": [
+        "schmalisch2005"
+      ],
+      "grade": "A/B",
+      "model_readout": "per-breath min of MOUTH_DS.flow / weight",
+      "notes": ""
+    },
+    {
       "key": "crs",
       "group": "breathing",
       "label": "Respiratory system compliance",

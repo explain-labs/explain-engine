@@ -89,6 +89,17 @@ target_tidal_volume = target_minute_volume / resp_rate
 guarded against a non-positive denominator or target so it cannot produce an `Infinity`/`NaN` rate;
 when breathing is disabled `vt_rr_controller` sets `resp_rate = 0` and returns.
 
+**term_neonate (calibrated assumption, 2026-10):**
+- `ie_ratio` 0.40 (it is Ti/Ttot, not I:E): Ti 0.65 s of a 1.63 s cycle in healthy term infants
+  (Schmalisch 2005, dead-space-free flow-through, day 7)
+- `vt_rr_ratio` 1.29795e-4, for RR 40 / Vt 5.3 mL/kg at a minute ventilation of 213 mL/kg/min
+  (Schmalisch: 39.2 ± 8.6 / 5.57 ± 1.06 / 215 ± 52; Hannover day 2: RR 44)
+- `minute_volume_ref` 0.207336 and the chemoreceptor set-points re-anchored, so the chemoreflex is
+  neutral at PaCO₂ 39.7
+- with the linear inspiratory muscle ramp, peak flows are 0.70 / 0.66 L/min/kg (reference
+  0.83 ± 0.20 / 0.64 ± 0.19); infants peak earlier in inspiration
+- see `scripts/_fix_term_breathing_pattern.mjs` and [TermNeonateReference](./TermNeonateReference.md)
+
 ## Breath phase state machine
 
 A breath starts when `_breath_timer` reaches `_breath_interval`. At that moment the timing and the
