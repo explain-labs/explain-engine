@@ -19,8 +19,24 @@ AA ──AA_BR_ART──► BR_ART ──► BR_CAP ──► BR_VEN ──BR_VE
 ```
 
 `CBF = AA_BR_ART.flow`. `BR_CAP` is the dominant neonatal O2 sink ([`Metabolism`](./Metabolism.md)
-`fvo2 ≈ 0.45`), so a fall in CBF shows up as `BR_CAP.to2` collapsing — the HIE / ischaemia signature
-(`brain_to2` read-out).
+`fvo2` 0.31 in term_neonate, formerly ≈ 0.45), so a fall in CBF shows up as `BR_CAP.to2` collapsing —
+the HIE / ischaemia signature (`brain_to2` read-out).
+
+**The bed's resistance is set on the vessels, not the connectors.** Each `BloodVessel` writes its own
+`r_for_eff` into its input connector every step:
+- `AA_BR_ART` takes `BR_ART`'s value
+- `BR_ART_BR_CAP` takes `BR_CAP`'s
+- `BR_CAP_BR_VEN` takes `BR_VEN`'s
+- `BR_VEN_VUB` is `VUB`'s connector, shared with `RUB_VUB`
+
+To change resting CBF, scale `BR_ART`/`BR_CAP`/`BR_VEN` together. Scaling only `BR_ART` raises the
+autoregulation effector's share of the bed, and with it the loop gain; the controller then
+oscillates. Re-anchor `cbf_setpoint`/`cpp_setpoint`/`cbv0` to the new rest as well.
+
+**term_neonate CBF (calibrated assumption, 2026-10):**
+- 0.10592 L/min (106 mL/min, ~30 mL/kg/min, 15 % of LVO), the neonatal PC-MRA term median (Kooi 2019)
+- previously 144 mL/min (20 % of LVO)
+- see `scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md)
 
 ## Autoregulation = closed-loop control of CBF
 

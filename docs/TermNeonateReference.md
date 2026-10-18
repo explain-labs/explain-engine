@@ -150,6 +150,15 @@ Preliminary values taken while compiling; the formal comparison follows in step 
   - intestinal flow 26 (reference 43 ± 13)
   - foramen ovale fully closed
 
+## Recalibrations made from this reference
+
+Use `node scripts/probe_term_reference.mjs` for the full comparison (`--file` probes a scenario file
+outside `model_definitions/`).
+
+| Date | Change | Before → after | Basis |
+|---|---|---|---|
+| 2026-10-18 | Brain flow and O₂ use (`scripts/_fix_term_brain_mri.mjs`); freed flow → upper body (RUB) | CBF 144 → 106 mL/min (20 → 15 % of LVO); brain VO₂ 11.0 → 8.1 mL/min (42 → 31 %); extraction unchanged at 35 %; SVC stays 81 | Kooi 2019 term median; Liu 2014 extraction |
+
 ## Open items
 
 - **Agata 1994** (Pediatr Res 36:805): Doppler flow volumes of the brain, coeliac, SMA and renal

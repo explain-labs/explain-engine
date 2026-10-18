@@ -6,7 +6,7 @@
 // an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference).
 //
 // Usage:
-//   node scripts/probe_term_reference.mjs [scenario] [--settle S] [--window W] [--json out.json]
+//   node scripts/probe_term_reference.mjs [scenario] [--settle S] [--window W] [--json out.json] [--file path.json]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -39,7 +39,8 @@ console.log = () => {};
 
 await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
-const json = JSON.parse(fs.readFileSync(new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"));
+const FILE = opt("--file", null); // probe a scenario file outside model_definitions/ (e.g. a prototype)
+const json = JSON.parse(fs.readFileSync(FILE ?? new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"));
 send("POST", "build", json.model_definition || json);
 send("GET", "state", []);
 const model = live;

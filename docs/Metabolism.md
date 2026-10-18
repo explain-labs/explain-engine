@@ -134,6 +134,29 @@ largest sink), lower/upper body (`RLB`/`RUB`), gut/liver/kidney capillaries (`IN
 `KID_CAP`), and small fractions on the aortic compartments `AA`/`AD`. (The adult `adult_female.json`
 scenario uses `vo2: 3.5` with a slightly different split.)
 
+### The brain's share in `term_neonate` (calibrated assumption)
+
+The example above is the original split. The current `term_neonate` stores:
+- `vo2` 7.288; `Mob` adds the myocardium's ~0.8 ml/kg/min on top
+- `BR_CAP` **0.31311**
+- `RLB`/`INT_CAP` 0.16754
+- `LS_CAP`/`KID_CAP`/`RUB` 0.11169
+- `AA` 0.00558, `AD` 0.01117
+
+The old brain share (0.42–0.45) was a Holliday-type estimate: adult CMRO₂ per gram × neonatal brain
+mass. Neonatal MRI finds lower values:
+- cerebral blood flow at a term median of 106 mL/min (Kooi 2019, PC-MRA, 172 term infants)
+- CMRO₂ well below adult values (Liu 2014)
+
+In 2026-10 the brain's flow and O₂ use were therefore brought down together, keeping its O₂
+extraction (~35 %, cerebral venous saturation ~62 %, as measured by Liu 2014):
+- CBF 144 → 106 mL/min
+- brain VO₂ 11.0 → 8.1 mL/min, 31 % of the Metabolism VO₂
+
+The other beds took over the remainder proportionally, so total VO₂ is unchanged. See
+`scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md). A scenario
+derived from term_neonate inherits this split.
+
 ## Usage in the model
 
 - One Metabolism instance per scenario; it is the sole driver of resting tissue O₂ extraction and CO₂
