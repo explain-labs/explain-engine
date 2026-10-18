@@ -105,6 +105,15 @@ measurable Qp:Qs above ~3 mm (Evans & Iyer 1994, doi 10.1016/s0022-3476(94)70079
 carries ~18 mL/kg/min (Qp:Qs 1.04, Doppler peak 0.66 m/s) and 5 mm ~32 mL/kg/min (Qp:Qs 1.14). Fetal
 and transitional scenarios keep a high factor.
 
+**term_neonate (calibrated assumption, 2026-10):**
+- `diameter_fo` 1.5 mm (was 0, closed): a small left-to-right PFO carrying ~6 mL/kg/min (Qp:Qs ~1.03)
+- the basis:
+  - a PFO is the rule in the first days (none closed by day 3 in He 2011)
+  - neonatal CMR measures RV output a few mL/kg/min above LV output with the duct closed (Jhaveri
+    2023, Groves 2011)
+- the open PFO lets the scenario shunt right-to-left at atrial level when right pressures rise
+- see `scripts/_fix_term_fo.mjs` and [TermNeonateReference](./TermNeonateReference.md)
+
 > **Modelling note.** Until the engine review, each of the two parallel resistors carried the full
 > `res_fo`, so the FO's effective resistance was `res_fo / 2`: twice the conductance its diameter
 > implies. Scenarios fitted before the fix were compensated by scaling `diameter_fo` by 2^(1/4) ≈ 1.19
@@ -157,7 +166,7 @@ Before, every VSD from 3 mm up behaved as unrestrictive; now the shunt depends o
 
 ## Example definition (JSON)
 
-From `term_neonate.json` (a healthy term neonate — both septal openings closed):
+From `term_neonate.json` (a healthy term neonate: small PFO, VSD closed):
 
 ```json
 {
@@ -165,13 +174,13 @@ From `term_neonate.json` (a healthy term neonate — both septal openings closed
   "description": "shunts (FO, ASD, VSD) model",
   "model_type": "Shunts",
   "is_enabled": true,
-  "diameter_fo": 0,
+  "diameter_fo": 1.5,
   "diameter_fo_max": 10,
   "diameter_vsd": 0,
   "diameter_vsd_max": 10,
   "atrial_septal_width": 3,
   "ventricular_septal_width": 5,
-  "fo_lr_factor": 25,
+  "fo_lr_factor": 1,
   "viscosity": 6,
   "ips_res": 25000
 }

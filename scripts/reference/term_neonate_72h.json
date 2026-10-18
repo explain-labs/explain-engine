@@ -169,6 +169,11 @@
       "cite": "Kang C et al. Medicine (Baltimore) 2016;95:e2599 (76 healthy term newborns, echo 2-72 h)",
       "doi": "10.1097/MD.0000000000002599",
       "pmid": "26817918"
+    },
+    "hiraishi1991": {
+      "cite": "Hiraishi S et al. Br Heart J 1991;65:41 (as cited in docs/Shunts.md)",
+      "doi": "10.1136/hrt.65.1.41",
+      "pmid": null
     }
   },
   "variables": [
@@ -1270,7 +1275,7 @@
       "key": "fo",
       "group": "shunts",
       "label": "Foramen ovale",
-      "unit": "-",
+      "unit": "mL/kg/min",
       "mean": null,
       "sd": null,
       "low": null,
@@ -1281,11 +1286,13 @@
       "n": null,
       "sources": [
         "he2011",
-        "textbook"
+        "hiraishi1991",
+        "jhaveri2023",
+        "groves2011"
       ],
       "grade": "C",
-      "model_readout": "LA_RAIVCI / LA_RASVC",
-      "notes": "Small left-to-right PFO flow common in the first week; closure not observed on day 1-3 (He 2011, USCOM)."
+      "model_readout": "Shunts.flow_fo / weight (L->R positive)",
+      "notes": "Small, predominantly left-to-right PFO flow in most term newborns in the first days (Hiraishi 1991); no closure by day 3 (He 2011). Indirect size check: CMR RV output exceeds LV output by ~3-4 mL/kg/min with the duct closed (Jhaveri 181 vs 177, Groves 199 vs 196)."
     }
   ]
 }

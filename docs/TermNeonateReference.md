@@ -132,7 +132,7 @@ inflow comes through the intestinal bed (INT), which the model drains into the l
 | Shunt | Reference | Grade | Source |
 |---|---|---|---|
 | Ductus arteriosus | patent in **4 %** at 60–72 h (12 % at 48–60 h, 21–22 % at 24–48 h) | A | Ha 2018 (n=56, echo every 12 h) |
-| Foramen ovale | small left-to-right PFO flow common in the first week; no closure seen on day 1–3 | C | He 2011; textbook |
+| Foramen ovale | small, predominantly left-to-right PFO flow in most term newborns; no closure on day 1–3; CMR RV output exceeds LV by ~3–4 mL/kg/min with the duct closed | C | He 2011; Hiraishi 1991; Jhaveri 2023 / Groves 2011 (indirect) |
 
 ## First look at the model (step 3, scenario at `07b4ebf`)
 
@@ -166,6 +166,7 @@ outside `model_definitions/`).
 | Date | Change | Before → after | Basis |
 |---|---|---|---|
 | 2026-10-18 | Brain flow and O₂ use (`scripts/_fix_term_brain_mri.mjs`); freed flow → upper body (RUB) | CBF 144 → 106 mL/min (20 → 15 % of LVO); brain VO₂ 11.0 → 8.1 mL/min (42 → 31 %); extraction unchanged at 35 %; SVC stays 81 | Kooi 2019 term median; Liu 2014 extraction |
+| 2026-10-18 | Foramen ovale (`scripts/_fix_term_fo.mjs`): `diameter_fo` 0 → 1.5 mm (`fo_lr_factor` 1); chemoreflex and HeartFunction references re-anchored | FO 0 → 5.9 mL/kg/min L→R; RVO − LVO 0 → +6 mL/kg/min; gases, BP, HR unchanged | He 2011; Hiraishi 1991; CMR RV > LV output |
 | 2026-10-18 | Resting lactate (`scripts/_fix_term_lactate.mjs`): `lact_baseline` 1.0 → 1.5; lact +0.5 / uma −0.5 in every patient blood compartment | lactate 1.0 → 1.5 mmol/L; pH, HCO₃, BE unchanged (7.364 / 22.35 / −2.40) | GLOW 2021 (1.4 plasma > 48 h); Cousineau 2005 (2.6 capillary, 1.4–4.1) |
 | 2026-10-18 | Breathing pattern (`scripts/_fix_term_breathing_pattern.mjs`): `ie_ratio` 0.30 → 0.40; `vt_rr_ratio` → 1.29795e-4; `minute_volume_ref` and chemoreceptor set-points re-anchored | Ti/Ttot 0.30 → 0.40; RR 37.7 → 40.0; Vt 5.51 → 5.34; MV 208 → 213; peak flows 0.90/0.58 → 0.70/0.66 L/min/kg | Schmalisch 2005 (Ti, Vt, MV, peak flows); Hannover 2018 (RR) |
 | 2026-10-18 | Heart rate and contractility (`scripts/_fix_term_hr_contractility.mjs`): `heart_rate_ref` 131.15 → 120.33; LV `el_max` ×1.15, RV ×1.3; chemoreflex and HeartFunction stress references re-anchored | HR 131 → 120; LV ESV/SV/EF 1.01/1.51/59.9 → 0.92/1.66/64.4; RV 1.65/1.51/47.8 → 1.54/1.66/51.8; output unchanged; PAP 38.9 → 40.6 systolic | Satoh 2016, He 2011, Agata 1994 (HR); Jhaveri 2023 (CMR volumes) |
