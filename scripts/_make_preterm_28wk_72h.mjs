@@ -50,10 +50,15 @@ const L = {
   // --- circulation ---
   HR_REF: 155,          // reference: HR 155 (Deshpande 2023, Bischoff 2021)
   BR_MAP: 39,           // reference: the MAP the baroreflex defends = Elsayed 2023 day-3 invasive median
-  SVR: 1.0,             // starting point (_make_preterm 28 wk)
-  PVR: 1.75,            // starting point (_make_preterm 28 wk); reference PAP ratio 0.55
-  CONT: 0.90,           // starting point: immature contractility, Heart.cont_factor_*
+  SVR: 2.2,             // 6.2: systemic resistances x -> same flow per kg at the preterm's lower MAP (was 1.0)
+  PVR: 2.5,             // 6.2: pulmonary resistances x -> PAP ~31/25 (was 1.75); reference ratio 0.55
+  CONT: 1.0,            // 6.2: Heart.cont_factor_* (was 0.90): preterm EF is normal (Groves 2011, no GA effect)
   RELAX: 1.10,          // starting point: immature diastolic function, Heart.relax_factor_*
+  HEART_EL_MAX: 2.4,    // 6.2: heart chambers el_max x (el_max_factor_scaling_ps) ~ (W/W0)^-0.69; weight scaling
+                        //      shrinks the chambers but leaves their term stiffness -> EF 30 -> 65 %, EDV 3.1 -> 2.6
+  HEART_EL_MIN: 2.4,    // 6.2: heart chambers el_min x (el_min_factor_scaling_ps), same size rule
+  ART_EL: 5.0,          // 6.2: artery el_base x (el_base_factor_scaling_ps, implicit aorta) -> pulse pressure ~22
+                        //      (Elsayed 2023 54/29). The PWV rule of build_patient (x1.88) leaves PP ~10
   VEN_UVOL: 0.82,       // starting point: VLB/VUB unstressed volume (restores CVP after scaling)
   PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (Pda.diameter_pa_max = 3 mm)
   // the foramen ovale keeps term_neonate's 1.5 mm with fo_lr_factor 1 (starting point)
@@ -83,7 +88,7 @@ for (let i = 0; i < argv.length; i++) {
   if (!(k in L)) { console.error(`unknown lever ${k}; levers: ${Object.keys(L).join(", ")}`); process.exit(1); }
   L[k] = Number(v);
 }
-const { WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
+const { WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
   IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
 // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
@@ -92,6 +97,7 @@ const CR = { CR_PCO2: 46, CR_PO2: 50, CR_PH: 7.26 };
 const eng = await createEngine();
 // imported after createEngine, which registers the extensionless-import hook the engine modules need
 const { calc_gas_composition } = await import("../component_models/GasComposition.js");
+const { enableImplicitAorta } = await import("../helpers/Calibrator.js");
 const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
 const dst = new URL(`../model_definitions/${NAME}.json`, import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
@@ -107,6 +113,15 @@ log.push(`size: ${TERM_W} -> ${WEIGHT} kg (volumes x${volFactor.toFixed(4)})`);
 if (SVR !== 1.0) eng.scale("systemic_resistances", SVR);
 if (PVR !== 1.0) eng.scale("pulmonary_resistances", PVR);
 log.push(`resistances: systemic x${SVR}, pulmonary x${PVR}`);
+if (HEART_EL_MAX !== 1.0) eng.scale("heart_el_max", HEART_EL_MAX);
+if (HEART_EL_MIN !== 1.0) eng.scale("heart_el_min", HEART_EL_MIN);
+if (ART_EL !== 1.0) {
+  // implicit flow on the resistors joining the near-merged aortic compartments, so the large arteries
+  // can be stiffened (docs/Resistor.md); the same artery list and layer as scripts/build_patient.mjs
+  enableImplicitAorta(model);
+  for (const n of ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"]) if (M[n]) M[n].el_base_factor_scaling_ps = ART_EL;
+}
+log.push(`stiffness: heart el_max x${HEART_EL_MAX}, el_min x${HEART_EL_MIN}; arteries x${ART_EL}`);
 
 // 2. lungs: RDS phenotype, recruited by CPAP
 for (const n of ["ALL", "ALR"]) { M[n].el_base *= RDS_EL; M[n].u_vol *= RDS_UVOL; }
