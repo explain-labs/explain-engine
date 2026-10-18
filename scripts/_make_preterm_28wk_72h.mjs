@@ -92,6 +92,10 @@ const L = {
   MAINT_RATE: 3.0,      // 6.5: Fluids.maintenance_rate, mL/kg/h (term 1.352) = the resting urine; the maintenance fluid's
                         //   composition is set to the urine these fractions make (plasma x (1-f_s)/(1-f_water); lactate
                         //   excluded, as in term_neonate)
+  UMA_DELTA: 2.85,      // 6.6: added to uma (unmeasured anions, Stewart) in every patient blood compartment ->
+                        //      BE -2.65 -> -5.5, pH 7.27 (Bonsante 2017: early PN, <=29 wk days 2-7)
+  GLUCOSE: 6.5,         // 6.6: mmol/L, blood glucose and the Glucose set-point (term 4.0); calm value on PN (Liu 2026).
+                        //      Production = use (5.4 mg/kg/min: liver + PN), independent of concentration
   RESP_Q: 0.95,         // 6.3: Metabolism.resp_q (term 0.8) -> RQ on glucose-rich PN (Bauer 2003, Forsyth 1992)
   VO2_METABOLISM: 5.19, // reference total 6.0 minus term's Mob (myocardium) ~0.81 (starting point split)
   HB_MMOL: 14.5 / 1.611, // reference: Hb 14.5 g/dL -> 9.0 mmol/L
@@ -105,7 +109,7 @@ for (let i = 0; i < argv.length; i++) {
   if (!(k in L)) { console.error(`unknown lever ${k}; levers: ${Object.keys(L).join(", ")}`); process.exit(1); }
   L[k] = Number(v);
 }
-const { REABS_WATER, REABS_NACL, MAINT_RATE, COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
+const { UMA_DELTA, GLUCOSE, REABS_WATER, REABS_NACL, MAINT_RATE, COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
   IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
 // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
@@ -188,6 +192,16 @@ log.push(`preload: VLB/VUB u_vol x${VEN_UVOL}; myocardium cont ${CONT}, relax ${
 // 6. metabolism, blood, environment
 M.Metabolism.vo2 = VO2_METABOLISM;
 M.Metabolism.resp_q = RESP_Q;
+// acid-base and glucose: set in Blood's reference solutes and every patient blood compartment
+// (placenta, uterus, maternal and the bladder are left alone), before the maintenance fluid is derived
+const patientBlood = Object.entries(M).filter(([n, m]) => m.solutes && m !== M.Blood && !/^(PL_|UT|MP|URINE$)/.test(n)).map(([, m]) => m);
+if (UMA_DELTA !== 0) { M.Blood.solutes.uma += UMA_DELTA; for (const m of patientBlood) if (typeof m.solutes.uma === "number") m.solutes.uma += UMA_DELTA; }
+if (GLUCOSE > 0) {
+  M.Blood.solutes.glucose = GLUCOSE;
+  for (const m of patientBlood) if (typeof m.solutes.glucose === "number") m.solutes.glucose = GLUCOSE;
+  M.Glucose.glucose_setpoint = GLUCOSE; M.Glucose.glucose_default = GLUCOSE;
+}
+log.push(`acid-base/glucose: uma +${UMA_DELTA} (Blood uma ${M.Blood.solutes.uma.toFixed(3)}), glucose ${M.Blood.solutes.glucose}`);
 // immature tubule: lower water and NaCl reabsorption (diuretic phase), intake matched to the urine
 const K = M.Kidneys;
 K.reabsorption_fraction = REABS_WATER;
