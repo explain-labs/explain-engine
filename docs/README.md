@@ -161,4 +161,5 @@ Not tied to a single class — physiology/clinical background and scenario-build
 | Doc | What it covers |
 |---|---|
 | [fetal_circulation](./fetal_circulation.md) | Fetal scenarios (`term_fetus`, `fetus_30wk`): the fetal invariants, why a gestational age costs a calibration pass, measured operating points, known limitations. |
+| [TermNeonateReference](./TermNeonateReference.md) | Literature reference values for a healthy term neonate at ~72 h (hemodynamics, heart, flows, breathing, gases, metabolism, shunts), graded by evidence, with the matching JSON for validating `term_neonate`. |
 | [chd_duct_fo_dependent](./chd_duct_fo_dependent.md) | Duct- & foramen-ovale-dependent CHD taxonomy, lesion catalog, engine-lever mapping, build roadmap, bibliography. |
