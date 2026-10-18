@@ -1,12 +1,14 @@
-// Term neonate (72 h) model-vs-literature probe.
+// Model-vs-literature reference probe (term neonate at 72 h by default).
 //
-// Builds a scenario headless, settles it, measures every variable listed in
-// scripts/reference/term_neonate_72h.json (see docs/TermNeonateReference.md) and prints the model
-// value next to the reference: mean ± SD, the study's own normal range, the deviation in SD where
-// an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference).
+// Builds a scenario headless, settles it, measures every variable listed in a reference set and
+// prints the model value next to the reference: mean ± SD, the study's own normal range, the
+// deviation in SD where an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference,
+// n/a = no model read-out). Reference sets:
+//   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
+//   scripts/reference/preterm_28wk_72h.json    (docs/Preterm28wkReference.md)
 //
 // Usage:
-//   node scripts/probe_term_reference.mjs [scenario] [--settle S] [--window W] [--json out.json] [--file path.json]
+//   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -14,7 +16,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-") && !/^\d/.test(a)) || "term_neonate";
+const scenario = argv.find((a, i) => !a.startsWith("-") && !/^\d/.test(a) && !argv[i - 1]?.startsWith("--")) || "term_neonate";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
 const SETTLE = Number(opt("--settle", 180));
 const WINDOW = Number(opt("--window", 20));
@@ -25,7 +27,7 @@ const HB_MMOL_TO_GDL = 1.611; // Hb monomer mmol/L -> g/dL
 const MCHC = 33.0; // g/dL, as in Blood.js
 const O2_ML_PER_MMOL = 22.4;
 const BLOOD_TYPES = new Set(["BloodCapacitance", "BloodVessel", "BloodTimeVaryingElastance", "HeartChamber", "BloodPump"]);
-const NON_PATIENT = /^(ECLS|PL_|UT|MP)/; // device and placenta/uterus compartments
+const NON_PATIENT = /^(ECLS|PL_|UT|MP|URINE$)/; // device, placenta/uterus and bladder compartments (URINE is a BloodCapacitance)
 
 let live = null;
 globalThis.self = globalThis;
@@ -72,6 +74,7 @@ for (let i = 0; i < steps; i++) {
   add("gfr", M.Kidneys?.gfr); // pressure-following, so averaged rather than read at the end
   add("urine", M.Kidneys?.urine_flow);
   add("o2_uptake", -((M.GASEX_LL?.flux_o2 ?? 0) + (M.GASEX_RL?.flux_o2 ?? 0))); // mmol per step, +ve = blood takes up O2
+  add("co2_out", (M.GASEX_LL?.flux_co2 ?? 0) + (M.GASEX_RL?.flux_co2 ?? 0));
   const fl = M.MOUTH_DS?.flow ?? 0;
   if (M.Breathing?.ncc_insp === 1) { if (seenBreath) { peaks.insp.push(curIn); peaks.exp.push(curEx); } curIn = 0; curEx = 0; seenBreath = true; }
   if (fl > curIn) curIn = fl; if (fl < curEx) curEx = fl;
@@ -90,7 +93,7 @@ const crs = (1 / (1 / lungC + 1 / chestC)) * 1000 / MMHG_TO_CMH2O; // mL/cmH2O
 const rrs = (M.MOUTH_DS.r_for_eff + 1 / (1 / M.DS_ALL.r_for_eff + 1 / M.DS_ALR.r_for_eff)) * MMHG_TO_CMH2O;
 let bloodVol = 0;
 for (const [name, m] of Object.entries(M)) if (BLOOD_TYPES.has(m.model_type) && m.is_enabled && !NON_PATIENT.test(name)) bloodVol += m.vol || 0;
-const bsa = 0.024265 * Math.pow(W, 0.5378) * Math.pow((model.height || 0.519) * 100, 0.3964); // Haycock, m2
+const bsa = 0.024265 * Math.pow(W, 0.5378) * Math.pow((model.height || Math.pow(W / 3.545, 1 / 3) * 0.519) * 100, 0.3964); // Haycock, m2
 const hb = (AA?.solutes?.hemoglobin ?? NaN) * HB_MMOL_TO_GDL;
 const toKgMl = (L) => (L * 1000) / W;
 
@@ -106,6 +109,11 @@ const model_values = {
   hb, hct: hb / MCHC * 100, blood_volume: toKgMl(bloodVol),
   gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,
   pda: perKgMin(acc.AAR_DA), fo: perKgMin(acc.LA_RAIVCI + acc.LA_RASVC),
+  // used by the preterm set
+  lvo_rvo: acc.LV_AA / acc.RV_PA, pda_diam: (M.Pda?.diameter_relative ?? NaN) * (M.Pda?.diameter_pa_max ?? NaN),
+  cl: (lungC * 1000) / MMHG_TO_CMH2O / W, ccw: (chestC * 1000) / MMHG_TO_CMH2O / W, vd_vt: acc.ds_vol / acc.vt,
+  fio2: M.Gas?.fio2, p50: M.Blood?.P50_0, rq: Math.abs(acc.co2_out / acc.o2_uptake),
+  incubator_temp: M.Thermoregulation?.env_temp, humidity: (M.Thermoregulation?.rel_humidity ?? NaN) * 100,
 };
 const extras = {
   lv_sv_from_output: model_values.lvo / model_values.hr, // mL/kg per beat, flow-based cross-check of lv_sv
@@ -115,7 +123,8 @@ const extras = {
   pda_no_flow: M.AAR_DA?.no_flow, fo_no_flow: M.LA_RAIVCI?.no_flow && M.LA_RASVC?.no_flow,
 };
 
-const ref = JSON.parse(fs.readFileSync(new URL("./reference/term_neonate_72h.json", import.meta.url), "utf8"));
+const REF = opt("--ref", null);
+const ref = JSON.parse(fs.readFileSync(REF ?? new URL("./reference/term_neonate_72h.json", import.meta.url), "utf8"));
 const rows = ref.variables.map((r) => {
   const v = model_values[r.key];
   const hasNum = r.mean != null || r.low != null || r.high != null;
@@ -131,7 +140,7 @@ const rows = ref.variables.map((r) => {
 
 console.log = _log;
 const f = (x, d = 2) => (x == null || !Number.isFinite(x) ? "—" : Math.abs(x) >= 100 ? x.toFixed(0) : Math.abs(x) >= 10 ? x.toFixed(1) : x.toFixed(d));
-console.log(`term reference probe — ${scenario}, ${W} kg, settle ${SETTLE} s, window ${WINDOW} s\n`);
+console.log(`reference probe (${ref.name}) — ${scenario}, ${W} kg, settle ${SETTLE} s, window ${WINDOW} s\n`);
 let group = "";
 for (const r of rows) {
   if (r.group !== group) { group = r.group; console.log(`-- ${group}`); }

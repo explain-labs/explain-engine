@@ -4,7 +4,9 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
-> **Since 2026-10-16 only `term_neonate` is maintained.** The frozen set that live pages need
+> **Since 2026-10-16 only `term_neonate` is maintained**, joined on 2026-10-18 by `preterm_28wk_72h`
+> (28 wk, 1 kg, 72 h on nasal CPAP; generated from `term_neonate` by `scripts/_make_preterm_28wk_72h.mjs`
+> and validated against [Preterm28wkReference](./Preterm28wkReference.md)). The frozen set that live pages need
 > (`bischoff_cohort`, `p1_baseline`, `p1_pda_none`, `tof_severe`) is kept in place; everything else
 > is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
 > the fixed term baby.
