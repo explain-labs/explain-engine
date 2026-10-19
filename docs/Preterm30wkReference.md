@@ -213,6 +213,15 @@ out-of-range ones:
 (SpO₂ 95.9 in room air, PaO₂ 66, pH 7.34, pCO₂ 42, BE −2.8), the kidney (GFR 15.5 /1.73 m², urine 2.9),
 CBF 25, kidney flow 17, the shunts.
 
+## Recalibrations made from this reference
+
+Each change is a named lever in the 30 wk profile (`scripts/_preterm_profiles.mjs`, generator
+`scripts/_make_preterm_validated.mjs --profile 30`). The scenario is regenerated from scratch after each one.
+
+| Step | Change | Effect | Basis |
+|---|---|---|---|
+| 6.1 | Heart chambers `el_min` ×2.33 → ×2.9 (`HEART_EL_MIN`; the size rule gave 3.5 / 1.5) | LV EDV 2.55 → 2.19, RV EDV 3.13 → 2.84; LV/RV SV 1.78/1.63 → 1.47/1.36; LVO/RVO 251/229 → 221/204; MAP 45.9 → 42.5 with the baroreflex neutral (HR 141 → 151); coeliac 34 → 29; 55 → 60 of 61 in range. Mean PAP stays 26; pulse pressure 22 → 18 | At ×2.33 the heart over-filled and over-pumped, MAP rose above the baroreflex set-point and the reflex lowered HR and SVR. 2.7 / 2.9 / 3.2 were prototyped; 3.2 dropped the outputs below target with the reflex pushing up (SVR effect 1.06) |
+
 ## Decisions log (2026-10-19)
 
 All choices were made by the model's author after the evidence was presented.

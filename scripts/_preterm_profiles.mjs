@@ -199,7 +199,8 @@ export const PROFILES = {
       CONT: 1.0,            // as 28 wk: EF normal (Groves 2011, no GA effect)
       RELAX: 1.08,          // starting point: diastolic function a little more mature than 28 wk (_make_preterm 30 wk row)
       HEART_EL_MAX: 2.27,   // size rule: 3.4 / 1.5
-      HEART_EL_MIN: 2.33,   // size rule: 3.5 / 1.5
+      HEART_EL_MIN: 2.9,    // 6.1: heart chambers el_min x (size rule 3.5 / 1.5 = 2.33 over-filled: LV EDV 2.55, LVO 251, MAP 46
+                            //      above the baroreflex set-point) -> EDV 2.19, LVO 221, MAP 42.5 with the baroreflex neutral
       ART_EL: 3.6,          // size rule: 5.0 / 1.5, x (pulse pressure 27/25)
       VEN_UVOL: 0.77,       // as 28 wk
       PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (state)
