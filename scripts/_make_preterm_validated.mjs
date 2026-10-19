@@ -55,7 +55,7 @@ for (let i = 0; i < argv.length; i++) {
   L[k] = Number(v);
 }
 const { UMA_DELTA, GLUCOSE, REABS_WATER, REABS_NACL, MAINT_RATE, COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
-  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY, GFR_FACTOR, AIRWAY_R } = L;
+  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY, GFR_FACTOR, AIRWAY_R, INT_R, LS_R } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV_REF / vt_rr_ratio): minute_volume_ref is per kg (28 wk: 7.80e-5)
 const CR = P.CR; // chemoreceptor set-points = the reference resting gases
 
@@ -126,12 +126,15 @@ M.Heart.relax_factor_left = RELAX; M.Heart.relax_factor_right = RELAX;
 M.Pda.diameter_relative = PDA_REL;
 M.Shunts.diameter_fo = FO_DIAM;
 for (const n of ["BR_ART", "BR_CAP", "BR_VEN"]) { M[n].r_for *= BRAIN_R; M[n].r_back *= BRAIN_R; }
+// splanchnic beds (templated identical in term_neonate, so SMA and coeliac flows read alike)
+if (INT_R !== 1.0) for (const n of ["INT_ART", "INT_CAP", "INT_VEN"]) { M[n].r_for *= INT_R; M[n].r_back *= INT_R; }
+if (LS_R !== 1.0) for (const n of ["LS_ART", "LS_CAP", "LS_VEN"]) { M[n].r_for *= LS_R; M[n].r_back *= LS_R; }
 M.AA_COR.r_for *= COR_R; M.AA_COR.r_back *= COR_R;
 if (CBF_SET > 0) {
   // the autoregulation target is absolute (term: 0.10592 L/min); the rest anchors re-seed after the warm-up
   M.Brain.cbf_setpoint = CBF_SET; M.Brain.cpp_setpoint = 0.0; M.Brain.cbv0 = 0.0;
 }
-log.push(`FO ${FO_DIAM} mm; coronary r x${COR_R}; brain bed r x${BRAIN_R}, cbf_setpoint ${M.Brain.cbf_setpoint} L/min`);
+log.push(`FO ${FO_DIAM} mm; coronary r x${COR_R}; brain bed r x${BRAIN_R}, gut r x${INT_R}/${LS_R}, cbf_setpoint ${M.Brain.cbf_setpoint} L/min`);
 log.push(`preload: VLB/VUB u_vol x${VEN_UVOL}; myocardium cont ${CONT}, relax ${RELAX}; PDA ${(PDA_REL * M.Pda.diameter_pa_max).toFixed(2)} mm; FO ${M.Shunts.diameter_fo} mm`);
 
 // 6. metabolism, blood, environment

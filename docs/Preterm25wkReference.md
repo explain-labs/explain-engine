@@ -236,6 +236,8 @@ Each change is a named lever in the 25 wk profile (`scripts/_preterm_profiles.mj
 |---|---|---|---|
 | 6.1 | Airway resistors (`MOUTH_DS`, `DS_ALL`, `DS_ALR`) ×1.67 (new lever `AIRWAY_R`; they were still term's absolute values in every scenario); intrapulmonary shunt resistance 15000 → 9500 | Rrs 54 → 90; SpO₂ 94.5 → 91.2, PaO₂ 66 → 54, SvO₂ 82 → 79; 52 → 55 of 61 in range | Smaller airways; SpO₂ 93 would need PaO₂ ~58 on the fetal curve at pH ~7.23, so the author chose SpO₂ 91 / PaO₂ 54, both in range |
 | 6.2 | Ductal diameter 1.0 → 0.8 mm (`PDA_REL` 1/3 → 0.8/3); CVP reference revised 5 → 3.5 (1.3–5.7) | Ductal flow 41 → 22; LVO 264 → 247, LV SV 1.73 → 1.64, PAP mean 24.5 → 22.7; 55 → 59 of 61 in range. CVP 1.4, at the low end | Raising SVR only pushed more through the duct (52–56) and MAP to ~40. A stiffer heart raised LA more than RA (PFO 16–30, PAP up). More venous stressed volume became output. Choi 2015 (CVP 3.5 ± 2.2) fits a CPAP infant better than Inglis' mostly ventilated cohort |
+| 6.3 | None | Breathing was already on target after 6.1 (RR 63, Vt 4.9, MV 311, pCO₂ 45.6) | Folded into the final controller check |
+| 6.4 | New levers `INT_R` ×1.64 and `LS_R` ×1.8 (intestinal and liver/spleen beds; templated identical in term_neonate, default 1); cerebral bed `BRAIN_R` 1.2 → 2.0; systemic resistances 2.49 → 2.1 | SMA 36 → 28, coeliac 36 → 26; brain autoregulation ×1.54 → ×1.06 (it multiplies the bed resistance, so >1 = constricting); MAP 36.4, HR 154, baroreflex ~0.96; 59 → 61 of 61 in range. SVC 110 and LVO 252 sit high in range | Lowering the brain lever made autoregulation constrict more (to ×3.8); SVR also scales the brain bed, so the two are set together |
 
 ## Decisions log (2026-10-19)
 
@@ -262,6 +264,7 @@ All choices were made by the model's author after the evidence was presented.
 | Metabolism / environment | VO₂ 6.0, glucose 7.0, lactate 1.5, blood volume 85, incubator 36 °C / 80 % RH | Hyperglycaemia common at 25 wk |
 | 6.1 oxygen | SpO₂ 91 / PaO₂ 54 (both in range) rather than SpO₂ 93 / PaO₂ 58 | Fetal curve at pH ~7.23 |
 | 6.2 duct | 0.8 mm instead of 1.0 mm (lower end of the reference range) | Ductal flow scales ~d⁴; 1 mm at 0.7 kg carried 41; 0.8 mm (1.14 mm/kg) carries the target 22 |
+| 6.4 flows | Gut beds and brain bed set; SVC 110 / LVO 252 (high in range) left for the final touch | Flow moves to the upper body once the gut beds close down |
 | 6.2 CVP | Reference revised from 5 to 3.5 (1.3–5.7); the model's heart turns any extra filling into output, so CVP 5 could not be reached without PAP, PFO and MAP rising above target | Choi 2015 |
 
 ## Open items
