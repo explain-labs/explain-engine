@@ -77,6 +77,7 @@ export const PROFILES = {
       ENV_TEMP: 35.0,       // reference: incubator air (degC)
       REL_HUMIDITY: 0.70,   // reference: incubator humidity
       GFR_FACTOR: 1.0,      // renal reference GFR target as the Vieux 2010 rule gives it (reseed_preterm)
+      AIRWAY_R: 1.0,        // airway resistors (MOUTH_DS, DS_ALL, DS_ALR) at term's absolute value: Rrs 54, in range
     },
   },
 
@@ -126,7 +127,8 @@ export const PROFILES = {
       RDS_UVOL: 0.80,       // as 28 wk: FRC ~22 mL/kg (CPAP 7 at 25 wk ~ CPAP 6 at 28 wk)
       THORAX_EL: 3.0,       // size rule: 2.94 x (Ccw 5/7) / 0.7 -> chest wall 7 mL/cmH2O/kg
       GASEX: 0.315,         // size rule: 0.45 x 0.7 (absolute diffusion, scales with lung size)
-      IPS_RES: 15000,       // size rule: 10500 / 0.7 (starting point; SpO2 93 at FiO2 0.30)
+      IPS_RES: 9500,        // 6.1: intrapulmonary shunt resistance -> SpO2 91 / PaO2 54, both in range (15000 gave 94.6 / 65;
+                            //      SpO2 93 needs PaO2 ~58 on the fetal curve at pH ~7.23)
       SURFACTANT: 0.20,     // starting point: one LISA dose, between the 24-26 wk 0.15 and 28 wk 0.25
       FIO2: 0.30,           // reference: state definition
       MV_REF: 0.325,        // reference: 325 mL/kg/min (L/kg/min, per kg)
@@ -148,6 +150,7 @@ export const PROFILES = {
       ENV_TEMP: 36.0,       // reference: incubator air (degC)
       REL_HUMIDITY: 0.80,   // reference: incubator humidity
       GFR_FACTOR: 1.143,    // reference: GFR 0.30 mL/min/kg vs the Vieux rule extrapolated to 25 wk (0.2625)
+      AIRWAY_R: 1.67,       // 6.1: airway resistors x (were term absolute, Rrs 54) -> Rrs 90
     },
   },
 };

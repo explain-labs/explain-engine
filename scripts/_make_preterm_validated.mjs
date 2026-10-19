@@ -55,7 +55,7 @@ for (let i = 0; i < argv.length; i++) {
   L[k] = Number(v);
 }
 const { UMA_DELTA, GLUCOSE, REABS_WATER, REABS_NACL, MAINT_RATE, COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
-  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY, GFR_FACTOR } = L;
+  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY, GFR_FACTOR, AIRWAY_R } = L;
 const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV_REF / vt_rr_ratio): minute_volume_ref is per kg (28 wk: 7.80e-5)
 const CR = P.CR; // chemoreceptor set-points = the reference resting gases
 
@@ -93,7 +93,8 @@ for (const n of ["ALL", "ALR"]) { M[n].el_base *= RDS_EL; M[n].u_vol *= RDS_UVOL
 for (const n of ["GASEX_LL", "GASEX_RL"]) { M[n].dif_o2 *= GASEX; M[n].dif_co2 *= GASEX; }
 M.Shunts.ips_res = IPS_RES;
 M.THORAX.el_base *= THORAX_EL;
-log.push(`lungs: el_base x${RDS_EL}, u_vol x${RDS_UVOL}, diffusion x${GASEX}, ips_res ${IPS_RES}; chest wall el_base x${THORAX_EL}`);
+if (AIRWAY_R !== 1.0) for (const n of ["MOUTH_DS", "DS_ALL", "DS_ALR"]) { M[n].r_for *= AIRWAY_R; M[n].r_back *= AIRWAY_R; }
+log.push(`lungs: el_base x${RDS_EL}, u_vol x${RDS_UVOL}, diffusion x${GASEX}, ips_res ${IPS_RES}; chest wall el_base x${THORAX_EL}; airways r x${AIRWAY_R}`);
 
 // 3. breathing: spontaneous, per-kg reference minute volume, rapid-shallow pattern
 const B = M.Breathing;

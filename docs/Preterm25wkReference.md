@@ -227,6 +227,15 @@ The generator now rescales `to2` with Hb. `preterm_28wk` regenerates with the sa
 in range, the same three edge flags, all values within window noise. The engine's behaviour once the root
 finder fails (a frozen pO₂ driving gas exchange) is noted as an open item.
 
+## Recalibrations made from this reference
+
+Each change is a named lever in the 25 wk profile (`scripts/_preterm_profiles.mjs`, generator
+`scripts/_make_preterm_validated.mjs --profile 25`). The scenario is regenerated from scratch after each one.
+
+| Step | Change | Effect | Basis |
+|---|---|---|---|
+| 6.1 | Airway resistors (`MOUTH_DS`, `DS_ALL`, `DS_ALR`) ×1.67 (new lever `AIRWAY_R`; they were still term's absolute values in every scenario); intrapulmonary shunt resistance 15000 → 9500 | Rrs 54 → 90; SpO₂ 94.5 → 91.2, PaO₂ 66 → 54, SvO₂ 82 → 79; 52 → 55 of 61 in range | Smaller airways; SpO₂ 93 would need PaO₂ ~58 on the fetal curve at pH ~7.23, so the author chose SpO₂ 91 / PaO₂ 54, both in range |
+
 ## Decisions log (2026-10-19)
 
 All choices were made by the model's author after the evidence was presented.
@@ -250,6 +259,7 @@ All choices were made by the model's author after the evidence was presented.
 | Oxygen | SpO₂ 93, PaO₂ 50, P50 18.5, HbF 93, SvO₂ 76 | As at 28 wk |
 | Kidney | GFR 0.30 mL/min/kg (4.6 /1.73 m²), FENa 10 %, urine 3, creatinine ~150 | Between the Vieux extrapolation and Bueva; Miall |
 | Metabolism / environment | VO₂ 6.0, glucose 7.0, lactate 1.5, blood volume 85, incubator 36 °C / 80 % RH | Hyperglycaemia common at 25 wk |
+| 6.1 oxygen | SpO₂ 91 / PaO₂ 54 (both in range) rather than SpO₂ 93 / PaO₂ 58 | Fetal curve at pH ~7.23 |
 
 ## Open items
 
