@@ -1,0 +1,81 @@
+// Lever profiles for scripts/_make_preterm_validated.mjs: one per validated preterm scenario.
+// Each lever is a named constant with its source. "reference" values come straight from the scenario's
+// reference set; "starting point" values are to be validated against it; the step numbers (6.1, ...)
+// refer to the recalibration log in the reference document.
+export const PROFILES = {
+  28: {
+    name: "preterm_28wk",
+    refDoc: "docs/Preterm28wkReference.md",
+    // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
+    CR: { CR_PCO2: 46, CR_PO2: 50, CR_PH: 7.26 },
+    description:
+      "Preterm neonate born at 28 weeks (1.0 kg) at 72 h: stable on nasal CPAP 6 cmH2O with FiO2 0.25 after " +
+      "surfactant (mild RDS), a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused " +
+      "(delayed cord clamping), trophic feeds + parenteral nutrition, caffeine, humidified incubator. CPAP is " +
+      "represented by the inspired FiO2 plus a recruited-lung state. Validated against " +
+      "docs/Preterm28wkReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 1.0,          // kg
+      HEIGHT: 0.355,        // m (_make_preterm 28 wk row)
+      GA: 28,               // weeks
+      AGE: 3 / 365,         // years (scenario age is in years): 72 h
+
+      // --- circulation ---
+      HR_REF: 155,          // reference: HR 155 (Deshpande 2023, Bischoff 2021)
+      BR_WINDOW: 1,         // 6.4: scale the baroreceptor window (BR_MAP min/max, term 25/100) with the set-point (x39/57.8 ->
+                            //      16.9-67.5); the lopsided term window weighted the diastolic dip ~4x and read "low" at MAP 42
+      BR_MAP: 39,           // reference: the MAP the baroreflex defends = Elsayed 2023 day-3 invasive median
+      SVR: 2.0,             // 6.2/6.4/final: systemic resistances x -> MAP ~40 with the baroreflex neutral (term 1.0)
+      PVR: 3.0,             // 6.2/6.4: pulmonary resistances x -> PAP ~31/25 (term 1.0); reference ratio 0.55
+      CONT: 1.0,            // 6.2: Heart.cont_factor_* (was 0.90): preterm EF is normal (Groves 2011, no GA effect)
+      RELAX: 1.10,          // starting point: immature diastolic function, Heart.relax_factor_*
+      HEART_EL_MAX: 3.4,    // 6.2/6.4: heart chambers el_max x (el_max_factor_scaling_ps): weight scaling shrinks the chambers
+                            //      but keeps term stiffness -> EF 69 %, ESV 0.72 mL/kg (was x1: EF 30 %)
+      HEART_EL_MIN: 3.5,    // 6.2/6.4: heart chambers el_min x (el_min_factor_scaling_ps) -> EDV 2.3 mL/kg (at x2.4 the heart over-filled)
+      ART_EL: 5.0,          // 6.2: artery el_base x (el_base_factor_scaling_ps, implicit aorta) -> pulse pressure ~22
+                            //      (Elsayed 2023 54/29). The PWV rule of build_patient (x1.88) leaves PP ~10
+      VEN_UVOL: 0.77,       // final: VLB/VUB unstressed volume x (_make_preterm 0.82) -> CVP ~2 (more stressed venous volume)
+      PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (Pda.diameter_pa_max = 3 mm)
+      FO_DIAM: 0.75,        // 6.4: Shunts.diameter_fo, mm (term 1.5) -> PFO shunt ~4 mL/kg/min L->R
+      COR_R: 2.4,           // 6.4: coronary inflow (AA_COR) r x -> 12.7 mL/kg/min (term 11.7; was 27.6, a term-size bed)
+      BRAIN_R: 1.2,         // 6.4: cerebral bed (BR_ART, BR_CAP, BR_VEN) r x, so autoregulation rests near 1 at CBF 28
+      CBF_SET: 0.028,       // 6.4: Brain.cbf_setpoint, L/min absolute (28 mL/kg/min; term 0.10592 kept the bed fully dilated);
+                            //      the CPP/CBV rest anchors re-seed after the warm-up
+
+      // --- lungs and breathing ---
+      RDS_EL: 5.55,         // 6.1: alveolar el_base x -> lung compliance 0.8 mL/cmH2O/kg (was 9.067, the unsupported severe-RDS row)
+      RDS_UVOL: 0.80,       // 6.1: alveolar u_vol x -> FRC 22 mL/kg, the lung recruited by CPAP 6 (da Silva 1994)
+      THORAX_EL: 2.94,      // 6.1: chest-wall (THORAX) el_base x -> 5 mL/cmH2O/kg (Gerhardt 1980); weight scaling leaves it at the term absolute value
+      GASEX: 0.45,          // alveolar-capillary diffusion x (kept in 6.1: absolute, so already generous for 1 kg)
+      IPS_RES: 10500,       // 6.1/final: intrapulmonary shunt resistance -> SpO2 93 % at FiO2 0.25 (mild residual shunt; was 1900)
+      SURFACTANT: 0.25,     // starting point: surfactant maturity (_add_surfactant 28 wk); post-surfactant may sit higher
+      FIO2: 0.25,           // reference: state definition
+      MV_REF: 0.300,        // reference: minute volume 300 mL/kg/min (L/kg/min, per kg)
+      RR: 62,               // reference: respiratory rate
+      IE: 0.38,             // reference: Ti/Ttot
+      RMP_RECAL: 1,         // 6.3: 1 = discard term_neonate's frozen muscle-effort gain (rmp_calibrated) so Breathing
+                            //      recalibrates on these ~5x stiffer lungs; with the term gain Vt stayed at 3.4 of 6.3 mL/kg
+      DS_UVOL: 1.36,        // 6.3: anatomic dead space (DS u_vol) x -> 3.0 mL/kg (was 2.2); nCPAP does not wash out the
+                            //      nasopharynx (Liew 2020; Numa & Newth 1996)
+
+      // --- metabolism, blood, environment ---
+      REABS_WATER: 0.9175,  // 6.5: Kidneys.reabsorption_fraction (water; term 0.98) -> urine 3 mL/kg/h at GFR ~0.54
+                            //      mL/min/kg, the diuretic phase of the immature tubule (Lorenz 1995)
+      REABS_NACL: 0.95,     // 6.5: Kidneys.reabsorption_fractions na and cl (term 0.99 / 0.988) -> FENa 5 % (Lorenz 1995)
+      MAINT_RATE: 3.0,      // 6.5: Fluids.maintenance_rate, mL/kg/h (term 1.352) = the resting urine; the maintenance fluid's
+                            //   composition is set to the urine these fractions make (plasma x (1-f_s)/(1-f_water); lactate
+                            //   excluded, as in term_neonate)
+      UMA_DELTA: 2.85,      // 6.6: added to uma (unmeasured anions, Stewart) in every patient blood compartment ->
+                            //      BE -2.65 -> -5.5, pH 7.27 (Bonsante 2017: early PN, <=29 wk days 2-7)
+      GLUCOSE: 6.5,         // 6.6: mmol/L, blood glucose and the Glucose set-point (term 4.0); calm value on PN (Liu 2026).
+                            //      Production = use (5.4 mg/kg/min: liver + PN), independent of concentration
+      RESP_Q: 0.95,         // 6.3: Metabolism.resp_q (term 0.8) -> RQ on glucose-rich PN (Bauer 2003, Forsyth 1992)
+      VO2_METABOLISM: 5.19, // reference total 6.0 minus term's Mob (myocardium) ~0.81 (starting point split)
+      HB_MMOL: 14.5 / 1.611, // reference: Hb 14.5 g/dL -> 9.0 mmol/L
+      P50: 18.5,            // reference: De Halleux 2002, untransfused <= 27 wk, standard conditions
+      ENV_TEMP: 35.0,       // reference: incubator air (degC)
+      REL_HUMIDITY: 0.70,   // reference: incubator humidity
+    },
+  },
+};

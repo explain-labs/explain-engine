@@ -3,7 +3,7 @@
  "user": "timothy",
  "description": "Preterm neonate born at 28 weeks (1.0 kg) at 72 h: stable on nasal CPAP 6 cmH2O with FiO2 0.25 after surfactant (mild RDS), a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused (delayed cord clamping), trophic feeds + parenteral nutrition, caffeine, humidified incubator. CPAP is represented by the inspired FiO2 plus a recruited-lung state. Validated against docs/Preterm28wkReference.md.",
  "provenance": "hand-authored",
- "provenance_note": "generated from term_neonate by scripts/_make_preterm_28wk.mjs; reference set docs/Preterm28wkReference.md",
+ "provenance_note": "generated from term_neonate by scripts/_make_preterm_validated.mjs --profile 28; reference set docs/Preterm28wkReference.md",
  "diagram_definition": {
   "settings": {
    "name": "baseline_neonate_diagram_exp",
