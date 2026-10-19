@@ -3754,7 +3754,7 @@
    },
    "MATERNAL": {
     "type": "Compartment",
-    "label": "MOTHER",
+    "label": "INTERVILLOUS",
     "picto": "container.png",
     "enabled": true,
     "models": [

@@ -50,7 +50,8 @@ for (let i = 0; i < argv.length; i++) {
 // ring. explain-ui shows it while Placenta.placenta_running && !umb_clamped (PLACENTA_DIAGRAM), so clamping the
 // cord takes it away. The umbilical arteries leave the descending aorta, the umbilical vein returns to the IVC;
 // connector dots take the colour of their upstream component, so the arteries read deoxygenated and the vein
-// (from the placenta's capillary, its first model) oxygenated. The maternal pool sits below it, unconnected
+// (from the placenta's capillary, its first model) oxygenated. The maternal pool (intervillous blood leaving the
+// maternal side, ~74 % saturated) sits below it, unconnected
 // (gas only crosses by diffusion).
 function addPlacentaDiagram(dd) {
   const label = (size, pos_y) => ({ pos_x: 0, pos_y, size, rotation: 0, color: "#ffffff" });
@@ -74,7 +75,7 @@ function addPlacentaDiagram(dd) {
   });
   Object.assign(dd.components, {
     PLACENTA: node("PLACENTA", "placenta.png", ["PL_FETAL_CAP", "PL_FETAL_ART", "PL_FETAL_VEN", "PL_UMB_ART", "PL_UMB_VEN"], 0, 1.38, 0.13, label(10, 30)),
-    MATERNAL: node("MOTHER", "container.png", ["PL_MAT"], 0, 1.72, 0.07, label(9, 20)),
+    MATERNAL: node("INTERVILLOUS", "container.png", ["PL_MAT"], 0, 1.72, 0.07, label(9, 20)),
     UMB_ART: conn("", ["PL_UMB_ART_PL_FETAL_ART"], "AD", "PLACENTA"),
     UMB_VEN: conn("", ["PL_UMB_VEN_IVCI"], "PLACENTA", "IVCI"),
   });
