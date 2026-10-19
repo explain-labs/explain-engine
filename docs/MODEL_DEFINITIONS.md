@@ -6,9 +6,11 @@ A scenario file is a single JSON document that describes one complete patient/ex
 >
 > **Since 2026-10-16 only `term_neonate` is maintained**, joined on 2026-10-18 by `preterm_28wk`
 > (28 wk, 1 kg, 72 h on nasal CPAP 6) and on 2026-10-19 by `preterm_25wk` (25 wk, 0.7 kg, 72 h on nasal
-> CPAP 7). Both are generated from `term_neonate` by `scripts/_make_preterm_validated.mjs --profile 28|25`
-> (lever profiles in `scripts/_preterm_profiles.mjs`) and validated against
-> [Preterm28wkReference](./Preterm28wkReference.md) and [Preterm25wkReference](./Preterm25wkReference.md). The frozen set that live pages need
+> CPAP 7) and `preterm_30wk` (30 wk, 1.5 kg, 72 h on nasal CPAP 5 in room air). All three are generated
+> from `term_neonate` by `scripts/_make_preterm_validated.mjs --profile 28|25|30` (lever profiles in
+> `scripts/_preterm_profiles.mjs`) and validated against [Preterm28wkReference](./Preterm28wkReference.md),
+> [Preterm25wkReference](./Preterm25wkReference.md) and [Preterm30wkReference](./Preterm30wkReference.md).
+> The frozen set that live pages need
 > (`bischoff_cohort`, `p1_baseline`, `p1_pda_none`, `tof_severe`) is kept in place; everything else
 > is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
 > the fixed term baby.
