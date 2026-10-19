@@ -1,12 +1,17 @@
 # Fetal circulation scenarios
 
-**Current scenario (2026-10-19):** [`fetus_30wk`](../model_definitions/fetus_30wk.json), a fetus in utero at
-30 wk, 1.5 kg, rebuilt from the literature-validated `term_neonate` by
-`node scripts/_make_fetus_validated.mjs --profile 30` (levers in `scripts/_fetal_profiles.mjs`) and validated
-against [Fetus30wkReference](./Fetus30wkReference.md) (49 of 51 graded rows in range). See
-[The rebuilt fetus_30wk](#the-rebuilt-fetus_30wk-2026-10-19) below.
+**Current scenarios (2026-10-19)**, both rebuilt from the literature-validated `term_neonate` by
+`node scripts/_make_fetus_validated.mjs --profile 30|40` (levers in `scripts/_fetal_profiles.mjs`):
+- [`fetus_30wk`](../model_definitions/fetus_30wk.json), 30 wk, 1.5 kg, validated against
+  [Fetus30wkReference](./Fetus30wkReference.md) (49 of 51 graded rows in range); see
+  [The rebuilt fetus_30wk](#the-rebuilt-fetus_30wk-2026-10-19) below;
+- [`term_fetus`](../model_definitions/term_fetus.json), 40 wk, 3.545 kg (as term_neonate), validated against
+  [TermFetusReference](./TermFetusReference.md) (50 of 51). What differs from 30 wk: placental O₂ diffusion 10× lower
+  (`dif_o2` 0.003: at term the umbilical vein stays ~30 % short of the maternal side), no RV boost
+  (`cont_factor_right` 1.0, `cont_factor_left` 1.15), PVR ×0.8 on the fetal ×9.5, umbilical flow ~142 mL/kg/min.
+  Operating point: HR 142, MAP 48, CVP 3.3, output ~430, RV:LV 59:41, UV 80 > IVC 68 > AA 61 > UA 57 %, core 37.5.
 
-The sections after that describe the **earlier pair**, now in `model_definitions/archive/` (built from the old
+The sections after that describe the **earlier pair**, now in `model_definitions/archive/` and replaced by these two (built from the old
 term base):
 
 | Scenario | GA | Weight | Built by |

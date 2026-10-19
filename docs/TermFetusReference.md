@@ -192,6 +192,90 @@ own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref script
   AA SO₂ 56 → 62, SVC 46. **50 in range / 1 out** (the duct diameter, by design). As at 30 weeks, the
   cordocentesis gases need more umbilical blood than the 25 % placental-share reference.
 
+- **Final (2026-10-19).** Brain autoregulation sat at its dilation floor with CBF 88: `BRAIN_R` 0.26 → **0.10** →
+  autoregulation 1.07 over minutes 8–10 at CBF 100.
+
+## Validation result (step 5 complete, 2026-10-19)
+
+`node scripts/probe_term_reference.mjs term_fetus --ref scripts/reference/term_fetus.json` on the final scenario:
+**50 graded rows in range, 1 out**: the duct diameter, 6.0 mm against 3.95 mm anatomy, by design (the model's duct
+size keeps PA ≈ Ao).
+
+A 10-minute run is steady (minute means, min 1 → 10): HR 142, MAP 48.1, CVP 3.3–3.4, output 426–469 (window noise),
+umbilical flow 141, AA SO₂ 61.4–62.1, UA SO₂ 56.9–57.7, UV pCO₂ 36.0–36.2, core 37.50 °C, brain autoregulation 1.05–1.08
+(CBF 100), baroreflex mildly active (HR ×1.045, SVR ×1.09: MAP 48 below its set-point 50), Hormones SVR factor 0.92.
+
+| Variable | Model | Reference | Range | |
+|---|---|---|---|---|
+| Heart rate (CTG baseline) | 142 | 136 | 120–160 | ref |
+| Systolic arterial pressure | 62.6 | 60 | — | ref |
+| Diastolic arterial pressure | 36.2 | 40 | — | ref |
+| Mean arterial pressure | 48.1 | 50 | 42–58 | ref |
+| Pulse pressure | 26.3 | 20 | — | ref |
+| PA minus aorta, mean pressure | 1.68 | 0 | 0–2 | ref |
+| Atrial (central venous) pressure | 3.32 | 3 | 1–5 | ref |
+| LV end-diastolic volume | 1.96 | 1.95 | 1.5–2.5 | ref |
+| LV end-systolic volume | 0.70 | 0.6 | 0.4–0.85 | ref |
+| LV stroke volume | 1.26 | 1.35 | 1.1–1.6 | ref |
+| LV ejection fraction | 64.2 | 70 | 60–78 | ref |
+| RV end-diastolic volume | 2.75 | 3.0 | 2.4–3.7 | ref |
+| RV end-systolic volume | 0.96 | 1.15 | 0.8–1.5 | ref |
+| RV stroke volume | 1.79 | 1.85 | 1.5–2.2 | ref |
+| RV ejection fraction | 65.2 | 62 | 55–70 | ref |
+| TAPSE | — | 8.7 | 6–11 | ref |
+| Combined ventricular output | 434 | 450 | 350–580 | ref |
+| RV share of combined output | 58.8 | 58 | 55–62 | ref |
+| Pulmonary blood flow, share of CVO | 16.1 | 18 | 10–30 | ref |
+| Foramen ovale flow (R->L), share of CVO | 25.2 | 24 | 15–35 | ref |
+| Ductus arteriosus flow (PA->Ao), share of CVO | 42.8 | 40 | 30–50 | ref |
+| Placental (umbilical) share of CVO | 32.6 | 25 | 18–35 | ref |
+| Umbilical vein flow | 141 | 110 | 70–155 | ref |
+| SVC flow, share of CVO | 31.1 | 30 | 20–40 | ref |
+| Descending aorta flow, share of CVO | 50.6 | 55 | 35–75 | ref |
+| Cerebral blood flow | 100 | 100 | 75–125 | ref |
+| Ductus venosus shunt fraction of UV flow | — | 20 | — | ref |
+| Ductus arteriosus diameter | 6.00 | 3.95 | 3.3–4.6 | ref |
+| Foramen ovale diameter | — | — | — | ref |
+| Umbilical vein SO2 | 79.8 | 75 | 65–85 | ref |
+| Umbilical vein pO2 | 33.9 | 31.5 | 25–38 | ref |
+| Umbilical vein pCO2 | 36.0 | 38 | 34–42 | ref |
+| Umbilical vein pH | 7.40 | 7.38 | 7.34–7.42 | ref |
+| Umbilical vein base excess | -2.46 | -2.3 | -5–0 | ref |
+| Umbilical artery SO2 | 57.0 | 52 | 40–65 | ref |
+| Umbilical artery pO2 | 25.4 | 23 | 17–29 | ref |
+| Umbilical artery pCO2 | 44.9 | 43 | 39–48 | ref |
+| Umbilical artery pH | 7.32 | 7.35 | 7.31–7.39 | ref |
+| UA minus UV pCO2 | 8.90 | 5 | 3–9 | ref |
+| Ascending aorta (pre-ductal) SO2 | 61.4 | 60 | 50–70 | ref |
+| Thoracic IVC SO2 | 68.0 | 66 | — | ref |
+| SVC SO2 | 47.0 | 40 | 30–50 | ref |
+| Descending aorta SO2 | 57.0 | 52 | 40–65 | ref |
+| Hb-O2 P50 (standard) | 20.0 | 20.0 | 19–21.5 | ref |
+| Hemoglobin | 15.0 | 15.0 | 13–17 | ref |
+| Hematocrit | 45.4 | 45 | 39–51 | ref |
+| Fetal haemoglobin fraction | — | 80 | 70–90 | ref |
+| Fetoplacental blood volume | 104 | 105 | 90–125 | ref |
+| Fetal body blood volume | 80.3 | 85 | — | ref |
+| Placental share of fetoplacental blood | 22.7 | 22 | 15–30 | ref |
+| Oxygen consumption | 6.61 | 6.5 | 5.4–8.1 | ref |
+| Respiratory quotient | 0.93 | 0.95 | 0.9–1 | ref |
+| Core temperature | 37.5 | 37.5 | 37.3–37.9 | ref |
+| Plasma glucose (UV) | 3.70 | 3.7 | 3–4.5 | ref |
+| Lactate | 1.49 | 1.0 | 0.6–1.8 | ref |
+| Fetal urine production | 1.10 | 20 | 10–35 | ref |
+| Plasma creatinine | — | 50 | 40–65 | ref |
+| GFR | 24.7 | — | — | ref |
+| Cystatin C | — | 1.66 | 1.26–2.06 | ref |
+| Crown-heel length | — | 51 | — | ref |
+| Placental weight | — | 500 | — | ref |
+
+**Compared with the 30-week fetus** (same generator, same reference variables): heart rate 142 vs 148, MAP 48 vs 38,
+umbilical vein SO₂ 80 vs 89 %, aorta 61 vs 70 %, placental O₂ diffusion 10× lower (the term placenta no longer
+equilibrates with the maternal side), the RV boost (`cont_factor_right`) no longer needed.
+
+**Known limitations** (as for the 30-week fetus): no ductus venosus route; no placental heat path; fetal urine
+reference only (the model keeps term_neonate's kidney, ~1 mL/kg/h); arterial pressure and RQ ovine; volumes derived.
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 40+0 wk (pairs with `term_neonate`); weight 3.545 kg (= `term_neonate`).
@@ -199,12 +283,12 @@ own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref script
 - Heart rate 136 (Pildner von Steinburg 2013); MAP 50 (ovine, Segar 2002).
 - Ventricular volumes derived from the MRI output split; placental share 25 % (between MRI 29 and Doppler 21).
 - Umbilical-vein saturation 75 % (between cordocentesis 72 and MRI 79); VO₂ 6.5 kept as the literature value, the Fick
-  conflict to be settled in step 5.
+  conflict settled in step 5.3 (umbilical flow ~142 mL/kg/min, placental share ~33 %).
 - Sheep data allowed where no human value exists (grade C ovine); ductus venosus and fetal urine reference only.
 
 ## Open items
 
-- The O₂ balance conflict above.
+- The O₂ balance conflict above: settled in 5.3 by umbilical flow (~142 mL/kg/min).
 - Johnson 2000 (scanned PDF): absolute human intracardiac pressures (≤ 29 wk only).
 - A ductus venosus route (would lift the IVC stream and the aortic saturation).
 

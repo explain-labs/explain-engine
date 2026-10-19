@@ -139,7 +139,8 @@ export const PROFILES = {
       FO_SEPTUM: 3.0,       // starting point: archived term_fetus
       FO_SVC_FRACTION: 0.0, // 30 wk 5.1: only IVC blood crosses the foramen
       COR_R: 1.0,           // term_neonate
-      BRAIN_R: 0.26,        // starting point: term bed x (MAP 50/58) x (CBF 106/355 mL/min, term_neonate vs 100 mL/kg/min fetal)
+      BRAIN_R: 0.10,        // final: cerebral bed r x (starting point 0.26 = term bed x MAP 50/58 x CBF 106/355 mL/min left autoregulation at
+                            //      its dilation floor with CBF 88) -> autoregulation ~1.07 over minutes 8-10 at CBF 100
       CBF_SET: 0.3545,      // reference: 100 mL/kg/min x 3.545 kg, L/min absolute (grade C)
       UB_R: 1.0,            // starting point
       INT_R: 1.0,           // term_neonate
