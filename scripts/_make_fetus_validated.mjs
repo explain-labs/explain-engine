@@ -100,8 +100,9 @@ log.push(`placenta: running, cord patent; umb_art ${L.UMB_ART_RES}, plf ${L.PLF_
 M.Pda.diameter_relative = 1.0;
 M.Pda.diameter_ao_max = L.DA_DIAM; M.Pda.diameter_pa_max = L.DA_DIAM; M.Pda.length = L.DA_LEN;
 M.Shunts.diameter_fo = L.FO_DIAM; M.Shunts.atrial_septal_width = L.FO_SEPTUM;
+M.Shunts.fo_svc_fraction = L.FO_SVC_FRACTION; // preferential streaming: IVC blood crosses the foramen, SVC blood goes to the RV
 M.Shunts.ips_res = 1e8; // fetal lung flow is all capillary
-log.push(`shunts: duct ${L.DA_DIAM} mm x ${L.DA_LEN} mm wide open; foramen ${L.FO_DIAM} mm (septum ${L.FO_SEPTUM} mm); intrapulmonary shunts closed`);
+log.push(`shunts: duct ${L.DA_DIAM} mm x ${L.DA_LEN} mm wide open; foramen ${L.FO_DIAM} mm (septum ${L.FO_SEPTUM} mm, SVC share ${L.FO_SVC_FRACTION}); intrapulmonary shunts closed`);
 // inert, fluid-filled lungs: no breathing, no alveolar exchange (zero the constants: is_enabled does not stick)
 M.Breathing.is_enabled = false; M.Breathing.breathing_enabled = false;
 for (const n of ["GASEX_LL", "GASEX_RL"]) { M[n].dif_o2 = 0; M[n].dif_co2 = 0; }

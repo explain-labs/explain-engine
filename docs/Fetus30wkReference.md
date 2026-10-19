@@ -192,6 +192,17 @@ invariants hold after the bake.
   autoregulation at its floor (0.15, fully dilated: the bed cannot reach the 95 mL/kg/min set-point).
 - Fetal urine (3 mL/kg/h) is reference only by decision.
 
+## Recalibrations made from this reference (step 5)
+
+- **5.1 Preferential streaming (2026-10-19).** A third of the foramen flow came from the SVC part of the
+  right atrium (34 of 105 mL/kg/min), so SVC and IVC blood mixed in the left atrium and the ascending aorta
+  was only 0.9 saturation points above the pulmonary artery. New engine parameter `Shunts.fo_svc_fraction`
+  (author's choice: continuous, 0–1; default 0.5 unchanged elsewhere), set to **0** for the fetus (crista
+  dividens): AA − PA gap 0.9 → 6.0 points (ref ~8), ascending-aorta SO₂ 54.2 → 57.5 %, SVC SO₂ 42.3 → 45.5 %;
+  pressures, output and its distribution unchanged. Still 40 in range / 11 out (AA 57.5 just below 58). The
+  remaining gap to 67 % is the IVC (64 vs 72 %): umbilical blood mixes with lower-body blood before the
+  atrium (no ductus venosus stream).
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting
@@ -205,6 +216,8 @@ invariants hold after the bake.
   calibration lever.
 - Ascending-aorta saturation 67 % (cordocentesis-based), not the MRI 58 %.
 - Fetal urine production: reference only (known limitation; the model keeps the preterm 30-week kidney).
+- Foramen ovale: the whole foramen opens onto the IVC part (`Shunts.fo_svc_fraction` 0, a new continuous engine
+  parameter).
 - Fetoplacental blood volume 115 mL/kg; its low bound was widened to 90 when MacGregor 1988 (94 mL/kg)
   was added at step 3.
 

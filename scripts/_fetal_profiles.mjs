@@ -40,6 +40,8 @@ export const PROFILES = {
       DA_LEN: 10.1,         // reference: Szpinda length at 30 wk, mm (-3.07 + 0.438 x 30)
       FO_DIAM: 4.4,         // starting point: Shunts.diameter_fo, mm (archived 30 wk)
       FO_SEPTUM: 2.2,       // starting point: Shunts.atrial_septal_width, mm (archived 30 wk)
+      FO_SVC_FRACTION: 0.0, // 5.1: Shunts.fo_svc_fraction: the whole foramen opens onto the IVC part (crista dividens), so SVC
+                            //      blood no longer mixes into the LA: AA - PA saturation gap 0.9 -> 6.0 points (reference ~8)
       COR_R: 1.72,          // preterm 30
       BRAIN_R: 0.4,         // starting point: cerebral bed r x (preterm 30 1.6 x 25/95 x 38/43): CBF ~95 mL/kg/min
       CBF_SET: 0.1425,      // reference: 95 mL/kg/min x 1.5 kg, L/min absolute (grade C, Sun 2015)
