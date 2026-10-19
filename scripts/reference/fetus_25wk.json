@@ -1,0 +1,1431 @@
+{
+ "name": "fetus_25wk",
+ "description": "Literature reference values for a human fetus in utero at 25+0 weeks (0.7 kg): healthy, appropriate for gestational age, singleton, mother at rest breathing air, not in labour. Grades: A = human fetal data at ~25 wk, B = human fetal data from a wider GA band, a pooled synthesis or a short interpolation, B/C = extrapolated from a synthesis, C = derived, carried over, method-dependent, or ovine (marked 'C ovine').",
+ "state": "fetus in utero, 25+0 wk, 0.7 kg; placenta is the gas exchanger; fluid-filled lungs, no fetal breathing; wide-open ductus arteriosus and foramen ovale; amniotic environment ~37.3 degC",
+ "compiled": "2026-10-19",
+ "doc": "docs/Fetus25wkReference.md",
+ "sources": {
+  "acharya2005": {
+   "cite": "Acharya G et al. Reference ranges for umbilical vein blood flow in the second half of pregnancy based on longitudinal data. Prenat Diagn 2005;25:99-111",
+   "doi": "10.1002/pd.1091",
+   "pmid": "15712315"
+  },
+  "amorimcosta2016": {
+   "cite": "Amorim-Costa C et al. Gender-specific reference charts for cardiotocographic parameters throughout normal pregnancy (9701 fetuses). Eur J Obstet Gynecol Reprod Biol 2016;199:102-7",
+   "doi": "10.1016/j.ejogrb.2016.01.036",
+   "pmid": "26921476"
+  },
+  "asakura2004": {
+   "cite": "Asakura H. Fetal and neonatal thermoregulation. J Nippon Med Sch 2004;71:360-70",
+   "doi": null,
+   "pmid": null
+  },
+  "bokenkamp2001": {
+   "cite": "Bökenkamp A et al. Fetal serum concentrations of cystatin C and beta2-microglobulin as predictors of postnatal kidney function. Am J Obstet Gynecol 2001;185:468-75",
+   "doi": "10.1067/mob.2001.115283",
+   "pmid": "11518911"
+  },
+  "booth2008": {
+   "cite": "Booth LC et al. Is baroreflex control of sympathetic activity and heart rate active in the preterm fetal sheep? (102 d, term 140). Am J Physiol Regul Integr Comp Physiol 2009;296:R603-9 (ovine)",
+   "doi": "10.1152/ajpregu.90624.2008",
+   "pmid": "19109368"
+  },
+  "economides1989": {
+   "cite": "Economides DL, Nicolaides KH. Blood glucose and oxygen tension levels in small-for-gestational-age fetuses. Am J Obstet Gynecol 1989;160:385-9",
+   "doi": "10.1016/0002-9378(89)90453-5",
+   "pmid": "2916623"
+  },
+  "eshbroder2004": {
+   "cite": "Esh-Broder E et al. Free-hand 3D echocardiography in the evaluation of fetal cardiac ejection fraction. Ultrasound Obstet Gynecol 2004;23:546-51",
+   "doi": "10.1002/uog.1059",
+   "pmid": "15170793"
+  },
+  "hamill2011": {
+   "cite": "Hamill N et al. Fetal cardiac ventricular volume, cardiac output, and ejection fraction determined with 4D ultrasound (STIC/VOCAL). Am J Obstet Gynecol 2011;205:76.e1-10",
+   "doi": "10.1016/j.ajog.2011.02.028",
+   "pmid": "21531373"
+  },
+  "johnson2000": {
+   "cite": "Johnson P, Maxwell DJ, Tynan MJ, Allan LD. Intracardiac pressures in the human fetus. Heart 2000;84:59-63",
+   "doi": "10.1136/heart.84.1.59",
+   "pmid": "10862590"
+  },
+  "kiserud2006": {
+   "cite": "Kiserud T et al. Fetal cardiac output, distribution to the placenta and impact of placental compromise. Ultrasound Obstet Gynecol 2006;28:126-36",
+   "doi": "10.1002/uog.2832",
+   "pmid": "16826560"
+  },
+  "kiserud2006dv": {
+   "cite": "Kiserud T et al. Ductus venosus shunting in growth-restricted fetuses and the effect of umbilical circulatory compromise. Ultrasound Obstet Gynecol 2006;28:143-9",
+   "doi": "10.1002/uog.2784",
+   "pmid": "16770753"
+  },
+  "macgregor1988": {
+   "cite": "MacGregor SN et al. Prediction of fetoplacental blood volume in isoimmunized pregnancy. Am J Obstet Gynecol 1988;159:1493-7",
+   "doi": "10.1016/0002-9378(88)90581-9",
+   "pmid": "3207128"
+  },
+  "marconi1996": {
+   "cite": "Marconi AM et al. The impact of gestational age and fetal growth on the maternal-fetal glucose concentration difference. Obstet Gynecol 1996;87:937-42",
+   "doi": "10.1016/0029-7844(96)00048-8",
+   "pmid": "8649702"
+  },
+  "messing2013": {
+   "cite": "Messing B et al. Fetal tricuspid annular plane systolic excursion (f-TAPSE). Ultrasound Obstet Gynecol 2013;42:182-8",
+   "doi": "10.1002/uog.12375",
+   "pmid": "23288668"
+  },
+  "mielke2001": {
+   "cite": "Mielke G, Benda N. Cardiac output and central distribution of blood flow in the human fetus. Circulation 2001;103:1662-8",
+   "doi": "10.1161/01.cir.103.12.1662",
+   "pmid": "11273994"
+  },
+  "moniz1985": {
+   "cite": "Moniz CF et al. Normal reference ranges for biochemical substances relating to renal, hepatic, and bone function in fetal and maternal plasma throughout pregnancy. J Clin Pathol 1985;38:468-72",
+   "doi": null,
+   "pmid": null
+  },
+  "nicolaides1988": {
+   "cite": "Nicolaides KH et al. Fetal haemoglobin by gestational age (mean and -2 SD table, 18-34 wk), as reproduced in clinical-trial protocol NCT03842189",
+   "doi": null,
+   "pmid": null
+  },
+  "nicolaides1989": {
+   "cite": "Nicolaides KH, Economides DL, Soothill PW. Blood gases, pH, and lactate in appropriate- and small-for-gestational-age fetuses. Am J Obstet Gynecol 1989;161:996-1001",
+   "doi": "10.1016/0002-9378(89)90770-9",
+   "pmid": "2801852"
+  },
+  "peixoto2020": {
+   "cite": "Peixoto AB et al. Reference ranges for fetal MAPSE, TAPSE and SAPSE between 20 and 36+6 weeks. J Perinat Med 2020;48:601-8",
+   "doi": "10.1515/jpm-2020-0002",
+   "pmid": "32609650"
+  },
+  "phillipos1994": {
+   "cite": "Phillipos EZ et al. The echocardiographic assessment of the human fetal foramen ovale. J Am Soc Echocardiogr 1994;7:257-63",
+   "doi": "10.1016/s0894-7317(14)80396-9",
+   "pmid": "8060642"
+  },
+  "pildner2013": {
+   "cite": "Pildner von Steinburg S et al. What is the 'normal' fetal heart rate? PeerJ 2013;1:e82 (78,852 CTGs; mean baseline by gestational week)",
+   "doi": "10.7717/peerj.82",
+   "pmid": "23761161"
+  },
+  "prsa2014": {
+   "cite": "Prsa M et al. Reference ranges of blood flow in the major vessels of the normal human fetal circulation at term by phase-contrast MRI. Circ Cardiovasc Imaging 2014;7:663-70",
+   "doi": "10.1161/CIRCIMAGING.113.001859",
+   "pmid": "24874055"
+  },
+  "rabinowitz1989": {
+   "cite": "Rabinowitz R et al. Measurement of fetal urine production in normal pregnancy by real-time ultrasonography. Am J Obstet Gynecol 1989;161:1264-6",
+   "doi": "10.1016/0002-9378(89)90679-0",
+   "pmid": "2686448"
+  },
+  "rasanen1996": {
+   "cite": "Rasanen J et al. Role of the pulmonary circulation in the distribution of human fetal cardiac output during the second half of pregnancy. Circulation 1996;94:1068-73",
+   "doi": "10.1161/01.cir.94.5.1068",
+   "pmid": "8790048"
+  },
+  "serra2009": {
+   "cite": "Serra V et al. Computerized analysis of normal fetal heart rate pattern throughout gestation. Ultrasound Obstet Gynecol 2009;34:74-9",
+   "doi": "10.1002/uog.6365",
+   "pmid": "19489020"
+  },
+  "siggaard1995": {
+   "cite": "Siggaard-Andersen O, Huch R. The oxygen status of fetal blood. Acta Anaesthesiol Scand 1995;39 Suppl 107:129-35 (week-30 synthesis of cordocentesis data; http://www.siggaard-andersen.dk/FetalBlood.pdf)",
+   "doi": null,
+   "pmid": null
+  },
+  "simioni2012": {
+   "cite": "Simioni C et al. Fetal cardiac output and ejection fraction by STIC: male vs female fetuses. Rev Bras Cir Cardiovasc 2012;27:275-82",
+   "doi": "10.5935/1678-9741.20120058",
+   "pmid": "22996979"
+  },
+  "soothill1986": {
+   "cite": "Soothill PW et al. Effect of gestational age on fetal and intervillous blood gas and acid-base values in human pregnancy. Fetal Ther 1986;1:168-75",
+   "doi": "10.1159/000262264",
+   "pmid": "3454532"
+  },
+  "sun2015": {
+   "cite": "Sun L et al. Reduced fetal cerebral oxygen consumption is associated with smaller brain size in fetuses with congenital heart disease (30 normal controls at 36 wk). Circulation 2015;131:1313-23",
+   "doi": "10.1161/CIRCULATIONAHA.114.013051",
+   "pmid": "25762062"
+  },
+  "szpinda": {
+   "cite": "Szpinda M, ductus arteriosus morphometry regression (diameter 0.2072 + 0.0935 x GA mm), as quoted in component_models/Pda.js",
+   "doi": null,
+   "pmid": null
+  },
+  "touboul2008": {
+   "cite": "Touboul C et al. Normal fetal urine production rate estimated with 3D ultrasonography (VOCAL). Am J Obstet Gynecol 2008;199:57.e1-5",
+   "doi": "10.1016/j.ajog.2007.12.012",
+   "pmid": "18295175"
+  },
+  "vo2review": {
+   "cite": "Human fetal VO2 estimates as quoted in Cetin I et al., 'The hypoxic fetus as a patient: adaptations to the intrauterine environment' (Univ. Milan): Bonds 1986 calorimetry 6.8 mL/min/kg; Acharya & Sitras umbilical uptake 0.29 mmol/min/kg; Radaelli 0.24 mmol/min/kg; fetal lamb (Philipps) 8.1 mL/min/kg",
+   "doi": null,
+   "pmid": null
+  },
+  "wassink2014": {
+   "cite": "Wassink G et al. Does maturity affect cephalic perfusion and T/QRS ratio during prolonged umbilical cord occlusion in fetal sheep? Obstet Gynecol Int 2014:314159 (ovine)",
+   "doi": "10.1155/2014/314159",
+   "pmid": "24693290"
+  },
+  "zhang2016": {
+   "cite": "Zhang J et al. Evaluation of right ventricular function in fetal hypoplastic left heart syndrome using STIC (151 normal controls, mean 30.2 wk). Cardiovasc Ultrasound 2016;14:12",
+   "doi": "10.1186/s12947-016-0056-5",
+   "pmid": "27066831"
+  }
+ },
+ "variables": [
+  {
+   "key": "hr",
+   "group": "hemodynamics",
+   "label": "Heart rate (CTG baseline)",
+   "unit": "bpm",
+   "mean": 144,
+   "sd": null,
+   "low": 130,
+   "high": 160,
+   "range_type": "range",
+   "method": "cardiotocography",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "pildner2013",
+    "amorimcosta2016",
+    "serra2009"
+   ],
+   "grade": "A/B",
+   "model_readout": "Monitor.heart_rate",
+   "notes": "Pildner von Steinburg 2013: mean baseline < 28 wk 140.8-141.9 (95 % CI), -0.4 bpm/wk; Amorim-Costa 2016: ~9 bpm fall from 24 to 40 wk (term ~136 -> ~145 at 24)."
+  },
+  {
+   "key": "sbp",
+   "group": "hemodynamics",
+   "label": "Systolic arterial pressure",
+   "unit": "mmHg",
+   "mean": 42,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "chronic catheter, fetal sheep",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "wassink2014",
+    "booth2008"
+   ],
+   "grade": "C ovine",
+   "model_readout": "Monitor.minmax.abp_pre_pres_max",
+   "notes": "Ovine: MAP 35 + pulse pressure ~14."
+  },
+  {
+   "key": "dbp",
+   "group": "hemodynamics",
+   "label": "Diastolic arterial pressure",
+   "unit": "mmHg",
+   "mean": 28,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "chronic catheter, fetal sheep",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "wassink2014",
+    "booth2008"
+   ],
+   "grade": "C ovine",
+   "model_readout": "Monitor.minmax.abp_pre_pres_min",
+   "notes": "Ovine, see sbp."
+  },
+  {
+   "key": "map",
+   "group": "hemodynamics",
+   "label": "Mean arterial pressure",
+   "unit": "mmHg",
+   "mean": 35,
+   "sd": null,
+   "low": 30,
+   "high": 42,
+   "range_type": "range",
+   "method": "chronic catheter, fetal sheep",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "wassink2014",
+    "booth2008",
+    "johnson2000"
+   ],
+   "grade": "C ovine",
+   "model_readout": "Monitor.minmax.abp_pre_pres_mean",
+   "notes": "User decision 35. Wassink 2014: 0.6 GA (91 d) ~36 mmHg (back-calculated; the paper equates 0.6 GA with human 26-28 wk); Booth 2008: 102 d (term 140) resting BP 38 +/- 2. Human cross-check: preterm_25wk at 72 h MAP 34 (Elsayed 2023); Johnson 2000 direct pressures 16-29 wk not readable."
+  },
+  {
+   "key": "pp",
+   "group": "hemodynamics",
+   "label": "Pulse pressure",
+   "unit": "mmHg",
+   "mean": 14,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "derived",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "wassink2014"
+   ],
+   "grade": "C ovine",
+   "model_readout": "derived sbp - dbp",
+   "notes": "Ovine."
+  },
+  {
+   "key": "pa_ao",
+   "group": "hemodynamics",
+   "label": "PA minus aorta, mean pressure",
+   "unit": "mmHg",
+   "mean": 0,
+   "sd": null,
+   "low": 0,
+   "high": 2,
+   "range_type": "range",
+   "method": "direct intracardiac",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "johnson2000"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor PAP mean - ABP mean",
+   "notes": "Wide-open duct: no LV-RV pressure difference in direct human measurements (Johnson 2000). Fetal invariant (docs/fetal_circulation.md)."
+  },
+  {
+   "key": "cvp",
+   "group": "hemodynamics",
+   "label": "Atrial (central venous) pressure",
+   "unit": "mmHg",
+   "mean": 3,
+   "sd": null,
+   "low": 1,
+   "high": 5,
+   "range_type": "range",
+   "method": "direct intracardiac",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "johnson2000"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.minmax.cvp_pres_mean",
+   "notes": "Johnson 2000: atrial pressures equal and constant 16-29 wk (value not readable)."
+  },
+  {
+   "key": "lv_edv",
+   "group": "heart",
+   "label": "LV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 1.7,
+   "sd": null,
+   "low": 1.3,
+   "high": 2.2,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "hamill2011",
+    "zhang2016"
+   ],
+   "grade": "C",
+   "model_readout": "LV.vol max",
+   "notes": "RV EDV / 1.4 (Hamill RV/LV diastolic ratio). 4D-echo (STIC) volumes are method-dependent. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "lv_esv",
+   "group": "heart",
+   "label": "LV end-systolic volume",
+   "unit": "mL/kg",
+   "mean": 0.45,
+   "sd": null,
+   "low": 0.3,
+   "high": 0.7,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "hamill2011",
+    "zhang2016"
+   ],
+   "grade": "C",
+   "model_readout": "LV.vol min",
+   "notes": "RV ESV / 2.0 (Hamill systolic ratio). Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "lv_sv",
+   "group": "heart",
+   "label": "LV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.2,
+   "sd": null,
+   "low": 1.0,
+   "high": 1.4,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "mielke2001",
+    "hamill2011"
+   ],
+   "grade": "C",
+   "model_readout": "LVO / HR",
+   "notes": "Doppler: 41 % x 425 / 145 bpm = 1.20 mL/kg. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "lv_ef",
+   "group": "heart",
+   "label": "LV ejection fraction",
+   "unit": "%",
+   "mean": 70,
+   "sd": null,
+   "low": 60,
+   "high": 78,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "hamill2011",
+    "simioni2012",
+    "eshbroder2004"
+   ],
+   "grade": "C",
+   "model_readout": "derived",
+   "notes": "Hamill LV 72 > RV 62; Simioni reverses the order (RV 71-73, LV 65-67); Esh-Broder ~55 at 16-26 wk. Ordering uncertain. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "rv_edv",
+   "group": "heart",
+   "label": "RV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 2.4,
+   "sd": null,
+   "low": 1.8,
+   "high": 3.0,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "zhang2016"
+   ],
+   "grade": "C",
+   "model_readout": "RV.vol max",
+   "notes": "Zhang 2016 STIC controls, mean 30.2 wk: 3.54 +/- 1.50 mL -> /1.5 kg. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "rv_esv",
+   "group": "heart",
+   "label": "RV end-systolic volume",
+   "unit": "mL/kg",
+   "mean": 0.9,
+   "sd": null,
+   "low": 0.6,
+   "high": 1.2,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "zhang2016"
+   ],
+   "grade": "C",
+   "model_readout": "RV.vol min",
+   "notes": "Zhang: 1.33 +/- 0.56 mL. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "rv_sv",
+   "group": "heart",
+   "label": "RV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.5,
+   "sd": null,
+   "low": 1.3,
+   "high": 1.75,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "zhang2016",
+    "mielke2001"
+   ],
+   "grade": "C",
+   "model_readout": "RVO / HR",
+   "notes": "Zhang 2.21 mL = 1.47 mL/kg; Doppler 59 % x 425 / 145 = 1.73. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "rv_ef",
+   "group": "heart",
+   "label": "RV ejection fraction",
+   "unit": "%",
+   "mean": 62,
+   "sd": null,
+   "low": 55,
+   "high": 70,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "zhang2016",
+    "hamill2011"
+   ],
+   "grade": "C",
+   "model_readout": "derived",
+   "notes": "Zhang 62.3 +/- 4.2; Hamill 62.4. Per-kg values carried over from the 30 wk set (output per kg and 4D-echo per-kg values barely change with GA)."
+  },
+  {
+   "key": "rv_tapse",
+   "group": "heart",
+   "label": "TAPSE",
+   "unit": "mm",
+   "mean": 4.7,
+   "sd": null,
+   "low": 3.0,
+   "high": 6.5,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "messing2013",
+    "peixoto2020"
+   ],
+   "grade": "B",
+   "model_readout": "TV annulus excursion (no read-out)",
+   "notes": "Messing 2013: 3.6 mm at 21 wk + 0.28 mm/wk -> ~4.7 at 25 wk."
+  },
+  {
+   "key": "cvo",
+   "group": "flows",
+   "label": "Combined ventricular output",
+   "unit": "mL/kg/min",
+   "mean": 425,
+   "sd": null,
+   "low": 340,
+   "high": 510,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "mielke2001",
+    "kiserud2006"
+   ],
+   "grade": "A/B",
+   "model_readout": "LVO + RVO",
+   "notes": "Mielke 425 (flat with GA), Kiserud 400. No MRI at this age."
+  },
+  {
+   "key": "rv_share",
+   "group": "flows",
+   "label": "RV share of combined output",
+   "unit": "%",
+   "mean": 59,
+   "sd": null,
+   "low": 55,
+   "high": 62,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "mielke2001"
+   ],
+   "grade": "A",
+   "model_readout": "RVO / CVO",
+   "notes": "Mielke RV:LV 59:41, GA-independent."
+  },
+  {
+   "key": "lung_share",
+   "group": "flows",
+   "label": "Pulmonary blood flow, share of CVO",
+   "unit": "%",
+   "mean": 19,
+   "sd": null,
+   "low": 11,
+   "high": 27,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "rasanen1996",
+    "mielke2001"
+   ],
+   "grade": "B",
+   "model_readout": "(PAAL_LL_ART + PAAR_RL_ART) / CVO",
+   "notes": "Rasanen 13 % (20 wk) -> 25 % (30 wk), linear interpolation at 25 wk."
+  },
+  {
+   "key": "fo_share",
+   "group": "flows",
+   "label": "Foramen ovale flow (R->L), share of CVO",
+   "unit": "%",
+   "mean": 26,
+   "sd": null,
+   "low": 18,
+   "high": 35,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "rasanen1996",
+    "mielke2001"
+   ],
+   "grade": "B",
+   "model_readout": "Shunts.flow_fo / CVO",
+   "notes": "Rasanen 34 % (20 wk) -> 18 % (30 wk), interpolated. Identity: LV 41 = FO 26 + lungs 15-19."
+  },
+  {
+   "key": "da_share",
+   "group": "flows",
+   "label": "Ductus arteriosus flow (PA->Ao), share of CVO",
+   "unit": "%",
+   "mean": 40,
+   "sd": null,
+   "low": 30,
+   "high": 46,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "rasanen1996",
+    "mielke2001"
+   ],
+   "grade": "B",
+   "model_readout": "Pda.flow_pa / CVO",
+   "notes": "Identity RV 59 - lungs 19."
+  },
+  {
+   "key": "placental_share",
+   "group": "flows",
+   "label": "Placental (umbilical) share of CVO",
+   "unit": "%",
+   "mean": 32,
+   "sd": null,
+   "low": 25,
+   "high": 40,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "kiserud2006"
+   ],
+   "grade": "B",
+   "model_readout": "umbilical flow / CVO",
+   "notes": "Kiserud 2006: ~32 % through the second half until 32 wk."
+  },
+  {
+   "key": "uv_flow",
+   "group": "flows",
+   "label": "Umbilical vein flow",
+   "unit": "mL/kg/min",
+   "mean": 135,
+   "sd": null,
+   "low": 95,
+   "high": 170,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "kiserud2006",
+    "acharya2005"
+   ],
+   "grade": "A/B",
+   "model_readout": "PL_UMB_VEN_IVCI.flow",
+   "notes": "32 % x 425; UV flow per kg is higher earlier in gestation (Acharya 2005)."
+  },
+  {
+   "key": "svc_share",
+   "group": "flows",
+   "label": "SVC flow, share of CVO",
+   "unit": "%",
+   "mean": 30,
+   "sd": null,
+   "low": 20,
+   "high": 40,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "sun2015",
+    "prsa2014"
+   ],
+   "grade": "C",
+   "model_readout": "SVC return / CVO",
+   "notes": "No MRI before 30 wk; the late-gestation MRI share (29-30 %) carried over."
+  },
+  {
+   "key": "dao_share",
+   "group": "flows",
+   "label": "Descending aorta flow, share of CVO",
+   "unit": "%",
+   "mean": 55,
+   "sd": null,
+   "low": 35,
+   "high": 75,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "prsa2014"
+   ],
+   "grade": "C",
+   "model_readout": "AD flow / CVO",
+   "notes": "MRI at term 55 %, carried over."
+  },
+  {
+   "key": "cbf",
+   "group": "flows",
+   "label": "Cerebral blood flow",
+   "unit": "mL/kg/min",
+   "mean": 95,
+   "sd": null,
+   "low": 70,
+   "high": 120,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "sun2015"
+   ],
+   "grade": "C",
+   "model_readout": "Brain inflow",
+   "notes": "Grade C derived: ~75 % of SVC, as at 30 wk."
+  },
+  {
+   "key": "dv_share",
+   "group": "flows",
+   "label": "Ductus venosus shunt fraction of UV flow",
+   "unit": "%",
+   "mean": 28,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "kiserud2006dv"
+   ],
+   "grade": "B",
+   "model_readout": "none (no ductus venosus in the model)",
+   "notes": "Reference only (no ductus venosus in the model); DV shunting declines toward 28-32 wk (Kiserud & Acharya 2004)."
+  },
+  {
+   "key": "pda_diam",
+   "group": "shunts",
+   "label": "Ductus arteriosus diameter",
+   "unit": "mm",
+   "mean": 2.54,
+   "sd": null,
+   "low": 2.1,
+   "high": 3.0,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "szpinda"
+   ],
+   "grade": "B",
+   "model_readout": "Pda.diameter_ao_max (calibration lever)",
+   "notes": "Anatomy: Szpinda 0.2072 + 0.0935 x 25 = 2.54 mm; in the model the duct size is the lever for PA ~ Ao."
+  },
+  {
+   "key": "fo_diam",
+   "group": "shunts",
+   "label": "Foramen ovale diameter",
+   "unit": "mm",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "phillipos1994"
+   ],
+   "grade": "C",
+   "model_readout": "Shunts.diameter_fo",
+   "notes": "Reference only: grows linearly with GA (Phillipos 1994); numbers not extractable from the abstract. FO size is not a split lever above ~2 mm (docs/fetal_circulation.md)."
+  },
+  {
+   "key": "uv_so2",
+   "group": "gases",
+   "label": "Umbilical vein SO2",
+   "unit": "%",
+   "mean": 90,
+   "sd": null,
+   "low": 82,
+   "high": 95,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989",
+    "soothill1986"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_VEN so2",
+   "notes": "91.8 % extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "uv_po2",
+   "group": "gases",
+   "label": "Umbilical vein pO2",
+   "unit": "mmHg",
+   "mean": 44,
+   "sd": null,
+   "low": 34,
+   "high": 52,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989",
+    "soothill1986"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_VEN po2",
+   "notes": "5.85 kPa extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "uv_pco2",
+   "group": "gases",
+   "label": "Umbilical vein pCO2",
+   "unit": "mmHg",
+   "mean": 34.5,
+   "sd": null,
+   "low": 30,
+   "high": 39,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_VEN pco2",
+   "notes": "4.59 kPa extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "uv_ph",
+   "group": "gases",
+   "label": "Umbilical vein pH",
+   "unit": "-",
+   "mean": 7.41,
+   "sd": null,
+   "low": 7.37,
+   "high": 7.45,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_VEN ph",
+   "notes": "Extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "uv_be",
+   "group": "gases",
+   "label": "Umbilical vein base excess",
+   "unit": "mmol/L",
+   "mean": -2.5,
+   "sd": null,
+   "low": -5,
+   "high": 0,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "soothill1986"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_VEN be",
+   "notes": "As at 30 wk."
+  },
+  {
+   "key": "ua_so2",
+   "group": "gases",
+   "label": "Umbilical artery SO2",
+   "unit": "%",
+   "mean": 70,
+   "sd": null,
+   "low": 58,
+   "high": 80,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_ART so2",
+   "notes": "70.6 % extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "ua_po2",
+   "group": "gases",
+   "label": "Umbilical artery pO2",
+   "unit": "mmHg",
+   "mean": 28.5,
+   "sd": null,
+   "low": 22,
+   "high": 35,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_ART po2",
+   "notes": "3.80 kPa extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "ua_pco2",
+   "group": "gases",
+   "label": "Umbilical artery pCO2",
+   "unit": "mmHg",
+   "mean": 40,
+   "sd": null,
+   "low": 36,
+   "high": 45,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_ART pco2",
+   "notes": "5.32 kPa extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "ua_ph",
+   "group": "gases",
+   "label": "Umbilical artery pH",
+   "unit": "-",
+   "mean": 7.38,
+   "sd": null,
+   "low": 7.34,
+   "high": 7.42,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995",
+    "nicolaides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "PL_UMB_ART ph",
+   "notes": "Extrapolated. Linear back-extrapolation of the Siggaard-Andersen week-30 -> week-40 slope (no week-25 table found; Soothill/Nicolaides give regressions only in figures)."
+  },
+  {
+   "key": "uv_ua_pco2",
+   "group": "gases",
+   "label": "UA minus UV pCO2",
+   "unit": "mmHg",
+   "mean": 5,
+   "sd": null,
+   "low": 3,
+   "high": 9,
+   "range_type": "range",
+   "method": "cordocentesis",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "B/C",
+   "model_readout": "derived",
+   "notes": "~5.5 mmHg, as at 30 and 40 wk."
+  },
+  {
+   "key": "aa_so2",
+   "group": "gases",
+   "label": "Ascending aorta (pre-ductal) SO2",
+   "unit": "%",
+   "mean": 70,
+   "sd": null,
+   "low": 60,
+   "high": 78,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "C",
+   "model_readout": "AA so2",
+   "notes": "By analogy with 30 wk (AA ~ UV - 18)."
+  },
+  {
+   "key": "ivc_so2",
+   "group": "gases",
+   "label": "Thoracic IVC SO2",
+   "unit": "%",
+   "mean": 76,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "C",
+   "model_readout": "IVCI so2",
+   "notes": "By analogy with 30 wk (C)."
+  },
+  {
+   "key": "svc_so2",
+   "group": "gases",
+   "label": "SVC SO2",
+   "unit": "%",
+   "mean": 46,
+   "sd": null,
+   "low": 36,
+   "high": 56,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "C",
+   "model_readout": "SVC so2",
+   "notes": "By analogy with 30 wk (C)."
+  },
+  {
+   "key": "dao_so2",
+   "group": "gases",
+   "label": "Descending aorta SO2",
+   "unit": "%",
+   "mean": 70,
+   "sd": null,
+   "low": 58,
+   "high": 80,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "B/C",
+   "model_readout": "AD so2",
+   "notes": "= umbilical artery."
+  },
+  {
+   "key": "p50",
+   "group": "gases",
+   "label": "Hb-O2 P50 (standard)",
+   "unit": "mmHg",
+   "mean": 18.5,
+   "sd": null,
+   "low": 17.5,
+   "high": 19.5,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "B",
+   "model_readout": "Blood.P50_0",
+   "notes": "= preterm_25wk (De Halleux 2002, <= 27 wk, standard conditions); HbF ~95 %."
+  },
+  {
+   "key": "hb",
+   "group": "blood",
+   "label": "Hemoglobin",
+   "unit": "g/dL",
+   "mean": 12.8,
+   "sd": null,
+   "low": 10.8,
+   "high": 14.8,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "nicolaides1988",
+    "siggaard1995"
+   ],
+   "grade": "B",
+   "model_readout": "Blood hemoglobin",
+   "notes": "Nicolaides 1988 table 12.6 at 25 wk; Siggaard-Andersen trend 12.9."
+  },
+  {
+   "key": "hct",
+   "group": "blood",
+   "label": "Hematocrit",
+   "unit": "%",
+   "mean": 39,
+   "sd": null,
+   "low": 33,
+   "high": 45,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "nicolaides1988"
+   ],
+   "grade": "C",
+   "model_readout": "derived",
+   "notes": "Hb / MCHC ~33."
+  },
+  {
+   "key": "hbf",
+   "group": "blood",
+   "label": "Fetal haemoglobin fraction",
+   "unit": "%",
+   "mean": 95,
+   "sd": null,
+   "low": 90,
+   "high": 98,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "siggaard1995"
+   ],
+   "grade": "B",
+   "model_readout": "Blood (via P50)",
+   "notes": "0.93 at 30 wk, higher earlier."
+  },
+  {
+   "key": "bv_fetoplacental",
+   "group": "blood",
+   "label": "Fetoplacental blood volume",
+   "unit": "mL/kg",
+   "mean": 120,
+   "sd": null,
+   "low": 100,
+   "high": 140,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "macgregor1988"
+   ],
+   "grade": "C",
+   "model_readout": "sum of fetal + PL_* blood volumes / weight",
+   "notes": "Per kg falls with GA (MacGregor 1988)."
+  },
+  {
+   "key": "bv_body",
+   "group": "blood",
+   "label": "Fetal body blood volume",
+   "unit": "mL/kg",
+   "mean": 85,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "macgregor1988"
+   ],
+   "grade": "C",
+   "model_readout": "fetal compartments / weight",
+   "notes": "Fetoplacental minus the placental share."
+  },
+  {
+   "key": "bv_placental_fraction",
+   "group": "blood",
+   "label": "Placental share of fetoplacental blood",
+   "unit": "%",
+   "mean": 30,
+   "sd": null,
+   "low": 22,
+   "high": 38,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "macgregor1988"
+   ],
+   "grade": "C",
+   "model_readout": "PL_* volume / total",
+   "notes": "Placenta:fetus mass ratio ~0.25 at 25 wk."
+  },
+  {
+   "key": "vo2",
+   "group": "metabolism",
+   "label": "Oxygen consumption",
+   "unit": "mL/kg/min",
+   "mean": 6.0,
+   "sd": null,
+   "low": 5.0,
+   "high": 8.0,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "sun2015",
+    "vo2review"
+   ],
+   "grade": "C",
+   "model_readout": "Metabolism VO2 (+ Mob)",
+   "notes": "No human data before ~30 wk; late-gestation human 5.4-6.9; fetal lamb VO2/kg is higher earlier (~8). Taken as the value the 30 wk fetus settled on. Fick: Hb 12.8 x 21-point gap x 135 mL/kg/min gives ~5.1."
+  },
+  {
+   "key": "rq",
+   "group": "metabolism",
+   "label": "Respiratory quotient",
+   "unit": "-",
+   "mean": 0.95,
+   "sd": null,
+   "low": 0.9,
+   "high": 1.0,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "vo2review"
+   ],
+   "grade": "C ovine",
+   "model_readout": "Metabolism.resp_q",
+   "notes": "Fetal lamb: glucose + lactate + amino-acid oxidation."
+  },
+  {
+   "key": "temp",
+   "group": "metabolism",
+   "label": "Core temperature",
+   "unit": "degC",
+   "mean": 37.5,
+   "sd": null,
+   "low": 37.3,
+   "high": 37.9,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "asakura2004"
+   ],
+   "grade": "B",
+   "model_readout": "Thermoregulation core temp",
+   "notes": "0.3-0.5 degC above the mother; ~85 % of fetal heat leaves via umbilical blood (lamb). Environment = amniotic fluid ~37.3 degC."
+  },
+  {
+   "key": "glucose",
+   "group": "metabolism",
+   "label": "Plasma glucose (UV)",
+   "unit": "mmol/L",
+   "mean": 4.2,
+   "sd": null,
+   "low": 3.5,
+   "high": 5.0,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "marconi1996",
+    "economides1989"
+   ],
+   "grade": "B/C",
+   "model_readout": "Blood glucose",
+   "notes": "Fetal glucose is higher earlier and the maternal-fetal gap smaller (Marconi 1996)."
+  },
+  {
+   "key": "lactate",
+   "group": "metabolism",
+   "label": "Lactate",
+   "unit": "mmol/L",
+   "mean": 1.0,
+   "sd": null,
+   "low": 0.6,
+   "high": 1.8,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "nicolaides1989",
+    "soothill1986"
+   ],
+   "grade": "C",
+   "model_readout": "Blood lactate",
+   "notes": "Stable across GA in AGA fetuses. Cord lactate at birth (~3.7) is a labour value."
+  },
+  {
+   "key": "urine",
+   "group": "kidneys",
+   "label": "Fetal urine production",
+   "unit": "mL/kg/h",
+   "mean": 11,
+   "sd": null,
+   "low": 5,
+   "high": 18,
+   "range_type": "range",
+   "method": "3D / 2D bladder ultrasound",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "touboul2008",
+    "rabinowitz1989"
+   ],
+   "grade": "B",
+   "model_readout": "none (reference only)",
+   "notes": "Reference only. Touboul 2008 7.5 mL/h at 25 wk; Rabinowitz 1989 ~5 mL/h at 20 wk."
+  },
+  {
+   "key": "creatinine",
+   "group": "kidneys",
+   "label": "Plasma creatinine",
+   "unit": "umol/L",
+   "mean": 50,
+   "sd": null,
+   "low": 40,
+   "high": 65,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "moniz1985"
+   ],
+   "grade": "C",
+   "model_readout": "Blood creatinine",
+   "notes": "Equilibrates with the mother across the placenta."
+  },
+  {
+   "key": "gfr",
+   "group": "kidneys",
+   "label": "GFR",
+   "unit": "mL/min/1.73m2",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [],
+   "grade": "-",
+   "model_readout": "Kidneys.gfr",
+   "notes": "Reference only: not measurable in the fetus."
+  },
+  {
+   "key": "cystatin_c",
+   "group": "kidneys",
+   "label": "Cystatin C",
+   "unit": "mg/L",
+   "mean": 1.66,
+   "sd": null,
+   "low": 1.26,
+   "high": 2.06,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [
+    "bokenkamp2001"
+   ],
+   "grade": "B",
+   "model_readout": "none",
+   "notes": "Reference only; GA-independent, does not cross the placenta."
+  },
+  {
+   "key": "length",
+   "group": "body",
+   "label": "Crown-heel length",
+   "unit": "cm",
+   "mean": 33,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [],
+   "grade": "C",
+   "model_readout": "none",
+   "notes": "Reference only."
+  },
+  {
+   "key": "placenta_weight",
+   "group": "body",
+   "label": "Placental weight",
+   "unit": "g",
+   "mean": 180,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "range",
+   "method": "",
+   "age": "25+0 wk in utero",
+   "n": null,
+   "sources": [],
+   "grade": "C",
+   "model_readout": "none",
+   "notes": "Reference only; placenta:fetus ~0.25 at 25 wk."
+  }
+ ]
+}
