@@ -8,6 +8,8 @@ export const PROFILES = {
     refDoc: "docs/Preterm28wkReference.md",
     // chemoreceptor set-points = the reference resting gases, so the chemoreflex is neutral at the target
     CR: { CR_PCO2: 46, CR_PO2: 50, CR_PH: 7.26 },
+    // diagram settings set by the author in the app (the oxygen colour window's upper end, mmol/L)
+    diagram: { to2_hi: 8.8 },
     description:
       "Preterm neonate born at 28 weeks (1.0 kg) at 72 h: stable on nasal CPAP 6 cmH2O with FiO2 0.25 after " +
       "surfactant (mild RDS), a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused " +
@@ -96,6 +98,8 @@ export const PROFILES = {
     refDoc: "docs/Preterm25wkReference.md",
     // chemoreceptor set-points = the reference resting gases (pCO2 48, PaO2 50, pH 7.22)
     CR: { CR_PCO2: 48, CR_PO2: 50, CR_PH: 7.22 },
+    // diagram settings set by the author in the app (the oxygen colour window's upper end, mmol/L)
+    diagram: { to2_hi: 7.8 },
     description:
       "Preterm neonate born at 25 weeks (0.7 kg) at 72 h: stable on nasal CPAP 7 cmH2O with FiO2 0.30 after " +
       "one LISA surfactant dose, a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused " +
