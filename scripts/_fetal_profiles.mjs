@@ -123,9 +123,9 @@ export const PROFILES = {
       BR_MAP: 50,           // reference: MAP 50 (ovine, Segar 2002)
       SVR: 1.0,             // starting point: term_neonate's systemic resistances
       FETAL_PVR: 9.5,       // fetal transform: raw r on the pulmonary BloodVessels (term_fetus x9.5)
-      PVR: 1.0,             // starting point (term_fetus at x9.5 gave lungs ~15 %; target 18 %)
-      CONT_LEFT: 1.0,       // starting point
-      CONT_RIGHT: 1.2,      // 30 wk value
+      PVR: 0.8,             // 5.2: pulmonary resistances x on top of the fetal x9.5 -> lungs 14.9 -> 17.7 % (ref 18), PA - Ao 2.2 -> 1.5
+      CONT_LEFT: 1.15,      // 5.2: Heart.cont_factor_left (with CONT_RIGHT 1.0) -> LV EF 58 -> 63, LV SV 1.12 -> 1.20, RV share 62 -> 58.6 %
+      CONT_RIGHT: 1.0,      // 5.2 (30 wk value 1.2): with RV_EL_MIN 0.8 the term RV already out-filled the LV (RV EF 67, share 62 %)
       RELAX: 1.0,           // term myocardium
       HEART_EL_MAX: 1.0,    // term_neonate's chambers
       HEART_EL_MIN: 1.0,    // starting point (30 wk needed 0.76x its preterm value to bring CVP down)

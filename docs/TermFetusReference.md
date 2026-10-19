@@ -181,6 +181,11 @@ own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref script
   At ≤ 0.0015 the fetus decompensates within minutes (HR 69, MAP 17): acute placental insufficiency, a 2× margin.
   45 in range / 6 out.
 
+- **5.2 Flow split (2026-10-19).** RV share 62 % with duct 47 % / lungs 15 %, PA − Ao 2.2, LV EF 58. Pulmonary
+  resistance ×0.8 (on top of the fetal ×9.5) and ventricular contractility left 1.0 → **1.15**, right 1.2 → **1.0**
+  (with the RV's lower diastolic stiffness the term RV already out-filled the LV): RV:LV 58.6 : 41.4, lungs 17.7 %,
+  foramen 23.5 %, duct 40.7 %, PA − Ao 1.5, LV EF 63 / SV 1.20, RV EF 64, output 407. 48 in range / 3 out.
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 40+0 wk (pairs with `term_neonate`); weight 3.545 kg (= `term_neonate`).
