@@ -195,13 +195,14 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as 28 wk: baroreceptor window scaled with the set-point
       BR_MAP: 42,           // reference: Elsayed 2023 day-3 median extrapolated to 30 wk
       SVR: 1.44,            // size rule: 2.0 x (MAP 42/39) / 1.5
-      PVR: 1.95,            // size rule: 3.0 x (mean PAP 19.5/20) / 1.5
+      PVR: 1.25,            // 6.2: pulmonary resistances x (size rule 3.0 x (19.5/20) / 1.5 = 1.95 left PAP mean 26 whatever the
+                            //      output) -> PAP 26/20.3; the lower PA pressure lets the duct carry 30 (was 23)
       CONT: 1.0,            // as 28 wk: EF normal (Groves 2011, no GA effect)
       RELAX: 1.08,          // starting point: diastolic function a little more mature than 28 wk (_make_preterm 30 wk row)
       HEART_EL_MAX: 2.27,   // size rule: 3.4 / 1.5
       HEART_EL_MIN: 2.9,    // 6.1: heart chambers el_min x (size rule 3.5 / 1.5 = 2.33 over-filled: LV EDV 2.55, LVO 251, MAP 46
                             //      above the baroreflex set-point) -> EDV 2.19, LVO 221, MAP 42.5 with the baroreflex neutral
-      ART_EL: 3.6,          // size rule: 5.0 / 1.5, x (pulse pressure 27/25)
+      ART_EL: 5.5,          // 6.2: artery el_base x (size rule 5.0 / 1.5 x 27/25 = 3.6 gave pulse pressure 18) -> BP 56/30, PP 26
       VEN_UVOL: 0.77,       // as 28 wk
       PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (state)
       FO_DIAM: 0.9,         // size rule: 0.75 mm x sqrt(1.5) (same L->R flow per kg through a 1.5x larger infant)

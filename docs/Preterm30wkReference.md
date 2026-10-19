@@ -221,6 +221,7 @@ Each change is a named lever in the 30 wk profile (`scripts/_preterm_profiles.mj
 | Step | Change | Effect | Basis |
 |---|---|---|---|
 | 6.1 | Heart chambers `el_min` ×2.33 → ×2.9 (`HEART_EL_MIN`; the size rule gave 3.5 / 1.5) | LV EDV 2.55 → 2.19, RV EDV 3.13 → 2.84; LV/RV SV 1.78/1.63 → 1.47/1.36; LVO/RVO 251/229 → 221/204; MAP 45.9 → 42.5 with the baroreflex neutral (HR 141 → 151); coeliac 34 → 29; 55 → 60 of 61 in range. Mean PAP stays 26; pulse pressure 22 → 18 | At ×2.33 the heart over-filled and over-pumped, MAP rose above the baroreflex set-point and the reflex lowered HR and SVR. 2.7 / 2.9 / 3.2 were prototyped; 3.2 dropped the outputs below target with the reflex pushing up (SVR effect 1.06) |
+| 6.2 | Pulmonary resistances ×1.95 → ×1.25 (`PVR`); artery `el_base` ×3.6 → ×5.5 (`ART_EL`) | PAP 33/26 → 26/20.3; BP 51/33 → 56/30 (MAP 43.2), pulse pressure 18 → 26; ductal flow 23 → 30, PFO 5.1 → 7.1, LVO 221 → 233; SpO₂ 95.5 → 96.8, PaO₂ 63 → 72; baroreflex neutral; 60 → 61 of 61 in range | Mean PAP did not follow the outputs in 6.1, so the resistance itself was high. A lower PA pressure lets more blood cross the restrictive duct. PVR 1.2/1.4/1.6 and ART_EL 4.5/5.5 were prototyped alone and together; PVR 1.4 kept the duct at 28 with mean PAP 21.7 |
 
 ## Decisions log (2026-10-19)
 
