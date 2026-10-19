@@ -1,6 +1,7 @@
 // Generator: term_neonate.json -> a literature-validated fetus in utero, one lever profile per gestation
 // (scripts/_fetal_profiles.mjs):
 //   30: fetus_30wk - fetus at 30+0 weeks (1.5 kg), not in labour (docs/Fetus30wkReference.md)
+//   40: term_fetus - fetus at 40+0 weeks (3.545 kg, as term_neonate), not in labour (docs/TermFetusReference.md)
 //
 //   node scripts/_make_fetus_validated.mjs --profile <ga> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //
@@ -190,16 +191,19 @@ if (L.UMA_DELTA !== 0) { M.Blood.solutes.uma += L.UMA_DELTA; for (const m of fet
 M.Blood.solutes.glucose = L.GLUCOSE;
 for (const m of fetalBlood) if (typeof m.solutes.glucose === "number") m.solutes.glucose = L.GLUCOSE;
 M.Glucose.glucose_setpoint = L.GLUCOSE; M.Glucose.glucose_default = L.GLUCOSE;
+// kidney: a profile without kidney levers (REABS_WATER null, e.g. term) keeps term_neonate's own kidney and intake
 const K = M.Kidneys;
-K.reabsorption_fraction = L.REABS_WATER;
-K.reabsorption_fractions.na = L.REABS_NACL; K.reabsorption_fractions.cl = L.REABS_NACL;
-M.Fluids.maintenance_rate = L.MAINT_RATE;
-const urine = {};
-for (const [sol, f] of Object.entries(K.reabsorption_fractions)) {
-  const c = M.Blood.solutes?.[sol];
-  if (typeof c === "number" && sol !== "lact") urine[sol] = +(c * (1 - f) / (1 - L.REABS_WATER)).toFixed(3);
+if (L.REABS_WATER != null) {
+  K.reabsorption_fraction = L.REABS_WATER;
+  K.reabsorption_fractions.na = L.REABS_NACL; K.reabsorption_fractions.cl = L.REABS_NACL;
+  M.Fluids.maintenance_rate = L.MAINT_RATE;
+  const urine = {};
+  for (const [sol, f] of Object.entries(K.reabsorption_fractions)) {
+    const c = M.Blood.solutes?.[sol];
+    if (typeof c === "number" && sol !== "lact") urine[sol] = +(c * (1 - f) / (1 - L.REABS_WATER)).toFixed(3);
+  }
+  M.Fluids.fluids[M.Fluids.maintenance_fluid] = urine;
 }
-M.Fluids.fluids[M.Fluids.maintenance_fluid] = urine;
 // Hb and HbF: Blood.set_solute/set_P50 reach every blood compartment INCLUDING the maternal pool, whose O2
 // content is pinned by Placenta.mat_to2, so restore its haemoglobin and affinity (_make_fetus.mjs section E).
 // Rescale each fetal compartment's O2 content with Hb (same saturation; see _make_preterm_validated.mjs).
@@ -210,7 +214,7 @@ for (const m of fetalBlood) if (typeof m.to2 === "number") m.to2 *= L.HB_MMOL / 
 M.Blood.set_P50(L.P50);
 M.PL_MAT.solutes.hemoglobin = matHb; M.PL_MAT.P50_0 = matP50;
 log.push(`blood: Hb ${L.HB_MMOL.toFixed(2)} mmol/L, P50 ${L.P50} (maternal pool kept at Hb ${matHb}, P50 ${matP50}); glucose ${L.GLUCOSE}; uma +${L.UMA_DELTA}`);
-log.push(`metabolism: vo2 ${L.VO2_METABOLISM}, resp_q ${L.RESP_Q}, brain share ${L.BRAIN_VO2_FRAC}; kidney: water ${L.REABS_WATER}, NaCl ${L.REABS_NACL}, intake ${L.MAINT_RATE} mL/kg/h`);
+log.push(`metabolism: vo2 ${L.VO2_METABOLISM}, resp_q ${L.RESP_Q}, brain share ${L.BRAIN_VO2_FRAC}; kidney: ${L.REABS_WATER != null ? `water ${L.REABS_WATER}, NaCl ${L.REABS_NACL}, intake ${L.MAINT_RATE} mL/kg/h` : "term_neonate's own"}`);
 // amniotic environment: no evaporation, no respiratory loss, no brown fat; the fluid and the umbilical
 // circulation carry the heat away, so the core rests just above the amniotic temperature
 const T = M.Thermoregulation;
@@ -248,7 +252,8 @@ process.stderr.write(`wrote ${fileURLToPath(dst)}\n${log.join("\n")}\n`);
 const run = (script, ...args) => {
   process.stderr.write(execFileSync(process.execPath, [fileURLToPath(new URL(script, import.meta.url)), ...args], { encoding: "utf8" }));
 };
-run("./reseed_preterm.mjs", "--file", NAME, "--seconds", String(SECONDS), "--write", ...(L.GFR_FACTOR !== 1 ? ["--gfr-factor", String(L.GFR_FACTOR)] : []));
+// (the preterm renal reference applies below 34 wk only; at term reseed_preterm just warms and bakes)
+run("./reseed_preterm.mjs", "--file", NAME, "--seconds", String(SECONDS), "--write", ...(L.GFR_FACTOR != null && L.GFR_FACTOR !== 1 ? ["--gfr-factor", String(L.GFR_FACTOR)] : []));
 
 // 5. the baked file must still be a fetus
 const baked = JSON.parse(fs.readFileSync(dst, "utf8"));
