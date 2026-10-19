@@ -198,7 +198,10 @@ export class Blood extends BaseModelClass {
     let c_blood = 0.0;
     let ct = 0.0;
     this._blood_components.forEach((model) => {
-      if (!model.is_enabled) return; // disabled compartments (placenta, idle ECLS prime) are not perfused
+      // disabled compartments (placenta, idle ECLS prime) are not perfused, and fixed-composition ones (the
+      // maternal pool PL_MAT) are held by their owner and skipped by the relaxation in calc_model, so they
+      // exchange no heat with the tissue node either
+      if (!model.is_enabled || model.fixed_composition) return;
       const c_i = model.vol * density * cp;
       c_blood += c_i;
       ct += c_i * model.temp;

@@ -7,7 +7,7 @@
 
 export const TITLES = {
   term_fetus: "TERM FETUS (40 WK, 3.5 KG)",
-  fetus_30wk: "FETUS (30 WK, 1.35 KG)",
+  fetus_30wk: "FETUS (30 WK, 1.5 KG, IN UTERO)",
   preterm_24wk: "PRETERM NEONATE (24 WK, 0.64 KG)",
   preterm_26wk: "PRETERM NEONATE (26 WK, 0.85 KG)",
   preterm_32wk: "PRETERM NEONATE (32 WK, 1.7 KG)",

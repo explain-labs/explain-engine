@@ -6,6 +6,7 @@
 // n/a = no model read-out). Reference sets:
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
 //   scripts/reference/preterm_28wk.json    (docs/Preterm28wkReference.md)
+//   scripts/reference/fetus_30wk.json      (docs/Fetus30wkReference.md; fetal read-outs switch on when the placenta runs)
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
@@ -40,6 +41,7 @@ const _log = console.log;
 console.log = () => {};
 
 await import("../ModelEngine.js");
+const { calc_blood_composition } = await import("../component_models/BloodComposition.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 const FILE = opt("--file", null); // probe a scenario file outside model_definitions/ (e.g. a prototype)
 const json = JSON.parse(fs.readFileSync(FILE ?? new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"));
@@ -62,10 +64,27 @@ const add = (k, v) => { acc[k] = (acc[k] || 0) + (Number.isFinite(v) ? v : 0); }
 let frcMin = Infinity;
 const peaks = { insp: [], exp: [] }; let curIn = 0, curEx = 0, seenBreath = false; // per-breath peak airway flows
 const steps = Math.round(WINDOW / dt);
+// fetal scenarios (docs/fetal_circulation.md: placenta running, cord patent): flow shares, umbilical and
+// site gases, and the umbilical Fick uptake, the way the fetal reference values were measured
+const FETAL = M.Placenta?.placenta_running === true && M.Placenta?.umb_clamped === false;
+const fetalFlows = ["PL_UMB_VEN_IVCI", "PAAL_LL_ART", "PAAR_RL_ART"];
+const gasSites = { uv: "PL_UMB_VEN", ua: "PL_UMB_ART", aa: "AA", dao: "AD", ivc: "IVCI", svc: "SVC" };
+const gasAcc = {}; let gasN = 0;
 for (let i = 0; i < steps; i++) {
   for (const k in M) M[k].step_model();
   model.model_time_total += dt;
   for (const n of flowNames) add(n, M[n]?.flow);
+  if (FETAL) {
+    for (const n of fetalFlows) add(n, M[n]?.flow);
+    if (i % 25 === 0) {
+      gasN++;
+      for (const [site, n] of Object.entries(gasSites)) {
+        const c = M[n]; if (!c) continue;
+        calc_blood_composition(c);
+        for (const p of ["so2", "po2", "pco2", "ph", "be", "to2", "tco2"]) gasAcc[`${site}_${p}`] = (gasAcc[`${site}_${p}`] || 0) + (c[p] ?? NaN);
+      }
+    }
+  }
   const H = M.Heart;
   for (const k of ["lv_edv", "lv_esv", "lv_sv", "lv_ef", "rv_edv", "rv_esv", "rv_sv", "rv_ef"]) add(k, H?.[k]);
   add("vt", M.Breathing?.exp_tidal_volume);
@@ -115,6 +134,30 @@ const model_values = {
   fio2: M.Gas?.fio2, p50: M.Blood?.P50_0, rq: Math.abs(acc.co2_out / acc.o2_uptake),
   incubator_temp: M.Thermoregulation?.env_temp, humidity: (M.Thermoregulation?.rel_humidity ?? NaN) * 100,
 };
+if (FETAL) {
+  // shares of combined ventricular output (CVO); duct and foramen flows are positive left-to-right in the
+  // model, so the fetal right-to-left direction is reported as a positive share
+  const cvo = acc.LV_AA + acc.RV_PA; // L/s
+  const pct = (q) => (100 * q) / cvo;
+  const g = (k) => gasAcc[k] / gasN;
+  const PL_FETAL = ["PL_UMB_ART", "PL_FETAL_ART", "PL_FETAL_CAP", "PL_FETAL_VEN", "PL_UMB_VEN"];
+  const plVol = PL_FETAL.reduce((s, n) => s + (M[n]?.vol || 0), 0);
+  const umb = acc.PL_UMB_VEN_IVCI; // L/s, umbilical vein -> IVC
+  // umbilical Fick uptake/output (mmol/L x L/s), as the fetal VO2 references were measured
+  const o2up = (g("uv_to2") - g("ua_to2")) * umb, co2out = (g("ua_tco2") - g("uv_tco2")) * umb;
+  Object.assign(model_values, {
+    pa_ao: vit.pap_m - vit.map,
+    cvo: perKgMin(cvo), rv_share: pct(acc.RV_PA), lung_share: pct(acc.PAAL_LL_ART + acc.PAAR_RL_ART),
+    fo_share: -pct(acc.LA_RAIVCI + acc.LA_RASVC), da_share: -pct(acc.AAR_DA), placental_share: pct(umb),
+    uv_flow: perKgMin(umb), svc_share: pct(acc.SVC_RASVC), dao_share: pct(acc.AAR_AD),
+    uv_so2: g("uv_so2"), uv_po2: g("uv_po2"), uv_pco2: g("uv_pco2"), uv_ph: g("uv_ph"), uv_be: g("uv_be"),
+    ua_so2: g("ua_so2"), ua_po2: g("ua_po2"), ua_pco2: g("ua_pco2"), ua_ph: g("ua_ph"),
+    uv_ua_pco2: g("ua_pco2") - g("uv_pco2"),
+    aa_so2: g("aa_so2"), ivc_so2: g("ivc_so2"), svc_so2: g("svc_so2"), dao_so2: g("dao_so2"),
+    bv_body: toKgMl(bloodVol), bv_fetoplacental: toKgMl(bloodVol + plVol), bv_placental_fraction: (100 * plVol) / (bloodVol + plVol),
+    vo2: o2up * 60 * O2_ML_PER_MMOL / W, rq: co2out / o2up,
+  });
+}
 const extras = {
   lv_sv_from_output: model_values.lvo / model_values.hr, // mL/kg per beat, flow-based cross-check of lv_sv
   cbf_pct_lvo: (100 * acc.AA_BR_ART) / acc.LV_AA, sma_pct_lvo: (100 * acc.AD_INT_ART) / acc.LV_AA,
@@ -135,6 +178,7 @@ const rows = ref.variables.map((r) => {
     else if (r.high != null && v > r.high) flag = "HIGH";
     else if (z != null && Math.abs(z) > 2) flag = z < 0 ? "LOW" : "HIGH";
   } else flag = "n/a";
+  if (r.model_readout?.startsWith("none")) flag = "ref"; // reference only: no model counterpart (e.g. the fetal set's urine)
   return { key: r.key, group: r.group, label: r.label, unit: r.unit, model: v, mean: r.mean, sd: r.sd, low: r.low, high: r.high, z, flag, grade: r.grade };
 });
 

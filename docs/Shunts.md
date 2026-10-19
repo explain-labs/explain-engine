@@ -45,6 +45,7 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 | `atrial_septal_width` | `3.0` | mm | FO channel length |
 | `ventricular_septal_width` | `5.0` | mm | VSD channel length |
 | `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
+| `fo_svc_fraction` | `0.5` | 0–1 | share of the FO's area that opens onto the SVC part of the right atrium (`LA_RASVC`); the rest opens onto the IVC part (`LA_RAIVCI`). 0.5 = two equal halves; 0 = only IVC blood crosses the foramen (fetal crista dividens) |
 | `discharge_coeff_fo` | `0.7` | — | FO discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (flap valve, between funnel and sharp edge) |
 | `discharge_coeff_vsd` | `0.64` | — | VSD discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (sharp-edged hole) |
 | `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
@@ -54,7 +55,7 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 
 | Property | Unit | Description |
 |---|---|---|
-| `res_fo` | mmHg·s/L | computed FO resistance (the whole orifice, before `fo_lr_factor`; each of the two resistors gets `2·res_fo`) |
+| `res_fo` | mmHg·s/L | computed FO resistance (the whole orifice, before `fo_lr_factor`; a resistor with area share `a` gets `res_fo / a`, i.e. `2·res_fo` each at the default `fo_svc_fraction` 0.5) |
 | `res_vsd` | mmHg·s/L | computed VSD resistance |
 | `flow_fo` | L/s | combined FO flow (`LA_RAIVCI.flow + LA_RASVC.flow`) |
 | `bernoulli_b_fo`, `bernoulli_b_vsd` | mmHg·s²/L² | orifice coefficient B of the whole FO / the VSD |
@@ -75,7 +76,7 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
    partial wiring degrades gracefully instead of throwing).
 2. **Clamp diameters** to their `*_max`.
 3. **Flow gating** — set `no_flow = (diameter === 0)` on the FO (`LA_RAIVCI`, `LA_RASVC`) and VSD
-   resistors.
+   resistors; an FO path whose area share is 0 (`fo_svc_fraction` 0 or 1) is closed as well.
 4. **Resistances** — `res_fo`, `res_vsd` from `calc_resistance(diameter, septal_width, viscosity)`.
 5. **Push resistances** to the resistors (see FO asymmetry below); IPS resistors get the constant
    `ips_res`.
@@ -84,13 +85,25 @@ alveoli (see "What the intrapulmonary shunt stands for" below).
 ## Foramen ovale: flap-valve asymmetry and the split path
 
 The FO is driven through **two** resistors (`LA_RAIVCI`, `LA_RASVC`) because the model splits the
-right atrium into an IVC-stream and an SVC-stream. Each resistor is half of a parallel pair, so it
-receives twice the FO resistance and the pair together equals one FO of `diameter_fo`:
+right atrium into an IVC-stream and an SVC-stream. The two resistors share the orifice's area:
+`a_svc = fo_svc_fraction` for `LA_RASVC` and `a_ivci = 1 − fo_svc_fraction` for `LA_RAIVCI`. A share `a`
+carries the viscous resistance `res_fo / a` and the Bernoulli coefficient `B / a²` (B scales with
+1/area²), so the pair together always equals one FO of `diameter_fo`:
 
 ```
-r_for  = 2 · res_fo · fo_lr_factor      (LA → RA, restricted)
-r_back = 2 · res_fo                     (RA → LA, easy)
+r_back = res_fo / a + (B / a²) · |Q|    (RA → LA, easy)
+r_for  = r_back · fo_lr_factor          (LA → RA, restricted)
 ```
+
+At the default 0.5 each resistor gets `2·res_fo` and `4·B`, the original two equal halves (bit-identical).
+
+**Preferential streaming (`fo_svc_fraction` 0).** With the split atrium closed (`RAIVCI_RASVC`
+`no_flow`), the two right-atrial streams can still mix *in the left atrium*: SVC blood crossing
+`LA_RASVC` meets IVC blood from `LA_RAIVCI` there. In the first `fetus_30wk` build a third of the foramen
+flow came from the SVC part and the ascending aorta was only 0.9 saturation points above the pulmonary
+artery (54.3 vs 53.4 %). In the fetus the crista dividens lets almost no SVC blood cross the foramen.
+`fo_svc_fraction` 0 opens the whole foramen onto the IVC part: the AA − PA gap rose to 6.0 points
+(57.6 vs 51.6 %; reference ~8, 67 vs 59) with the pressures, the output and its distribution unchanged.
 
 `fo_lr_factor` (default 10, often higher in scenarios — e.g. 25) makes left-to-right flow much harder
 than right-to-left, reproducing the **flap-valve** behaviour: in fetal/transitional physiology the FO
