@@ -222,7 +222,8 @@ export const PROFILES = {
                             //   (SpO2 96 in room air vs 93 on FiO2 0.25)
       SURFACTANT: 0.30,     // starting point: own surfactant at 30 wk, none given (_add_surfactant default)
       FIO2: 0.21,           // reference: state definition (room air on CPAP 5)
-      MV_REF: 0.30,         // reference: minute volume 300 mL/kg/min
+      MV_REF: 0.285,        // final: reference minute volume 0.30 -> 0.285 L/kg/min so pCO2 rests at the chemoreceptor set-point 43
+                            //   (ventilation drive 0.95 -> 1.0); actual minute volume ~286 mL/kg/min, RR 60
       RR: 60,               // reference: Welty 2018 (29.6 wk, 44 h) 67 +/- 20, lower with maturity
       IE: 0.38,             // reference: Ti/Ttot
       RMP_RECAL: 1,         // as 28 wk: recalibrate the breathing effort gain on these lungs

@@ -224,6 +224,97 @@ Each change is a named lever in the 30 wk profile (`scripts/_preterm_profiles.mj
 | 6.2 | Pulmonary resistances ×1.95 → ×1.25 (`PVR`); artery `el_base` ×3.6 → ×5.5 (`ART_EL`) | PAP 33/26 → 26/20.3; BP 51/33 → 56/30 (MAP 43.2), pulse pressure 18 → 26; ductal flow 23 → 30, PFO 5.1 → 7.1, LVO 221 → 233; SpO₂ 95.5 → 96.8, PaO₂ 63 → 72; baroreflex neutral; 60 → 61 of 61 in range | Mean PAP did not follow the outputs in 6.1, so the resistance itself was high. A lower PA pressure lets more blood cross the restrictive duct. PVR 1.2/1.4/1.6 and ART_EL 4.5/5.5 were prototyped alone and together; PVR 1.4 kept the duct at 28 with mean PAP 21.7 |
 | 6.3 | None | Breathing was already on target (RR 59, Vt 4.9, MV 291, pCO₂ 42) | Folded into the final controller check |
 | 6.4 | New-lever values `INT_R` ×1.1 and `LS_R` ×1.5 (gut beds); systemic resistances ×1.44 → ×1.34; ductal diameter 1.0 → 0.9 mm (`PDA_REL`); cerebral bed `BRAIN_R` ×1.34 → ×1.6 | Coeliac 30 → 23, SMA 30; duct 30 → 21.5, LVO 233 → 226, PAP mean 20.3 → 19.5; MAP 43.3, HR 149, baroreflex neutral; brain autoregulation 1.14 → 0.97 (mean over minutes 8–10), CBF 25; 61 of 61 | Closing the gut beds alone raised MAP to 44.4 (baroreflex 0.97, HR 146), so SVR came down with them. SVR also scales the brain bed, so autoregulation constricted to ×1.3 until the brain bed's own resistance was raised. After 6.2's lower PA pressure a 1 mm duct carried 30; 0.9 mm sits inside the reference 0.8–1.4 mm (the 25 wk set took 0.8 mm) |
+| final | Minute-volume reference 0.30 → 0.285 L/kg/min (`MV_REF`) | Ventilation drive 0.95 → 1.00; pCO₂ 43.4 at the chemoreceptor set-point 43; actual minute volume 286, RR 60; 61 of 61, 10-minute run steady | The chemoreflex had trimmed breathing 5 % below its reference to hold pCO₂ at 43 |
+
+## Validation result (step 6 complete, 2026-10-19)
+
+Of the 61 variables with a numeric reference and a model read-out, 55 were inside their range at the first
+look and **all 61 are now**. Off-centre but inside their ranges:
+- LVO/RVO 226/211 (targets 215/195), SVC 89 (85)
+- SvO₂ 83.6 (80): follows from the output and Hb 15.5
+- coeliac 23 and SMA 30 (20 / 28)
+- PaO₂ 72 with SpO₂ 96.6 (64 / 96)
+- PFO 6.5 (5)
+
+The controllers rest within 0.4 % of neutral over a 10-minute run:
+- baroreflex HR/SVR ×0.997
+- ventilation drive ×0.999
+- brain autoregulation 0.96 (time average over minutes 8–10, CBF 25.0 on its set-point)
+- ADH, angiotensin and insulin 0.998–1.004
+
+The run is steady: HR 149, sensed MAP 43.0–43.4, SpO₂ 96.5–96.6, pCO₂ 43.4, pH 7.326, BE −2.9, glucose 5.50,
+blood volume 80.6 mL/kg, core 37.0 °C.
+
+What the 30-week profile needed beyond the size rule (÷1.5 from the 28-week profile):
+- a stiffer diastolic heart (el_min ×2.9 instead of ×2.33)
+- a lower pulmonary resistance (×1.25) and stiffer arteries (×5.5)
+- the gut-bed levers, a lower SVR, a 0.9 mm duct and a stiffer brain bed, set together
+- a slightly lower minute-volume reference
+- the lungs, gases and kidney needed no recalibration
+
+| Variable | First look | Final | Reference | Range | Grade | Final flag |
+|---|---|---|---|---|---|---|
+| Heart rate | 141 | **149** | 150 | 130–170 | B/C | ok |
+| Systolic BP | 56.4 | **55.2** | 58 | 46–68 | B | ok |
+| Diastolic BP | 34.5 | **30.8** | 31 | 27–39 | B | ok |
+| Mean arterial pressure | 45.9 | **43.3** | 42 | 31–50 | B | ok |
+| Pulse pressure | 21.9 | **24.4** | 27 | — | B | ok |
+| Central venous pressure | 2.77 | **3.58** | 3.5 | 1.3–5.7 | B | ok |
+| Pulmonary artery pressure, systolic | 35.3 | **25** | 29 | 23–35 | C | ok |
+| Pulmonary artery pressure, mean | 26.9 | **19.5** | 19.5 | 15–23 | C | ok |
+| Pulmonary artery pressure, diastolic | 18.4 | **13.6** | — | < 31 | C | ok |
+| LV end-diastolic volume | 2.55 | **2.26** | 2.2 | 1.8–2.7 | B | ok |
+| LV end-systolic volume | 0.775 | **0.754** | 0.77 | 0.4–1.1 | B | ok |
+| LV stroke volume | 1.78 | **1.5** | 1.43 | 1.1–1.75 | B | ok |
+| LV ejection fraction | 69.7 | **66.6** | 65 | 58–80 | B | ok |
+| RV end-diastolic volume | 3.13 | **2.81** | 2.6 | 2.1–3.1 | C | ok |
+| RV end-systolic volume | 1.51 | **1.4** | 1.3 | 0.95–1.7 | C | ok |
+| RV stroke volume | 1.63 | **1.4** | 1.3 | 1.05–1.6 | C | ok |
+| RV ejection fraction | 51.9 | **49.9** | 50 | 45–60 | B/C | ok |
+| Left ventricular output | 251 | **226** | 215 | 180–280 | B | ok |
+| Right ventricular output | 229 | **211** | 195 | 160–260 | B | ok |
+| LVO/RVO ratio | 1.09 | **1.07** | 1.1 | 1–1.25 | B | ok |
+| SVC flow | 92.9 | **89.1** | 85 | 60–115 | B | ok |
+| Descending aorta flow | 119 | **103** | 100 | 75–140 | B/C | ok |
+| Cerebral blood flow | 25.2 | **25** | 25 | 18–35 | B/C | ok |
+| Intestinal (SMA) flow | 33.8 | **30** | 28 | 15–40 | C | ok |
+| Renal blood flow | 17.1 | **16.9** | 17 | 11–23 | C | ok |
+| Coeliac (liver + spleen) flow | 33.8 | **22.9** | 20 | 12–30 | C | ok |
+| Ductal shunt flow (L->R) | 25.5 | **21.5** | 22 | 10–40 | C | ok |
+| Ductal diameter | 1 | **0.9** | 1 | 0.8–1.4 | B | ok |
+| Foramen ovale shunt (L->R) | 4.53 | **6.55** | 5 | 0–15 | C | ok |
+| Respiratory rate | 59 | **59.9** | 60 | 45–80 | A/B | ok |
+| Tidal volume | 4.93 | **4.76** | 5 | 4.2–6 | B | ok |
+| Minute ventilation | 291 | **286** | 300 | 240–380 | B | ok |
+| Inspiratory time fraction (Ti/Ttot) | 0.38 | **0.38** | 0.38 | 0.33–0.44 | B | ok |
+| Respiratory system compliance | 1.12 | **1.12** | 1.13 | 0.75–1.5 | C | ok |
+| Lung compliance (both lungs) | 0.898 | **0.898** | 0.9 | 0.6–1.3 | C | ok |
+| Chest wall compliance | 4.5 | **4.5** | 4.5 | 3–6.5 | C | ok |
+| Respiratory system resistance | 44.7 | **44.7** | 45 | 30–70 | C | ok |
+| Functional residual capacity | 25.5 | **25.4** | 24 | 18–30 | B | ok |
+| Anatomic dead space | 2.79 | **2.79** | 2.8 | 2.2–3.4 | B/C | ok |
+| Physiological dead space fraction (Vd/Vt) | 0.566 | **0.586** | 0.6 | 0.5–0.7 | B | ok |
+| Inspired O2 fraction | 0.21 | **0.21** | 0.21 | 0.21–0.25 | state | ok |
+| SpO2 (pre-ductal) | 95.9 | **96.6** | 96 | 94–98 | B/C | ok |
+| pH | 7.34 | **7.33** | 7.33 | 7.28–7.38 | B | ok |
+| pCO2 | 42.1 | **43.4** | 43 | 38–50 | B | ok |
+| HCO3 | 22.3 | **22.4** | 22.3 | 20–24.5 | B | ok |
+| Base excess | -2.82 | **-2.88** | -3 | -6–-1 | B/C | ok |
+| PaO2 | 65.6 | **71.9** | 64 | 55–75 | C | ok |
+| Hb-O2 P50 (standard) | 19 | **19** | 19 | 18.2–19.8 | B | ok |
+| Mixed venous O2 saturation | 83.9 | **83.6** | 80 | 74–85 | C | ok |
+| Oxygen consumption | 6.69 | **6.57** | 6.5 | 5.5–7.5 | B | ok |
+| Respiratory quotient | 0.898 | **0.901** | 0.92 | 0.85–1 | C | ok |
+| Core temperature | 37 | **37** | 37 | 36.5–37.5 | C | ok |
+| Incubator air temperature | 34 | **34** | 34 | 33–35 | C | ok |
+| Incubator relative humidity | 60 | **60** | 60 | 50–70 | C | ok |
+| Plasma glucose | 5.5 | **5.5** | 5.5 | 3.5–8 | B/C | ok |
+| Lactate | 1.5 | **1.5** | 1.4 | 1–2.5 | A/B | ok |
+| Hemoglobin | 15.5 | **15.5** | 15.5 | 13.5–17.5 | B | ok |
+| Hematocrit | 47 | **47** | 46 | 40–52 | B | ok |
+| Blood volume | 80.5 | **80.6** | 80 | 75–90 | C | ok |
+| GFR | 15.5 | **15.6** | 16 | 10–22 | C | ok |
+| Urine output | 2.92 | **2.94** | 3 | 2–5 | B | ok |
 
 ## Decisions log (2026-10-19)
 
@@ -256,10 +347,12 @@ All choices were made by the model's author after the evidence was presented.
   - Lavizzari 2014 (GA 31, <96 h, CPAP 2–6: breathing pattern, CL, RL), not found in PubMed
   - a 29–31 wk day-3 echo cohort for LVO/SVC; Kehrer 2005 day-3 CBF at 28–30 wk
   - Hammarlund 1982/1983 TEWL numbers for the 28–30 wk group
-- **Model implications to check in the first look:**
-  - kidney: the engine's renal reference rests at 1.08 mL/min/kg (Vieux day 7) against the 0.8 target
-  - lungs: SpO₂ 96 in room air needs a smaller intrapulmonary shunt than at 25/28 wk
-  - the size rule (÷1.5) for heart, arteries, lungs, airways and beds
+- **Model implications checked in steps 5–6:**
+  - kidney: `GFR_FACTOR` 0.743 puts the engine's renal reference on the 0.8 mL/min/kg target (GFR 15.5
+    per 1.73 m², urine 2.9 mL/kg/h)
+  - lungs: the size-rule shunt resistance (14000) gave SpO₂ 96 in room air at the first look
+  - the size rule (÷1.5) held for the lungs, airways, chest wall and kidney; the heart's diastolic
+    stiffness, PVR, arterial stiffness and the systemic beds needed the recalibrations in step 6
 
 ## Sources
 
