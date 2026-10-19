@@ -17,7 +17,8 @@
 //   1. live-build term_neonate, scale it to the profile's weight, apply the size/maturity levers
 //   2. the fetal transform: placenta running, cord patent, duct and foramen wide open, intrapulmonary
 //      shunts closed, high PVR, inert lungs, no breathing, HbF, split right atrium, amniotic environment
-//   3. write model_definitions/<name>.json (un-warmed), with the fetal diagram of the archived fetus_30wk
+//   3. write model_definitions/<name>.json (un-warmed): term_neonate's diagram plus the placenta group
+//      (addPlacentaDiagram) and the profile's oxygen colour window
 //   4. scripts/reseed_preterm.mjs --file <name> - warm to rest, set the preterm renal reference, warm, bake
 //   5. re-assert the fetal invariants on the baked file (the probes exit 0 on bad physiology)
 import fs from "node:fs";
@@ -45,6 +46,47 @@ for (let i = 0; i < argv.length; i++) {
 
 // the fetal invariants (docs/fetal_circulation.md): each one silently destroys the fetal circulation while
 // the model still builds and prints a plausible panel
+// The placenta in the diagram: a device group ("placenta", like the ECLS circuit) drawn in the band below the
+// ring. explain-ui shows it while Placenta.placenta_running && !umb_clamped (PLACENTA_DIAGRAM), so clamping the
+// cord takes it away. The umbilical arteries leave the descending aorta, the umbilical vein returns to the IVC;
+// connector dots take the colour of their upstream component, so the arteries read deoxygenated and the vein
+// (from the placenta's capillary, its first model) oxygenated. The maternal pool sits below it, unconnected
+// (gas only crosses by diffusion).
+function addPlacentaDiagram(dd) {
+  const label = (size, pos_y) => ({ pos_x: 0, pos_y, size, rotation: 0, color: "#ffffff" });
+  const node = (lbl, picto, models, x, y, fixed, lab) => ({
+    type: "Compartment", label: lbl, picto, enabled: true, models, dbcFrom: "", dbcTo: "", group: "placenta",
+    layout: {
+      general: { animatedBy: "vol", z_index: 10, alpha: 1, tinting: true },
+      path: { type: "straight", width: 5, color: "#666666" },
+      sprite: { color: "#ffffff", pos: { type: "rel", x, y, dgs: 0 }, scale: { x: 1, y: 1 }, anchor: { x: 0.5, y: 0.5 }, rotation: 0, fixed_size: fixed },
+      label: lab,
+    },
+  });
+  const conn = (lbl, models, from, to) => ({
+    type: "Connector", label: lbl, picto: "container.png", enabled: true, models, dbcFrom: from, dbcTo: to, group: "placenta",
+    layout: {
+      general: { animatedBy: "flow", z_index: 8, alpha: 1, tinting: true },
+      path: { type: "outer", width: 7, color: "#666666", track: 1.6 },
+      sprite: { color: "#ffffff", pos: { type: "rel", x: 0, y: 0, dgs: 0 }, scale: { x: 1, y: 2 }, anchor: { x: 0.5, y: 0.5 }, rotation: 0 },
+      label: label(10, 0),
+    },
+  });
+  Object.assign(dd.components, {
+    PLACENTA: node("PLACENTA", "placenta.png", ["PL_FETAL_CAP", "PL_FETAL_ART", "PL_FETAL_VEN", "PL_UMB_ART", "PL_UMB_VEN"], 0, 1.38, 0.13, label(10, 30)),
+    MATERNAL: node("MOTHER", "container.png", ["PL_MAT"], 0, 1.72, 0.07, label(9, 20)),
+    UMB_ART: conn("", ["PL_UMB_ART_PL_FETAL_ART"], "AD", "PLACENTA"),
+    UMB_VEN: conn("", ["PL_UMB_VEN_IVCI"], "PLACENTA", "IVCI"),
+  });
+  // label the two fetal shunts (opt-in labels, as the preterm generator does for PDA/PFO)
+  for (const [key, st] of Object.entries({ DA: { label: "DA", at: 0.72 }, FO: { label: "FO", at: 0.75 } })) {
+    const c = dd.components?.[key];
+    if (!c?.layout) continue;
+    c.label = st.label;
+    c.layout.label = { ...c.layout.label, visible: true, at: st.at, pos_x: 0, pos_y: -10, size: 11 };
+  }
+}
+
 function fetalInvariantViolations(M) {
   const bad = [];
   if (M.Placenta.placenta_running !== true) bad.push("Placenta.placenta_running is not true");
@@ -183,12 +225,11 @@ model.height = L.HEIGHT;
 model.gestational_age = L.GA;
 model.age = L.AGE;
 
-// the fetal diagram (placenta, umbilical vessels, open duct/foramen) from the archived fetus
-const fetalDiagram = JSON.parse(fs.readFileSync(new URL("../model_definitions/archive/fetus_30wk.json", import.meta.url), "utf8"));
-j.diagram_definition = fetalDiagram.diagram_definition;
-if (fetalDiagram.animation_definition) j.animation_definition = fetalDiagram.animation_definition;
+// the diagram: term_neonate's own (j already holds it), plus the placenta group and the oxygen colour window
 j.name = NAME;
 setDiagramTitle(j, NAME);
+addPlacentaDiagram(j.diagram_definition);
+if (P.diagram && j.diagram_definition?.settings) Object.assign(j.diagram_definition.settings, P.diagram);
 j.user = "timothy";
 j.description = P.description;
 j.provenance = "hand-authored";

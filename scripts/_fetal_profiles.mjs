@@ -10,6 +10,9 @@ export const PROFILES = {
   30: {
     name: "fetus_30wk",
     refDoc: "docs/Fetus30wkReference.md",
+    // diagram oxygen colour window (mmol/L O2 content): to2_hi ~ the Hb capacity (8.44 mmol/L), the rule of the preterm
+    // series, so the umbilical vein (89 %) reads red, the aorta (~70 %) purple and the veins blue
+    diagram: { to2_lo: 3.0, to2_hi: 8.4 },
     description:
       "Fetus in utero at 30 weeks (1.5 kg), not in labour: the placenta is the gas exchanger, the lungs are " +
       "fluid-filled, the ductus arteriosus and foramen ovale are wide open (right-to-left), fetal haemoglobin, " +

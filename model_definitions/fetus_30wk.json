@@ -23,7 +23,9 @@
    "yOffset": -19,
    "max_to2": 6,
    "shuntOptionsVisible": true,
-   "deviceBand": 0.85
+   "deviceBand": 0.85,
+   "to2_lo": 3,
+   "to2_hi": 8.4
   },
   "components": {
    "LV": {
@@ -2441,7 +2443,7 @@
    },
    "DA": {
     "type": "Connector",
-    "label": "ductus arteriosus",
+    "label": "DA",
     "picto": "container.png",
     "enabled": true,
     "models": [
@@ -2480,11 +2482,13 @@
       "rotation": 0
      },
      "label": {
-      "pos_x": -50,
-      "pos_y": -43,
-      "size": 8,
+      "pos_x": 0,
+      "pos_y": -10,
+      "size": 11,
       "rotation": 0,
-      "color": "#ffffff"
+      "color": "#ffffff",
+      "visible": true,
+      "at": 0.72
      }
     }
    },
@@ -3340,7 +3344,7 @@
    },
    "FO": {
     "type": "Connector",
-    "label": "foramen ovale",
+    "label": "FO",
     "picto": "container.png",
     "enabled": true,
     "models": [
@@ -3381,10 +3385,12 @@
      },
      "label": {
       "pos_x": 0,
-      "pos_y": 0,
-      "size": 10,
+      "pos_y": -10,
+      "size": 11,
       "rotation": 0,
-      "color": "#ffffff"
+      "color": "#ffffff",
+      "visible": true,
+      "at": 0.75
      }
     }
    },
@@ -3690,6 +3696,214 @@
      }
     },
     "group": "ecls"
+   },
+   "PLACENTA": {
+    "type": "Compartment",
+    "label": "PLACENTA",
+    "picto": "placenta.png",
+    "enabled": true,
+    "models": [
+     "PL_FETAL_CAP",
+     "PL_FETAL_ART",
+     "PL_FETAL_VEN",
+     "PL_UMB_ART",
+     "PL_UMB_VEN"
+    ],
+    "dbcFrom": "",
+    "dbcTo": "",
+    "group": "placenta",
+    "layout": {
+     "general": {
+      "animatedBy": "vol",
+      "z_index": 10,
+      "alpha": 1,
+      "tinting": true
+     },
+     "path": {
+      "type": "straight",
+      "width": 5,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 1.38,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 1
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0,
+      "fixed_size": 0.13
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 30,
+      "size": 10,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    }
+   },
+   "MATERNAL": {
+    "type": "Compartment",
+    "label": "MOTHER",
+    "picto": "container.png",
+    "enabled": true,
+    "models": [
+     "PL_MAT"
+    ],
+    "dbcFrom": "",
+    "dbcTo": "",
+    "group": "placenta",
+    "layout": {
+     "general": {
+      "animatedBy": "vol",
+      "z_index": 10,
+      "alpha": 1,
+      "tinting": true
+     },
+     "path": {
+      "type": "straight",
+      "width": 5,
+      "color": "#666666"
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 1.72,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 1
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0,
+      "fixed_size": 0.07
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 20,
+      "size": 9,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    }
+   },
+   "UMB_ART": {
+    "type": "Connector",
+    "label": "",
+    "picto": "container.png",
+    "enabled": true,
+    "models": [
+     "PL_UMB_ART_PL_FETAL_ART"
+    ],
+    "dbcFrom": "AD",
+    "dbcTo": "PLACENTA",
+    "group": "placenta",
+    "layout": {
+     "general": {
+      "animatedBy": "flow",
+      "z_index": 8,
+      "alpha": 1,
+      "tinting": true
+     },
+     "path": {
+      "type": "outer",
+      "width": 7,
+      "color": "#666666",
+      "track": 1.6
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 0,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 2
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 0,
+      "size": 10,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    }
+   },
+   "UMB_VEN": {
+    "type": "Connector",
+    "label": "",
+    "picto": "container.png",
+    "enabled": true,
+    "models": [
+     "PL_UMB_VEN_IVCI"
+    ],
+    "dbcFrom": "PLACENTA",
+    "dbcTo": "IVCI",
+    "group": "placenta",
+    "layout": {
+     "general": {
+      "animatedBy": "flow",
+      "z_index": 8,
+      "alpha": 1,
+      "tinting": true
+     },
+     "path": {
+      "type": "outer",
+      "width": 7,
+      "color": "#666666",
+      "track": 1.6
+     },
+     "sprite": {
+      "color": "#ffffff",
+      "pos": {
+       "type": "rel",
+       "x": 0,
+       "y": 0,
+       "dgs": 0
+      },
+      "scale": {
+       "x": 1,
+       "y": 2
+      },
+      "anchor": {
+       "x": 0.5,
+       "y": 0.5
+      },
+      "rotation": 0
+     },
+     "label": {
+      "pos_x": 0,
+      "pos_y": 0,
+      "size": 10,
+      "rotation": 0,
+      "color": "#ffffff"
+     }
+    }
    }
   }
  },
