@@ -150,6 +150,21 @@ The machine-readable version is [`scripts/reference/fetus_25wk.json`](../scripts
 | Crown-heel length (reference only) | **33** cm | — | C | — |
 | Placental weight (reference only) | **180** g | — | C | — |
 
+## First look at the model (step 4, 2026-10-19)
+
+`node scripts/_make_fetus_validated.mjs --profile 25` (term_neonate + the fetal transform + the 25-week profile:
+preterm_25wk's size/maturity levers corrected by the fetus-30 / preterm-30 ratios, the 30-week fetal levers, the
+placenta scaled to 0.7 kg), probed against `scripts/reference/fetus_25wk.json`: **47 graded rows in range, 4 out**.
+The fetal invariants hold after the bake.
+
+- **In range:** HR 160 (edge), MAP 30.8 (edge, 38/25), PA − Ao 0.4, CVP 3.0, volumes, output 377, RV:LV 58:42,
+  foramen 27 %, duct 43 %, lungs 15 %, placenta 34 % (umbilical flow 127), SVC 31.5 %, CBF 95, UV 92 % / 47 /
+  36, AA 70 %, IVC 78 %, SVC 52 %, blood volume 116 mL/kg (placenta 31 %), VO₂ 6.2, core 37.5 °C.
+- **Out of range:** UA pCO₂ 45.3, UA pH 7.31, UA − UV pCO₂ 9.4 (the fetal-side CO₂ pattern of the other two
+  fetuses), and the duct diameter (3.9 mm vs anatomy 2.54, by design).
+- **Controllers (10-minute run):** the baroreflex is working hard: MAP ~31 against its set-point 35 holds HR at
+  ×1.11 (160) and SVR at ×1.22. Brain autoregulation is near neutral (0.99 at CBF 95).
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 25+0 wk; weight 0.7 kg (= `preterm_25wk`).

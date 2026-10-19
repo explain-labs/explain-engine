@@ -7,6 +7,86 @@ export const PROFILES = {
   // 30 wk: a fetus in utero at 30+0 wk, 1.5 kg, not in labour (docs/Fetus30wkReference.md). Starting points
   // for the fetal-specific levers come from the archived fetus_30wk row in scripts/_ga_tables.mjs (1.35 kg,
   // old term base), corrected to 1.5 kg and to the 30 wk flow shares of the reference set.
+  // 25 wk: a fetus in utero at 25+0 wk, 0.7 kg (= preterm_25wk), not in labour (docs/Fetus25wkReference.md). Size and
+  // maturity levers start from the preterm_25wk profile (same weight), corrected by the ratios the 30 wk fetus found
+  // against preterm_30wk (heart el_min x0.76, venous u_vol x1.10, brain bed x0.125, upper body x1.8); the fetal levers of
+  // the 30 wk fetus are carried over; the placenta is scaled to 0.7 kg and the 25 wk umbilical flow and kept in
+  // equilibrium with the maternal side (Siggaard-Andersen: equilibrium at 30 wk and earlier). All "starting point"
+  // values are validated in step 5.
+  25: {
+    name: "fetus_25wk",
+    refDoc: "docs/Fetus25wkReference.md",
+    // diagram oxygen colour window spanning the fetal range: lower-body venous (~2.4) to the umbilical vein (~7.2 mmol/L
+    // at Hb 7.95 and SO2 90 %)
+    diagram: { to2_lo: 2.4, to2_hi: 7.3 },
+    description:
+      "Fetus in utero at 25 weeks (0.7 kg), not in labour: the placenta is the gas exchanger, the lungs are " +
+      "fluid-filled, the ductus arteriosus and foramen ovale are wide open (right-to-left), fetal haemoglobin, " +
+      "amniotic environment. Validated against docs/Fetus25wkReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 0.7,          // kg (author's choice: = preterm_25wk)
+      HEIGHT: 0.33,         // m
+      GA: 25,               // weeks
+      AGE: 0,               // years: not born
+
+      // --- circulation ---
+      HR_REF: 144,          // reference: CTG baseline ~144 at 25 wk
+      BR_WINDOW: 1,         // baroreceptor window scaled with the set-point
+      BR_MAP: 35,           // reference: MAP 35 (ovine, 0.6 gestation)
+      SVR: 2.0,             // preterm 25 (fetus 30 = preterm 30 value)
+      FETAL_PVR: 9.5,       // fetal transform
+      PVR: 3.0,             // starting point: fetus 30 x1.4 by the size rule (/0.7 x 1.5)
+      CONT_LEFT: 1.0,       // as fetus 30
+      CONT_RIGHT: 1.2,      // as fetus 30
+      RELAX: 1.12,          // preterm 25
+      HEART_EL_MAX: 4.86,   // preterm 25
+      HEART_EL_MIN: 3.8,    // starting point: preterm 25 5.0 x0.76 (the fetus 30 / preterm 30 ratio, CVP)
+      ART_EL: 7.14,         // preterm 25
+      VEN_UVOL: 0.85,       // as fetus 30 (preterm 25 0.77 x1.10)
+      RV_EL_MIN: 0.8,       // as fetus 30
+      RV_UVOL_RATIO: 1.64,  // fetal transform
+      DA_DIAM: 3.9,         // starting point: fetus 30 4.6 x Szpinda 2.54/3.01 (anatomy 2.54; PA ~ Ao is the target)
+      DA_LEN: 7.9,          // reference: Szpinda length at 25 wk, mm
+      FO_DIAM: 3.4,         // starting point: fetus 30 4.4 x (0.7/1.5)^(1/3)
+      FO_SEPTUM: 1.7,       // starting point: fetus 30 2.2 x (0.7/1.5)^(1/3)
+      FO_SVC_FRACTION: 0.0, // as fetus 30: only IVC blood crosses the foramen
+      COR_R: 2.99,          // preterm 25
+      BRAIN_R: 0.24,        // starting point: preterm 25 1.95 x0.125 (the fetus 30 / preterm 30 ratio)
+      CBF_SET: 0.0665,      // reference: 95 mL/kg/min x 0.7 kg, L/min absolute (grade C)
+      UB_R: 2.34,           // starting point: preterm 25 1.3 x1.8 (fetus 30 / preterm 30)
+      INT_R: 1.64,          // preterm 25
+      LS_R: 1.8,            // preterm 25
+
+      // --- placenta ---
+      PL_VOL: 0.22,         // starting point: fetal PL_* x (term 113 mL -> 25 mL = 30 % of 120 mL/kg x 0.7 kg)
+      MAT_VOL: 0.3,         // starting point
+      UMB_ART_RES: 2245,    // starting point: fetus 30 1095 x (210/94.5 mL/min umbilical flow) x (MAP 35/38)
+      PLF_RES: 4980,        // starting point: fetus 30 2430, same scaling
+      UMB_VEN_RES: 330,     // starting point: fetus 30 160, same scaling
+      DIF_O2: 0.012,        // starting point: smaller placenta, still in equilibrium (fetus 30 0.020 at 1.5 kg)
+      DIF_CO2: 0.016,       // starting point (fetus 30 0.027)
+      MAT_TO2: 6.0,         // starting point: maternal pool for UV pO2 ~44 at equilibrium (SO2 ~79 % at maternal P50 26.7)
+      MAT_TCO2: 21.4,       // starting point: maternal pool pCO2 ~34.5 (fetus 30 21.5 gave ~35)
+
+      // --- metabolism, blood, kidney, environment ---
+      VO2_METABOLISM: 4.98, // reference total 6.0 minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5)
+      BRAIN_VO2_FRAC: 0.65, // as fetus 30
+      RESP_Q: 0.95,         // reference (ovine)
+      GLUCOSE: 4.2,         // reference
+      UMA_DELTA: 0.0,       // starting point
+      HB_MMOL: 12.8 / 1.611, // reference: Hb 12.8 g/dL
+      P50: 18.5,            // reference (= preterm 25)
+      REABS_WATER: 0.833,   // preterm 25 (fetal urine is reference only)
+      REABS_NACL: 0.90,     // preterm 25
+      MAINT_RATE: 3.0,      // preterm 25: stands in for the placental water supply
+      GFR_FACTOR: 1.143,    // preterm 25 (renal reference)
+      ENV_TEMP: 37.3,       // reference: amniotic fluid (degC)
+      H_FLUID: 170,         // starting point: heat ~1.4 W / (SA 0.039 m2 x 0.2 K) - h_radiative
+      SETPOINT_TEMP: 37.5,  // reference
+      BRAIN_CTL_GAIN: 1.0,  // as fetus 30
+    },
+  },
   30: {
     name: "fetus_30wk",
     refDoc: "docs/Fetus30wkReference.md",
