@@ -23,6 +23,10 @@ export class Shunts extends BaseModelClass {
     this.atrial_septal_width = 3.0; // width of the atrial septum in mm
     this.ventricular_septal_width = 5.0; // width of the ventricular septum in mm
     this.fo_lr_factor = 10.0;
+    // share of the foramen's area that opens onto the SVC part of the split right atrium (RASVC); the rest
+    // opens onto the IVC part (RAIVCI). 0.5 = two equal halves; 0 = the fetal crista dividens, where only
+    // IVC blood crosses the foramen (preferential streaming) and SVC blood goes to the tricuspid valve
+    this.fo_svc_fraction = 0.5;
     // discharge coefficients (vena-contracta area / anatomic area, A_eff = Cd · A) of the orifices in
     // the Bernoulli loss (see helpers/Orifice.js): the FO flap is between a funnel and a sharp edge,
     // a VSD is a sharp-edged hole
@@ -106,9 +110,13 @@ export class Shunts extends BaseModelClass {
     this.diameter_fo = Math.min(this.diameter_fo, this.diameter_fo_max);
     this.diameter_vsd = Math.min(this.diameter_vsd, this.diameter_vsd_max);
 
-    // if the diameter is zero, set the resistance to a very high value to represent no flow
-    this._fo_ivci.no_flow = this.diameter_fo === 0;
-    this._fo_svc.no_flow = this.diameter_fo === 0;
+    this.fo_svc_fraction = Math.min(Math.max(this.fo_svc_fraction, 0.0), 1.0);
+    const a_svc = this.fo_svc_fraction; // area share of the FO opening onto RASVC
+    const a_ivci = 1.0 - a_svc; // ... and onto RAIVCI
+
+    // if the diameter (or a path's share of it) is zero, the path carries no flow
+    this._fo_ivci.no_flow = this.diameter_fo === 0 || a_ivci === 0;
+    this._fo_svc.no_flow = this.diameter_fo === 0 || a_svc === 0;
     this._vsd.no_flow = this.diameter_vsd === 0;
 
     // blood viscosity tracks the blood (hematocrit, fluids) instead of a fixed value
@@ -125,16 +133,21 @@ export class Shunts extends BaseModelClass {
     this.bernoulli_b_vsd = orifice_b(this.diameter_vsd, this.discharge_coeff_vsd);
 
     // transfer the resistances to the models. The foramen ovale is two resistors in parallel
-    // (LA->RAIVCI and LA->RASVC); each is half of the orifice, so it gets twice the viscous
-    // resistance and four times the Bernoulli coefficient (half the area), and together they equal
-    // one FO of diameter_fo. The flap valve (fo_lr_factor) restricts the left-to-right direction.
-    const r_fo_ivci = 2.0 * this.res_fo + 4.0 * this.bernoulli_b_fo * Math.abs(this._fo_ivci.flow);
-    const r_fo_svc = 2.0 * this.res_fo + 4.0 * this.bernoulli_b_fo * Math.abs(this._fo_svc.flow);
-    this._fo_ivci.r_for = r_fo_ivci * this.fo_lr_factor;
-    this._fo_ivci.r_back = r_fo_ivci;
-
-    this._fo_svc.r_for = r_fo_svc * this.fo_lr_factor;
-    this._fo_svc.r_back = r_fo_svc;
+    // (LA->RAIVCI and LA->RASVC), each a share a of the orifice's area: the viscous resistance scales
+    // with 1/a and the Bernoulli coefficient with 1/a^2, so together they equal one FO of diameter_fo
+    // (a = 0.5: twice the resistance and four times the coefficient each). The flap valve
+    // (fo_lr_factor) restricts the left-to-right direction.
+    const r_fo = (a, q) => this.res_fo / a + (this.bernoulli_b_fo / (a * a)) * Math.abs(q);
+    if (a_ivci > 0) {
+      const r_fo_ivci = r_fo(a_ivci, this._fo_ivci.flow);
+      this._fo_ivci.r_for = r_fo_ivci * this.fo_lr_factor;
+      this._fo_ivci.r_back = r_fo_ivci;
+    }
+    if (a_svc > 0) {
+      const r_fo_svc = r_fo(a_svc, this._fo_svc.flow);
+      this._fo_svc.r_for = r_fo_svc * this.fo_lr_factor;
+      this._fo_svc.r_back = r_fo_svc;
+    }
 
     const r_vsd = this.res_vsd + this.bernoulli_b_vsd * Math.abs(this._vsd.flow);
     this._vsd.r_for = r_vsd;
