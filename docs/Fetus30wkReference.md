@@ -229,6 +229,13 @@ invariants hold after the bake.
   extraction ~31 % (Sun 2015 MRI: 58 %, 34 %); SVC SO₂ 56.5 → 50.9, IVC 72.4 → 76.2, AA 67.2 → 68.7. Placental
   side unchanged. 48 in range / 3 out (CVP 6.0, UA pH 7.32, duct diameter by design).
 
+- **5.6 CVP (2026-10-19).** CVP was 6.0 (ref 3, grade C): the ventricles needed that pressure to reach their
+  volumes. A larger venous unstressed volume alone lowered CVP only by emptying the heart (`VEN_UVOL` 1.0:
+  output 332, MAP 32, HR 162). Less diastolic stiffness of all chambers (`HEART_EL_MIN` 2.9 → **2.2**) with
+  `VEN_UVOL` 0.77 → **0.85**: CVP 4.5, output 387 → 425 (ref 420), LV SV 1.20, RV SV 1.70, HR 146 / MAP 37.7
+  (baroreflex neutral), umbilical flow 139, CBF 91; AA SO₂ 70, SVC 53.8. **49 in range / 2 out** (UA pH 7.32,
+  duct diameter by design).
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting

@@ -32,9 +32,11 @@ export const PROFILES = {
       CONT_RIGHT: 1.2,      // starting point: Heart.cont_factor_right, the RV-dominance lever (docs/fetal_circulation.md)
       RELAX: 1.08,          // preterm 30
       HEART_EL_MAX: 2.27,   // preterm 30
-      HEART_EL_MIN: 2.9,    // preterm 30
+      HEART_EL_MIN: 2.2,    // 5.6: heart chambers el_min x (preterm 30 2.9): the ventricles needed CVP ~6 to fill; with VEN_UVOL 0.85 ->
+                            //      CVP 6.0 -> 4.5, output 387 -> 425, LV SV 1.08 -> 1.20, HR 146 / MAP 37.7 at the baroreflex set-point
       ART_EL: 5.5,          // preterm 30 (pulse pressure target 16, ovine)
-      VEN_UVOL: 0.77,       // preterm 30
+      VEN_UVOL: 0.85,       // 5.6: VLB/VUB unstressed volume x (preterm 30 0.77), with HEART_EL_MIN 2.2. On its own a larger venous
+                            //      unstressed volume lowered CVP only by emptying the heart (1.0: output 332, MAP 32, HR 162)
       RV_EL_MIN: 0.8,       // 5.3: RV diastolic elastance x on top of HEART_EL_MIN (the scaling left RV and LV equally stiff; the fetal
                             //      RV is the larger, more compliant chamber) -> RV EDV 2.00 -> 2.26, RV:LV 52:48 -> 59:41, foramen 29 -> 23 %,
                             //      duct 35 -> 40 %, output 348 -> 364. cont_factor_right barely moved the split (1.2 -> 1.8: RV 52.5 -> 54.8 %)
