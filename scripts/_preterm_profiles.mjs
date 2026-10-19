@@ -76,6 +76,78 @@ export const PROFILES = {
       P50: 18.5,            // reference: De Halleux 2002, untransfused <= 27 wk, standard conditions
       ENV_TEMP: 35.0,       // reference: incubator air (degC)
       REL_HUMIDITY: 0.70,   // reference: incubator humidity
+      GFR_FACTOR: 1.0,      // renal reference GFR target as the Vieux 2010 rule gives it (reseed_preterm)
+    },
+  },
+
+  // 25 wk: the 28 wk profile carried over with the 25 wk reference values swapped in. Size-related levers
+  // follow the size rule (author's choice, 2026-10-19): weight scaling shrinks volumes but leaves elastances
+  // and resistances at term's absolute values, so each 28 wk size correction is divided by 0.7 (the weight
+  // ratio to the 28 wk) and moved to the 25 wk per-kg target. All "starting point" values are validated in
+  // step 6 against docs/Preterm25wkReference.md.
+  25: {
+    name: "preterm_25wk",
+    refDoc: "docs/Preterm25wkReference.md",
+    // chemoreceptor set-points = the reference resting gases (pCO2 48, PaO2 50, pH 7.22)
+    CR: { CR_PCO2: 48, CR_PO2: 50, CR_PH: 7.22 },
+    description:
+      "Preterm neonate born at 25 weeks (0.7 kg) at 72 h: stable on nasal CPAP 7 cmH2O with FiO2 0.30 after " +
+      "one LISA surfactant dose, a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused " +
+      "(delayed cord clamping), trophic feeds + parenteral nutrition, caffeine, humidified incubator. CPAP is " +
+      "represented by the inspired FiO2 plus a recruited-lung state. Validated against " +
+      "docs/Preterm25wkReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 0.70,         // kg
+      HEIGHT: 0.32,         // m (between the _make_preterm 24 and 26 wk rows)
+      GA: 25,               // weeks
+      AGE: 3 / 365,         // years: 72 h
+
+      // --- circulation ---
+      HR_REF: 160,          // reference: Deshpande 2023 (25.9 wk, 54 h)
+      BR_WINDOW: 1,         // as 28 wk: baroreceptor window scaled with the set-point
+      BR_MAP: 34,           // reference: Elsayed 2023 25 wk day-3 invasive median MAP
+      SVR: 2.49,            // size rule: 2.0 x (MAP 34/39) / 0.7
+      PVR: 3.96,            // size rule: 3.0 x (mean PAP 18.5/20) / 0.7
+      CONT: 1.0,            // as 28 wk: EF normal (Groves 2011, no GA effect)
+      RELAX: 1.12,          // starting point: immature diastolic function (_make_preterm 24-26 wk 1.15/1.12)
+      HEART_EL_MAX: 4.86,   // size rule: 3.4 / 0.7
+      HEART_EL_MIN: 5.0,    // size rule: 3.5 / 0.7
+      ART_EL: 7.14,         // size rule: 5.0 / 0.7 (pulse pressure target 19)
+      VEN_UVOL: 0.77,       // as 28 wk
+      PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm
+      FO_DIAM: 0.75,        // as 28 wk (starting point)
+      COR_R: 2.99,          // size rule: 2.4 x (34/39) / 0.7
+      BRAIN_R: 1.2,         // as 28 wk (the systemic scaling already includes the cerebral bed)
+      CBF_SET: 0.0196,      // reference: 28 mL/kg/min x 0.7 kg, L/min absolute (author kept the 28 wk per-kg CBF)
+
+      // --- lungs and breathing ---
+      RDS_EL: 10.57,        // size rule: 5.55 x (CL 0.8/0.6) / 0.7 -> lung compliance 0.6 mL/cmH2O/kg
+      RDS_UVOL: 0.80,       // as 28 wk: FRC ~22 mL/kg (CPAP 7 at 25 wk ~ CPAP 6 at 28 wk)
+      THORAX_EL: 3.0,       // size rule: 2.94 x (Ccw 5/7) / 0.7 -> chest wall 7 mL/cmH2O/kg
+      GASEX: 0.315,         // size rule: 0.45 x 0.7 (absolute diffusion, scales with lung size)
+      IPS_RES: 15000,       // size rule: 10500 / 0.7 (starting point; SpO2 93 at FiO2 0.30)
+      SURFACTANT: 0.20,     // starting point: one LISA dose, between the 24-26 wk 0.15 and 28 wk 0.25
+      FIO2: 0.30,           // reference: state definition
+      MV_REF: 0.325,        // reference: 325 mL/kg/min (L/kg/min, per kg)
+      RR: 65,               // reference
+      IE: 0.38,             // reference: Ti/Ttot
+      RMP_RECAL: 1,         // as 28 wk: recalibrate the breathing effort gain on these lungs
+      DS_UVOL: 1.45,        // reference: dead space 3.2 mL/kg (1.36 gave 3.0 at 28 wk)
+
+      // --- metabolism, blood, environment ---
+      REABS_WATER: 0.833,   // reference: urine 3 mL/kg/h at GFR 0.30 mL/min/kg (filtered 18 mL/kg/h)
+      REABS_NACL: 0.90,     // reference: FENa 10 % (immature tubule)
+      MAINT_RATE: 3.0,      // as 28 wk: maintenance intake = resting urine, composition derived from it
+      UMA_DELTA: 4.35,      // starting point: 28 wk 2.85 + 1.5 (BE -5.5 -> -7, uma lowers BE ~1:1)
+      GLUCOSE: 7.0,         // reference: calm value; hyperglycaemia common at 25 wk
+      RESP_Q: 0.95,         // as 28 wk: glucose-rich PN
+      VO2_METABOLISM: 5.19, // as 28 wk: total 6.0 mL/kg/min minus the myocardium
+      HB_MMOL: 13.5 / 1.611, // reference: Hb 13.5 g/dL
+      P50: 18.5,            // reference: De Halleux 2002 (<= 27 wk, untransfused)
+      ENV_TEMP: 36.0,       // reference: incubator air (degC)
+      REL_HUMIDITY: 0.80,   // reference: incubator humidity
+      GFR_FACTOR: 1.143,    // reference: GFR 0.30 mL/min/kg vs the Vieux rule extrapolated to 25 wk (0.2625)
     },
   },
 };

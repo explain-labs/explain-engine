@@ -24,6 +24,9 @@
 //   renal blood flow    follows the GFR target at term's filtration fraction (inulin and PAH
 //                       clearance rise in parallel 28 -> 35 wk: Fawer 1979, PMID 429191).
 //   glomerular pressure p_bowman + oncotic + GFR target / kf (what that kf needs to filter it).
+//   gfrFactor           optional multiplier on the GFR target (default 1), for a scenario whose own
+//                       reference set places GFR off this curve (preterm_25wk: 0.30 mL/min/kg, above the
+//                       curve extrapolated below 27 wk). Renal blood flow follows it.
 //
 // Scenarios at >= 34 wk keep their kidney unchanged (their GFR already sits on the plateau).
 export const RENAL_GA_LIMIT = 34;
@@ -50,21 +53,21 @@ export const oncoticByGa = (ga) => Math.min(18.0, 15.0 + 3.0 * Math.max(0, ga - 
 //   term: { weight, height, kf (effective, L/s/mmHg), brMap, rbfPerGfr (renal blood flow / GFR) },
 //         TERM_RENAL unless given
 // Returns null when the scenario keeps its kidney (ga >= RENAL_GA_LIMIT).
-export function renalReference({ ga, weight, height, brMap }, term = TERM_RENAL) {
+export function renalReference({ ga, weight, height, brMap, gfrFactor = 1 }, term = TERM_RENAL) {
   if (ga >= RENAL_GA_LIMIT) return null;
   const s = bsa(weight, height), sTerm = bsa(term.weight, term.height);
   const p_bowman = 8.0 * brMap / term.brMap;
   const oncotic_base = oncoticByGa(ga);
   const kf = term.kf * s / sTerm;
-  const gfr = gfrTargetPer173(ga) * s / 1.73; // mL/min
+  const gfr = gfrTargetPer173(ga) * s / 1.73 * gfrFactor; // mL/min
   const rbf = gfr * term.rbfPerGfr; // mL/min
   const nfp = gfr / 60000 / kf; // mmHg
   const p_cap = p_bowman + oncotic_base + nfp; // glomerular (KID_CAP) pressure target, mmHg
-  return { ga, weight, bsa: s, p_bowman, oncotic_base, kf, gfr, rbf, nfp, p_cap };
+  return { ga, weight, bsa: s, p_bowman, oncotic_base, kf, gfr, rbf, nfp, p_cap, gfrFactor };
 }
 
 export function describeRenalReference(r) {
   if (!r) return "kidney unchanged (>= " + RENAL_GA_LIMIT + " wk)";
-  return `renal reference: GFR ${r.gfr.toFixed(2)} mL/min (${(r.gfr / r.weight).toFixed(2)}/kg), RBF ${(r.rbf / r.weight).toFixed(1)} mL/min/kg, ` +
+  return `renal reference: GFR ${r.gfr.toFixed(2)} mL/min${r.gfrFactor !== 1 ? ` (x${r.gfrFactor})` : ""} (${(r.gfr / r.weight).toFixed(2)}/kg), RBF ${(r.rbf / r.weight).toFixed(1)} mL/min/kg, ` +
     `KID_CAP ${r.p_cap.toFixed(1)} mmHg (Bowman ${r.p_bowman.toFixed(1)} + oncotic ${r.oncotic_base.toFixed(1)} + NFP ${r.nfp.toFixed(2)}), kf ${r.kf.toExponential(2)}`;
 }

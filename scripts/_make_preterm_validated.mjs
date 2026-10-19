@@ -1,6 +1,8 @@
 // Generator: term_neonate.json -> a literature-validated preterm scenario at 72 h, one lever profile per
 // gestation (scripts/_preterm_profiles.mjs):
 //   28: preterm_28wk - born at 28 weeks (1.0 kg), nasal CPAP 6, FiO2 0.25 (docs/Preterm28wkReference.md)
+//   25: preterm_25wk - born at 25 weeks (0.7 kg), nasal CPAP 7, FiO2 0.30 after one LISA dose
+//       (docs/Preterm25wkReference.md)
 // Each is stable on nasal CPAP after surfactant, with a small restrictive left-to-right PDA, a small PFO,
 // untransfused (delayed cord clamping), trophic feeds + PN, caffeine, in a humidified incubator.
 //
@@ -53,8 +55,8 @@ for (let i = 0; i < argv.length; i++) {
   L[k] = Number(v);
 }
 const { UMA_DELTA, GLUCOSE, REABS_WATER, REABS_NACL, MAINT_RATE, COR_R, BR_WINDOW, FO_DIAM, BRAIN_R, CBF_SET, RESP_Q, RMP_RECAL, DS_UVOL, WEIGHT, HEIGHT, GA, AGE, HR_REF, BR_MAP, SVR, PVR, CONT, RELAX, HEART_EL_MAX, HEART_EL_MIN, ART_EL, VEN_UVOL, PDA_REL, RDS_EL, RDS_UVOL, THORAX_EL, GASEX,
-  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY } = L;
-const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV / (vt_rr_ratio x W)) at W = 1 kg -> 7.80e-5
+  IPS_RES, SURFACTANT, FIO2, MV_REF, RR, IE, VO2_METABOLISM, HB_MMOL, P50, ENV_TEMP, REL_HUMIDITY, GFR_FACTOR } = L;
+const VT_RR = MV_REF / (RR * RR); // RR = sqrt(MV_REF / vt_rr_ratio): minute_volume_ref is per kg (28 wk: 7.80e-5)
 const CR = P.CR; // chemoreceptor set-points = the reference resting gases
 
 const eng = await createEngine();
@@ -158,7 +160,12 @@ if (MAINT_RATE > 0) {
   M.Fluids.fluids[M.Fluids.maintenance_fluid] = urine;
 }
 log.push(`kidney: water reabsorption ${REABS_WATER}, Na/Cl ${K.reabsorption_fractions.na}/${K.reabsorption_fractions.cl}; maintenance ${M.Fluids.maintenance_rate} mL/kg/h ${JSON.stringify(M.Fluids.fluids[M.Fluids.maintenance_fluid])}`);
+// Hb: rescale each patient compartment's O2 content with it (same saturation). Setting Hb alone leaves
+// term's to2 (~9.6 mmol/L at Hb 10); below Hb ~8.5 mmol/L that exceeds the blood's O2 capacity even at
+// pO2 1000 mmHg, the pO2 solver finds no root, pO2 freezes and the lungs keep loading O2 (runaway).
+const hbOld = M.Blood.solutes.hemoglobin;
 M.Blood.set_solute("hemoglobin", HB_MMOL);
+for (const m of patientBlood) if (typeof m.to2 === "number") m.to2 *= HB_MMOL / hbOld;
 M.Blood.set_P50(P50);
 M.Thermoregulation.env_temp = ENV_TEMP;
 M.Thermoregulation.rel_humidity = REL_HUMIDITY;
@@ -203,5 +210,5 @@ const run = (script, ...args) => {
   process.stderr.write(outText);
 };
 run("./_add_surfactant.mjs", `${NAME}=${SURFACTANT}`);
-run("./reseed_preterm.mjs", "--file", NAME, "--seconds", String(SECONDS), "--write");
+run("./reseed_preterm.mjs", "--file", NAME, "--seconds", String(SECONDS), "--write", ...(GFR_FACTOR !== 1 ? ["--gfr-factor", String(GFR_FACTOR)] : []));
 run("./_add_apnea.mjs", NAME);
