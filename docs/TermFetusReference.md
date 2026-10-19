@@ -186,6 +186,12 @@ own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref script
   (with the RV's lower diastolic stiffness the term RV already out-filled the LV): RV:LV 58.6 : 41.4, lungs 17.7 %,
   foramen 23.5 %, duct 40.7 %, PA − Ao 1.5, LV EF 63 / SV 1.20, RV EF 64, output 407. 48 in range / 3 out.
 
+- **5.3 CO₂ / UA pH (2026-10-19).** UA − UV pCO₂ 11.1 and UA pH 7.30: placental CO₂ diffusion ×3 or ×10 changed
+  nothing (the gap is fetal-side, as at 30 weeks). Placental resistances ×0.75 (`umb_art_res` 780 → 585, `plf_res`
+  1730 → 1298): umbilical flow 111 → 142 mL/kg/min (MRI 129–134), placental share 27 → 33 %, gap 8.8, UA pH 7.32,
+  AA SO₂ 56 → 62, SVC 46. **50 in range / 1 out** (the duct diameter, by design). As at 30 weeks, the
+  cordocentesis gases need more umbilical blood than the 25 % placental-share reference.
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 40+0 wk (pairs with `term_neonate`); weight 3.545 kg (= `term_neonate`).

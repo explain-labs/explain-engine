@@ -148,8 +148,10 @@ export const PROFILES = {
       // --- placenta ---
       PL_VOL: 0.73,         // starting point: fetal PL_* x (term 113 mL -> 82 mL = 22 % of 105 mL/kg x 3.545 kg)
       MAT_VOL: 1.0,         // archived term_fetus
-      UMB_ART_RES: 780,     // starting point: 30 wk 1095 x (210/390 mL/min umbilical flow) x (MAP 50/38)
-      PLF_RES: 1730,        // starting point: 30 wk 2430, same scaling
+      UMB_ART_RES: 585,     // 5.3: umbilical artery resistance (starting point 780 = 30 wk 1095 x 210/390 x 50/38) x0.75 with PLF_RES ->
+                            //      umbilical flow 111 -> 142 mL/kg/min (MRI 129-134), placental share 27 -> 33 %, UA - UV pCO2 11.1 -> 8.8,
+                            //      UA pH 7.30 -> 7.32, AA SO2 56 -> 62. dif_co2 x3/x10 changed nothing (the gap is fetal-side)
+      PLF_RES: 1298,        // 5.3: fetal placental resistance (starting point 1730) x0.75, with UMB_ART_RES
       UMB_VEN_RES: 115,     // starting point: 30 wk 160, same scaling
       DIF_O2: 0.003,        // 5.1: placental O2 diffusion (archived term_fetus 0.03, saturated: UV equilibrated with the maternal pool,
                             //      SO2 85 / pO2 39) -> UV 80 / 34, ~30 % short of the pool as at term (Siggaard-Andersen); <= 0.0015 the
