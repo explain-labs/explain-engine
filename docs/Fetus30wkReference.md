@@ -209,6 +209,12 @@ invariants hold after the bake.
   `dif_co2` changed nothing (not diffusion-limited). 43 in range / 8 out. The umbilical-artery misses (pCO₂ 48,
   pH 7.29, UA − UV gap 12.4, SO₂ 54) are fetal-side: umbilical flow 98 mL/kg/min (ref 120) at VO₂ 6.4.
 
+- **5.3 RV filling (2026-10-19).** After weight scaling the RV and LV had identical diastolic elastance, so the
+  RV hardly out-filled the LV (EDV 2.00 vs 1.75; reference 2.4 vs 1.7). `Heart.cont_factor_right` barely
+  moved the split (1.2 → 1.8: RV share 52.5 → 54.8 %, CVP stayed 6). New lever `RV_EL_MIN` (the RV's raw
+  `el_min`) ×0.8: RV EDV 2.26 / SV 1.48, RV:LV 59:41, foramen 29 → 23 %, duct 35 → 40 %, output 348 → 364,
+  HR 149 → 146, MAP 36.7 → 37.5. ×0.7 overshot (RV share 62, LV SV 0.99). 46 in range / 5 out.
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting

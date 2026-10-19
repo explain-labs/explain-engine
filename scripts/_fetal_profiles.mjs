@@ -35,6 +35,9 @@ export const PROFILES = {
       HEART_EL_MIN: 2.9,    // preterm 30
       ART_EL: 5.5,          // preterm 30 (pulse pressure target 16, ovine)
       VEN_UVOL: 0.77,       // preterm 30
+      RV_EL_MIN: 0.8,       // 5.3: RV diastolic elastance x on top of HEART_EL_MIN (the scaling left RV and LV equally stiff; the fetal
+                            //      RV is the larger, more compliant chamber) -> RV EDV 2.00 -> 2.26, RV:LV 52:48 -> 59:41, foramen 29 -> 23 %,
+                            //      duct 35 -> 40 %, output 348 -> 364. cont_factor_right barely moved the split (1.2 -> 1.8: RV 52.5 -> 54.8 %)
       RV_UVOL_RATIO: 1.64,  // fetal transform: RV.u_vol = 1.64 x LV.u_vol (term chambers give 5.46x; RV EF otherwise ~25 %)
       DA_DIAM: 4.6,         // starting point: Pda.diameter_ao/pa_max, mm (archived 30 wk 4.58; anatomy 3.0 mm, but PA ~ Ao is the target)
       DA_LEN: 10.1,         // reference: Szpinda length at 30 wk, mm (-3.07 + 0.438 x 30)

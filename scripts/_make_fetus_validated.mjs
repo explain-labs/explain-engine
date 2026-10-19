@@ -121,6 +121,7 @@ log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor:
 M.Heart.cont_factor_left = L.CONT_LEFT; M.Heart.cont_factor_right = L.CONT_RIGHT;
 M.Heart.relax_factor_left = L.RELAX; M.Heart.relax_factor_right = L.RELAX;
 M.RV.u_vol = M.LV.u_vol * L.RV_UVOL_RATIO;
+if (L.RV_EL_MIN !== 1.0) M.RV.el_min *= L.RV_EL_MIN; // raw RV diastolic elastance; the scaling layer stays shared
 for (const n of ["VLB", "VUB"]) if (M[n]) M[n].u_vol *= L.VEN_UVOL;
 for (const n of ["BR_ART", "BR_CAP", "BR_VEN"]) { M[n].r_for *= L.BRAIN_R; M[n].r_back *= L.BRAIN_R; }
 if (L.INT_R !== 1.0) for (const n of ["INT_ART", "INT_CAP", "INT_VEN"]) { M[n].r_for *= L.INT_R; M[n].r_back *= L.INT_R; }
@@ -129,7 +130,7 @@ if (L.UB_R !== 1.0) { M.RUB.r_for *= L.UB_R; M.RUB.r_back *= L.UB_R; }
 M.AA_COR.r_for *= L.COR_R; M.AA_COR.r_back *= L.COR_R;
 M.Brain.cbf_setpoint = L.CBF_SET; M.Brain.cpp_setpoint = 0.0; M.Brain.cbv0 = 0.0; // rest anchors re-seed after the warm-up
 M.Brain.autoreg_control_gain = L.BRAIN_CTL_GAIN;
-log.push(`myocardium cont L/R ${L.CONT_LEFT}/${L.CONT_RIGHT}, relax ${L.RELAX}; RV u_vol ${L.RV_UVOL_RATIO} x LV; VLB/VUB u_vol x${L.VEN_UVOL}`);
+log.push(`myocardium cont L/R ${L.CONT_LEFT}/${L.CONT_RIGHT}, relax ${L.RELAX}; RV el_min x${L.RV_EL_MIN}, u_vol ${L.RV_UVOL_RATIO} x LV; VLB/VUB u_vol x${L.VEN_UVOL}`);
 log.push(`beds: brain r x${L.BRAIN_R} (cbf_setpoint ${L.CBF_SET} L/min), upper body x${L.UB_R}, gut x${L.INT_R}/${L.LS_R}, coronary x${L.COR_R}`);
 
 // 4. metabolism, blood, kidney, environment
