@@ -1,15 +1,69 @@
 # Fetal circulation scenarios
 
-The scenario library ships fetuses *in utero* at two gestational ages:
+**Current scenario (2026-10-19):** [`fetus_30wk`](../model_definitions/fetus_30wk.json), a fetus in utero at
+30 wk, 1.5 kg, rebuilt from the literature-validated `term_neonate` by
+`node scripts/_make_fetus_validated.mjs --profile 30` (levers in `scripts/_fetal_profiles.mjs`) and validated
+against [Fetus30wkReference](./Fetus30wkReference.md) (49 of 51 graded rows in range). See
+[The rebuilt fetus_30wk](#the-rebuilt-fetus_30wk-2026-10-19) below.
+
+The sections after that describe the **earlier pair**, now in `model_definitions/archive/` (built from the old
+term base):
 
 | Scenario | GA | Weight | Built by |
 |---|---|---|---|
-| [`term_fetus`](../model_definitions/term_fetus.json) | 40 wk | 3.545 kg | `scripts/_make_term_fetus.mjs` (single-point transform of `term_neonate`) |
-| [`fetus_30wk`](../model_definitions/fetus_30wk.json) | 30 wk | 1.35 kg | `scripts/_make_fetus.mjs 30` (per-GA transform of `term_fetus`) |
+| `archive/term_fetus` | 40 wk | 3.545 kg | `scripts/_make_term_fetus.mjs` (single-point transform of `term_neonate`) |
+| `archive/fetus_30wk` | 30 wk | 1.35 kg | `scripts/_make_fetus.mjs 30` (per-GA transform of `term_fetus`) |
 
-`term_fetus` is the anchor: it carries the fetal topology and its own fetal diagram. Every other
-gestational age is derived from it by `_make_fetus.mjs`, so a retune of `term_fetus` propagates by
-re-running the generator and the reseed.
+In that pipeline `term_fetus` was the anchor: it carried the fetal topology and its own fetal diagram, and
+every other gestational age was derived from it by `_make_fetus.mjs`.
+
+## The rebuilt fetus_30wk (2026-10-19)
+
+**Route.** Live `term_neonate` → weight scaling to 1.5 kg (the placenta scaled by hand: it is outside every
+scaler group) → the fetal transform of `_make_term_fetus.mjs` re-done on the live model (placenta running,
+cord patent, duct and foramen wide open, intrapulmonary shunts closed, fetal PVR, inert lungs, HbF, split
+right atrium, amniotic environment) → the 30-week profile (the `preterm_30wk` maturity levers as starting
+points) → reseeded with the preterm renal reference (`reseed_preterm.mjs --file`) → the fetal invariants
+re-asserted on the baked file. The fetal diagram is taken from the archived `fetus_30wk`.
+
+**Operating point** (`probe_term_reference.mjs`, which reads the fetal variables when the placenta runs):
+
+| | `fetus_30wk` | reference |
+|---|---|---|
+| HR / MAP / CVP | 148 / 37.6 / 4.5 | 145 / 38 (ovine) / 3 |
+| PA − Ao | ~0.8 mmHg | ≈ 0 |
+| combined output | ~420 mL/kg/min | 420 |
+| RV : LV | 59 : 41 | 59 : 41 |
+| lungs / foramen / duct / placenta | ~17 / 24 / 41 / 33 % | 20 / 21 / 39 / 28 (Kiserud ~32) |
+| umbilical flow | ~140 mL/kg/min | 120 (MRI 129) |
+| O₂ UV / IVC / AA / DAo=UA / SVC | 89 / ~76 / ~70 / ~65 / ~54 % | 85 / 72 / 67 / 64 / 43 |
+| UV gas pO₂ / pCO₂ / pH | 41 / 36 / 7.40 | 40 / 36 / 7.40 |
+| UA pCO₂ / pH, UA − UV pCO₂ | ~45 / 7.32, ~8 | 41 / 7.37, 5 |
+| VO₂ (umbilical Fick) | ~6.0 mL/kg/min | 6.0 (human 5.4–8.1) |
+| core temperature | 37.50 °C | 37.5 |
+
+**What the rebuild changed against the archived pipeline:**
+- **Preferential streaming.** With the right atrium split, IVC and SVC blood still mixed in the left atrium,
+  because the foramen is two resistors (`LA_RAIVCI`, `LA_RASVC`). The new `Shunts.fo_svc_fraction` (0–1,
+  default 0.5) sets the share of the foramen's area that opens onto the SVC part; the fetus uses 0, so only IVC
+  blood crosses (AA − PA saturation gap 0.9 → ~5–6 points).
+- **Ventricular dominance by filling, not by contractility.** After weight scaling the RV was as stiff as the LV;
+  `cont_factor_right` 1.2 → 1.8 moved the RV share only 52.5 → 54.8 %. A more compliant RV (`RV_EL_MIN` 0.8 on
+  its diastolic elastance) gave 59 : 41 with the foramen and duct shares following.
+- **The oxygen balance is an umbilical Fick problem.** The cordocentesis saturations (UV 85 / UA 64) only fit
+  VO₂ and umbilical flow together: VO₂ 6.0 with ~130–140 mL/kg/min of umbilical blood (placental resistances
+  ×0.75). The maternal pool is set to placental-venous blood at 30 wk (`mat_to2` 5.6, `mat_tco2` 21.5:
+  pCO₂ ~35), and the umbilical vein equilibrates with it.
+- **The fetal brain uses more than half of the O₂** (`Metabolism` `BR_CAP` share 0.65; Sun 2015: 58 %), so SVC
+  blood returns at ~54 % instead of ~57 %.
+- **Thermal bookkeeping.** `Blood.get_thermal_state` now leaves out fixed-composition compartments: the
+  maternal pool (pinned at 37.0 °C) had acted as a ~4 W phantom heat sink.
+
+**Known limitations:** no ductus venosus / liver route (IVC blood is mixed before the atrium); no placental heat
+path (heat leaves through the amniotic "skin" path, `Thermoregulation.h_convective` 240); fetal urine is the
+preterm kidney's ~3 mL/kg/h (reference ~13); arterial pressure and RQ are ovine. `scripts/probe_fetus.mjs`
+currently fails to start (it imports `BloodComposition.js` before the extensionless-import hook is
+registered); `probe_term_reference.mjs` covers its panel.
 
 ## What makes a scenario "fetal"
 

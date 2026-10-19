@@ -48,7 +48,8 @@ export const PROFILES = {
       FO_SVC_FRACTION: 0.0, // 5.1: Shunts.fo_svc_fraction: the whole foramen opens onto the IVC part (crista dividens), so SVC
                             //      blood no longer mixes into the LA: AA - PA saturation gap 0.9 -> 6.0 points (reference ~8)
       COR_R: 1.72,          // preterm 30
-      BRAIN_R: 0.4,         // starting point: cerebral bed r x (preterm 30 1.6 x 25/95 x 38/43): CBF ~95 mL/kg/min
+      BRAIN_R: 0.2,         // final: cerebral bed r x (starting point 0.4 = preterm 30 1.6 x 25/95 x 38/43 left autoregulation at its
+                            //      dilation floor 0.15 with CBF 91) -> autoregulation 1.01 over minutes 8-10 at CBF 95
       CBF_SET: 0.1425,      // reference: 95 mL/kg/min x 1.5 kg, L/min absolute (grade C, Sun 2015)
       UB_R: 1.8,            // starting point: upper body outside the brain (SVC 125 = brain 95 + rest 30)
       INT_R: 1.1,           // preterm 30

@@ -10,6 +10,9 @@ A scenario file is a single JSON document that describes one complete patient/ex
 > from `term_neonate` by `scripts/_make_preterm_validated.mjs --profile 28|25|30` (lever profiles in
 > `scripts/_preterm_profiles.mjs`) and validated against [Preterm28wkReference](./Preterm28wkReference.md),
 > [Preterm25wkReference](./Preterm25wkReference.md) and [Preterm30wkReference](./Preterm30wkReference.md).
+> On 2026-10-19 the fetus `fetus_30wk` (30 wk, 1.5 kg, in utero, not in labour) was rebuilt the same way, from
+> `term_neonate` by `scripts/_make_fetus_validated.mjs --profile 30` (levers in `scripts/_fetal_profiles.mjs`),
+> and validated against [Fetus30wkReference](./Fetus30wkReference.md); it replaces the archived version.
 > The frozen set that live pages need
 > (`bischoff_cohort`, `p1_baseline`, `p1_pda_none`, `tof_severe`) is kept in place; everything else
 > is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
