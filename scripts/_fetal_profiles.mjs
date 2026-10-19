@@ -58,7 +58,8 @@ export const PROFILES = {
       DIF_O2: 0.020,        // archived 30 wk
       DIF_CO2: 0.027,       // archived 30 wk
       MAT_TO2: 5.6,         // reference: maternal placental venous O2 content 5.6 mmol/L at 30 wk (Siggaard-Andersen 1995)
-      MAT_TCO2: 23.0,       // starting point: maternal placental venous pCO2 ~35 mmHg at pH 7.41
+      MAT_TCO2: 21.5,       // 5.2: maternal pool CO2 content (was 23: pool pCO2 47, pH 7.26) -> pool pCO2 ~35, pH ~7.36 (placental
+                            //      venous blood at 30 wk, Siggaard-Andersen 1995); the umbilical vein equilibrates with it: 41/36/7.40
 
       // --- metabolism, blood, kidney, environment ---
       VO2_METABOLISM: 5.46, // reference total 6.5 minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5)

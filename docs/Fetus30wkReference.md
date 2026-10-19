@@ -203,6 +203,12 @@ invariants hold after the bake.
   remaining gap to 67 % is the IVC (64 vs 72 %): umbilical blood mixes with lower-body blood before the
   atrium (no ductus venosus stream).
 
+- **5.2 Maternal pool (2026-10-19).** `Placenta.mat_tco2` 23 → 21.5: the maternal pool sat at pCO₂ 47 /
+  pH 7.26; now ~35 / 7.36 (placental venous blood at 30 wk, Siggaard-Andersen 1995). The umbilical vein
+  equilibrates with it: pO₂ 48.2 → 41.4, pCO₂ 47.3 → 35.8, pH 7.30 → 7.40 (all on target). Tripling
+  `dif_co2` changed nothing (not diffusion-limited). 43 in range / 8 out. The umbilical-artery misses (pCO₂ 48,
+  pH 7.29, UA − UV gap 12.4, SO₂ 54) are fetal-side: umbilical flow 98 mL/kg/min (ref 120) at VO₂ 6.4.
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting
