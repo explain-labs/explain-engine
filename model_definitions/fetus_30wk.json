@@ -24,8 +24,8 @@
    "max_to2": 6,
    "shuntOptionsVisible": true,
    "deviceBand": 0.85,
-   "to2_lo": 3,
-   "to2_hi": 8.4
+   "to2_lo": 2.5,
+   "to2_hi": 7.6
   },
   "components": {
    "LV": {
