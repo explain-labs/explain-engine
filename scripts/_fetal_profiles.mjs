@@ -55,8 +55,9 @@ export const PROFILES = {
       // --- placenta ---
       PL_VOL: 0.40,         // starting point: fetal PL_* vol/u_vol x (term 113 mL -> 45 mL = 26 % of 115 mL/kg x 1.5 kg)
       MAT_VOL: 0.50,        // archived 30 wk: maternal pool PL_MAT x
-      UMB_ART_RES: 1460,    // starting point: archived 30 wk 1260 x 1.16 (placental share 41 % -> 28 %, at 1.5 kg)
-      PLF_RES: 3240,        // starting point: archived 30 wk 2800 x 1.16
+      UMB_ART_RES: 1095,    // 5.4: umbilical artery resistance (was 1460 = archived 30 wk 1260 x 1.16) x0.75 with PLF_RES -> umbilical flow
+                            //      101 -> 129 mL/kg/min (MRI 129), placental share 28 -> 33 % (Kiserud ~32), output 364 -> 387
+      PLF_RES: 2430,        // 5.4: fetal placental resistance (was 3240) x0.75, with UMB_ART_RES
       UMB_VEN_RES: 160,     // starting point: archived 30 wk 140 x 1.16
       DIF_O2: 0.020,        // archived 30 wk
       DIF_CO2: 0.027,       // archived 30 wk
@@ -65,7 +66,9 @@ export const PROFILES = {
                             //      venous blood at 30 wk, Siggaard-Andersen 1995); the umbilical vein equilibrates with it: 41/36/7.40
 
       // --- metabolism, blood, kidney, environment ---
-      VO2_METABOLISM: 5.46, // reference total 6.5 minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5)
+      VO2_METABOLISM: 4.98, // 5.4: total VO2 6.0 (was 6.5; human range 5.4-8.1) minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5).
+                            //      With umbilical flow 129 the umbilical Fick balance then matches the cordocentesis saturations:
+                            //      UA 55 -> 64 %, AA 58 -> 67 %, IVC 65 -> 72 % (at VO2 6.5 they need ~164 mL/kg/min)
       RESP_Q: 0.95,         // reference (ovine)
       GLUCOSE: 4.0,         // reference
       UMA_DELTA: 0.0,       // starting point

@@ -215,6 +215,14 @@ invariants hold after the bake.
   `el_min`) ×0.8: RV EDV 2.26 / SV 1.48, RV:LV 59:41, foramen 29 → 23 %, duct 35 → 40 %, output 348 → 364,
   HR 149 → 146, MAP 36.7 → 37.5. ×0.7 overshot (RV share 62, LV SV 0.99). 46 in range / 5 out.
 
+- **5.4 Oxygen balance (2026-10-19).** The author found the saturations too low (AA 58, UA 55, IVC 65). The
+  cause is the umbilical Fick balance: at VO₂ 6.4 and an umbilical flow of 101 mL/kg/min the body must extract
+  34 saturation points; the cordocentesis set (UV 85 / UA 64) needs ~164 mL/kg/min at VO₂ 6.5. Fix: VO₂ 6.5 →
+  **6.0** (human range 5.4–8.1) and both placental resistances ×0.75 (`umb_art_res` 1460 → 1095, `plf_res`
+  3240 → 2430): umbilical flow 101 → 129 (MRI 129), placental share 28 → 33 % (Kiserud ~32), output 364 → 387,
+  UA SO₂ 55 → 64.3, AA 58 → 67.2, IVC 65 → 72.4 (all on the cordocentesis values), UA − UV pCO₂ 12 → 8.9,
+  UA pH 7.29 → 7.32. ×0.6 overshot the placental share (38 %). 47 in range / 4 out; SVC SO₂ rose to 56.5 (ref 43).
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting
@@ -230,6 +238,8 @@ invariants hold after the bake.
 - Fetal urine production: reference only (known limitation; the model keeps the preterm 30-week kidney).
 - Foramen ovale: the whole foramen opens onto the IVC part (`Shunts.fo_svc_fraction` 0, a new continuous engine
   parameter).
+- Oxygen balance (step 5.4): fetal VO₂ 6.0 mL/kg/min with a placental share of ~33 % (umbilical flow ~129), so the
+  cordocentesis saturations and the umbilical Fick balance agree.
 - Fetoplacental blood volume 115 mL/kg; its low bound was widened to 90 when MacGregor 1988 (94 mL/kg)
   was added at step 3.
 
