@@ -154,6 +154,25 @@ the same schema and with the same 61 variables as the 30-week set.
 | Crown-heel length (reference only) | **51** cm | — | C | — |
 | Placental weight (reference only) | **500** g | — | C | — |
 
+## First look at the model (step 4, 2026-10-19)
+
+`node scripts/_make_fetus_validated.mjs --profile 40` (term_neonate + the fetal transform + the term profile;
+size/maturity levers at term_neonate's values, the 30-week fetal levers carried over, kidney = term_neonate's
+own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref scripts/reference/term_fetus.json`:
+**43 graded rows in range, 8 out**. The fetal invariants hold after the bake.
+
+- **In range first time:** HR 138, BP 64.7/38.2 (MAP 50.0), CVP 3.0, LV/RV volumes, RV SV 1.81, output 403,
+  foramen 23 %, placenta 28 % (umbilical flow 113), SVC 33 %, CBF 92, UV pCO₂ 36 / pH 7.40, UA SO₂ 57, AA 62,
+  SVC 47, Hb/Hct, blood volumes (104 mL/kg, placenta 23 %), VO₂ 6.6, RQ 0.93, glucose, core 37.50 °C.
+- **Out of range:**
+  - UV SO₂ 85 / pO₂ 39 (ref 75 / 31.5): the umbilical vein equilibrates with the maternal pool (pO₂ ~39), but at
+    term it should stay below it (Siggaard-Andersen: ~30 % apparent shunt);
+  - UA pH 7.30 and UA − UV pCO₂ 11.3 (ref 5);
+  - RV share 62 % (ref 58), with duct 47 % / lungs 15 % (ref 40 / 18), PA − Ao 2.2 mmHg, LV EF 58;
+  - duct diameter 6.0 mm vs anatomy 3.95 (by design).
+- **Controllers (10-minute run):** brain autoregulation at its dilation floor (0.15) with CBF 92; baroreflex near
+  neutral (HR ×1.015, SVR ×1.03); Hormones SVR factor 0.90.
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 40+0 wk (pairs with `term_neonate`); weight 3.545 kg (= `term_neonate`).

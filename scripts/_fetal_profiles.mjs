@@ -95,4 +95,83 @@ export const PROFILES = {
       BRAIN_CTL_GAIN: 1.0,  // as preterm 30
     },
   },
+  // 40 wk: a fetus in utero at 40+0 wk, 3.545 kg (as term_neonate, so weight scaling is a no-op), not in labour
+  // (docs/TermFetusReference.md). Size/maturity levers start at term_neonate's own values (x1); the fetal levers
+  // the 30 wk calibration found (RV stiffness, foramen streaming, brain O2 share) are carried over; placental
+  // resistances are scaled from the 30 wk ones to the term umbilical flow. All "starting point" values are
+  // validated in step 5 against the term reference set.
+  40: {
+    name: "term_fetus",
+    refDoc: "docs/TermFetusReference.md",
+    // diagram oxygen colour window spanning the fetal range at term: lower-body venous (~2.3) to the umbilical
+    // vein (~7.0 mmol/L at Hb 9.3 and SO2 75 %), as the 30 wk window
+    diagram: { to2_lo: 2.3, to2_hi: 7.1 },
+    description:
+      "Fetus in utero at 40 weeks (3.545 kg), not in labour: the placenta is the gas exchanger, the lungs are " +
+      "fluid-filled, the ductus arteriosus and foramen ovale are wide open (right-to-left), fetal haemoglobin, " +
+      "amniotic environment. Validated against docs/TermFetusReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 3.545,        // kg (author's choice: = term_neonate)
+      HEIGHT: 0.51,         // m
+      GA: 40,               // weeks
+      AGE: 0,               // years: not born
+
+      // --- circulation ---
+      HR_REF: 136,          // reference: CTG baseline at 40 wk (Pildner von Steinburg 2013)
+      BR_WINDOW: 1,         // baroreceptor window scaled with the set-point
+      BR_MAP: 50,           // reference: MAP 50 (ovine, Segar 2002)
+      SVR: 1.0,             // starting point: term_neonate's systemic resistances
+      FETAL_PVR: 9.5,       // fetal transform: raw r on the pulmonary BloodVessels (term_fetus x9.5)
+      PVR: 1.0,             // starting point (term_fetus at x9.5 gave lungs ~15 %; target 18 %)
+      CONT_LEFT: 1.0,       // starting point
+      CONT_RIGHT: 1.2,      // 30 wk value
+      RELAX: 1.0,           // term myocardium
+      HEART_EL_MAX: 1.0,    // term_neonate's chambers
+      HEART_EL_MIN: 1.0,    // starting point (30 wk needed 0.76x its preterm value to bring CVP down)
+      ART_EL: 1.0,          // term_neonate's arteries
+      VEN_UVOL: 1.0,        // starting point
+      RV_EL_MIN: 0.8,       // 30 wk 5.3: the fetal RV is the more compliant chamber
+      RV_UVOL_RATIO: 1.64,  // fetal transform
+      DA_DIAM: 6.0,         // starting point: archived term_fetus (PA ~ Ao); = 30 wk 4.6 x Szpinda 3.95/3.01. Anatomy 3.95
+      DA_LEN: 14.4,         // reference: Szpinda length at 40 wk, mm
+      FO_DIAM: 6.0,         // starting point: archived term_fetus
+      FO_SEPTUM: 3.0,       // starting point: archived term_fetus
+      FO_SVC_FRACTION: 0.0, // 30 wk 5.1: only IVC blood crosses the foramen
+      COR_R: 1.0,           // term_neonate
+      BRAIN_R: 0.26,        // starting point: term bed x (MAP 50/58) x (CBF 106/355 mL/min, term_neonate vs 100 mL/kg/min fetal)
+      CBF_SET: 0.3545,      // reference: 100 mL/kg/min x 3.545 kg, L/min absolute (grade C)
+      UB_R: 1.0,            // starting point
+      INT_R: 1.0,           // term_neonate
+      LS_R: 1.0,            // term_neonate
+
+      // --- placenta ---
+      PL_VOL: 0.73,         // starting point: fetal PL_* x (term 113 mL -> 82 mL = 22 % of 105 mL/kg x 3.545 kg)
+      MAT_VOL: 1.0,         // archived term_fetus
+      UMB_ART_RES: 780,     // starting point: 30 wk 1095 x (210/390 mL/min umbilical flow) x (MAP 50/38)
+      PLF_RES: 1730,        // starting point: 30 wk 2430, same scaling
+      UMB_VEN_RES: 115,     // starting point: 30 wk 160, same scaling
+      DIF_O2: 0.03,         // archived term_fetus
+      DIF_CO2: 0.04,        // archived term_fetus
+      MAT_TO2: 5.4,         // reference: maternal placental venous O2 content at 40 wk (Siggaard-Andersen 1995)
+      MAT_TCO2: 21.6,       // starting point: maternal placental venous pCO2 ~36 (30 wk 21.5 gave ~35)
+
+      // --- metabolism, blood, environment ---
+      VO2_METABOLISM: 5.46, // reference total 6.5 minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5)
+      BRAIN_VO2_FRAC: 0.65, // 30 wk 5.5 (Sun 2015: brain 58 % of fetal VO2)
+      RESP_Q: 0.95,         // reference (ovine)
+      GLUCOSE: 3.7,         // reference
+      UMA_DELTA: 0.0,       // starting point
+      HB_MMOL: 15.0 / 1.611, // reference: Hb 15.0 g/dL
+      P50: 20.0,            // reference (= term_neonate)
+      REABS_WATER: null,    // term_neonate's own kidney (fetal urine is reference only)
+      REABS_NACL: null,
+      MAINT_RATE: null,
+      GFR_FACTOR: null,     // no preterm renal reference at term
+      ENV_TEMP: 37.3,       // reference: amniotic fluid (degC)
+      H_FLUID: 320,         // starting point: heat ~7.7 W / (SA 0.116 m2 x 0.2 K) - h_radiative
+      SETPOINT_TEMP: 37.5,  // reference
+      BRAIN_CTL_GAIN: 1.0,  // as 30 wk
+    },
+  },
 };
