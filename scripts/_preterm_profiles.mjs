@@ -116,7 +116,7 @@ export const PROFILES = {
       HEART_EL_MIN: 5.0,    // size rule: 3.5 / 0.7
       ART_EL: 7.14,         // size rule: 5.0 / 0.7 (pulse pressure target 19)
       VEN_UVOL: 0.77,       // as 28 wk
-      PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm
+      PDA_REL: 0.8 / 3.0,   // 6.2: ductal diameter 0.8 mm (reference 0.8-1.4; 1.14 mm/kg ~ the 28 wk 1 mm/kg): ductal flow 41 -> 22
       FO_DIAM: 0.75,        // as 28 wk (starting point)
       COR_R: 2.99,          // size rule: 2.4 x (34/39) / 0.7
       BRAIN_R: 1.2,         // as 28 wk (the systemic scaling already includes the cerebral bed)

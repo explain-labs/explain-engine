@@ -557,23 +557,23 @@
    "group": "hemodynamics",
    "label": "Central venous pressure",
    "unit": "mmHg",
-   "mean": 5,
+   "mean": 3.5,
    "sd": null,
-   "low": 3,
-   "high": 7,
+   "low": 1.3,
+   "high": 5.7,
    "range_type": "range",
    "method": "UVC",
    "age": "day 3 (72 h)",
    "n": null,
    "sources": [
-    "inglis2007",
     "choi2015",
+    "inglis2007",
     "siassi1980",
     "abdelhady2008"
    ],
-   "grade": "A/B",
+   "grade": "B",
    "model_readout": "Monitor.minmax.cvp_pres_mean",
-   "notes": "User decision 5 (CPAP 7). Trevor Inglis 2007 (27 wk, 940 g, UVC, days 1-4, mostly ventilated) median 4.9 (IQR 4.4-6.1); Choi 2015 VLBW 3.5 +/- 2.2. CPAP impedes systemic venous return (Abdel-Hady 2008: wider IVC on CPAP 5)."
+   "notes": "User decision (6.2): Choi 2015 VLBW 3.5 +/- 2.2 (mean +/- 1 SD), steady days 1-7. Revised from 5 (Trevor Inglis 2007, 27 wk, median 4.9, IQR 4.4-6.1), because those infants were mostly ventilated and positive pressure raises CVP; a CPAP infant sits closer to Choi. CPAP impedes systemic venous return (Abdel-Hady 2008)."
   },
   {
    "key": "pap_s",

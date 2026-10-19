@@ -80,7 +80,7 @@ are reference-only context.
 | Diastolic BP | **26** mmHg | 22–31 (P5-P95) | A | Elsayed 2023, van Zadelhoff 2023 |
 | Mean arterial pressure | **34** mmHg | 27–42 (P5-P95) | A | Elsayed 2023, van Zadelhoff 2023, Vesoulis 2016 |
 | Pulse pressure | **19** mmHg | — | B | Elsayed 2023 |
-| Central venous pressure | **5** mmHg | 3–7 | A/B | Trevor Inglis 2007, Choi 2015, Siassi 1980, Abdel-Hady 2008 |
+| Central venous pressure | **3.5** mmHg | 1.3–5.7 | B | Choi 2015, Trevor Inglis 2007, Siassi 1980, Abdel-Hady 2008 |
 | Pulmonary artery pressure, systolic | **27** mmHg | 22–34 | C | Skinner 1992, Skinner 1991, Patel 2019 |
 | Pulmonary artery pressure, mean | **18.5** mmHg | 15–23 | C | Skinner 1992 |
 | Pulmonary artery pressure, diastolic | — | < 25 | C | Skinner 1991 |
@@ -235,6 +235,7 @@ Each change is a named lever in the 25 wk profile (`scripts/_preterm_profiles.mj
 | Step | Change | Effect | Basis |
 |---|---|---|---|
 | 6.1 | Airway resistors (`MOUTH_DS`, `DS_ALL`, `DS_ALR`) ×1.67 (new lever `AIRWAY_R`; they were still term's absolute values in every scenario); intrapulmonary shunt resistance 15000 → 9500 | Rrs 54 → 90; SpO₂ 94.5 → 91.2, PaO₂ 66 → 54, SvO₂ 82 → 79; 52 → 55 of 61 in range | Smaller airways; SpO₂ 93 would need PaO₂ ~58 on the fetal curve at pH ~7.23, so the author chose SpO₂ 91 / PaO₂ 54, both in range |
+| 6.2 | Ductal diameter 1.0 → 0.8 mm (`PDA_REL` 1/3 → 0.8/3); CVP reference revised 5 → 3.5 (1.3–5.7) | Ductal flow 41 → 22; LVO 264 → 247, LV SV 1.73 → 1.64, PAP mean 24.5 → 22.7; 55 → 59 of 61 in range. CVP 1.4, at the low end | Raising SVR only pushed more through the duct (52–56) and MAP to ~40. A stiffer heart raised LA more than RA (PFO 16–30, PAP up). More venous stressed volume became output. Choi 2015 (CVP 3.5 ± 2.2) fits a CPAP infant better than Inglis' mostly ventilated cohort |
 
 ## Decisions log (2026-10-19)
 
@@ -250,7 +251,7 @@ All choices were made by the model's author after the evidence was presented.
 | HR | 160 | Deshpande 25.9 wk at 54 h |
 | Hb | 13.5 g/dL / Hct 41 | Birth 15.1 + clamping − early fall − sampling |
 | PAP | RV/systemic ratio 0.60 (27 / 18.5) | PAAT rises with GA (Patel 2019) |
-| CVP | 5 (3–7) | Inglis 2007; CPAP 7 |
+| CVP | 5 (3–7), revised in 6.2 to 3.5 (1.3–5.7) | Inglis 2007 was mostly ventilated infants; Choi 2015 |
 | Brain flow | Kept at 28 mL/kg/min (33 % of SVC flow); 24 derived as the low side | Author's choice |
 | Organ flows | DAo ~100 with coronaries; SMA 22; coeliac 20; kidneys ~6 | Balance; GFR |
 | Lungs | CL 0.6 /kg, Ccw 7 /kg, Crs 0.39 mL/cmH₂O, Rrs ~90 | Post-LISA, less mature lung; compliant chest wall |
@@ -260,6 +261,8 @@ All choices were made by the model's author after the evidence was presented.
 | Kidney | GFR 0.30 mL/min/kg (4.6 /1.73 m²), FENa 10 %, urine 3, creatinine ~150 | Between the Vieux extrapolation and Bueva; Miall |
 | Metabolism / environment | VO₂ 6.0, glucose 7.0, lactate 1.5, blood volume 85, incubator 36 °C / 80 % RH | Hyperglycaemia common at 25 wk |
 | 6.1 oxygen | SpO₂ 91 / PaO₂ 54 (both in range) rather than SpO₂ 93 / PaO₂ 58 | Fetal curve at pH ~7.23 |
+| 6.2 duct | 0.8 mm instead of 1.0 mm (lower end of the reference range) | Ductal flow scales ~d⁴; 1 mm at 0.7 kg carried 41; 0.8 mm (1.14 mm/kg) carries the target 22 |
+| 6.2 CVP | Reference revised from 5 to 3.5 (1.3–5.7); the model's heart turns any extra filling into output, so CVP 5 could not be reached without PAP, PFO and MAP rising above target | Choi 2015 |
 
 ## Open items
 
