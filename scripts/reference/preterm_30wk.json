@@ -1,0 +1,1843 @@
+{
+ "name": "preterm_30wk",
+ "description": "Literature reference values for a preterm neonate born at 30 weeks (~1.5 kg) at ~72 h postnatal age, stable on nasal CPAP 5 cmH2O in room air without surfactant (mild RDS), a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused, delayed cord clamping, advancing enteral feeds + PN, caffeine, humidified incubator. Grades: A = 29-31 wk infants on day 2-4, B = wider GA band / other day / figure readout / guideline / short extrapolation, C = textbook / extrapolation / derived.",
+ "state": "stable on nCPAP 5, FiO2 0.21, no surfactant, small restrictive L->R PDA, PFO, untransfused (delayed clamping), advancing feeds + PN, caffeine, incubator ~34 degC / 60 % RH",
+ "compiled": "2026-10-19",
+ "doc": "docs/Preterm30wkReference.md",
+ "sources": {
+  "elsayed2023": {
+   "cite": "Elsayed Y, Ahmed F. Blood pressure normative values in preterm infants during postnatal transition. Pediatr Res 2024;95:698-704",
+   "doi": "10.1038/s41390-023-02788-8",
+   "pmid": "37667035"
+  },
+  "vanzadelhoff2023": {
+   "cite": "van Zadelhoff AC et al. Age-dependent changes in arterial blood pressure in neonates during the first week of life. Br J Anaesth 2023;130:585-94",
+   "doi": "10.1016/j.bja.2023.01.024",
+   "pmid": "36858885"
+  },
+  "guan2026": {
+   "cite": "Guan et al. Blood pressure changes in preterm infants of 28 to <37 weeks within 7 days after birth. Front Pediatr 2026",
+   "doi": "10.3389/fped.2026.1757399",
+   "pmid": "41878454"
+  },
+  "deshpande2023": {
+   "cite": "Deshpande P et al. Cerebral oxygenation, cardiac output and blood pressure during transition in extremely low gestational age neonates. Front Pediatr 2023;11:1187769",
+   "doi": "10.3389/fped.2023.1187769",
+   "pmid": "37654688"
+  },
+  "bischoff2021": {
+   "cite": "Bischoff AR et al. Assessment of superior vena cava flow and cardiac output in different patterns of PDA shunt. Echocardiography 2021;38:1524-33",
+   "doi": "10.1111/echo.15163",
+   "pmid": "34309068"
+  },
+  "groves2011": {
+   "cite": "Groves AM et al. Functional cardiac MRI in preterm and term newborns. Arch Dis Child Fetal Neonatal Ed 2011;96:F86-91",
+   "doi": "10.1136/adc.2010.189142",
+   "pmid": "20971721"
+  },
+  "kluckow2000": {
+   "cite": "Kluckow M, Evans N. Superior vena cava flow in newborn infants: a novel marker of systemic blood flow. Arch Dis Child Fetal Neonatal Ed 2000;82:F182-7",
+   "doi": "10.1136/fn.82.3.f182",
+   "pmid": "10794783"
+  },
+  "ficial2013": {
+   "cite": "Ficial B et al. Validation of echocardiographic measurements of systemic blood flow volume in newborn infants. J Am Soc Echocardiogr 2013;26:1365-71",
+   "doi": "10.1016/j.echo.2013.08.019",
+   "pmid": "24075229"
+  },
+  "broadhouse2013": {
+   "cite": "Broadhouse KM et al. Assessment of PDA shunt and systemic blood flow in newborns using cardiac MRI. NMR Biomed 2013;26:1135-41",
+   "doi": "10.1002/nbm.2927",
+   "pmid": "23412748"
+  },
+  "sloot2010": {
+   "cite": "Sloot SC et al. Central blood flow measurements in stable preterm infants after the transitional period. Arch Dis Child Fetal Neonatal Ed 2010;95:F369-72",
+   "doi": "10.1136/adc.2009.169169",
+   "pmid": "20530103"
+  },
+  "skinner1991": {
+   "cite": "Skinner JR et al. Non-invasive assessment of pulmonary arterial pressure in healthy neonates. Arch Dis Child 1991;66:386-90",
+   "doi": "10.1136/adc.66.4_spec_no.386",
+   "pmid": "2025029"
+  },
+  "skinner1992": {
+   "cite": "Skinner JR et al. Pulmonary and systemic arterial pressure in hyaline membrane disease. Arch Dis Child 1992;67:366-73",
+   "doi": "10.1136/adc.67.4_spec_no.366",
+   "pmid": "1586172"
+  },
+  "patel2019": {
+   "cite": "Patel MD et al. Echocardiographic assessment of right ventricular afterload in preterm infants. J Am Soc Echocardiogr 2019;32:884-94",
+   "doi": "10.1016/j.echo.2019.03.015",
+   "pmid": "31272593"
+  },
+  "levy2015": {
+   "cite": "Levy PT et al. Right ventricular function in preterm and term neonates: RV areas and fractional area change. J Am Soc Echocardiogr 2015;28:559-69",
+   "doi": "10.1016/j.echo.2015.01.024",
+   "pmid": "25753503"
+  },
+  "koestenberger2011": {
+   "cite": "Koestenberger M et al. Systolic right ventricular function in preterm and term neonates: TAPSE reference values. Neonatology 2011;100:85-92",
+   "doi": "10.1159/000322006",
+   "pmid": "21273793"
+  },
+  "toyoshima2024": {
+   "cite": "Toyoshima K et al. Biventricular function in preterm infants with PDA ligation: a 3D echocardiographic study. Pediatr Res 2024",
+   "doi": "10.1038/s41390-024-03180-w",
+   "pmid": "38615076"
+  },
+  "inglis2007": {
+   "cite": "Trevor Inglis GD, Dunster KR, Davies MW. Establishing normal values of central venous pressure in very low birth weight infants. Physiol Meas 2007;28:1283-91",
+   "doi": "10.1088/0967-3334/28/10/012",
+   "pmid": "17906394"
+  },
+  "choi2015": {
+   "cite": "Choi YS et al. Central venous pressure and renal function in very low birth weight infants during the early neonatal period. J Matern Fetal Neonatal Med 2015",
+   "doi": "10.3109/14767058.2014.1002766",
+   "pmid": "25612465"
+  },
+  "greisen1986": {
+   "cite": "Greisen G. Cerebral blood flow in preterm infants during the first week of life. Acta Paediatr Scand 1986;75:43-51",
+   "doi": "10.1111/j.1651-2227.1986.tb10155.x",
+   "pmid": "2420149"
+  },
+  "vanbel1990": {
+   "cite": "van Bel F et al. Superior mesenteric artery blood flow velocity and estimated volume flow: duplex Doppler US. Radiology 1990;174:165-9",
+   "doi": "10.1148/radiology.174.1.2403678",
+   "pmid": "2403678"
+  },
+  "martinussen1996": {
+   "cite": "Martinussen M et al. Mesenteric blood flow velocity in preterm infants. Pediatr Res 1996;39:275-80",
+   "doi": "10.1203/00006450-199602000-00015",
+   "pmid": "8825800"
+  },
+  "visser1992": {
+   "cite": "Visser MO et al. Renal blood flow in neonates: quantification with color flow and pulsed Doppler US. Radiology 1992;183:441-4",
+   "doi": "10.1148/radiology.183.2.1561347",
+   "pmid": "1561347"
+  },
+  "elkhuffash2008": {
+   "cite": "El-Khuffash A et al. Coeliac flow / LVO ratio and the haemodynamically significant PDA. Neonatology 2008;93:206-12",
+   "doi": "10.1159/000110869",
+   "pmid": "17992021"
+  },
+  "welty2018": {
+   "cite": "Welty SE et al. PLoS One 2018;13:e0193807 (bubble CPAP, 29.6 wk, 44 h)",
+   "doi": "10.1371/journal.pone.0193807",
+   "pmid": "29590143"
+  },
+  "liew2020": {
+   "cite": "Liew Z et al. Physiological effects of high-flow nasal cannula vs CPAP in preterm infants. Arch Dis Child Fetal Neonatal Ed 2020;105:87-93",
+   "doi": "10.1136/archdischild-2018-316773",
+   "pmid": "31123057"
+  },
+  "dimitriou1995": {
+   "cite": "Dimitriou G, Greenough A, Chan V. Early Hum Dev 1995;41:61-8",
+   "doi": "10.1016/0378-3782(94)01609-s",
+   "pmid": "7781569"
+  },
+  "reiterer1993": {
+   "cite": "Reiterer F, Sivieri E, Abbasi S, Bhutani VK. Pediatr Pulmonol 1993;15:117-21",
+   "doi": "10.1002/ppul.1950150209",
+   "pmid": "8474783"
+  },
+  "bhutani1988": {
+   "cite": "Bhutani VK et al. Pediatr Pulmonol 1988;4:150-8",
+   "doi": "10.1002/ppul.1950040306",
+   "pmid": "3374983"
+  },
+  "cunningham1989": {
+   "cite": "Cunningham MD. J Perinatol 1989;9:56-9",
+   "doi": null,
+   "pmid": "2709153"
+  },
+  "gerhardt1980": {
+   "cite": "Gerhardt T, Bancalari E. Chestwall compliance in full-term and premature infants. Acta Paediatr Scand 1980;69:359-64",
+   "doi": "10.1111/j.1651-2227.1980.tb07093.x",
+   "pmid": "7376862"
+  },
+  "dasilva1994": {
+   "cite": "da Silva WJ, Abbasi S, Pereira G, Bhutani VK. Role of PEEP in preterm infants with RDS: FRC. Pediatr Pulmonol 1994;18:89-92",
+   "doi": "10.1002/ppul.1950180206",
+   "pmid": "7970924"
+  },
+  "numa1996": {
+   "cite": "Numa AH, Newth CJ. Anatomic dead space in infants and children. J Appl Physiol 1996;80:1485-9",
+   "doi": "10.1152/jappl.1996.80.5.1485",
+   "pmid": "8727530"
+  },
+  "williams2021": {
+   "cite": "Williams E et al. Pediatr Res 2021 (volumetric capnography, ventilated RDS day 3)",
+   "doi": "10.1038/s41390-021-01388-8",
+   "pmid": "33603211"
+  },
+  "kraaijenga2015": {
+   "cite": "Kraaijenga JV et al. Effect of caffeine on diaphragmatic activity and tidal volume. J Pediatr 2015;167:70-5",
+   "doi": "10.1016/j.jpeds.2015.04.040",
+   "pmid": "25982138"
+  },
+  "prevent2023": {
+   "cite": "Weese-Mayer DE et al. (Pre-Vent). Pediatr Res 2023",
+   "doi": "10.1038/s41390-023-02839-0",
+   "pmid": "37857848"
+  },
+  "sweet2023": {
+   "cite": "Sweet DG et al. European Consensus Guidelines on the Management of RDS: 2022 Update. Neonatology 2023;120:3-23",
+   "doi": "10.1159/000528914",
+   "pmid": "36863329"
+  },
+  "quine2009": {
+   "cite": "Quine D, Stenson BJ. Arterial oxygen tension values in infants <29 weeks of gestation at currently targeted saturations. Arch Dis Child Fetal Neonatal Ed 2009;94:F51-3",
+   "doi": "10.1136/adc.2007.135285",
+   "pmid": "18285372"
+  },
+  "dehalleux2002": {
+   "cite": "De Halleux V et al. Effect of transfusion on the Hb-O2 dissociation curve of very early preterm infants. Semin Perinatol 2002;26:411-5",
+   "doi": "10.1053/sper.2002.37313",
+   "pmid": "12537312"
+  },
+  "bonsante2017": {
+   "cite": "Bonsante F et al. Early optimal parenteral nutrition and metabolic acidosis in very preterm infants. PLoS One 2017;12:e0186936",
+   "doi": "10.1371/journal.pone.0186936",
+   "pmid": "29176758"
+  },
+  "thome2015": {
+   "cite": "Thome UH et al. (PHELBI). Lancet Respir Med 2015;3:534-43",
+   "doi": "10.1016/S2213-2600(15)00204-0",
+   "pmid": "26088180"
+  },
+  "bauer1997": {
+   "cite": "Bauer K et al. Body temperatures and oxygen consumption during skin-to-skin care. J Pediatr 1997;130:240-4",
+   "doi": "10.1016/s0022-3476(97)70349-4",
+   "pmid": "9042126"
+  },
+  "bauer2003": {
+   "cite": "Bauer J et al. Longitudinal evaluation of energy expenditure in preterm infants <1000 g. Br J Nutr 2003;89:533-7",
+   "doi": "10.1079/BJN2002816",
+   "pmid": "12654172"
+  },
+  "bauer2001": {
+   "cite": "Bauer J et al. Effect of caffeine on oxygen consumption in VLBW infants. Pediatrics 2001;107:660-3",
+   "doi": "10.1542/peds.107.4.660",
+   "pmid": "11335740"
+  },
+  "forsyth1992": {
+   "cite": "Forsyth JS, Crighton A. Arch Dis Child 1992;67:315-9",
+   "doi": "10.1136/adc.67.3.315",
+   "pmid": "1575556"
+  },
+  "yapakci2014": {
+   "cite": "Yapakci E et al. IVC oxygen saturation in the first 3 postnatal days in preterms. Balkan Med J 2014;31:230-4",
+   "doi": "10.5152/balkanmedj.2014.13197",
+   "pmid": "25337418"
+  },
+  "jopling2009": {
+   "cite": "Jopling J et al. Reference ranges for hematocrit and blood hemoglobin concentration during the neonatal period. Pediatrics 2009;123:e333-7",
+   "doi": "10.1542/peds.2008-2654",
+   "pmid": "19171584"
+  },
+  "aladangady2004": {
+   "cite": "Aladangady N et al. Arch Dis Child Fetal Neonatal Ed 2004;89:F344-7",
+   "doi": "10.1136/adc.2003.039008",
+   "pmid": "15210672"
+  },
+  "aladangady2006": {
+   "cite": "Aladangady N et al. Infants' blood volume in a controlled trial of placental transfusion at preterm delivery. Pediatrics 2006;117:93-8",
+   "doi": "10.1542/peds.2004-1773",
+   "pmid": "16396865"
+  },
+  "liu2026": {
+   "cite": "Liu et al. REACT substudy: glucose and lactate in very preterm infants. Arch Dis Child Fetal Neonatal Ed 2026;111:F196-202",
+   "doi": "10.1136/archdischild-2025-328701",
+   "pmid": "41087081"
+  },
+  "deshpande1997": {
+   "cite": "Deshpande SA, Platt MP. Association between blood lactate and acid-base status and mortality in ventilated babies. Arch Dis Child Fetal Neonatal Ed 1997;76:F15-20",
+   "doi": "10.1136/fn.76.1.f15",
+   "pmid": "9059180"
+  },
+  "vieux2010": {
+   "cite": "Vieux R et al. Glomerular filtration rate reference values in very preterm infants. Pediatrics 2010;125:e1186-92",
+   "doi": "10.1542/peds.2009-1426",
+   "pmid": "20368313"
+  },
+  "bueva1994": {
+   "cite": "Bueva A, Guignard JP. Renal function in preterm neonates. Pediatr Res 1994;36:572-7",
+   "doi": "10.1203/00006450-199411000-00005",
+   "pmid": "7877873"
+  },
+  "lorenz1995": {
+   "cite": "Lorenz JM et al. Phases of fluid and electrolyte homeostasis in the extremely low birth weight infant. Pediatrics 1995;96:484-9",
+   "doi": null,
+   "pmid": "7651782"
+  },
+  "miall1999": {
+   "cite": "Miall LS et al. Plasma creatinine rises dramatically in the first 48 hours of life in preterm infants. Pediatrics 1999;104:e76",
+   "doi": "10.1542/peds.104.6.e76",
+   "pmid": "10586010"
+  },
+  "sauer1984": {
+   "cite": "Sauer PJ, Dane HJ, Visser HK. New standards for neutral thermal environment of healthy very low birthweight infants in week one of life. Arch Dis Child 1984;59:18-22",
+   "doi": "10.1136/adc.59.1.18",
+   "pmid": "6696489"
+  },
+  "humidity2021": {
+   "cite": "Systematic review of incubator humidity in preterm infants. Adv Neonatal Care 2021",
+   "doi": "10.1097/ANC.0000000000000791",
+   "pmid": "33009156"
+  },
+  "james2015": {
+   "cite": "James AT et al. Clinical utility of right ventricular fractional area change in preterm infants. Early Hum Dev 2015;92:19-23",
+   "doi": "10.1016/j.earlhumdev.2015.10.015",
+   "pmid": "26619069"
+  },
+  "abdelhady2008": {
+   "cite": "Abdel-Hady H et al. Hemodynamic changes during weaning from nasal CPAP. Pediatrics 2008;122:e1086-90",
+   "doi": "10.1542/peds.2008-1193",
+   "pmid": "18977958"
+  },
+  "pryds1989": {
+   "cite": "Pryds O, Greisen G. Effect of PaCO2 and haemoglobin concentration on day to day variation of CBF in preterm neonates. Acta Paediatr Scand Suppl 1989;360:33-6",
+   "doi": "10.1111/j.1651-2227.1989.tb11279.x",
+   "pmid": "2518395"
+  },
+  "hsu2019": {
+   "cite": "Hsu KH et al. Effects of PDA on organ blood flow in infants born very preterm. J Pediatr 2019;216:95-100",
+   "doi": "10.1016/j.jpeds.2019.08.057",
+   "pmid": "31610928"
+  },
+  "stoecklin2024": {
+   "cite": "Stoecklin B et al. Respiratory and chest wall mechanics in very preterm infants. J Appl Physiol 2024;136:1499-1506",
+   "doi": "10.1152/japplphysiol.00561.2023",
+   "pmid": "38634505"
+  },
+  "rehan2001": {
+   "cite": "Rehan VK et al. Diaphragm dimensions of the healthy preterm infant. Pediatrics 2001;108:e91",
+   "doi": "10.1542/peds.108.5.e91",
+   "pmid": "11694675"
+  },
+  "schwarz2022": {
+   "cite": "Schwarz CE et al. Agreement of cardiac output estimates between electrical cardiometry and transthoracic echocardiography in very preterm infants. Neonatology 2022;119:594-601",
+   "doi": "10.1159/000525755",
+   "pmid": "35896077"
+  },
+  "cappelleri2019": {
+   "cite": "Cappelleri A et al. Myocardial function in late preterm infants during the transitional period. Cardiol Young 2020;30:249-55",
+   "doi": "10.1017/S1047951119003020",
+   "pmid": "31845639"
+  },
+  "ghandi2018": {
+   "cite": "Ghandi Y et al. Reference values of longitudinal systolic right and left ventricular function by M-mode echocardiography in healthy preterm and term neonates. J Cardiovasc Echogr 2018;28:177-81",
+   "doi": "10.4103/jcecho.jcecho_31_18",
+   "pmid": "30306022"
+  },
+  "alonzo2018": {
+   "cite": "Alonzo CJ et al. Heart rate ranges in premature neonates using high resolution physiologic data. J Perinatol 2018;38:1242-5",
+   "doi": "10.1038/s41372-018-0156-1",
+   "pmid": "29925866"
+  },
+  "eenkhoorn2026": {
+   "cite": "Eenkhoorn C et al. Reference values for heart rate frequency and variability in premature neonates during the first week of life. J Perinat Med 2026;54:778-87",
+   "doi": "10.1515/jpm-2025-0439",
+   "pmid": "41612747"
+  },
+  "havranek2007": {
+   "cite": "Havranek T et al. Nasal CPAP affects pre- and postprandial intestinal blood flow velocity in preterm infants. J Perinatol 2007;27:704-8",
+   "doi": "10.1038/sj.jp.7211808",
+   "pmid": "17703183"
+  },
+  "maruyama2013": {
+   "cite": "Maruyama K et al. Feeding interval and postprandial intestinal blood flow in premature infants. Pediatr Int 2013;55:472-6",
+   "doi": "10.1111/ped.12106",
+   "pmid": "23566051"
+  },
+  "kehrer2003": {
+   "cite": "Kehrer M et al. The development of cerebral perfusion in healthy preterm and term neonates. Neuropediatrics 2003;34:281-6",
+   "doi": "10.1055/s-2003-44663",
+   "pmid": "14681752"
+  },
+  "granzotto1991": {
+   "cite": "Granzotto J et al. Oxygen transport in newborns at different gestational ages. J Perinat Med 1991;19:477-83",
+   "doi": "10.1515/jpme.1991.19.6.477",
+   "pmid": "1726111"
+  },
+  "richard1993": {
+   "cite": "Richard D, Poets CF et al. Arterial oxygen saturation in preterm neonates without respiratory failure. J Pediatr 1993;123:963-8",
+   "doi": "10.1016/s0022-3476(05)80395-6",
+   "pmid": "8229531"
+  },
+  "senterre2015": {
+   "cite": "Senterre T et al. Electrolyte and mineral homeostasis after optimizing early macronutrient intakes in VLBW infants on parenteral nutrition. J Pediatr Gastroenterol Nutr 2015;61:491-8",
+   "doi": "10.1097/MPG.0000000000000854",
+   "pmid": "25988555"
+  },
+  "hammarlund1983": {
+   "cite": "Hammarlund K, Sedin G, Stromberg B. Transepidermal water loss in newborn infants VIII: relation to gestational age and post-natal age. Acta Paediatr Scand 1983;72:721-8",
+   "doi": "10.1111/j.1651-2227.1983.tb09801.x",
+   "pmid": "6637471"
+  },
+  "hammarlund1982": {
+   "cite": "Hammarlund K, Sedin G, Stromberg B. Transepidermal water loss in newborn infants VII: relation to post-natal age in very pre-term and full-term infants. Acta Paediatr Scand 1982;71:369-74",
+   "doi": "10.1111/j.1651-2227.1982.tb09436.x",
+   "pmid": "7136649"
+  },
+  "gallini2000": {
+   "cite": "Gallini F et al. Progression of renal function in preterm neonates with gestational age <= 32 weeks. Pediatr Nephrol 2000;15:119-24",
+   "doi": "10.1007/s004670000356",
+   "pmid": "11095027"
+  },
+  "kjartansson1992": {
+   "cite": "Kjartansson S, Hammarlund K, Riesenfeld T, Sedin G. Respiratory water loss and oxygen consumption in newborn infants during phototherapy. Acta Paediatr 1992;81:769-73",
+   "doi": "10.1111/j.1651-2227.1992.tb12100.x",
+   "pmid": "1421880"
+  },
+  "dobbing1978": {
+   "cite": "Dobbing J, Sands J. Head circumference, biparietal diameter and brain growth in fetal and postnatal life. Early Hum Dev 1978;2:81-7",
+   "doi": "10.1016/0378-3782(78)90054-3",
+   "pmid": "569046"
+  }
+ },
+ "variables": [
+  {
+   "key": "hr",
+   "group": "hemodynamics",
+   "label": "Heart rate",
+   "unit": "bpm",
+   "mean": 150,
+   "sd": null,
+   "low": 130,
+   "high": 170,
+   "range_type": "range",
+   "method": "monitor",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "alonzo2018",
+    "eenkhoorn2026",
+    "groves2011",
+    "deshpande2023"
+   ],
+   "grade": "B/C",
+   "model_readout": "Monitor.heart_rate",
+   "notes": "User decision 150. Baseline HR falls with GA and rises with postnatal age (Alonzo 2018, 29-31 wk group; Eenkhoorn 2026, median 29 wk); neither gives usable numbers. Interpolated between the 28 wk anchor 155 and Groves 2011 cine 142 +/- 17 (CGA ~35, day 9, asleep)."
+  },
+  {
+   "key": "sbp",
+   "group": "hemodynamics",
+   "label": "Systolic BP",
+   "unit": "mmHg",
+   "mean": 58,
+   "sd": null,
+   "low": 46,
+   "high": 68,
+   "range_type": "P5-P95",
+   "method": "invasive UAC (extrapolated)",
+   "age": "day 3",
+   "n": null,
+   "sources": [
+    "elsayed2023",
+    "vanzadelhoff2023",
+    "guan2026"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor.minmax.abp_pre_pres_max",
+   "notes": "Elsayed 2023 has no 30 wk row (cohort < 29 wk): day-3 centiles extrapolated linearly from 23-28 wk (median slope ~2-3 mmHg/wk). Cuff cross-checks: van Zadelhoff calculator GA 30+0 PNA 72 h 62.4 (48.1-78.1); Guan 2026 28-31 wk D3 67."
+  },
+  {
+   "key": "dbp",
+   "group": "hemodynamics",
+   "label": "Diastolic BP",
+   "unit": "mmHg",
+   "mean": 31,
+   "sd": null,
+   "low": 27,
+   "high": 39,
+   "range_type": "P5-P95",
+   "method": "invasive UAC (extrapolated)",
+   "age": "day 3",
+   "n": null,
+   "sources": [
+    "elsayed2023",
+    "vanzadelhoff2023",
+    "guan2026"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor.minmax.abp_pre_pres_min",
+   "notes": "Elsayed day-3 DBP rises 1 mmHg/wk from 24 (23 wk) to 29 (28 wk); extrapolated 31. Cuff 34.8 (van Zadelhoff), 36 (Guan)."
+  },
+  {
+   "key": "map",
+   "group": "hemodynamics",
+   "label": "Mean arterial pressure",
+   "unit": "mmHg",
+   "mean": 42,
+   "sd": null,
+   "low": 31,
+   "high": 50,
+   "range_type": "P5-P95",
+   "method": "invasive UAC (extrapolated)",
+   "age": "day 3",
+   "n": null,
+   "sources": [
+    "elsayed2023",
+    "vanzadelhoff2023",
+    "guan2026"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor.minmax.abp_pre_pres_mean",
+   "notes": "User decision: Elsayed day-3 median extrapolated to 30 wk = 42.4 (fits from 23 and 25 wk agree). Cuff reads ~4 mmHg higher, as at 28 wk: van Zadelhoff 46.1 (P2.3-P97.7 33.0-60.4), Guan 46."
+  },
+  {
+   "key": "pp",
+   "group": "hemodynamics",
+   "label": "Pulse pressure",
+   "unit": "mmHg",
+   "mean": 27,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "elsayed2023"
+   ],
+   "grade": "B",
+   "model_readout": "sbp - dbp",
+   "notes": "Derived from the extrapolated medians (28 wk 25, 25 wk 19)."
+  },
+  {
+   "key": "cvp",
+   "group": "hemodynamics",
+   "label": "Central venous pressure",
+   "unit": "mmHg",
+   "mean": 3.5,
+   "sd": null,
+   "low": 1.3,
+   "high": 5.7,
+   "range_type": "range",
+   "method": "UVC",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "choi2015",
+    "inglis2007",
+    "abdelhady2008"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor.minmax.cvp_pres_mean",
+   "notes": "User decision: Choi 2015 VLBW 3.5 +/- 2.2, steady days 1-7 (as the revised 25 wk target). CPAP 5 is lower than at 25/28 wk; Inglis 2007 4.9 was mostly ventilated."
+  },
+  {
+   "key": "pap_s",
+   "group": "hemodynamics",
+   "label": "Pulmonary artery pressure, systolic",
+   "unit": "mmHg",
+   "mean": 29,
+   "sd": null,
+   "low": 23,
+   "high": 35,
+   "range_type": "range",
+   "method": "echo ratio, derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "patel2019",
+    "skinner1992"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.minmax.pap_pres_max",
+   "notes": "Derived: RV/systemic ratio 0.50 (user decision; series 0.60 at 25 wk, 0.55 at 28 wk; Patel 2019: PAAT rises linearly with GA at birth) x SBP 58. Ratio grade B, mmHg grade C."
+  },
+  {
+   "key": "pap_m",
+   "group": "hemodynamics",
+   "label": "Pulmonary artery pressure, mean",
+   "unit": "mmHg",
+   "mean": 19.5,
+   "sd": null,
+   "low": 15,
+   "high": 23,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "skinner1992"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.minmax.pap_pres_mean",
+   "notes": "Chemla relation 0.61 x sPAP + 2; extrapolation."
+  },
+  {
+   "key": "pap_d",
+   "group": "hemodynamics",
+   "label": "Pulmonary artery pressure, diastolic",
+   "unit": "mmHg",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": 31,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "skinner1991"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.minmax.pap_pres_min",
+   "notes": "Constraint: PA diastolic < aortic diastolic (~31) so the restrictive duct stays pure L->R."
+  },
+  {
+   "key": "lv_edv",
+   "group": "heart",
+   "label": "LV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 2.2,
+   "sd": null,
+   "low": 1.8,
+   "high": 2.7,
+   "range_type": "range",
+   "method": "cine MRI (scaled)",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "groves2011"
+   ],
+   "grade": "B",
+   "model_readout": "Heart.lv_edv / weight",
+   "notes": "SV 1.43 at EF ~65 %; Groves MRI: no GA effect (cohort covers CGA 30)."
+  },
+  {
+   "key": "lv_esv",
+   "group": "heart",
+   "label": "LV end-systolic volume",
+   "unit": "mL/kg",
+   "mean": 0.77,
+   "sd": null,
+   "low": 0.4,
+   "high": 1.1,
+   "range_type": "range",
+   "method": "cine MRI",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "groves2011"
+   ],
+   "grade": "B",
+   "model_readout": "Heart.lv_esv / weight",
+   "notes": "EDV - SV; Groves 0.78 +/- 0.21."
+  },
+  {
+   "key": "lv_sv",
+   "group": "heart",
+   "label": "LV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.43,
+   "sd": null,
+   "low": 1.1,
+   "high": 1.75,
+   "range_type": "range",
+   "method": "echo LVO / HR",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "groves2011",
+    "schwarz2022"
+   ],
+   "grade": "B",
+   "model_readout": "Heart.lv_sv / weight",
+   "notes": "LVO 215 / HR 150."
+  },
+  {
+   "key": "lv_ef",
+   "group": "heart",
+   "label": "LV ejection fraction",
+   "unit": "%",
+   "mean": 65,
+   "sd": null,
+   "low": 58,
+   "high": 80,
+   "range_type": "range",
+   "method": "cine MRI",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "groves2011"
+   ],
+   "grade": "B",
+   "model_readout": "Heart.lv_ef * 100",
+   "notes": "Groves 69 +/- 5.7 (LLN 58), no GA effect."
+  },
+  {
+   "key": "rv_edv",
+   "group": "heart",
+   "label": "RV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 2.6,
+   "sd": null,
+   "low": 2.1,
+   "high": 3.1,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "levy2015"
+   ],
+   "grade": "C",
+   "model_readout": "Heart.rv_edv / weight",
+   "notes": "Derived from RV SV 1.30 at EF ~50 %."
+  },
+  {
+   "key": "rv_esv",
+   "group": "heart",
+   "label": "RV end-systolic volume",
+   "unit": "mL/kg",
+   "mean": 1.3,
+   "sd": null,
+   "low": 0.95,
+   "high": 1.7,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "levy2015"
+   ],
+   "grade": "C",
+   "model_readout": "Heart.rv_esv / weight",
+   "notes": "Derived."
+  },
+  {
+   "key": "rv_sv",
+   "group": "heart",
+   "label": "RV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.3,
+   "sd": null,
+   "low": 1.05,
+   "high": 1.6,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "schwarz2022"
+   ],
+   "grade": "C",
+   "model_readout": "Heart.rv_sv / weight",
+   "notes": "RVO 195 / HR 150."
+  },
+  {
+   "key": "rv_ef",
+   "group": "heart",
+   "label": "RV ejection fraction",
+   "unit": "%",
+   "mean": 50,
+   "sd": null,
+   "low": 45,
+   "high": 60,
+   "range_type": "range",
+   "method": "3D echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "toyoshima2024",
+    "levy2015"
+   ],
+   "grade": "B/C",
+   "model_readout": "Heart.rv_ef * 100",
+   "notes": "As at 25/28 wk (3D echo 52 %, Toyoshima)."
+  },
+  {
+   "key": "rv_fac",
+   "group": "heart",
+   "label": "RV fractional area change",
+   "unit": "%",
+   "mean": 31,
+   "sd": null,
+   "low": 26,
+   "high": 38,
+   "range_type": "range",
+   "method": "echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "levy2015",
+    "james2015"
+   ],
+   "grade": "B",
+   "model_readout": null,
+   "notes": "Levy 2015: 26 +/- 4 % at 23-28 wk days 1-3, 35 +/- 4 % by 32 wk PMA. Reference only."
+  },
+  {
+   "key": "rv_tapse",
+   "group": "heart",
+   "label": "TAPSE",
+   "unit": "cm",
+   "mean": 0.55,
+   "sd": null,
+   "low": 0.4,
+   "high": 0.7,
+   "range_type": "range",
+   "method": "echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "koestenberger2011",
+    "ghandi2018"
+   ],
+   "grade": "B",
+   "model_readout": null,
+   "notes": "Koestenberger 2011 GA line 0.60 at 30 wk; Ghandi 2018 30-33 wk 0.47 +/- 0.13. Reference only."
+  },
+  {
+   "key": "lvo",
+   "group": "flows",
+   "label": "Left ventricular output",
+   "unit": "mL/kg/min",
+   "mean": 215,
+   "sd": null,
+   "low": 180,
+   "high": 280,
+   "range_type": "range",
+   "method": "echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "schwarz2022",
+    "sloot2010",
+    "groves2011",
+    "cappelleri2019"
+   ],
+   "grade": "B",
+   "model_readout": "LV_AA.flow / weight",
+   "notes": "User decision: kept as at 25/28 wk. Brackets at this GA: Schwarz 2022 (median 29 wk, days 1-2) TTE 163 +/- 47; Sloot 2010 (25-31 wk, day 7) 296; Groves MRI at CGA ~30 ~260 (day 10, duct closed). LVO rises day 1 -> 2 (Cappelleri 2019, 32.7 wk)."
+  },
+  {
+   "key": "rvo",
+   "group": "flows",
+   "label": "Right ventricular output",
+   "unit": "mL/kg/min",
+   "mean": 195,
+   "sd": null,
+   "low": 160,
+   "high": 260,
+   "range_type": "range",
+   "method": "echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "schwarz2022",
+    "abdelhady2008"
+   ],
+   "grade": "B",
+   "model_readout": "RV_PA.flow / weight",
+   "notes": "Schwarz 2022 TTE RVO 241 +/- 77 (days 1-2)."
+  },
+  {
+   "key": "lvo_rvo",
+   "group": "flows",
+   "label": "LVO/RVO ratio",
+   "unit": "-",
+   "mean": 1.1,
+   "sd": null,
+   "low": 1.0,
+   "high": 1.25,
+   "range_type": "range",
+   "method": "echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "bischoff2021"
+   ],
+   "grade": "B",
+   "model_readout": "lvo / rvo",
+   "notes": "(Qs + PDA) / (Qs + FO), small duct."
+  },
+  {
+   "key": "svc",
+   "group": "flows",
+   "label": "SVC flow",
+   "unit": "mL/kg/min",
+   "mean": 85,
+   "sd": null,
+   "low": 60,
+   "high": 115,
+   "range_type": "range",
+   "method": "echo / MRI",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "kluckow2000",
+    "groves2011",
+    "ficial2013"
+   ],
+   "grade": "B",
+   "model_readout": "SVC_RASVC.flow / weight",
+   "notes": "As at 25/28 wk. Kluckow 86 at 48 h (<30 wk); Groves MRI ~113 at CGA ~30 (day 10) = upper bracket."
+  },
+  {
+   "key": "dao",
+   "group": "flows",
+   "label": "Descending aorta flow",
+   "unit": "mL/kg/min",
+   "mean": 100,
+   "sd": null,
+   "low": 75,
+   "high": 140,
+   "range_type": "range",
+   "method": "balance-derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "groves2011",
+    "broadhouse2013"
+   ],
+   "grade": "B/C",
+   "model_readout": "AAR_AD.flow / weight",
+   "notes": "Balance: LVO 215 - SVC 85 - duct ~20 - coronaries ~12 = ~100. Split: SMA 28 + coeliac 20 + kidneys ~17 + rest ~35."
+  },
+  {
+   "key": "cbf",
+   "group": "flows",
+   "label": "Cerebral blood flow",
+   "unit": "mL/kg/min",
+   "mean": 25,
+   "sd": null,
+   "low": 18,
+   "high": 35,
+   "range_type": "range",
+   "method": "xenon (derived)",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "greisen1986",
+    "pryds1989",
+    "kehrer2003",
+    "dobbing1978"
+   ],
+   "grade": "B/C",
+   "model_readout": "AA_BR_ART.flow / weight",
+   "notes": "User decision (derived): tracer CBF ~20 mL/100 g/min at 28-33 wk (Greisen 1986) x brain 185 g (HC 27.5 cm, Dobbing & Sands) = 12.3 % of 1.5 kg -> 25 mL/kg/min. Same flow per gram of brain as 28 wk; the brain is a smaller share of body weight. Ultrasound cross-check Kehrer 2003 32-34 wk ~18 mL/kg/min. Brain = 29 % of SVC."
+  },
+  {
+   "key": "sma",
+   "group": "flows",
+   "label": "Intestinal (SMA) flow",
+   "unit": "mL/kg/min",
+   "mean": 28,
+   "sd": null,
+   "low": 15,
+   "high": 40,
+   "range_type": "range",
+   "method": "Doppler (derived)",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "maruyama2013",
+    "havranek2007",
+    "martinussen1996",
+    "vanbel1990"
+   ],
+   "grade": "C",
+   "model_readout": "AD_INT_ART.flow / weight",
+   "notes": "Time-averaged over 3-hourly feeds (advancing feeds ~60 mL/kg/day): postprandial peak at 30 min, near baseline by 60 min (Maruyama 2013; +83 % at peak, Martinussen 1996); CPAP blunts pre- and postprandial flow (Havranek 2007). Between-feed baseline ~25."
+  },
+  {
+   "key": "renal",
+   "group": "flows",
+   "label": "Renal blood flow",
+   "unit": "mL/kg/min",
+   "mean": 17,
+   "sd": null,
+   "low": 11,
+   "high": 23,
+   "range_type": "range",
+   "method": "physiology (derived)",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "vieux2010",
+    "visser1992"
+   ],
+   "grade": "C",
+   "model_readout": "AD_KID_ART.flow / weight",
+   "notes": "Follows the GFR decision (0.8 mL/min/kg) at term's renal blood flow / GFR ratio 21 (engine renal rule): ~17. Doppler totals (Visser) are overestimates."
+  },
+  {
+   "key": "hepatic_art",
+   "group": "flows",
+   "label": "Coeliac (liver + spleen) flow",
+   "unit": "mL/kg/min",
+   "mean": 20,
+   "sd": null,
+   "low": 12,
+   "high": 30,
+   "range_type": "range",
+   "method": "Doppler ratio",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "elkhuffash2008"
+   ],
+   "grade": "C",
+   "model_readout": "AD_LS_ART.flow / weight",
+   "notes": "As at 25/28 wk."
+  },
+  {
+   "key": "pda",
+   "group": "shunts",
+   "label": "Ductal shunt flow (L->R)",
+   "unit": "mL/kg/min",
+   "mean": 22,
+   "sd": null,
+   "low": 10,
+   "high": 40,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "broadhouse2013"
+   ],
+   "grade": "C",
+   "model_readout": "AAR_DA.flow / weight (aorta -> PA positive)",
+   "notes": "Small restrictive L->R duct (state)."
+  },
+  {
+   "key": "pda_diam",
+   "group": "shunts",
+   "label": "Ductal diameter",
+   "unit": "mm",
+   "mean": 1.0,
+   "sd": null,
+   "low": 0.8,
+   "high": 1.4,
+   "range_type": "range",
+   "method": "echo",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "deshpande2023",
+    "hsu2019"
+   ],
+   "grade": "B",
+   "model_readout": "Pda diameter setting",
+   "notes": "State: ~1 mm, restrictive."
+  },
+  {
+   "key": "fo",
+   "group": "shunts",
+   "label": "Foramen ovale shunt (L->R)",
+   "unit": "mL/kg/min",
+   "mean": 5,
+   "sd": null,
+   "low": 0,
+   "high": 15,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "bischoff2021"
+   ],
+   "grade": "C",
+   "model_readout": "(LA_RAIVCI + LA_RASVC).flow / weight (L->R positive)",
+   "notes": "Small L->R PFO (state)."
+  },
+  {
+   "key": "rr",
+   "group": "breathing",
+   "label": "Respiratory rate",
+   "unit": "/min",
+   "mean": 60,
+   "sd": null,
+   "low": 45,
+   "high": 80,
+   "range_type": "range",
+   "method": "Pes / RIP",
+   "age": "44 h",
+   "n": null,
+   "sources": [
+    "welty2018",
+    "liew2020"
+   ],
+   "grade": "A/B",
+   "model_readout": "Monitor.resp_rate",
+   "notes": "Welty 2018: 29.6 +/- 1.7 wk, 44 h, bubble CPAP 5-8, mostly room air: 67 +/- 20 (direct age); RR falls with maturity; 28 wk 62."
+  },
+  {
+   "key": "vt",
+   "group": "breathing",
+   "label": "Tidal volume",
+   "unit": "mL/kg",
+   "mean": 5.0,
+   "sd": null,
+   "low": 4.2,
+   "high": 6.0,
+   "range_type": "range",
+   "method": "EIP, no mask",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "liew2020",
+    "reiterer1993",
+    "kraaijenga2015"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.exp_tidal_volume / weight",
+   "notes": "Non-invasive (no mask) convention, caffeine on board."
+  },
+  {
+   "key": "mv",
+   "group": "breathing",
+   "label": "Minute ventilation",
+   "unit": "mL/kg/min",
+   "mean": 300,
+   "sd": null,
+   "low": 240,
+   "high": 380,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "liew2020"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.minute_volume / weight",
+   "notes": "RR 60 x Vt 5.0."
+  },
+  {
+   "key": "ti_ttot",
+   "group": "breathing",
+   "label": "Inspiratory time fraction (Ti/Ttot)",
+   "unit": "-",
+   "mean": 0.38,
+   "sd": null,
+   "low": 0.33,
+   "high": 0.44,
+   "range_type": "range",
+   "method": "pneumotach",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "reiterer1993",
+    "dimitriou1995"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.ie_ratio (used as Ti/Ttot)",
+   "notes": "As at 25/28 wk."
+  },
+  {
+   "key": "crs",
+   "group": "breathing",
+   "label": "Respiratory system compliance",
+   "unit": "mL/cmH2O",
+   "mean": 1.13,
+   "sd": null,
+   "low": 0.75,
+   "high": 1.5,
+   "range_type": "range",
+   "method": "derived from CL and Ccw",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "bhutani1988",
+    "gerhardt1980",
+    "stoecklin2024"
+   ],
+   "grade": "C",
+   "model_readout": "series(2 x ALL/ALR, THORAX)",
+   "notes": "Absolute value at 1.5 kg: lungs 0.9 /kg in series with chest wall 4.5 /kg -> 0.75 /kg."
+  },
+  {
+   "key": "cl",
+   "group": "breathing",
+   "label": "Lung compliance (both lungs)",
+   "unit": "mL/cmH2O/kg",
+   "mean": 0.9,
+   "sd": null,
+   "low": 0.6,
+   "high": 1.3,
+   "range_type": "range",
+   "method": "oesophageal pressure",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "bhutani1988",
+    "cunningham1989",
+    "reiterer1993",
+    "stoecklin2024"
+   ],
+   "grade": "C",
+   "model_readout": "parallel(ALL, ALR) / weight",
+   "notes": "User decision 0.9: no surfactant, mild RDS in room air on CPAP 5; between acute RDS 0.44 (Bhutani 1988) and recovering 1.0-1.2 (Reiterer, Cunningham); Stoecklin 2024 static CL 0.95 /kg at 36 wk PMA."
+  },
+  {
+   "key": "ccw",
+   "group": "breathing",
+   "label": "Chest wall compliance",
+   "unit": "mL/cmH2O/kg",
+   "mean": 4.5,
+   "sd": null,
+   "low": 3,
+   "high": 6.5,
+   "range_type": "range",
+   "method": "oesophageal pressure",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "gerhardt1980",
+    "stoecklin2024",
+    "rehan2001"
+   ],
+   "grade": "C",
+   "model_readout": "THORAX / weight",
+   "notes": "Stiffens with maturity (Rehan 2001): Gerhardt 6.4 /kg at 32 wk (ventilated), Stoecklin 3.0 at 36 wk PMA; series 7 (25 wk), 5 (28 wk)."
+  },
+  {
+   "key": "rrs",
+   "group": "breathing",
+   "label": "Respiratory system resistance",
+   "unit": "cmH2O/L/s",
+   "mean": 45,
+   "sd": null,
+   "low": 30,
+   "high": 70,
+   "range_type": "range",
+   "method": "extrapolated",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "reiterer1993",
+    "bhutani1988"
+   ],
+   "grade": "C",
+   "model_readout": "MOUTH_DS + DS_ALL||DS_ALR",
+   "notes": "Larger airways: 28 wk 65 at 1 kg scaled ~1/weight^0.9 (the 25 -> 28 wk step)."
+  },
+  {
+   "key": "frc",
+   "group": "breathing",
+   "label": "Functional residual capacity",
+   "unit": "mL/kg",
+   "mean": 24,
+   "sd": null,
+   "low": 18,
+   "high": 30,
+   "range_type": "range",
+   "method": "gas washout",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "dasilva1994"
+   ],
+   "grade": "B",
+   "model_readout": "ALL.vol + ALR.vol at end-expiration / weight",
+   "notes": "CPAP 5: da Silva 1994 22.6 (PEEP 4) - 26.2 (PEEP 5) mL/kg; McEvoy 2002 ~28 at ~32.5 wk; a more compliant lung."
+  },
+  {
+   "key": "vd",
+   "group": "breathing",
+   "label": "Anatomic dead space",
+   "unit": "mL/kg",
+   "mean": 2.8,
+   "sd": null,
+   "low": 2.2,
+   "high": 3.4,
+   "range_type": "range",
+   "method": "capnography / anatomy",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "numa1996",
+    "liew2020"
+   ],
+   "grade": "B/C",
+   "model_readout": "DS.vol / weight",
+   "notes": "Nasopharynx share smaller at larger size (28 wk 3.0, 25 wk 3.2); nCPAP does not wash out the nasopharynx (Liew 2020)."
+  },
+  {
+   "key": "vd_vt",
+   "group": "breathing",
+   "label": "Physiological dead space fraction (Vd/Vt)",
+   "unit": "-",
+   "mean": 0.6,
+   "sd": null,
+   "low": 0.5,
+   "high": 0.7,
+   "range_type": "range",
+   "method": "volumetric capnography",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "williams2021"
+   ],
+   "grade": "B",
+   "model_readout": "vd / vt",
+   "notes": "With MV 300 and VCO2 ~5.7-6.0: VA 120 -> PaCO2 41-43."
+  },
+  {
+   "key": "fio2",
+   "group": "breathing",
+   "label": "Inspired O2 fraction",
+   "unit": "-",
+   "mean": 0.21,
+   "sd": null,
+   "low": 0.21,
+   "high": 0.25,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "welty2018"
+   ],
+   "grade": "state",
+   "model_readout": "MOUTH fio2 setting",
+   "notes": "State: nCPAP 5 in room air (user decision); SpO2 is an outcome of the lung, not titrated."
+  },
+  {
+   "key": "apnoea",
+   "group": "breathing",
+   "label": "Apnoea / periodic breathing",
+   "unit": "events",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "prevent2023"
+   ],
+   "grade": "C",
+   "model_readout": null,
+   "notes": "Reference only; Apnea model off at baseline. Less frequent than at 28 wk."
+  },
+  {
+   "key": "spo2",
+   "group": "gases",
+   "label": "SpO2 (pre-ductal)",
+   "unit": "%",
+   "mean": 96,
+   "sd": null,
+   "low": 94,
+   "high": 98,
+   "range_type": "range",
+   "method": "pulse oximetry",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "richard1993",
+    "sweet2023"
+   ],
+   "grade": "B/C",
+   "model_readout": "Monitor.sao2_pre",
+   "notes": "User decision 96: room air on CPAP 5 with mild RDS. Below the 99.4 % median of distress-free 30-36 wk infants in air (Richard 1993; P5 95.5); above the 90-94 % band used when on oxygen."
+  },
+  {
+   "key": "ph",
+   "group": "gases",
+   "label": "pH",
+   "unit": "-",
+   "mean": 7.33,
+   "sd": null,
+   "low": 7.28,
+   "high": 7.38,
+   "range_type": "range",
+   "method": "arterial (derived)",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "senterre2015",
+    "thome2015"
+   ],
+   "grade": "B",
+   "model_readout": "AA.ph",
+   "notes": "Derived (Van Slyke) from BE -3 and pCO2 43 (user decision)."
+  },
+  {
+   "key": "pco2",
+   "group": "gases",
+   "label": "pCO2",
+   "unit": "mmHg",
+   "mean": 43,
+   "sd": null,
+   "low": 38,
+   "high": 50,
+   "range_type": "range",
+   "method": "arterial",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "thome2015",
+    "welty2018"
+   ],
+   "grade": "B",
+   "model_readout": "AA.pco2",
+   "notes": "Breathing CO2 check (VA 120, VCO2 5.7-6.0 -> 41-43); PHELBI control band 40-50 on days 1-3."
+  },
+  {
+   "key": "hco3",
+   "group": "gases",
+   "label": "HCO3",
+   "unit": "mmol/L",
+   "mean": 22.3,
+   "sd": null,
+   "low": 20,
+   "high": 24.5,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "senterre2015"
+   ],
+   "grade": "B",
+   "model_readout": "AA.hco3",
+   "notes": "Derived from pH and pCO2."
+  },
+  {
+   "key": "be",
+   "group": "gases",
+   "label": "Base excess",
+   "unit": "mmol/L",
+   "mean": -3,
+   "sd": null,
+   "low": -6,
+   "high": -1,
+   "range_type": "range",
+   "method": "arterial / capillary",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "senterre2015",
+    "bonsante2017"
+   ],
+   "grade": "B/C",
+   "model_readout": "AA.be",
+   "notes": "User decision -3: enteral feeds and a maturer tubule; early metabolic acidosis resolves quickly, base deficit > 10 after day 3 in only 2 % (Senterre 2015). Series -7 (25 wk), -5.5 (28 wk)."
+  },
+  {
+   "key": "po2",
+   "group": "gases",
+   "label": "PaO2",
+   "unit": "mmHg",
+   "mean": 64,
+   "sd": null,
+   "low": 55,
+   "high": 75,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "granzotto1991",
+    "quine2009"
+   ],
+   "grade": "C",
+   "model_readout": "AA.po2",
+   "notes": "SpO2 96 on the 30 wk curve (P50 19.0 standard, pH 7.33): Severinghaus scaled -> ~64."
+  },
+  {
+   "key": "p50",
+   "group": "gases",
+   "label": "Hb-O2 P50 (standard)",
+   "unit": "mmHg",
+   "mean": 19.0,
+   "sd": null,
+   "low": 18.2,
+   "high": 19.8,
+   "range_type": "range",
+   "method": "standard conditions",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "granzotto1991",
+    "dehalleux2002"
+   ],
+   "grade": "B",
+   "model_readout": "Blood.P50_0 (setting)",
+   "notes": "P50 rises linearly with GA 28-40 wk (Granzotto 1991); <=27 wk 18.5 (De Halleux 2002), term ~19.5-20."
+  },
+  {
+   "key": "svo2",
+   "group": "gases",
+   "label": "Mixed venous O2 saturation",
+   "unit": "%",
+   "mean": 80,
+   "sd": null,
+   "low": 74,
+   "high": 85,
+   "range_type": "range",
+   "method": "Fick (derived)",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "yapakci2014"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.svo2",
+   "notes": "Fick: Hb 15.5, SaO2 0.96 (CaO2 20.1), systemic flow 195, VO2 6.5 -> ~80 %."
+  },
+  {
+   "key": "vo2",
+   "group": "metabolism",
+   "label": "Oxygen consumption",
+   "unit": "mL/kg/min",
+   "mean": 6.5,
+   "sd": null,
+   "low": 5.5,
+   "high": 7.5,
+   "range_type": "range",
+   "method": "indirect calorimetry",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "kjartansson1992",
+    "bauer1997",
+    "bauer2001"
+   ],
+   "grade": "B",
+   "model_readout": "GASEX O2 uptake / weight",
+   "notes": "Caffeine on board and feeds (thermic effect): Kjartansson 1992 6.1 +/- 0.8 (31-36 wk, mean 34, 50 % RH); Bauer 1997 5.8 (<1500 g, week 1); caffeine raises VO2 (Bauer 2001)."
+  },
+  {
+   "key": "rq",
+   "group": "metabolism",
+   "label": "Respiratory quotient",
+   "unit": "-",
+   "mean": 0.92,
+   "sd": null,
+   "low": 0.85,
+   "high": 1.0,
+   "range_type": "range",
+   "method": "indirect calorimetry",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "forsyth1992",
+    "bauer2003"
+   ],
+   "grade": "C",
+   "model_readout": "VCO2 / VO2",
+   "notes": "Milk fat replaces part of the glucose-rich PN (25/28 wk 0.95)."
+  },
+  {
+   "key": "temp",
+   "group": "metabolism",
+   "label": "Core temperature",
+   "unit": "degC",
+   "mean": 37.0,
+   "sd": null,
+   "low": 36.5,
+   "high": 37.5,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "sauer1984"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.temp",
+   "notes": "Sauer 1984."
+  },
+  {
+   "key": "incubator_temp",
+   "group": "metabolism",
+   "label": "Incubator air temperature",
+   "unit": "degC",
+   "mean": 34.0,
+   "sd": null,
+   "low": 33,
+   "high": 35,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "sauer1984"
+   ],
+   "grade": "C",
+   "model_readout": "Thermoregulation environment setting",
+   "notes": "1.5 kg, day 3, RH 60 % (series 36 / 35 / 34 at 25 / 28 / 30 wk)."
+  },
+  {
+   "key": "humidity",
+   "group": "metabolism",
+   "label": "Incubator relative humidity",
+   "unit": "%",
+   "mean": 60,
+   "sd": null,
+   "low": 50,
+   "high": 70,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "humidity2021",
+    "hammarlund1983"
+   ],
+   "grade": "C",
+   "model_readout": "Thermoregulation humidity setting",
+   "notes": "Common practice for 28-32 wk in week 1 (series 80 / 70 / 60)."
+  },
+  {
+   "key": "iwl",
+   "group": "metabolism",
+   "label": "Insensible water loss",
+   "unit": "mL/kg/day",
+   "mean": 25,
+   "sd": null,
+   "low": 15,
+   "high": 35,
+   "range_type": "range",
+   "method": "balance",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "hammarlund1983",
+    "hammarlund1982"
+   ],
+   "grade": "C",
+   "model_readout": null,
+   "notes": "Skin water loss falls exponentially with GA and with postnatal age (Hammarlund 1982/1983, 28-30 wk group); no numbers in the abstracts. Reference only."
+  },
+  {
+   "key": "glucose",
+   "group": "metabolism",
+   "label": "Plasma glucose",
+   "unit": "mmol/L",
+   "mean": 5.5,
+   "sd": null,
+   "low": 3.5,
+   "high": 8.0,
+   "range_type": "range",
+   "method": "blood gas analyser",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "liu2026"
+   ],
+   "grade": "B/C",
+   "model_readout": "AA.solutes.glucose",
+   "notes": "Advancing feeds, less PN glucose and less insulin resistance than at 25/28 wk (7.0 / 6.5)."
+  },
+  {
+   "key": "lactate",
+   "group": "metabolism",
+   "label": "Lactate",
+   "unit": "mmol/L",
+   "mean": 1.4,
+   "sd": null,
+   "low": 1.0,
+   "high": 2.5,
+   "range_type": "range",
+   "method": "blood gas analyser",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "liu2026",
+    "deshpande1997"
+   ],
+   "grade": "A/B",
+   "model_readout": "Lactate.arterial_lactate",
+   "notes": "As at 28 wk."
+  },
+  {
+   "key": "enteral_feeds",
+   "group": "metabolism",
+   "label": "Enteral feed volume",
+   "unit": "mL/kg/day",
+   "mean": 60,
+   "sd": null,
+   "low": 40,
+   "high": 80,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "maruyama2013"
+   ],
+   "grade": "state",
+   "model_readout": null,
+   "notes": "State: advancing enteral feeds on day 3 plus PN top-up, 3-hourly boluses. Reference only."
+  },
+  {
+   "key": "hb",
+   "group": "blood",
+   "label": "Hemoglobin",
+   "unit": "g/dL",
+   "mean": 15.5,
+   "sd": null,
+   "low": 13.5,
+   "high": 17.5,
+   "range_type": "range",
+   "method": "venous / capillary",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "jopling2009"
+   ],
+   "grade": "B",
+   "model_readout": "AA.solutes.hemoglobin (mmol/L x 1.611)",
+   "notes": "User decision 15.5. Jopling 2009: birth at 30 wk 16.2 (regression); 29-34 wk shows no early fall; day-3 29-34 wk group Hb ~15.5 (12-20), Hct ~45."
+  },
+  {
+   "key": "hct",
+   "group": "blood",
+   "label": "Hematocrit",
+   "unit": "%",
+   "mean": 46,
+   "sd": null,
+   "low": 40,
+   "high": 52,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "jopling2009"
+   ],
+   "grade": "B",
+   "model_readout": "Hb / MCHC",
+   "notes": "Birth 47.7 % (regression); day-3 29-34 wk group ~45."
+  },
+  {
+   "key": "hbf",
+   "group": "blood",
+   "label": "Fetal haemoglobin fraction",
+   "unit": "%",
+   "mean": 88,
+   "sd": null,
+   "low": 84,
+   "high": 92,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "granzotto1991",
+    "dehalleux2002"
+   ],
+   "grade": "C",
+   "model_readout": null,
+   "notes": "Between <=27 wk 93 % and the falling HbF with GA. Reference only."
+  },
+  {
+   "key": "blood_volume",
+   "group": "blood",
+   "label": "Blood volume",
+   "unit": "mL/kg",
+   "mean": 80,
+   "sd": null,
+   "low": 75,
+   "high": 90,
+   "range_type": "range",
+   "method": "RBC label / plasma marker",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "aladangady2004",
+    "aladangady2006"
+   ],
+   "grade": "C",
+   "model_readout": "sum of blood compartment volumes / weight",
+   "notes": "As at 28 wk; delayed clamping."
+  },
+  {
+   "key": "gfr",
+   "group": "kidneys",
+   "label": "GFR",
+   "unit": "mL/min/1.73m2",
+   "mean": 16,
+   "sd": null,
+   "low": 10,
+   "high": 22,
+   "range_type": "range",
+   "method": "derived",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "vieux2010",
+    "bueva1994",
+    "gallini2000"
+   ],
+   "grade": "C",
+   "model_readout": "Kidneys.gfr x 1.73 / BSA",
+   "notes": "User decision 0.8 mL/min/kg (0.5-1.1) at BSA 0.129 m2: day 3 = 0.77 x the Vieux 2010 day-7 value 21.7 (the 28 wk ratio). The engine's renal reference rests at the day-7 value (1.08 mL/min/kg), so a GFR factor ~0.77 or acceptance is decided in the first look. Bueva 1994 (31 wk, day 1.5) ~0.5 mL/min/kg."
+  },
+  {
+   "key": "urine",
+   "group": "kidneys",
+   "label": "Urine output",
+   "unit": "mL/kg/h",
+   "mean": 3,
+   "sd": null,
+   "low": 2,
+   "high": 5,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "lorenz1995"
+   ],
+   "grade": "B",
+   "model_readout": "Kidneys.urine_flow x 60 / weight",
+   "notes": "Diuretic phase on day 3; water reabsorption ~0.94 at GFR 0.8."
+  },
+  {
+   "key": "fena",
+   "group": "kidneys",
+   "label": "Fractional sodium excretion",
+   "unit": "%",
+   "mean": 3,
+   "sd": null,
+   "low": 1.5,
+   "high": 6,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "gallini2000",
+    "lorenz1995"
+   ],
+   "grade": "B/C",
+   "model_readout": null,
+   "notes": "FENa falls with GA (Gallini 2000); 28 wk 5 %, 25 wk 10 %. Reference only."
+  },
+  {
+   "key": "creatinine",
+   "group": "kidneys",
+   "label": "Plasma creatinine",
+   "unit": "umol/L",
+   "mean": 85,
+   "sd": null,
+   "low": 60,
+   "high": 110,
+   "range_type": "range",
+   "method": "-",
+   "age": "day 3 (72 h)",
+   "n": null,
+   "sources": [
+    "bueva1994",
+    "miall1999"
+   ],
+   "grade": "B/C",
+   "model_readout": null,
+   "notes": "Bueva 1994: 91 at 31 wk day 1.5; the early rise is smaller at higher GA (Miall 1999). Reference only."
+  }
+ ]
+}
