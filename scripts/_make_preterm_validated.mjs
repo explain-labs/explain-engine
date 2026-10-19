@@ -3,8 +3,10 @@
 //   28: preterm_28wk - born at 28 weeks (1.0 kg), nasal CPAP 6, FiO2 0.25 (docs/Preterm28wkReference.md)
 //   25: preterm_25wk - born at 25 weeks (0.7 kg), nasal CPAP 7, FiO2 0.30 after one LISA dose
 //       (docs/Preterm25wkReference.md)
-// Each is stable on nasal CPAP after surfactant, with a small restrictive left-to-right PDA, a small PFO,
-// untransfused (delayed cord clamping), trophic feeds + PN, caffeine, in a humidified incubator.
+//   30: preterm_30wk - born at 30 weeks (1.5 kg), nasal CPAP 5 in room air, no surfactant
+//       (docs/Preterm30wkReference.md)
+// Each is stable on nasal CPAP, with a small restrictive left-to-right PDA, a small PFO, untransfused
+// (delayed cord clamping), enteral feeds + PN, caffeine, in a humidified incubator.
 //
 //   node scripts/_make_preterm_validated.mjs --profile <ga> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //

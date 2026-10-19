@@ -166,4 +166,83 @@ export const PROFILES = {
                             //   integrator hitting its floor); autoregulation strength unchanged, only slower
     },
   },
+
+  // 30 wk: the 28 wk profile carried over with the 30 wk reference values swapped in. Size-related levers
+  // follow the size rule: each 28 wk size correction is divided by 1.5 (the weight ratio to the 28 wk) and
+  // moved to the 30 wk per-kg target. No surfactant was given: the lung is the infant's own, mildly
+  // affected one, in room air. All "starting point" values are validated in step 6 against
+  // docs/Preterm30wkReference.md.
+  30: {
+    name: "preterm_30wk",
+    refDoc: "docs/Preterm30wkReference.md",
+    // chemoreceptor set-points = the reference resting gases (pCO2 43, PaO2 64, pH 7.33)
+    CR: { CR_PCO2: 43, CR_PO2: 64, CR_PH: 7.33 },
+    description:
+      "Preterm neonate born at 30 weeks (1.5 kg) at 72 h: stable on nasal CPAP 5 cmH2O in room air without " +
+      "surfactant (mild RDS), a small restrictive left-to-right PDA (~1 mm) and a small PFO, untransfused " +
+      "(delayed cord clamping), advancing enteral feeds + parenteral nutrition, caffeine, humidified incubator. " +
+      "CPAP is represented by the inspired FiO2 plus a recruited-lung state. Validated against " +
+      "docs/Preterm30wkReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 1.5,          // kg
+      HEIGHT: 0.40,         // m (Fenton P50 length at 30 wk)
+      GA: 30,               // weeks
+      AGE: 3 / 365,         // years: 72 h
+
+      // --- circulation ---
+      HR_REF: 150,          // reference: between 28 wk 155 and Groves MRI 142 (HR falls with GA: Alonzo 2018, Eenkhoorn 2026)
+      BR_WINDOW: 1,         // as 28 wk: baroreceptor window scaled with the set-point
+      BR_MAP: 42,           // reference: Elsayed 2023 day-3 median extrapolated to 30 wk
+      SVR: 1.44,            // size rule: 2.0 x (MAP 42/39) / 1.5
+      PVR: 1.95,            // size rule: 3.0 x (mean PAP 19.5/20) / 1.5
+      CONT: 1.0,            // as 28 wk: EF normal (Groves 2011, no GA effect)
+      RELAX: 1.08,          // starting point: diastolic function a little more mature than 28 wk (_make_preterm 30 wk row)
+      HEART_EL_MAX: 2.27,   // size rule: 3.4 / 1.5
+      HEART_EL_MIN: 2.33,   // size rule: 3.5 / 1.5
+      ART_EL: 3.6,          // size rule: 5.0 / 1.5, x (pulse pressure 27/25)
+      VEN_UVOL: 0.77,       // as 28 wk
+      PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (state)
+      FO_DIAM: 0.9,         // size rule: 0.75 mm x sqrt(1.5) (same L->R flow per kg through a 1.5x larger infant)
+      COR_R: 1.72,          // size rule: 2.4 x (42/39) / 1.5
+      BRAIN_R: 1.34,        // size rule: total brain-bed factor 28 wk 2.4 (SVR 2.0 x 1.2) x (MAP/CBF per body 30 vs 28 wk 0.80)
+                            //   = 1.93, divided by SVR 1.44
+      CBF_SET: 0.0375,      // reference: 25 mL/kg/min x 1.5 kg, L/min absolute
+
+      // --- lungs and breathing ---
+      RDS_EL: 3.29,         // size rule: 5.55 x (CL 0.8/0.9) / 1.5 -> lung compliance 0.9 mL/cmH2O/kg
+      RDS_UVOL: 0.87,       // starting point: 0.80 x (FRC 24/22) on CPAP 5
+      THORAX_EL: 2.18,      // size rule: 2.94 x (Ccw 5/4.5) / 1.5 -> chest wall 4.5 mL/cmH2O/kg
+      GASEX: 0.675,         // size rule: 0.45 x 1.5 (absolute diffusion, scales with lung size)
+      IPS_RES: 14000,       // starting point: 10500 / 1.5 for the larger lung, x2 for about half the shunt fraction
+                            //   (SpO2 96 in room air vs 93 on FiO2 0.25)
+      SURFACTANT: 0.30,     // starting point: own surfactant at 30 wk, none given (_add_surfactant default)
+      FIO2: 0.21,           // reference: state definition (room air on CPAP 5)
+      MV_REF: 0.30,         // reference: minute volume 300 mL/kg/min
+      RR: 60,               // reference: Welty 2018 (29.6 wk, 44 h) 67 +/- 20, lower with maturity
+      IE: 0.38,             // reference: Ti/Ttot
+      RMP_RECAL: 1,         // as 28 wk: recalibrate the breathing effort gain on these lungs
+      DS_UVOL: 1.27,        // reference: dead space 2.8 mL/kg (1.36 gave 3.0 at 28 wk)
+
+      // --- metabolism, blood, environment ---
+      REABS_WATER: 0.9375,  // reference: urine 3 mL/kg/h at GFR 0.8 mL/min/kg (filtered 48 mL/kg/h)
+      REABS_NACL: 0.97,     // reference: FENa ~3 % (falls with GA, Gallini 2000)
+      MAINT_RATE: 3.0,      // as 28 wk: maintenance intake = resting urine, composition derived from it
+      UMA_DELTA: 0.35,      // starting point: 28 wk 2.85 - 2.5 (BE -5.5 -> -3, uma lowers BE ~1:1)
+      GLUCOSE: 5.5,         // reference: advancing feeds, less PN glucose
+      RESP_Q: 0.92,         // reference: milk fat replaces part of the glucose-rich PN
+      VO2_METABOLISM: 5.69, // reference total 6.5 mL/kg/min minus the myocardium (~0.81, as 28 wk)
+      HB_MMOL: 15.5 / 1.611, // reference: Hb 15.5 g/dL (Jopling 29-34 wk, day 3)
+      P50: 19.0,            // reference: Granzotto 1991 (P50 rises linearly with GA)
+      ENV_TEMP: 34.0,       // reference: incubator air (degC)
+      REL_HUMIDITY: 0.60,   // reference: incubator humidity
+      GFR_FACTOR: 0.743,    // reference: GFR 0.8 mL/min/kg vs the Vieux day-7 rule at 30 wk (1.077)
+      AIRWAY_R: 0.83,       // starting point: airway resistors x (term-absolute, Rrs ~54) -> Rrs ~45
+      INT_R: 1.0,           // starting point: as 28 wk
+      LS_R: 1.0,            // starting point: as 28 wk
+      UB_R: 1.0,            // starting point: as 28 wk
+      BRAIN_AR_GAIN: 1.0,   // Brain.autoregulation_gain (1 = intact, term default)
+      BRAIN_CTL_GAIN: 1.0,  // as 25 wk: 1.0 keeps the autoregulation loop from oscillating (term baked 1.5)
+    },
+  },
 };
