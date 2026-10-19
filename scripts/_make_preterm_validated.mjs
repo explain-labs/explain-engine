@@ -188,6 +188,8 @@ model.age = AGE;
 const desc = P.description;
 j.name = NAME;
 setDiagramTitle(j, NAME);
+// profile-specific diagram settings (e.g. the oxygen colour window, to2_hi), as the author set them in the app
+if (P.diagram && j.diagram_definition?.settings) Object.assign(j.diagram_definition.settings, P.diagram);
 // label the two shunts in the diagram (explain-ui DiagramRenderer: layout.label.visible is opt-in); they keep
 // the normal connector colour and width
 // at = label position along the path from dbcFrom (DA: AAR -> PA, FO: LA -> RA); the two paths cross mid-diagram
