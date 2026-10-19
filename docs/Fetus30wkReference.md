@@ -168,6 +168,30 @@ no model read-out.
 | Crown-heel length (reference only) | **40** cm | — | C | — |
 | Placental weight (reference only) | **320** g | — | C | — |
 
+## First look at the model (step 4, 2026-10-19)
+
+`node scripts/_make_fetus_validated.mjs --profile 30` (term_neonate + the fetal transform + the 30-week
+profile, reseeded 300 s), probed with `node scripts/probe_term_reference.mjs fetus_30wk --ref
+scripts/reference/fetus_30wk.json` (settle 180 s, window 20 s): **40 graded rows in range, 11 out**. The fetal
+invariants hold after the bake.
+
+- **In range first time:** HR 149, MAP 36.6 (46.6/28.6), PA − Ao 0.3 mmHg, LV volumes and EF, RV EF 62,
+  combined output 351 mL/kg/min (low end), lungs 18 %, foramen 30 %, duct 34 %, placenta 28 %, SVC 31 %,
+  brain 83 mL/kg/min, Hb/Hct, blood volumes (fetoplacental 111, placenta 28 %), VO₂ 6.4 (umbilical Fick),
+  RQ 0.93, glucose, lactate 1.5, core 37.3 °C.
+- **Oxygenation ordering holds:** UV 89 > IVC 64 > AA 54 > DAo 54 %.
+- **Out of range:**
+  - CVP 6.4 (ref 3); RV stroke volume 1.23 (ref 1.5) and RV share 52 % (ref 59): the split is still
+    LV-leaning (`CONT_RIGHT` 1.2).
+  - Umbilical vein pO₂ 48 / pCO₂ 47 / pH 7.30 and artery pCO₂ 60 / pH 7.21, UA − UV pCO₂ 12 mmHg (ref 5):
+    the maternal pool sits at pCO₂ 47 / pH 7.26 with `MAT_TCO2` 23, and the umbilical vein follows it.
+  - Ascending aorta SO₂ 54 % (ref 67): the Fick conflict of the balance rules resolved itself through a
+    wide UV − UA saturation gap (89 − 54) at an umbilical flow of 97 mL/kg/min.
+  - Duct diameter 4.6 mm vs anatomy 3.0 mm: the lever that keeps PA ≈ Ao (decided; flagged by design).
+- **Controllers:** baroreflex mildly active (MAP 36.6 below its set-point 38: HR ×1.04, SVR ×1.09); brain
+  autoregulation at its floor (0.15, fully dilated: the bed cannot reach the 95 mL/kg/min set-point).
+- Fetal urine (3 mL/kg/h) is reference only by decision.
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting

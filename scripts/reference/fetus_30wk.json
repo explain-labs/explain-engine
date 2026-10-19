@@ -1395,7 +1395,7 @@
    "key": "gfr",
    "group": "kidneys",
    "label": "GFR",
-   "unit": "mL/min/kg",
+   "unit": "mL/min/1.73m2",
    "mean": null,
    "sd": null,
    "low": null,
