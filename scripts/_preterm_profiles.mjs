@@ -194,7 +194,8 @@ export const PROFILES = {
       HR_REF: 150,          // reference: between 28 wk 155 and Groves MRI 142 (HR falls with GA: Alonzo 2018, Eenkhoorn 2026)
       BR_WINDOW: 1,         // as 28 wk: baroreceptor window scaled with the set-point
       BR_MAP: 42,           // reference: Elsayed 2023 day-3 median extrapolated to 30 wk
-      SVR: 1.44,            // size rule: 2.0 x (MAP 42/39) / 1.5
+      SVR: 1.34,            // 6.4: systemic resistances x (size rule 2.0 x (42/39) / 1.5 = 1.44; lowered once the gut beds closed,
+                            //      which had raised MAP to 44.4) -> MAP 43.3 with the baroreflex neutral
       PVR: 1.25,            // 6.2: pulmonary resistances x (size rule 3.0 x (19.5/20) / 1.5 = 1.95 left PAP mean 26 whatever the
                             //      output) -> PAP 26/20.3; the lower PA pressure lets the duct carry 30 (was 23)
       CONT: 1.0,            // as 28 wk: EF normal (Groves 2011, no GA effect)
@@ -204,11 +205,12 @@ export const PROFILES = {
                             //      above the baroreflex set-point) -> EDV 2.19, LVO 221, MAP 42.5 with the baroreflex neutral
       ART_EL: 5.5,          // 6.2: artery el_base x (size rule 5.0 / 1.5 x 27/25 = 3.6 gave pulse pressure 18) -> BP 56/30, PP 26
       VEN_UVOL: 0.77,       // as 28 wk
-      PDA_REL: 1.0 / 3.0,   // reference: ductal diameter 1.0 mm (state)
+      PDA_REL: 0.9 / 3.0,   // 6.4: ductal diameter 0.9 mm (reference 0.8-1.4): after 6.2 lowered the PA pressure a 1.0 mm duct carried
+                            //      30 mL/kg/min -> 21.5
       FO_DIAM: 0.9,         // size rule: 0.75 mm x sqrt(1.5) (same L->R flow per kg through a 1.5x larger infant)
       COR_R: 1.72,          // size rule: 2.4 x (42/39) / 1.5
-      BRAIN_R: 1.34,        // size rule: total brain-bed factor 28 wk 2.4 (SVR 2.0 x 1.2) x (MAP/CBF per body 30 vs 28 wk 0.80)
-                            //   = 1.93, divided by SVR 1.44
+      BRAIN_R: 1.6,         // 6.4: cerebral bed r x (size rule 1.34; SVR also scales the brain bed) -> autoregulation rests at 0.97
+                            //      over minutes 8-10 (was 1.14, and 1.3 once SVR was lowered), CBF 25
       CBF_SET: 0.0375,      // reference: 25 mL/kg/min x 1.5 kg, L/min absolute
 
       // --- lungs and breathing ---
@@ -240,8 +242,8 @@ export const PROFILES = {
       REL_HUMIDITY: 0.60,   // reference: incubator humidity
       GFR_FACTOR: 0.743,    // reference: GFR 0.8 mL/min/kg vs the Vieux day-7 rule at 30 wk (1.077)
       AIRWAY_R: 0.83,       // starting point: airway resistors x (term-absolute, Rrs ~54) -> Rrs ~45
-      INT_R: 1.0,           // starting point: as 28 wk
-      LS_R: 1.0,            // starting point: as 28 wk
+      INT_R: 1.1,           // 6.4: intestinal bed r x -> SMA flow ~30 (time-averaged reference 28)
+      LS_R: 1.5,            // 6.4: liver/spleen bed r x -> coeliac flow 30 -> 23 (templated identical to the gut bed in term)
       UB_R: 1.0,            // starting point: as 28 wk
       BRAIN_AR_GAIN: 1.0,   // Brain.autoregulation_gain (1 = intact, term default)
       BRAIN_CTL_GAIN: 1.0,  // as 25 wk: 1.0 keeps the autoregulation loop from oscillating (term baked 1.5)

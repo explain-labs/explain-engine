@@ -222,6 +222,8 @@ Each change is a named lever in the 30 wk profile (`scripts/_preterm_profiles.mj
 |---|---|---|---|
 | 6.1 | Heart chambers `el_min` ×2.33 → ×2.9 (`HEART_EL_MIN`; the size rule gave 3.5 / 1.5) | LV EDV 2.55 → 2.19, RV EDV 3.13 → 2.84; LV/RV SV 1.78/1.63 → 1.47/1.36; LVO/RVO 251/229 → 221/204; MAP 45.9 → 42.5 with the baroreflex neutral (HR 141 → 151); coeliac 34 → 29; 55 → 60 of 61 in range. Mean PAP stays 26; pulse pressure 22 → 18 | At ×2.33 the heart over-filled and over-pumped, MAP rose above the baroreflex set-point and the reflex lowered HR and SVR. 2.7 / 2.9 / 3.2 were prototyped; 3.2 dropped the outputs below target with the reflex pushing up (SVR effect 1.06) |
 | 6.2 | Pulmonary resistances ×1.95 → ×1.25 (`PVR`); artery `el_base` ×3.6 → ×5.5 (`ART_EL`) | PAP 33/26 → 26/20.3; BP 51/33 → 56/30 (MAP 43.2), pulse pressure 18 → 26; ductal flow 23 → 30, PFO 5.1 → 7.1, LVO 221 → 233; SpO₂ 95.5 → 96.8, PaO₂ 63 → 72; baroreflex neutral; 60 → 61 of 61 in range | Mean PAP did not follow the outputs in 6.1, so the resistance itself was high. A lower PA pressure lets more blood cross the restrictive duct. PVR 1.2/1.4/1.6 and ART_EL 4.5/5.5 were prototyped alone and together; PVR 1.4 kept the duct at 28 with mean PAP 21.7 |
+| 6.3 | None | Breathing was already on target (RR 59, Vt 4.9, MV 291, pCO₂ 42) | Folded into the final controller check |
+| 6.4 | New-lever values `INT_R` ×1.1 and `LS_R` ×1.5 (gut beds); systemic resistances ×1.44 → ×1.34; ductal diameter 1.0 → 0.9 mm (`PDA_REL`); cerebral bed `BRAIN_R` ×1.34 → ×1.6 | Coeliac 30 → 23, SMA 30; duct 30 → 21.5, LVO 233 → 226, PAP mean 20.3 → 19.5; MAP 43.3, HR 149, baroreflex neutral; brain autoregulation 1.14 → 0.97 (mean over minutes 8–10), CBF 25; 61 of 61 | Closing the gut beds alone raised MAP to 44.4 (baroreflex 0.97, HR 146), so SVR came down with them. SVR also scales the brain bed, so autoregulation constricted to ×1.3 until the brain bed's own resistance was raised. After 6.2's lower PA pressure a 1 mm duct carried 30; 0.9 mm sits inside the reference 0.8–1.4 mm (the 25 wk set took 0.8 mm) |
 
 ## Decisions log (2026-10-19)
 
@@ -229,7 +231,7 @@ All choices were made by the model's author after the evidence was presented.
 
 | Topic | Decision | Basis |
 |---|---|---|
-| State | nCPAP 5 in room air, no surfactant; small restrictive L→R PDA + PFO; untransfused; advancing feeds + PN | Author's choice; keeps the series comparable (PDA) while moving to a maturer lung |
+| State | nCPAP 5 in room air, no surfactant; small restrictive L→R PDA (0.9 mm after 6.4) + PFO; untransfused; advancing feeds + PN | Author's choice; keeps the series comparable (PDA) while moving to a maturer lung |
 | Build | A third lever profile (`--profile 30`) in the shared generator; size corrections ÷1.5 from the 28 wk profile | Size rule |
 | BP | Elsayed day-3 median extrapolated to 30 wk: 58/31 (42); cuff values as cross-check | Same method as 25/28 wk |
 | Flows | LVO/RVO/SVC 215/195/85 kept | Day 1–2 echo below, day 7–10 data above |
