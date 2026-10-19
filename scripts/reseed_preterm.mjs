@@ -14,6 +14,8 @@
 // Variant scenarios that aren't named preterm_<ga>wk.json (e.g. preterm_28wk_restrictive_pda) can be
 // reseeded by passing the scenario name explicitly:
 //   node scripts/reseed_preterm.mjs --file preterm_28wk_restrictive_pda [--seconds 250] [--write]
+//
+// --gfr-factor <x> multiplies the renal reference's GFR target (default 1; see _renal_reference.mjs).
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -29,6 +31,7 @@ if (!scenario && ![24, 26, 28, 30, 32, 34, 36].includes(ga)) { console.error(`un
 const name = scenario || `preterm_${ga}wk`;
 const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 250; })();
 const WRITE = argv.includes("--write");
+const GFR_FACTOR = (() => { const i = argv.indexOf("--gfr-factor"); return i >= 0 ? Number(argv[i + 1]) : 1; })();
 
 let liveModel = null;
 globalThis.self = globalThis;
@@ -53,7 +56,7 @@ eng.calc(SECONDS);
 // healthy renal reference of this gestation and size (< 34 wk): set the renal bed and seed the kidney's
 // controllers at rest (scripts/_renal_bed.mjs), then warm again so the file loads at that state
 const brMap = model.models.BR_MAP.set_value;
-const renalRef = renalReference({ ga: model.gestational_age, weight: model.weight, height: model.height, brMap });
+const renalRef = renalReference({ ga: model.gestational_age, weight: model.weight, height: model.height, brMap, gfrFactor: GFR_FACTOR });
 const renalLog = describeRenalReference(renalRef);
 if (renalRef) {
   solveRenalBed(eng, model, renalRef, { brMap, termBrMap: TERM_RENAL.brMap });
