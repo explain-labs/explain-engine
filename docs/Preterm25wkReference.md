@@ -238,6 +238,97 @@ Each change is a named lever in the 25 wk profile (`scripts/_preterm_profiles.mj
 | 6.2 | Ductal diameter 1.0 → 0.8 mm (`PDA_REL` 1/3 → 0.8/3); CVP reference revised 5 → 3.5 (1.3–5.7) | Ductal flow 41 → 22; LVO 264 → 247, LV SV 1.73 → 1.64, PAP mean 24.5 → 22.7; 55 → 59 of 61 in range. CVP 1.4, at the low end | Raising SVR only pushed more through the duct (52–56) and MAP to ~40. A stiffer heart raised LA more than RA (PFO 16–30, PAP up). More venous stressed volume became output. Choi 2015 (CVP 3.5 ± 2.2) fits a CPAP infant better than Inglis' mostly ventilated cohort |
 | 6.3 | None | Breathing was already on target after 6.1 (RR 63, Vt 4.9, MV 311, pCO₂ 45.6) | Folded into the final controller check |
 | 6.4 | New levers `INT_R` ×1.64 and `LS_R` ×1.8 (intestinal and liver/spleen beds; templated identical in term_neonate, default 1); cerebral bed `BRAIN_R` 1.2 → 2.0; systemic resistances 2.49 → 2.1 | SMA 36 → 28, coeliac 36 → 26; brain autoregulation ×1.54 → ×1.06 (it multiplies the bed resistance, so >1 = constricting); MAP 36.4, HR 154, baroreflex ~0.96; 59 → 61 of 61 in range. SVC 110 and LVO 252 sit high in range | Lowering the brain lever made autoregulation constrict more (to ×3.8); SVR also scales the brain bed, so the two are set together |
+| final | Upper-body bed `UB_R` ×1.3 (new lever, RUB); minute-volume reference 0.325 → 0.30 L/kg/min; SVR 2.1 → 2.0; `BRAIN_R` 2.0 → 1.95; `Brain.autoreg_control_gain` 1.5 → 1.0 (new levers `BRAIN_CTL_GAIN`, `BRAIN_AR_GAIN`, defaults = term_neonate's baked 1.5 / 1.0); intrapulmonary shunt 9500 → 10500 | SVC 110 → 96, LVO 252 → 239; pCO₂ 45.5 → 48.0 with ventilation drive 0.93 → 1.00; SpO₂ back to 91.2; brain autoregulation stable at 0.99 (it had been oscillating with an ~18 s period, CBF ±19 %); 61 of 61, 10-minute run steady | The brain loop's 180-s snapshots were mid-oscillation; a time average over minutes 8–10 is the read-out. Control gain 1.0 (author's choice) keeps autoregulation fully intact, only slower |
+
+## Validation result (step 6 complete, 2026-10-19)
+
+Of the 61 variables with a numeric reference and a model read-out, 52 were inside their range at the first
+look and **all 61 are now**. Off-centre but inside their ranges:
+- SVC 96 / LVO 239 (targets 85 / 215)
+- MAP 36.5 (target 34): the baroreflex rests at ×0.96, as the 28-week scenario rests slightly above its set-point
+- CVP 1.4 (3.5; range 1.3–5.7)
+- PaO₂ 55 with SpO₂ 91 (6.1 choice)
+
+The controllers rest within about 4 % of neutral over a 10-minute run:
+- baroreflex HR/SVR ×0.96
+- ventilation drive ×1.00
+- brain autoregulation 0.99 (time average)
+- ADH, angiotensin and insulin ~0.99
+
+The run is steady: MAP 35.7–36.9, SpO₂ 91.2, pCO₂ 48.0–48.3, pH 7.22, blood volume constant.
+
+What the 25-week profile needed beyond the 28-week one:
+- the size rule for every size correction (÷0.7 to the 25-week targets)
+- airway resistors (term-absolute in every scenario)
+- a smaller duct (0.8 mm)
+- separate gut-bed levers
+- an upper-body bed lever
+- a calmer brain autoregulation controller
+- a generator fix that rescales O₂ content with Hb
+
+| Variable | First look | Final | Reference | Range | Grade | Final flag |
+|---|---|---|---|---|---|---|
+| Heart rate | 155 | **153** | 160 | 140–180 | A | ok |
+| Systolic BP | 46.6 | **45.3** | 45 | 39–58 | A | ok |
+| Diastolic BP | 24.8 | **26.5** | 26 | 22–31 | A | ok |
+| Mean arterial pressure | 36.3 | **36.6** | 34 | 27–42 | A | ok |
+| Pulse pressure | 21.8 | **18.8** | 19 | — | B | ok |
+| Central venous pressure | 1.33 | **1.43** | 3.5 | 1.3–5.7 | B | ok |
+| Pulmonary artery pressure, systolic | 31.0 | **27.8** | 27 | 22–34 | C | ok |
+| Pulmonary artery pressure, mean | 25.4 | **22.2** | 18.5 | 15–23 | C | ok |
+| Pulmonary artery pressure, diastolic | 18.4 | **15.4** | — | ≤ 25 | C | ok |
+| LV end-diastolic volume | 2.35 | **2.23** | 2.07 | 1.7–2.6 | B | ok |
+| LV end-systolic volume | 0.67 | **0.66** | 0.73 | 0.4–1.1 | B | ok |
+| LV stroke volume | 1.69 | **1.57** | 1.34 | 1.05–1.65 | B | ok |
+| LV ejection fraction | 71.6 | **70.4** | 65 | 58–80 | B | ok |
+| RV end-diastolic volume | 2.67 | **2.68** | 2.44 | 2–2.9 | C | ok |
+| RV end-systolic volume | 1.47 | **1.43** | 1.22 | 0.9–1.6 | C | ok |
+| RV stroke volume | 1.20 | **1.25** | 1.22 | 1–1.5 | C | ok |
+| RV ejection fraction | 44.9 | **46.6** | 50 | 45–60 | B/C | ok |
+| Left ventricular output | 263 | **241** | 215 | 180–280 | B | ok |
+| Right ventricular output | 235 | **228** | 195 | 160–260 | B | ok |
+| LVO/RVO ratio | 1.12 | **1.06** | 1.1 | 1–1.25 | B | ok |
+| SVC flow | 96.3 | **99.5** | 85 | 60–115 | B | ok |
+| Descending aorta flow | 113 | **107** | 100 | 75–140 | B/C | ok |
+| Cerebral blood flow | 28.3 | **28.0** | 28 | 15–40 | C | ok |
+| Intestinal (SMA) flow | 35.1 | **28.9** | 22 | 12–35 | C | ok |
+| Renal blood flow | 6.44 | **6.37** | 6 | 4–9 | C | ok |
+| Coeliac (liver + spleen) flow | 35.1 | **26.6** | 20 | 12–30 | C | ok |
+| Ductal shunt flow (L->R) | 38.4 | **22.2** | 22 | 10–40 | C | ok |
+| Ductal diameter | 1.00 | **0.80** | 1 | 0.8–1.4 | B | ok |
+| Foramen ovale shunt (L->R) | 10.6 | **8.25** | 5 | 0–15 | C | ok |
+| Respiratory rate | 63.1 | **65.0** | 65 | 50–85 | B | ok |
+| Tidal volume | 4.92 | **4.86** | 5 | 4.2–6 | B | ok |
+| Minute ventilation | 311 | **316** | 325 | 250–400 | B | ok |
+| Inspiratory time fraction (Ti/Ttot) | 0.38 | **0.38** | 0.38 | 0.33–0.44 | B | ok |
+| Respiratory system compliance | 0.39 | **0.39** | 0.39 | 0.25–0.6 | C | ok |
+| Lung compliance (both lungs) | 0.60 | **0.60** | 0.6 | 0.4–0.9 | C | ok |
+| Chest wall compliance | 7.01 | **7.01** | 7 | 4–10 | C | ok |
+| Respiratory system resistance | 53.9 | **89.9** | 90 | 65–140 | C | ok |
+| Functional residual capacity | 22.6 | **22.5** | 22 | 17–28 | C | ok |
+| Anatomic dead space | 3.19 | **3.19** | 3.2 | 2.4–3.8 | B/C | ok |
+| Physiological dead space fraction (Vd/Vt) | 0.65 | **0.66** | 0.65 | 0.55–0.75 | B | ok |
+| Inspired O2 fraction | 0.30 | **0.30** | 0.3 | 0.25–0.35 | state | ok |
+| SpO2 (pre-ductal) | 94.5 | **91.2** | 93 | 90–95 | B | ok |
+| pH | 7.23 | **7.22** | 7.22 | 7.18–7.3 | A/B | ok |
+| pCO2 | 46.7 | **48.2** | 48 | 42–55 | A/B | ok |
+| HCO3 | 19.3 | **19.4** | 19.5 | 17–22 | B | ok |
+| Base excess | -7.15 | **-7.20** | -7 | -10–-4 | A | ok |
+| PaO2 | 65.9 | **55.3** | 50 | 42–58 | A | ok |
+| Hb-O2 P50 (standard) | 18.5 | **18.5** | 18.5 | 17.7–19.3 | A | ok |
+| Mixed venous O2 saturation | 82.4 | **77.9** | 76 | 70–82 | C | ok |
+| Oxygen consumption | 6.34 | **6.29** | 6 | 5–7 | B | ok |
+| Respiratory quotient | 0.92 | **0.92** | 0.95 | 0.85–1 | B | ok |
+| Core temperature | 37.0 | **37.0** | 37 | 36.5–37.5 | C | ok |
+| Incubator air temperature | 36.0 | **36.0** | 36 | 35–37 | C | ok |
+| Incubator relative humidity | 80.0 | **80.0** | 80 | 70–90 | B | ok |
+| Plasma glucose | 7.00 | **7.00** | 7 | 4–10 | B | ok |
+| Lactate | 1.50 | **1.50** | 1.5 | 1–2.5 | A | ok |
+| Hemoglobin | 13.4 | **13.5** | 13.5 | 12–15 | C | ok |
+| Hematocrit | 40.7 | **40.8** | 41 | 36–45 | C | ok |
+| Blood volume | 80.9 | **80.8** | 85 | 75–95 | C | ok |
+| GFR | 4.51 | **4.68** | 4.6 | 3.1–7.7 | C | ok |
+| Urine output | 2.96 | **3.07** | 3 | 2–5 | B | ok |
 
 ## Decisions log (2026-10-19)
 
@@ -265,6 +356,7 @@ All choices were made by the model's author after the evidence was presented.
 | 6.1 oxygen | SpO₂ 91 / PaO₂ 54 (both in range) rather than SpO₂ 93 / PaO₂ 58 | Fetal curve at pH ~7.23 |
 | 6.2 duct | 0.8 mm instead of 1.0 mm (lower end of the reference range) | Ductal flow scales ~d⁴; 1 mm at 0.7 kg carried 41; 0.8 mm (1.14 mm/kg) carries the target 22 |
 | 6.4 flows | Gut beds and brain bed set; SVC 110 / LVO 252 (high in range) left for the final touch | Flow moves to the upper body once the gut beds close down |
+| Final: brain loop | `autoreg_control_gain` 1.0 (stability fix), not autoregulation gain < 1 (pressure-passive) | Keeps intact autoregulation; no new physiological claim |
 | 6.2 CVP | Reference revised from 5 to 3.5 (1.3–5.7); the model's heart turns any extra filling into output, so CVP 5 could not be reached without PAP, PFO and MAP rising above target | Choi 2015 |
 
 ## Open items
@@ -274,6 +366,7 @@ All choices were made by the model's author after the evidence was presented.
   - Bourchier (acid–base <26 wk)
   - CPAP breathing pattern and FRC studies below 26 wk
   - Vieux 2010 data below 27 wk
+- **28-week follow-up:** a 10-minute time average shows `preterm_28wk`'s brain autoregulation resting at ×1.26 (constricting). Its validation text says the controllers are within ~3 %, which holds for all except the brain. Its airway resistors are also still term-absolute (Rrs 54, inside its range).
 - **Engine robustness:** when the O₂ root finder in `BloodComposition` fails, pO₂/sO₂ keep their last
   values, and gas exchange runs away against the frozen pO₂. A guard or clamp there would turn this silent
   failure into a visible one.

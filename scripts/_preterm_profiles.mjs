@@ -80,6 +80,9 @@ export const PROFILES = {
       AIRWAY_R: 1.0,        // airway resistors (MOUTH_DS, DS_ALL, DS_ALR) at term's absolute value: Rrs 54, in range
       INT_R: 1.0,           // intestinal bed (INT_ART, INT_CAP, INT_VEN) r x; SMA flow 32 (accepted edge)
       LS_R: 1.0,            // liver/spleen bed (LS_ART, LS_CAP, LS_VEN) r x; coeliac flow 32 (accepted edge)
+      UB_R: 1.0,            // upper-body (non-brain) bed RUB r x
+      BRAIN_AR_GAIN: 1.0,   // Brain.autoregulation_gain (1 = intact, term default)
+      BRAIN_CTL_GAIN: 1.5,  // Brain.autoreg_control_gain (term_neonate baked value; class default 5.0)
     },
   },
 
@@ -110,7 +113,7 @@ export const PROFILES = {
       HR_REF: 160,          // reference: Deshpande 2023 (25.9 wk, 54 h)
       BR_WINDOW: 1,         // as 28 wk: baroreceptor window scaled with the set-point
       BR_MAP: 34,           // reference: Elsayed 2023 25 wk day-3 invasive median MAP
-      SVR: 2.1,             // 6.4: systemic resistances x (size rule 2.49; lowered once the gut beds were raised) -> MAP 36, baroreflex ~0.96
+      SVR: 2.0,             // 6.4/final: systemic resistances x (size rule 2.49; lowered once the gut and upper-body beds were raised) -> MAP 36.5, baroreflex ~0.96
       PVR: 3.96,            // size rule: 3.0 x (mean PAP 18.5/20) / 0.7
       CONT: 1.0,            // as 28 wk: EF normal (Groves 2011, no GA effect)
       RELAX: 1.12,          // starting point: immature diastolic function (_make_preterm 24-26 wk 1.15/1.12)
@@ -121,7 +124,8 @@ export const PROFILES = {
       PDA_REL: 0.8 / 3.0,   // 6.2: ductal diameter 0.8 mm (reference 0.8-1.4; 1.14 mm/kg ~ the 28 wk 1 mm/kg): ductal flow 41 -> 22
       FO_DIAM: 0.75,        // as 28 wk (starting point)
       COR_R: 2.99,          // size rule: 2.4 x (34/39) / 0.7
-      BRAIN_R: 2.0,         // 6.4: cerebral bed r x (on top of SVR, which also scales it) -> autoregulation rests at ~1.06 (was 1.54, constricting)
+      BRAIN_R: 1.95,        // 6.4/final: cerebral bed r x (on top of SVR, which also scales it) -> autoregulation rests at ~0.99 over 10 min
+                            //   (was 1.54, constricting); judge it by a time average, the controller is slow
       CBF_SET: 0.0196,      // reference: 28 mL/kg/min x 0.7 kg, L/min absolute (author kept the 28 wk per-kg CBF)
 
       // --- lungs and breathing ---
@@ -129,11 +133,12 @@ export const PROFILES = {
       RDS_UVOL: 0.80,       // as 28 wk: FRC ~22 mL/kg (CPAP 7 at 25 wk ~ CPAP 6 at 28 wk)
       THORAX_EL: 3.0,       // size rule: 2.94 x (Ccw 5/7) / 0.7 -> chest wall 7 mL/cmH2O/kg
       GASEX: 0.315,         // size rule: 0.45 x 0.7 (absolute diffusion, scales with lung size)
-      IPS_RES: 9500,        // 6.1: intrapulmonary shunt resistance -> SpO2 91 / PaO2 54, both in range (15000 gave 94.6 / 65;
+      IPS_RES: 10500,       // 6.1/final: intrapulmonary shunt resistance -> SpO2 91 / PaO2 55, both in range (15000 gave 94.6 / 65;
                             //      SpO2 93 needs PaO2 ~58 on the fetal curve at pH ~7.23)
       SURFACTANT: 0.20,     // starting point: one LISA dose, between the 24-26 wk 0.15 and 28 wk 0.25
       FIO2: 0.30,           // reference: state definition
-      MV_REF: 0.325,        // reference: 325 mL/kg/min (L/kg/min, per kg)
+      MV_REF: 0.30,         // final: reference minute volume 0.325 -> 0.30 L/kg/min so pCO2 rests at the chemoreceptor set-point 48
+                            //   (ventilation drive 0.93 -> 1.0); actual minute volume stays ~318 mL/kg/min, RR 65
       RR: 65,               // reference
       IE: 0.38,             // reference: Ti/Ttot
       RMP_RECAL: 1,         // as 28 wk: recalibrate the breathing effort gain on these lungs
@@ -155,6 +160,10 @@ export const PROFILES = {
       AIRWAY_R: 1.67,       // 6.1: airway resistors x (were term absolute, Rrs 54) -> Rrs 90
       INT_R: 1.64,          // 6.4: intestinal bed r x -> SMA flow 36 -> 28
       LS_R: 1.8,            // 6.4: liver/spleen bed r x -> coeliac flow 36 -> 26
+      UB_R: 1.3,            // final: upper-body (non-brain) bed RUB r x -> SVC 110 -> 96 (flow moved up once the gut beds closed)
+      BRAIN_AR_GAIN: 1.0,   // Brain.autoregulation_gain (1 = intact, term default)
+      BRAIN_CTL_GAIN: 1.0,  // final: Brain.autoreg_control_gain 1.5 -> 1.0: at 1.5 the loop oscillated (~18 s period, CBF +/-19 %,
+                            //   integrator hitting its floor); autoregulation strength unchanged, only slower
     },
   },
 };
