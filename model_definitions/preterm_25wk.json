@@ -2460,9 +2460,8 @@
      },
      "path": {
       "type": "straight",
-      "width": 5,
-      "color": "#333333",
-      "accent": "#f5a623"
+      "width": 7,
+      "color": "#333333"
      },
      "sprite": {
       "color": "#ffffff",
@@ -2487,7 +2486,7 @@
       "pos_y": -10,
       "size": 11,
       "rotation": 0,
-      "color": "#f5a623",
+      "color": "#ffffff",
       "visible": true,
       "at": 0.72
      }
@@ -3363,9 +3362,8 @@
      },
      "path": {
       "type": "straight",
-      "width": 5,
-      "color": "#333333",
-      "accent": "#43c463"
+      "width": 7,
+      "color": "#333333"
      },
      "sprite": {
       "color": "#ffffff",
@@ -3390,7 +3388,7 @@
       "pos_y": -10,
       "size": 11,
       "rotation": 0,
-      "color": "#43c463",
+      "color": "#ffffff",
       "visible": true,
       "at": 0.75
      }

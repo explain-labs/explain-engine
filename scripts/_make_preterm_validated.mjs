@@ -186,17 +186,15 @@ model.age = AGE;
 const desc = P.description;
 j.name = NAME;
 setDiagramTitle(j, NAME);
-// make the two shunts stand out in the diagram: own colour + visible short label (explain-ui
-// DiagramRenderer: layout.path.accent and layout.label.visible are opt-in)
+// label the two shunts in the diagram (explain-ui DiagramRenderer: layout.label.visible is opt-in); they keep
+// the normal connector colour and width
 // at = label position along the path from dbcFrom (DA: AAR -> PA, FO: LA -> RA); the two paths cross mid-diagram
-const SHUNT_STYLE = { DA: { label: "PDA", color: "#f5a623", at: 0.72 }, FO: { label: "PFO", color: "#43c463", at: 0.75 } };
-for (const [key, st] of Object.entries(SHUNT_STYLE)) {
+const SHUNT_LABEL = { DA: { label: "PDA", at: 0.72 }, FO: { label: "PFO", at: 0.75 } };
+for (const [key, st] of Object.entries(SHUNT_LABEL)) {
   const c = j.diagram_definition?.components?.[key];
   if (!c?.layout) continue;
   c.label = st.label;
-  c.layout.path.accent = st.color;
-  c.layout.path.width = 5;
-  c.layout.label = { ...c.layout.label, visible: true, at: st.at, pos_x: 0, pos_y: -10, size: 11, color: st.color };
+  c.layout.label = { ...c.layout.label, visible: true, at: st.at, pos_x: 0, pos_y: -10, size: 11 };
 }
 j.user = "timothy";
 j.description = desc;
