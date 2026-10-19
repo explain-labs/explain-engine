@@ -173,6 +173,14 @@ own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref script
 - **Controllers (10-minute run):** brain autoregulation at its dilation floor (0.15) with CBF 92; baroreflex near
   neutral (HR ×1.015, SVR ×1.03); Hormones SVR factor 0.90.
 
+## Recalibrations made from this reference (step 5)
+
+- **5.1 Placental O₂ diffusion (2026-10-19).** The umbilical vein equilibrated with the maternal pool (SO₂ 85 /
+  pO₂ 39); at term it stays ~30 % short of it (Siggaard-Andersen). `Placenta.dif_o2` 0.03 → **0.003** (the lever is
+  weak down to ~0.005): UV 80 % / 34 mmHg, UA 51 %, AA 56 %, SVC 41.5 %, IVC 63.5 %; hemodynamics unchanged.
+  At ≤ 0.0015 the fetus decompensates within minutes (HR 69, MAP 17): acute placental insufficiency, a 2× margin.
+  45 in range / 6 out.
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 40+0 wk (pairs with `term_neonate`); weight 3.545 kg (= `term_neonate`).

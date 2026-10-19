@@ -151,7 +151,9 @@ export const PROFILES = {
       UMB_ART_RES: 780,     // starting point: 30 wk 1095 x (210/390 mL/min umbilical flow) x (MAP 50/38)
       PLF_RES: 1730,        // starting point: 30 wk 2430, same scaling
       UMB_VEN_RES: 115,     // starting point: 30 wk 160, same scaling
-      DIF_O2: 0.03,         // archived term_fetus
+      DIF_O2: 0.003,        // 5.1: placental O2 diffusion (archived term_fetus 0.03, saturated: UV equilibrated with the maternal pool,
+                            //      SO2 85 / pO2 39) -> UV 80 / 34, ~30 % short of the pool as at term (Siggaard-Andersen); <= 0.0015 the
+                            //      fetus decompensates (acute placental insufficiency)
       DIF_CO2: 0.04,        // archived term_fetus
       MAT_TO2: 5.4,         // reference: maternal placental venous O2 content at 40 wk (Siggaard-Andersen 1995)
       MAT_TCO2: 21.6,       // starting point: maternal placental venous pCO2 ~36 (30 wk 21.5 gave ~35)
