@@ -136,6 +136,11 @@ log.push(`beds: brain r x${L.BRAIN_R} (cbf_setpoint ${L.CBF_SET} L/min), upper b
 // 4. metabolism, blood, kidney, environment
 M.Metabolism.vo2 = L.VO2_METABOLISM;
 M.Metabolism.resp_q = L.RESP_Q;
+// the brain's share of the organ VO2 (Metabolism distributes vo2 over the capillary beds by these fractions)
+const fr = M.Metabolism.metabolic_active_models, brOld = fr.BR_CAP;
+if (L.BRAIN_VO2_FRAC !== brOld) {
+  for (const n of Object.keys(fr)) fr[n] = n === "BR_CAP" ? L.BRAIN_VO2_FRAC : fr[n] * (1 - L.BRAIN_VO2_FRAC) / (1 - brOld);
+}
 // fetal blood = every blood compartment except the maternal pool, the uterus and the bladder
 const fetalBlood = Object.entries(M).filter(([n, m]) => m.solutes && m !== M.Blood && !/^(PL_MAT$|UT|MP|URINE$)/.test(n)).map(([, m]) => m);
 if (L.UMA_DELTA !== 0) { M.Blood.solutes.uma += L.UMA_DELTA; for (const m of fetalBlood) if (typeof m.solutes.uma === "number") m.solutes.uma += L.UMA_DELTA; }
@@ -162,7 +167,7 @@ for (const m of fetalBlood) if (typeof m.to2 === "number") m.to2 *= L.HB_MMOL / 
 M.Blood.set_P50(L.P50);
 M.PL_MAT.solutes.hemoglobin = matHb; M.PL_MAT.P50_0 = matP50;
 log.push(`blood: Hb ${L.HB_MMOL.toFixed(2)} mmol/L, P50 ${L.P50} (maternal pool kept at Hb ${matHb}, P50 ${matP50}); glucose ${L.GLUCOSE}; uma +${L.UMA_DELTA}`);
-log.push(`metabolism: vo2 ${L.VO2_METABOLISM}, resp_q ${L.RESP_Q}; kidney: water ${L.REABS_WATER}, NaCl ${L.REABS_NACL}, intake ${L.MAINT_RATE} mL/kg/h`);
+log.push(`metabolism: vo2 ${L.VO2_METABOLISM}, resp_q ${L.RESP_Q}, brain share ${L.BRAIN_VO2_FRAC}; kidney: water ${L.REABS_WATER}, NaCl ${L.REABS_NACL}, intake ${L.MAINT_RATE} mL/kg/h`);
 // amniotic environment: no evaporation, no respiratory loss, no brown fat; the fluid and the umbilical
 // circulation carry the heat away, so the core rests just above the amniotic temperature
 const T = M.Thermoregulation;

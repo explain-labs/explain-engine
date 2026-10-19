@@ -69,6 +69,9 @@ export const PROFILES = {
       VO2_METABOLISM: 4.98, // 5.4: total VO2 6.0 (was 6.5; human range 5.4-8.1) minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5).
                             //      With umbilical flow 129 the umbilical Fick balance then matches the cordocentesis saturations:
                             //      UA 55 -> 64 %, AA 58 -> 67 %, IVC 65 -> 72 % (at VO2 6.5 they need ~164 mL/kg/min)
+      BRAIN_VO2_FRAC: 0.65, // 5.5: Metabolism.metabolic_active_models.BR_CAP (term 0.31311); the other organs' fractions are rescaled
+                               //   so the fractions still sum to 1 -> brain 55 % of fetal VO2, cerebral O2 extraction ~31 %
+                               //   (Sun 2015 MRI: 58 %, 34 %); SVC SO2 56.5 -> 50.9
       RESP_Q: 0.95,         // reference (ovine)
       GLUCOSE: 4.0,         // reference
       UMA_DELTA: 0.0,       // starting point

@@ -223,6 +223,12 @@ invariants hold after the bake.
   UA SO₂ 55 → 64.3, AA 58 → 67.2, IVC 65 → 72.4 (all on the cordocentesis values), UA − UV pCO₂ 12 → 8.9,
   UA pH 7.29 → 7.32. ×0.6 overshot the placental share (38 %). 47 in range / 4 out; SVC SO₂ rose to 56.5 (ref 43).
 
+- **5.5 Brain O₂ use (2026-10-19).** SVC SO₂ was 56.5 (ref 43): the aorta delivered 67 % blood to a large brain
+  flow that used the term share of organ VO₂ (`Metabolism` `BR_CAP` 0.313, brain ~27 % of VO₂, extraction
+  ~15 %). New lever `BRAIN_VO2_FRAC` (the other organs rescaled) **0.65**: brain 55 % of fetal VO₂, cerebral
+  extraction ~31 % (Sun 2015 MRI: 58 %, 34 %); SVC SO₂ 56.5 → 50.9, IVC 72.4 → 76.2, AA 67.2 → 68.7. Placental
+  side unchanged. 48 in range / 3 out (CVP 6.0, UA pH 7.32, duct diameter by design).
+
 ## Decisions log (2026-10-19)
 
 - Build route: live `term_neonate` + the fetal transform + a 30-week profile (preterm 30 wk levers as starting
