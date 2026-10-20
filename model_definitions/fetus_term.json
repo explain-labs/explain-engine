@@ -1,5 +1,5 @@
 {
- "name": "term_fetus",
+ "name": "fetus_term",
  "user": "timothy",
  "description": "Fetus in utero at 40 weeks (3.545 kg), not in labour: the placenta is the gas exchanger, the lungs are fluid-filled, the ductus arteriosus and foramen ovale are wide open (right-to-left), fetal haemoglobin, amniotic environment. Validated against docs/TermFetusReference.md.",
  "provenance": "hand-authored",
@@ -14366,7 +14366,7 @@
   "age": 0,
   "modeling_stepsize": 0.0005,
   "model_time_total": 0,
-  "name": "term_fetus",
+  "name": "fetus_term",
   "description": "Fetus in utero at 40 weeks (3.545 kg), not in labour: the placenta is the gas exchanger, the lungs are fluid-filled, the ductus arteriosus and foramen ovale are wide open (right-to-left), fetal haemoglobin, amniotic environment. Validated against docs/TermFetusReference.md."
  }
 }

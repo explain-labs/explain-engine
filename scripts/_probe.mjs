@@ -145,7 +145,7 @@ export const RANGES = {
 // pick a normal-range profile from body weight (term neonate ≈ 3.5 kg) unless
 // overridden; gestational age narrows preterm babies onto the matching table.
 // Is this a fetus in utero? Verified unambiguous across the shipped scenario library: only
-// term_fetus / fetus_*wk have the placenta running with the cord unclamped; every neonatal and
+// fetus_term / fetus_*wk have the placenta running with the cord unclamped; every neonatal and
 // adult scenario has placenta_running=false, umb_clamped=true. Takes either a live model or a
 // model_definition (both expose .models).
 export function isFetal(model) {

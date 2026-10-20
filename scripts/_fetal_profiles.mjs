@@ -114,7 +114,7 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as preterm: baroreceptor window scaled with the set-point
       BR_MAP: 38,           // reference: MAP 38 (ovine, Wassink 2014)
       SVR: 1.34,            // preterm 30 (starting point)
-      FETAL_PVR: 9.5,       // fetal transform: raw r_for/r_back x on the pulmonary BloodVessels (term_fetus x9.5)
+      FETAL_PVR: 9.5,       // fetal transform: raw r_for/r_back x on the pulmonary BloodVessels (fetus_term x9.5)
       PVR: 1.4,             // starting point: pulmonary resistances x on top (archived 30 wk x2.30 gave lungs 12 %; target 20 %)
       CONT_LEFT: 1.0,       // starting point: Heart.cont_factor_left
       CONT_RIGHT: 1.2,      // starting point: Heart.cont_factor_right, the RV-dominance lever (docs/fetal_circulation.md)
@@ -185,7 +185,7 @@ export const PROFILES = {
   // resistances are scaled from the 30 wk ones to the term umbilical flow. All "starting point" values are
   // validated in step 5 against the term reference set.
   40: {
-    name: "term_fetus",
+    name: "fetus_term",
     refDoc: "docs/TermFetusReference.md",
     // diagram oxygen colour window spanning the fetal range at term: lower-body venous (~2.3) to the umbilical
     // vein (~7.0 mmol/L at Hb 9.3 and SO2 75 %), as the 30 wk window
@@ -206,7 +206,7 @@ export const PROFILES = {
       BR_WINDOW: 1,         // baroreceptor window scaled with the set-point
       BR_MAP: 50,           // reference: MAP 50 (ovine, Segar 2002)
       SVR: 1.0,             // starting point: term_neonate's systemic resistances
-      FETAL_PVR: 9.5,       // fetal transform: raw r on the pulmonary BloodVessels (term_fetus x9.5)
+      FETAL_PVR: 9.5,       // fetal transform: raw r on the pulmonary BloodVessels (fetus_term x9.5)
       PVR: 0.8,             // 5.2: pulmonary resistances x on top of the fetal x9.5 -> lungs 14.9 -> 17.7 % (ref 18), PA - Ao 2.2 -> 1.5
       CONT_LEFT: 1.15,      // 5.2: Heart.cont_factor_left (with CONT_RIGHT 1.0) -> LV EF 58 -> 63, LV SV 1.12 -> 1.20, RV share 62 -> 58.6 %
       CONT_RIGHT: 1.0,      // 5.2 (30 wk value 1.2): with RV_EL_MIN 0.8 the term RV already out-filled the LV (RV EF 67, share 62 %)

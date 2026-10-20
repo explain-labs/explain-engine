@@ -1,4 +1,4 @@
-// Fetal-circulation probe for the fetal scenarios (term_fetus, fetus_<ga>wk).
+// Fetal-circulation probe for the fetal scenarios (fetus_term, fetus_<ga>wk).
 //
 // Warms up the scenario, then reports the panel needed to calibrate fetal circulation:
 //   - vitals (HR, ABP, PAP, CVP) and combined ventricular output (RV:LV split)
@@ -8,7 +8,7 @@
 // Usage:
 //   node scripts/probe_fetus.mjs [scenario] [--seconds N] [--window W] [--no-ans] [--verbose]
 //
-// `scenario` is a filename stem from model_definitions/ without .json, defaulting to term_fetus
+// `scenario` is a filename stem from model_definitions/ without .json, defaulting to fetus_term
 // (e.g. `node scripts/probe_fetus.mjs fetus_30wk`).
 //
 // Live calibration overrides (applied before warm-up, mutate the live model):
@@ -42,7 +42,7 @@ const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 // only argv[0] may be the scenario stem: argv.find(a => !a.startsWith("-")) would pick up a
 // flag VALUE (e.g. "4.3" from `--fo 4.3`) and try to load it as a scenario.
-const SCENARIO = argv[0] && !argv[0].startsWith("-") ? argv[0] : "term_fetus";
+const SCENARIO = argv[0] && !argv[0].startsWith("-") ? argv[0] : "fetus_term";
 const SECONDS = opt("--seconds", 120);
 const WINDOW = opt("--window", 20);
 const VERBOSE = flag("--verbose");

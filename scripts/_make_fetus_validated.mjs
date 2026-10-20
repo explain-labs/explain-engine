@@ -2,7 +2,7 @@
 // (scripts/_fetal_profiles.mjs):
 //   25: fetus_25wk - fetus at 25+0 weeks (0.7 kg), not in labour (docs/Fetus25wkReference.md)
 //   30: fetus_30wk - fetus at 30+0 weeks (1.5 kg), not in labour (docs/Fetus30wkReference.md)
-//   40: term_fetus - fetus at 40+0 weeks (3.545 kg, as term_neonate), not in labour (docs/TermFetusReference.md)
+//   40: fetus_term - fetus at 40+0 weeks (3.545 kg, as term_neonate), not in labour (docs/TermFetusReference.md)
 //
 //   node scripts/_make_fetus_validated.mjs --profile <ga> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //

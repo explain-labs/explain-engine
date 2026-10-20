@@ -1,12 +1,12 @@
 # Term fetus (40 wk, 3.545 kg) in utero: literature reference values
 
-Reference values for validating a fetal scenario (`term_fetus`): a healthy human fetus in utero at 40+0 weeks,
+Reference values for validating a fetal scenario (`fetus_term`): a healthy human fetus in utero at 40+0 weeks,
 3.545 kg, the same weight as [`term_neonate`](TermNeonateReference.md), so fetus and 72-hour neonate compare one
 to one. Compiled 2026-10-19 with the method and most of the sources of
 [`Fetus30wkReference.md`](Fetus30wkReference.md) (PubMed and the web; no fetal PDFs in the reference folder),
 plus term-specific sources. Every judgement call was made by the model's author (see the decisions log).
 
-The machine-readable version is [`scripts/reference/term_fetus.json`](../scripts/reference/term_fetus.json), in
+The machine-readable version is [`scripts/reference/fetus_term.json`](../scripts/reference/fetus_term.json), in
 the same schema and with the same 61 variables as the 30-week set.
 
 ## The reference state
@@ -158,7 +158,7 @@ the same schema and with the same 61 variables as the 30-week set.
 
 `node scripts/_make_fetus_validated.mjs --profile 40` (term_neonate + the fetal transform + the term profile;
 size/maturity levers at term_neonate's values, the 30-week fetal levers carried over, kidney = term_neonate's
-own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref scripts/reference/term_fetus.json`:
+own), probed with `node scripts/probe_term_reference.mjs fetus_term --ref scripts/reference/fetus_term.json`:
 **43 graded rows in range, 8 out**. The fetal invariants hold after the bake.
 
 - **In range first time:** HR 138, BP 64.7/38.2 (MAP 50.0), CVP 3.0, LV/RV volumes, RV SV 1.81, output 403,
@@ -197,7 +197,7 @@ own), probed with `node scripts/probe_term_reference.mjs term_fetus --ref script
 
 ## Validation result (step 5 complete, 2026-10-19)
 
-`node scripts/probe_term_reference.mjs term_fetus --ref scripts/reference/term_fetus.json` on the final scenario:
+`node scripts/probe_term_reference.mjs fetus_term --ref scripts/reference/fetus_term.json` on the final scenario:
 **50 graded rows in range, 1 out**: the duct diameter, 6.0 mm against 3.95 mm anatomy, by design (the model's duct
 size keeps PA ≈ Ao).
 
