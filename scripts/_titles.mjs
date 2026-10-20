@@ -1,6 +1,6 @@
 // Diagram TITLE labels for the generated scenarios, keyed by scenario name. Every generated scenario
 // starts from a copy of a baseline JSON, whose diagram_definition.components.TITLE.label ("NORMAL NEONATE
-// (24H, SHUNTS CLOSED)") would otherwise be inherited unchanged. The _make_*.mjs scripts call
+// (72H, DUCT CLOSED)") would otherwise be inherited unchanged. The _make_*.mjs scripts call
 // setDiagramTitle(j, j.name) before writing; scripts/_add_titles.mjs applies the map to the existing
 // files in place (the title is not model state, so no reseed is needed).
 // Hand-authored baselines (term_neonate, adult_female*) keep their own titles and are not listed here.
