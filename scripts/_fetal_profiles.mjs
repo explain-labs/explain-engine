@@ -69,7 +69,8 @@ export const PROFILES = {
       DIF_O2: 0.012,        // starting point: smaller placenta, still in equilibrium (fetus 30 0.020 at 1.5 kg)
       DIF_CO2: 0.016,       // starting point (fetus 30 0.027)
       MAT_TO2: 6.0,         // starting point: maternal pool for UV pO2 ~44 at equilibrium (SO2 ~79 % at maternal P50 26.7)
-      MAT_TCO2: 21.4,       // starting point: maternal pool pCO2 ~34.5 (fetus 30 21.5 gave ~35)
+      MAT_TCO2: 21.0,       // 5.2: maternal pool CO2 content (starting point 21.4: UV pCO2 36, UA pH 7.32) -> UV 33 / 7.43, UA 41 / 7.34
+                            //      (author's choice over 21.2, which put the UV exactly on 34.5 / 7.41 and the UA at 7.33)
 
       // --- metabolism, blood, kidney, environment ---
       VO2_METABOLISM: 4.98, // reference total 6.0 minus the myocardium (~0.81), / 1.042 (Q10 at core 37.5)

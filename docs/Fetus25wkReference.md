@@ -173,6 +173,10 @@ The fetal invariants hold after the bake.
   as the 30-week fetus needed): MAP 34.4, HR 148, reflex near neutral, output 439, LV SV 1.25, CVP 2.2, umbilical
   flow 147, UA − UV pCO₂ 9.4 → 8.3. 49 in range / 2 out.
 
+- **5.2 UA pH (2026-10-20).** UV pCO₂ 36 and UA pH 7.32: `Placenta.mat_tco2` 21.4 → **21.0** (author's choice over
+  21.2, which matched the umbilical vein exactly and left the artery at 7.33): UV 33 / 7.43, UA 41 / 7.34. Lowering
+  the unmeasured anions only moved base excess. **50 in range / 1 out** (the duct diameter, by design).
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 25+0 wk; weight 0.7 kg (= `preterm_25wk`).
