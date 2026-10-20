@@ -8,6 +8,12 @@ Jones & Crossland 2022 (Table 4) and three ductal Doppler patterns against van L
 
 This folder makes those experiments reproducible on this engine.
 
+> **2026-10-20:** the scenarios behind seven experiments (`baseline` on `p1_baseline`, `pda_none` on
+> `p1_pda_none`, the `pda_*` and `doppler_*` cases on `bischoff_cohort`) were built on the older engine
+> and moved to `model_definitions/archive/`. Those experiments are to be re-run from scratch on the
+> current engine; until then they cannot run, and only the three `ph_*` experiments (on `term_neonate`)
+> work. The app's `/paper/p1` page shows only those three.
+
 | File | Role |
 |---|---|
 | `experiments.json` | **Source of truth.** One entry per experiment: the scenario it starts from, the ops that create the state (the same op shapes the app's lessons use), how long to settle and sample, and every measure with the paper's value and the literature target. |
