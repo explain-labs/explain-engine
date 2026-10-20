@@ -165,6 +165,14 @@ The fetal invariants hold after the bake.
 - **Controllers (10-minute run):** the baroreflex is working hard: MAP ~31 against its set-point 35 holds HR at
   ×1.11 (160) and SVR at ×1.22. Brain autoregulation is near neutral (0.99 at CBF 95).
 
+## Recalibrations made from this reference (step 5)
+
+- **5.1 Pressure / baroreflex (2026-10-20).** MAP ~31 against the set-point 35 kept the baroreflex hard at work (HR
+  160, SVR ×1.22) with a low output (377) and LV stroke volume (1.0). Systemic resistance was a weak lever (2.0 →
+  3.2: MAP 33.4; the placenta takes the diverted flow). Less diastolic stiffness (`HEART_EL_MIN` 3.8 → **2.5**,
+  as the 30-week fetus needed): MAP 34.4, HR 148, reflex near neutral, output 439, LV SV 1.25, CVP 2.2, umbilical
+  flow 147, UA − UV pCO₂ 9.4 → 8.3. 49 in range / 2 out.
+
 ## Decisions log (2026-10-19)
 
 - Gestational age 25+0 wk; weight 0.7 kg (= `preterm_25wk`).

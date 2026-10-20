@@ -41,7 +41,9 @@ export const PROFILES = {
       CONT_RIGHT: 1.2,      // as fetus 30
       RELAX: 1.12,          // preterm 25
       HEART_EL_MAX: 4.86,   // preterm 25
-      HEART_EL_MIN: 3.8,    // starting point: preterm 25 5.0 x0.76 (the fetus 30 / preterm 30 ratio, CVP)
+      HEART_EL_MIN: 2.5,    // 5.1: heart chambers el_min x (starting point 3.8 = preterm 25 5.0 x0.76): the heart under-filled (output 377,
+                            //      LV SV 1.0) and the baroreflex held HR at 160 / SVR x1.22 for MAP ~31 -> MAP 34.4, HR 148, reflex ~neutral,
+                            //      output 439, umbilical flow 147. SVR 2.0 -> 3.2 raised MAP only to 33.4 (the placenta takes the flow)
       ART_EL: 7.14,         // preterm 25
       VEN_UVOL: 0.85,       // as fetus 30 (preterm 25 0.77 x1.10)
       RV_EL_MIN: 0.8,       // as fetus 30
