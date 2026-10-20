@@ -67,7 +67,7 @@ const CASES = [
     // implicit aortic resistors let a 20 mmHg pulse pressure converge (it stopped near 11 with the
     // lever at the old x1.8 bound); the pair is fitted as diastolic + pulse pressure
     name: "preterm_baseline_bp",
-    spec: { baseline: "bischoff_cohort", name: "probe_bischoff_bp", targets: { hr: 159, sys: 45, dia: 25 } },
+    spec: { baseline: "preterm_25wk", name: "probe_preterm25_bp", targets: { hr: 159, sys: 45, dia: 25 } },
     expectDia: true, expectPpFree: true,
   },
   {

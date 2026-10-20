@@ -1,8 +1,12 @@
 # Archived scenarios
 
-These 36 scenarios were moved here on 2026-10-16, when the healthy term neonate (`term_neonate`)
+These scenarios were moved here on 2026-10-16 (36 of them), when the healthy term neonate (`term_neonate`)
 became the single reference for a rebuild of the builder's lever map. All of them derive from older
 term states, and they are **not maintained** while `term_neonate` is being fixed.
+
+On 2026-10-20 the four that were kept in place for live pages joined them: `bischoff_cohort`,
+`p1_baseline`, `p1_pda_none` (the P1 companion's experiments, to be re-run on the current engine) and
+`tof_severe` (the ToF lesson, offline until it is rebuilt). They were made with the older engine too.
 
 - They are not listed in `../index.json`, and explain-ui's `sync-scenarios.mjs` only copies
   top-level files, so they no longer appear in the app.
