@@ -2542,7 +2542,7 @@
       },
       "TITLE": {
         "type": "Device",
-        "label": "NORMAL NEONATE (24H, SHUNTS CLOSED)",
+        "label": "NORMAL NEONATE (72H, DUCT CLOSED)",
         "picto": "vessel.png",
         "enabled": true,
         "models": [],
