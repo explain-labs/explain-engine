@@ -1,5 +1,6 @@
 // Generator: term_neonate.json -> a literature-validated fetus in utero, one lever profile per gestation
 // (scripts/_fetal_profiles.mjs):
+//   25: fetus_25wk - fetus at 25+0 weeks (0.7 kg), not in labour (docs/Fetus25wkReference.md)
 //   30: fetus_30wk - fetus at 30+0 weeks (1.5 kg), not in labour (docs/Fetus30wkReference.md)
 //   40: term_fetus - fetus at 40+0 weeks (3.545 kg, as term_neonate), not in labour (docs/TermFetusReference.md)
 //

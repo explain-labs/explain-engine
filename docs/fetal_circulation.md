@@ -1,7 +1,12 @@
 # Fetal circulation scenarios
 
-**Current scenarios (2026-10-19)**, both rebuilt from the literature-validated `term_neonate` by
-`node scripts/_make_fetus_validated.mjs --profile 30|40` (levers in `scripts/_fetal_profiles.mjs`):
+**Current scenarios (2026-10-19/20)**, all rebuilt from the literature-validated `term_neonate` by
+`node scripts/_make_fetus_validated.mjs --profile 25|30|40` (levers in `scripts/_fetal_profiles.mjs`):
+- [`fetus_25wk`](../model_definitions/fetus_25wk.json), 25 wk, 0.7 kg (as preterm_25wk), validated against
+  [Fetus25wkReference](./Fetus25wkReference.md) (50 of 51). Size/maturity levers from preterm_25wk corrected by the
+  fetus-30 / preterm-30 ratios; the heart needed less diastolic stiffness (`HEART_EL_MIN` 2.5) to keep MAP at the
+  baroreflex set-point (systemic resistance was a weak lever: the placenta takes the flow). Operating point: HR 148,
+  MAP 34, CVP 2.2, output ~440, RV:LV 58:42, UV 92 > IVC 80 > AA 72 > UA 68 %, umbilical flow 148, core 37.5.
 - [`fetus_30wk`](../model_definitions/fetus_30wk.json), 30 wk, 1.5 kg, validated against
   [Fetus30wkReference](./Fetus30wkReference.md) (49 of 51 graded rows in range); see
   [The rebuilt fetus_30wk](#the-rebuilt-fetus_30wk-2026-10-19) below;
@@ -11,7 +16,7 @@
   (`cont_factor_right` 1.0, `cont_factor_left` 1.15), PVR ×0.8 on the fetal ×9.5, umbilical flow ~142 mL/kg/min.
   Operating point: HR 142, MAP 48, CVP 3.3, output ~430, RV:LV 59:41, UV 80 > IVC 68 > AA 61 > UA 57 %, core 37.5.
 
-The sections after that describe the **earlier pair**, now in `model_definitions/archive/` and replaced by these two (built from the old
+The sections after that describe the **earlier pair**, now in `model_definitions/archive/` and replaced by these (built from the old
 term base):
 
 | Scenario | GA | Weight | Built by |
