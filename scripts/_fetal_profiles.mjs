@@ -54,7 +54,8 @@ export const PROFILES = {
       FO_SEPTUM: 1.7,       // starting point: fetus 30 2.2 x (0.7/1.5)^(1/3)
       FO_SVC_FRACTION: 0.0, // as fetus 30: only IVC blood crosses the foramen
       COR_R: 2.99,          // preterm 25
-      BRAIN_R: 0.24,        // starting point: preterm 25 1.95 x0.125 (the fetus 30 / preterm 30 ratio)
+      BRAIN_R: 0.35,        // final: cerebral bed r x (starting point 0.24 = preterm 25 1.95 x0.125; after 5.1 raised MAP the bed was
+                            //      constricting at 1.77) -> autoregulation ~1.0 over minutes 8-10 at CBF ~95
       CBF_SET: 0.0665,      // reference: 95 mL/kg/min x 0.7 kg, L/min absolute (grade C)
       UB_R: 2.34,           // starting point: preterm 25 1.3 x1.8 (fetus 30 / preterm 30)
       INT_R: 1.64,          // preterm 25
