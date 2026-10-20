@@ -195,7 +195,7 @@ The RA is two chambers, `RAIVCI` (IVC return, coronary sinus) and `RASVC` (SVC r
 tricuspid half (`RAIVCI_RV`, `RASVC_RV`) and foramen-ovale half (`LA_RAIVCI`, `LA_RASVC`). They are joined
 by the `RAIVCI_RASVC` resistor (in `Heart.components`):
 
-- **Fetal scenarios** (`fetus_30wk`, `term_fetus`) keep the halves **separate** (`no_flow: true`). The
+- **Fetal scenarios** (`fetus_30wk`, `fetus_term`) keep the halves **separate** (`no_flow: true`). The
   split is what produces preferential streaming: ductus venosus / IVC blood → FO → LA, SVC blood → RV.
 - **All postnatal scenarios** (since 2026-10-01) **merge** them into one atrium. The link is open in both
   directions (`no_flow: false`, `no_back_flow: false`) with a small resistance

@@ -13,7 +13,7 @@ A scenario file is a single JSON document that describes one complete patient/ex
 > On 2026-10-19 the fetus `fetus_30wk` (30 wk, 1.5 kg, in utero, not in labour) was rebuilt the same way, from
 > `term_neonate` by `scripts/_make_fetus_validated.mjs --profile 30` (levers in `scripts/_fetal_profiles.mjs`),
 > and validated against [Fetus30wkReference](./Fetus30wkReference.md); it replaces the archived version. The term
-> fetus `term_fetus` (40 wk, 3.545 kg) followed the same day (`--profile 40`, [TermFetusReference](./TermFetusReference.md)), and the 25-week fetus
+> fetus `fetus_term` (40 wk, 3.545 kg) followed the same day (`--profile 40`, [TermFetusReference](./TermFetusReference.md)), and the 25-week fetus
 > `fetus_25wk` (0.7 kg) on 2026-10-20 (`--profile 25`, [Fetus25wkReference](./Fetus25wkReference.md)).
 > The frozen set that the P1 companion and the ToF lesson used (`bischoff_cohort`, `p1_baseline`,
 > `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20: the P1
@@ -233,7 +233,7 @@ Both are `{ settings, components }` objects. `settings` holds canvas-level optio
 A flat JSON array of scenario filename stems, e.g.:
 
 ```json
-["adult_female", "term_neonate", "term_fetus", "preterm_28wk", "..."]
+["adult_female", "term_neonate", "fetus_term", "preterm_28wk", "..."]
 ```
 
 Each entry `X` maps to `model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in consuming apps. (In explain-ui, `sync-scenarios.mjs` rebuilds its served `index.json` as the union of the canonical set and any local snapshots.)

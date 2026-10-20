@@ -1,5 +1,5 @@
 {
- "name": "term_fetus",
+ "name": "fetus_term",
  "description": "Literature reference values for a human fetus in utero at 40+0 weeks (3.545 kg): healthy, appropriate for gestational age, singleton, mother at rest breathing air, not in labour. Grades: A = human fetal data at term, B = human fetal data from late gestation (36-38 wk), a pooled synthesis or a short extrapolation, C = derived, method-dependent, or ovine (marked 'C ovine').",
  "state": "fetus in utero, 40+0 wk, 3.545 kg; placenta is the gas exchanger; fluid-filled lungs, no fetal breathing; wide-open ductus arteriosus and foramen ovale; amniotic environment ~37.3 degC",
  "compiled": "2026-10-19",

@@ -61,7 +61,7 @@
 //     "max_iters": 12, "warm_seconds": 45, "settle_seconds": 90, "final_seconds": 200
 //   }
 //
-// FETAL MODE. A fetal baseline (term_fetus, fetus_<ga>wk) is auto-detected and changes three
+// FETAL MODE. A fetal baseline (fetus_term, fetus_<ga>wk) is auto-detected and changes three
 // things, because the neonatal levers are actively wrong on a fetus:
 //   - the gestational-age seed comes from FETAL, not PRETERM_SEED. The preterm seed would set
 //     Shunts.ips_res = 2200 (reopening the intrapulmonary shunts the fetus needs closed at 1e8)
@@ -557,7 +557,7 @@ let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary
 // wiped the baked scaling, so the Bischoff infant fell from 42/19 to 30/14 before any lever had
 // moved. scaleGroup() instead sets each member to base x f, where base is the layer as loaded, so
 // f = 1 is the patient as built. A gestational-age seed is the exception: its svr/pvr are stated
-// against the term reference (term_neonate, term_fetus; a preterm baseline is never seeded, see
+// against the term reference (term_neonate, fetus_term; a preterm baseline is never seeded, see
 // above), so a seeded build keeps the absolute layer (base 1), exactly as before.
 const scaleGroup = (group, absolute) => {
   const cfg = group === "systemic_resistances" ? "blood_systemic" : "blood_pulmonary";

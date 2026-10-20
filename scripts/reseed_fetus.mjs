@@ -7,7 +7,7 @@
 // transients so the file loads at its operating point.
 //
 //   node scripts/reseed_fetus.mjs 30 [--seconds 250] [--write]
-//   node scripts/reseed_fetus.mjs term            # the 40 wk term_fetus scenario
+//   node scripts/reseed_fetus.mjs term            # the 40 wk fetus_term scenario
 //
 // Default is a DRY RUN to /tmp/<stem>_reseed.json; --write is what mutates model_definitions/.
 // The 250 s default warm-up is longer than the preterm reseeds use on purpose: the placental
@@ -22,12 +22,12 @@ const ga = argv[0] && !argv[0].startsWith("-") ? argv[0] : "";
 const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 250; })();
 const WRITE = argv.includes("--write");
 
-// `term` resolves to the legacy term_fetus stem so there is one reseed entry point for the whole
-// fetal family and a future retune of term_fetus uses this same code path.
-const stem = ga === "term" || ga === "40" ? "term_fetus" : `fetus_${ga}wk`;
-if (!ga || (stem !== "term_fetus" && !FETAL[Number(ga)])) {
+// `term` resolves to the fetus_term stem so there is one reseed entry point for the whole
+// fetal family and a future retune of fetus_term uses this same code path.
+const stem = ga === "term" || ga === "40" ? "fetus_term" : `fetus_${ga}wk`;
+if (!ga || (stem !== "fetus_term" && !FETAL[Number(ga)])) {
   console.error(`usage: node scripts/reseed_fetus.mjs <ga> [--seconds N] [--write]`);
-  console.error(`  <ga> is one of ${FETAL_GAS.join(", ")}, or "term" for term_fetus`);
+  console.error(`  <ga> is one of ${FETAL_GAS.join(", ")}, or "term" for fetus_term`);
   process.exit(1);
 }
 

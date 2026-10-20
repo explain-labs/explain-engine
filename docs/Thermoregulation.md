@@ -230,7 +230,7 @@ so they are not rediscovered as defects:
   coefficients physical at the cost of a small, bounded *transient* energy inexactness — zero at rest.
 - **`ctotal` is not gas-law-consistent in a sealed static gas pocket.** Pressure comes from elastance
   while `ctotal` sums species, and the two are not hard-coupled. For flowing gas this stays within ~2 %
-  (see [`GasCapacitance`](./GasCapacitance.md)); a never-ventilated compartment (`term_fetus` lungs)
+  (see [`GasCapacitance`](./GasCapacitance.md)); a never-ventilated compartment (`fetus_term` lungs)
   drifts to ~8.6 %.
 - **Warm-environment core response is more defended** than the former single-node model (rise ~0.57 vs
   ~0.82 °C in the probe's hot step) — a consequence of the blood/core thermal buffer, considered more

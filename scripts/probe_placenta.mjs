@@ -16,7 +16,7 @@ console.log = () => {};
 await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 
-const path = new URL(`../model_definitions/term_fetus.json`, import.meta.url);
+const path = new URL(`../model_definitions/fetus_term.json`, import.meta.url);
 const def = JSON.parse(fs.readFileSync(path, "utf8")).model_definition || JSON.parse(fs.readFileSync(path, "utf8"));
 send("POST", "build", def);
 send("GET", "state", []);

@@ -10,7 +10,7 @@
 - [`fetus_30wk`](../model_definitions/fetus_30wk.json), 30 wk, 1.5 kg, validated against
   [Fetus30wkReference](./Fetus30wkReference.md) (49 of 51 graded rows in range); see
   [The rebuilt fetus_30wk](#the-rebuilt-fetus_30wk-2026-10-19) below;
-- [`term_fetus`](../model_definitions/term_fetus.json), 40 wk, 3.545 kg (as term_neonate), validated against
+- [`fetus_term`](../model_definitions/fetus_term.json), 40 wk, 3.545 kg (as term_neonate), validated against
   [TermFetusReference](./TermFetusReference.md) (50 of 51). What differs from 30 wk: placental O₂ diffusion 10× lower
   (`dif_o2` 0.003: at term the umbilical vein stays ~30 % short of the maternal side), no RV boost
   (`cont_factor_right` 1.0, `cont_factor_left` 1.15), PVR ×0.8 on the fetal ×9.5, umbilical flow ~142 mL/kg/min.
@@ -127,7 +127,7 @@ The three traps that cost the most time, in order:
 
 Measured with `node scripts/probe_fetus.mjs <scenario>`, not copied from a script header.
 
-| | `term_fetus` (40 wk) | `fetus_30wk` | human reference |
+| | `fetus_term` (40 wk) | `fetus_30wk` | human reference |
 |---|---|---|---|
 | HR | 146.5 bpm | 147.8 | — |
 | ABP sys/dia/**map** | 67.2 / 44.0 / **55.7** | 44.6 / 32.0 / **38.3** | — |
@@ -251,7 +251,7 @@ node scripts/probe_fetus.mjs fetus_30wk --seconds 150 # read the panel; iterate 
 node scripts/reseed_fetus.mjs 30                      # dry run -> /tmp/fetus_30wk_reseed.json
 node scripts/reseed_fetus.mjs 30 --write              # bake the equilibrium into the scenario
 node scripts/probe_fetus.mjs fetus_30wk --seconds 20  # the reseed took if this matches the 150 s run
-node scripts/probe_fetus.mjs                          # regression: term_fetus must be unchanged
+node scripts/probe_fetus.mjs                          # regression: fetus_term must be unchanged
 ```
 
 Adding a gestation is one row in `FETAL` (`scripts/_ga_tables.mjs`) plus a make/probe/reseed loop.
