@@ -154,6 +154,18 @@ This is narrower than most 25-week ranges, on purpose: the patient should resemb
 | Fractional sodium excretion | **10** % | 5–15 | B/C | 25 wk set | Lorenz 1995 |
 | Plasma creatinine | **150** umol/L | 100–220 | B/C | 25 wk set | Miall 1999 |
 
+## First look (step 2, untuned)
+
+`node scripts/probe_term_reference.mjs bischoff_no_pda --ref scripts/reference/bischoff_no_pda.json`: **56/61** in
+range. BP, gases, breathing, kidney and the shunts already fit. Out: LVO 215, RVO 218, LV SV 1.43, RV SV 1.45,
+RV EDV 2.86 (the 25-week levers were tuned for an output of ~215-250).
+
+## Recalibrations made from this reference (step 3)
+
+| Step | Lever(s) | Why | Result |
+|---|---|---|---|
+| 3.1 | `HEART_EL_MIN` 4.58 → 6.0, `SVR` 1.83 → 2.1 | Output too high. Less venous filling dropped CVP below range; SVR alone was cancelled by the baroreflex. Diastolic stiffness lowers SV and raises CVP, and SVR returns MAP to the set-point. | LVO 177 / RVO 182, SV 1.12, EDV 1.75, EF 64 %, CVP 2.7, MAP 34.0, HR 157, baroreflex 1.01/1.03. 59/61; out: SpO₂ 86.4, PaO₂ 36.9 (lower SvO₂ through the lung shunt). Brain autoregulation 0.52 (dilated), for the flows step. |
+
 ## Decisions log (2026-10-22)
 
 - Do not reuse the earlier `_make_bischoff.mjs` / `bischoff_cohort`; build with `scripts/_make_preterm_validated.mjs`

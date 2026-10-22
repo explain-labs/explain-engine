@@ -283,12 +283,13 @@ export const PROFILES = {
       HR_REF: 155,          // reference: Bischoff 155.1 +/- 9.1
       BR_WINDOW: 1,         // as 25 wk: baroreceptor window scaled with the set-point
       BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
-      SVR: 1.83,            // size rule: 2.0 x 0.916
+      SVR: 2.1,             // 3.1: systemic resistances x (size rule 1.83) -> MAP 34.0 with the stiffer ventricles, baroreflex ~1.01
       PVR: 3.63,            // size rule: 3.96 x 0.916
       CONT: 1.0,            // as 25 wk: no LV dysfunction in the group
       RELAX: 1.12,          // as 25 wk (starting point)
       HEART_EL_MAX: 4.45,   // size rule: 4.86 x 0.916
-      HEART_EL_MIN: 4.58,   // size rule: 5.0 x 0.916
+      HEART_EL_MIN: 6.0,    // 3.1: heart chambers el_min x (size rule 4.58 gave SV 1.43, LVO 215) -> SV 1.12, EDV 1.75, LVO 177
+                            //      (Bischoff 170); diastolic stiffness of the immature myocardium, CVP 1.9 -> 2.7
       ART_EL: 6.54,         // size rule: 7.14 x 0.916
       VEN_UVOL: 0.77,       // as 25 wk
       PDA_REL: 0,           // reference: no PDA; 0 = closed (Pda closed-duct path, as term_neonate)
