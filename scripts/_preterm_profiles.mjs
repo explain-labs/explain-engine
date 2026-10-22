@@ -367,6 +367,7 @@ export const PROFILES = {
       PVR: 3.2,             // 3.1: pulmonary resistances x (size rule 3.85) -> with the narrower ductal jet: PAP near-systemic,
                             //      ductal flow ~90, no right-to-left time
       CONT: 1.0,            // as bischoff_no_pda: no LV or RV dysfunction in the group
+      CONT_R: 1.0,          // RV contractility (Heart.cont_factor_right); 3.2: x1.3/x1.6 raised RV EF only to 42/43 % but RVO rose and CVP fell
       RELAX: 1.12,          // as bischoff_no_pda
       HEART_EL_MAX: 4.72,   // size rule: 4.45 x 1.061
       HEART_EL_MIN: 6.37,   // size rule: 6.0 x 1.061
@@ -376,7 +377,8 @@ export const PROFILES = {
       PDA_LEN: 14,          // ductal length, mm (term_neonate value; 3.1: length 40 fixed the direction but not the Doppler)
       PDA_CD: 0.25,         // 3.1: ductal orifice discharge coefficient (term 0.9): effective jet ~1 mm in the 2.1 mm duct, so the
                             //      Doppler jet (Q/A_eff) reaches ~1.7 / 0.5 m/s and right-to-left time 19.8 % -> 0 (Bischoff group < 10 %)
-      FO_DIAM: 0.76,        // size rule: 0.78 mm x sqrt(0.72/0.764); atrial communication L->R in 14/15
+      FO_DIAM: 0.5,         // 3.2: Shunts.diameter_fo, mm (size rule 0.76 carried ~20 mL/kg/min L->R that the RV pumped again, RVO 200)
+                            //      -> PFO 5.6, RVO 190, LVO/RVO 1.44; atrial communication L->R in 14/15
       COR_R: 2.91,          // size rule: 2.74 x 1.061
       BRAIN_R: 1.44,        // as bischoff_no_pda (bed ratio, on top of SVR)
       CBF_SET: 0.0202,      // reference: 28 mL/kg/min x 0.72 kg, L/min absolute

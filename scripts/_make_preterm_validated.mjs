@@ -128,6 +128,7 @@ log.push(`heart: heart_rate_ref ${HR_REF}; BR_MAP ${termBrMap} -> ${BR_MAP} (win
 log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor: volFactor, mapRef: BR_MAP, mapRefBaseline: termBrMap })));
 for (const n of ["VLB", "VUB"]) if (M[n]) M[n].u_vol *= VEN_UVOL;
 M.Heart.cont_factor_left = CONT; M.Heart.cont_factor_right = CONT;
+if (L.CONT_R != null) M.Heart.cont_factor_right = L.CONT_R; // RV-only contractility (optional lever)
 M.Heart.relax_factor_left = RELAX; M.Heart.relax_factor_right = RELAX;
 M.Pda.diameter_relative = PDA_REL;
 if (L.PDA_LEN != null) M.Pda.length = L.PDA_LEN; // ductal length, mm (optional lever; profiles without it keep term's)

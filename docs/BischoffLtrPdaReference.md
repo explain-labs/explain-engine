@@ -167,6 +167,7 @@ Doppler 0.96 / −0.07 m/s: Bischoff's bidirectional pattern, not the left-to-ri
 | Step | Lever(s) | Why | Result |
 |---|---|---|---|
 | 3.1 | `PDA_CD` 0.9 → 0.25, `PVR` 3.85 → 3.2 (new optional generator levers `PDA_CD`, `PDA_LEN`) | The duct equalised aortic and PA pressure: brief end-diastolic reversal (19.8 % of the cycle), Doppler < 1 m/s. A longer duct fixed the direction but not the Doppler; the model's jet velocity is Q / effective orifice area, so the discharge coefficient is the Doppler lever. PVR keeps PAP near-systemic. | Right-to-left time 0 %, Doppler 1.67 / 0.49 m/s, ductal flow 86, PAP 31/27, diastolic reversal in the descending aorta (lowest −25), LVO 266. Out (8): RV EDV/ESV/EF (EF 40 %), RVO 200, LVO/RVO 1.32, SpO₂ 95.3, PaO₂ 63, SvO₂ 79. Caveat: Cd 0.25 = an effective jet of ~1 mm in the 2.1 mm duct. |
+| 3.2 | `FO_DIAM` 0.76 → 0.5 mm (new optional lever `CONT_R` tried) | RVO 200 / LVO/RVO 1.32: the PFO carried ~20 mL/kg/min left-to-right that the RV pumped again. RV contractility ×1.3/×1.6 raised RV EF only to 42/43 % while RVO rose and CVP fell. | PFO 5.6, RVO 190, LVO 274, LVO/RVO 1.44, RV EDV 2.39. Out (5): RV ESV 1.47 / EF 38.5 % (accepted exception, below), SpO₂ 95.2, PaO₂ 63, SvO₂ 78. |
 
 ## Decisions log (2026-10-22)
 
@@ -178,6 +179,7 @@ Doppler 0.96 / −0.07 m/s: Bischoff's bidirectional pattern, not the left-to-ri
 - Blood pressure: keep the Elsayed 25-week references; a low-end diastolic pressure is acceptable.
 - Step 3.1 revision: Bischoff's L->R group is not pure L->R (the bidirectional group starts at 10 % of time right-to-left). With an unrestrictive duct PA pressure is near-systemic (neocardiolab example, Shen 1997), so the PAP references are near-systemic and the duct is checked by its right-to-left time (< 10 %) and Doppler (peak ~2.4, end-diastolic ~0.7 m/s).
 - 3.1 duct lever: discharge coefficient 0.25 with PVR 3.2 (author's choice over Cd 0.35 / PVR 3.0).
+- 3.2 PFO 0.5 mm. **Accepted exception: RV EF ~38 % / ESV ~1.47** — the RV ejects against near-systemic PA pressure with the unrestrictive duct; the RV EF reference (50 %) was derived for a low-pressure pulmonary circulation, and Bischoff's 'no RV dysfunction' was TAPSE-based (no model read-out). RV contractility does not fix it without raising RVO.
 
 ## Sources
 
