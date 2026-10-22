@@ -335,4 +335,88 @@ export const PROFILES = {
       BRAIN_CTL_GAIN: 1.0,  // as 25 wk
     },
   },
+
+  // Bischoff 2021 left-to-right PDA group (Tables 1-2): the calibrated bischoff_no_pda profile with this group's values
+  // swapped in and the duct opened. Size-related levers follow the size rule from 0.764 to 0.72 kg (x 0.764/0.72 = 1.061).
+  // All "starting point" values are validated in step 3 against docs/BischoffLtrPdaReference.md.
+  bischoff_ltr_pda: {
+    name: "bischoff_ltr_pda",
+    refDoc: "docs/BischoffLtrPdaReference.md",
+    // chemoreceptor set-points = the reference resting gases (Bischoff L->R PDA pCO2 49, PaO2 46 from the OI, pH 7.34)
+    CR: { CR_PCO2: 49, CR_PO2: 46, CR_PH: 7.34 },
+    // diagram settings set by the author in the app (the oxygen colour window's upper end, mmol/L)
+    diagram: { to2_hi: 7.8 },
+    description:
+      "Preterm neonate matching the left-to-right PDA group of Bischoff et al. 2021 (25.8 weeks, 0.72 kg) at 72 h: " +
+      "spontaneous breathing at mean airway pressure 7 with FiO2 0.26 (the group was mostly on HFJV), a haemodynamically " +
+      "significant left-to-right PDA (~2.1 mm) and a left-to-right PFO, untransfused, trophic feeds + parenteral nutrition, " +
+      "caffeine, humidified incubator. Respiratory support is represented by the inspired FiO2 plus a recruited-lung state. " +
+      "Validated against docs/BischoffLtrPdaReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 0.72,         // kg: Bischoff current weight, median (birth weight 716 g)
+      HEIGHT: 0.32,         // m: as bischoff_no_pda
+      GA: 25.8,             // weeks: Bischoff 25.77 +/- 2.18
+      AGE: 3 / 365,         // years: 72 h = the group median (day 3)
+
+      // --- circulation ---
+      HR_REF: 163,          // reference: Bischoff 162.7 +/- 12.7
+      BR_WINDOW: 1,         // as bischoff_no_pda
+      BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
+      SVR: 2.23,            // size rule: 2.1 x 1.061
+      PVR: 3.4,             // 3.1/3.3: pulmonary resistances x (size rule 3.85; 3.2 in 3.1) -> with the narrower ductal jet: PAP near-systemic,
+                            //      ductal flow ~94, no right-to-left time; raised to 3.4 once the larger lung shunt lowered PAP
+      CONT: 1.0,            // as bischoff_no_pda: no LV or RV dysfunction in the group
+      CONT_R: 1.0,          // RV contractility (Heart.cont_factor_right); 3.2: x1.3/x1.6 raised RV EF only to 42/43 % but RVO rose and CVP fell
+      RELAX: 1.12,          // as bischoff_no_pda
+      HEART_EL_MAX: 4.72,   // size rule: 4.45 x 1.061
+      HEART_EL_MIN: 6.37,   // size rule: 6.0 x 1.061
+      ART_EL: 6.94,         // size rule: 6.54 x 1.061
+      VEN_UVOL: 0.73,       // 3.4: VLB/VUB unstressed volume x (0.77 in bischoff_no_pda) -> CVP 1.3 -> 1.55, PAP back in range
+      PDA_REL: 2.1 / 3.0,   // reference: ductal diameter 2.1 mm (Bischoff 2.1 +/- 0.5; Pda.diameter_pa_max = 3 mm)
+      PDA_LEN: 14,          // ductal length, mm (term_neonate value; 3.1: length 40 fixed the direction but not the Doppler)
+      PDA_CD: 0.25,         // 3.1: ductal orifice discharge coefficient (term 0.9): effective jet ~1 mm in the 2.1 mm duct, so the
+                            //      Doppler jet (Q/A_eff) reaches ~1.7 / 0.5 m/s and right-to-left time 19.8 % -> 0 (Bischoff group < 10 %)
+      FO_DIAM: 0.5,         // 3.2: Shunts.diameter_fo, mm (size rule 0.76 carried ~20 mL/kg/min L->R that the RV pumped again, RVO 200)
+                            //      -> PFO 5.6, RVO 190, LVO/RVO 1.44; atrial communication L->R in 14/15
+      COR_R: 2.91,          // size rule: 2.74 x 1.061
+      BRAIN_R: 1.56,        // 3.4: cerebral bed r x (1.44 in bischoff_no_pda left autoregulation at 1.13, constricted) -> ~1 over minutes 8-10
+      CBF_SET: 0.0202,      // reference: 28 mL/kg/min x 0.72 kg, L/min absolute
+
+      // --- lungs and breathing ---
+      RDS_EL: 10.27,        // size rule: 9.68 x 1.061
+      RDS_UVOL: 0.80,       // as bischoff_no_pda (starting point): recruited lung at mean airway pressure 7
+      THORAX_EL: 2.92,      // size rule: 2.75 x 1.061
+      GASEX: 0.324,         // size rule: 0.344 / 1.061
+      IPS_RES: 7000,        // 3.3: intrapulmonary shunt resistance (size rule 14860 gave SpO2 95 / PaO2 63 at FiO2 0.26) -> SpO2 89.4,
+                            //      PaO2 45, SvO2 (RA) 72
+      SURFACTANT: 0.20,     // as bischoff_no_pda
+      FIO2: 0.26,           // reference: Bischoff FiO2 26 % [24, 35]
+      MV_REF: 0.31,         // 3.3: reference minute volume, L/kg/min (start 0.289) so pCO2 rests at the set-point 49 (ventilation drive 1.12 -> 1.02)
+      RR: 65,               // reference (25 wk set)
+      IE: 0.38,             // reference (25 wk set)
+      RMP_RECAL: 1,         // as bischoff_no_pda
+      DS_UVOL: 1.45,        // reference (25 wk set): dead space 3.2 mL/kg
+
+      // --- metabolism, blood, environment ---
+      REABS_WATER: 0.833,   // as bischoff_no_pda
+      REABS_NACL: 0.90,     // as bischoff_no_pda
+      MAINT_RATE: 3.0,      // as bischoff_no_pda
+      UMA_DELTA: -3.15,     // as bischoff_no_pda: BE ~+0.6 there; pH 7.34 + pCO2 49 imply BE ~+0.8 (BE follows)
+      GLUCOSE: 7.0,         // as bischoff_no_pda
+      RESP_Q: 0.95,         // as bischoff_no_pda
+      VO2_METABOLISM: 5.19, // as bischoff_no_pda
+      HB_MMOL: 13.5 / 1.611, // as bischoff_no_pda
+      P50: 18.5,            // as bischoff_no_pda
+      ENV_TEMP: 36.0,       // as bischoff_no_pda
+      REL_HUMIDITY: 0.80,   // as bischoff_no_pda
+      GFR_FACTOR: 1.143,    // as bischoff_no_pda
+      AIRWAY_R: 1.62,       // size rule: 1.53 x 1.061
+      INT_R: 1.64,          // as bischoff_no_pda (bed ratio)
+      LS_R: 1.8,            // as bischoff_no_pda (bed ratio)
+      UB_R: 1.3,            // as bischoff_no_pda (bed ratio)
+      BRAIN_AR_GAIN: 1.0,   // as bischoff_no_pda
+      BRAIN_CTL_GAIN: 1.0,  // as bischoff_no_pda
+    },
+  },
 };

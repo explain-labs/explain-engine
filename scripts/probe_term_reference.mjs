@@ -7,6 +7,7 @@
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
 //   scripts/reference/preterm_28wk.json    (docs/Preterm28wkReference.md)
 //   scripts/reference/fetus_30wk.json      (docs/Fetus30wkReference.md; fetal read-outs switch on when the placenta runs)
+//   scripts/reference/bischoff_ltr_pda.json (docs/BischoffLtrPdaReference.md; SvO2 as svo2_ra, mixed right-atrial blood)
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
@@ -70,10 +71,21 @@ const FETAL = M.Placenta?.placenta_running === true && M.Placenta?.umb_clamped =
 const fetalFlows = ["PL_UMB_VEN_IVCI", "PAAL_LL_ART", "PAAR_RL_ART"];
 const gasSites = { uv: "PL_UMB_VEN", ua: "PL_UMB_ART", aa: "AA", dao: "AD", ivc: "IVCI", svc: "SVC" };
 const gasAcc = {}; let gasN = 0;
+let raSo2 = 0, raN = 0;
+// ductal flow direction and Doppler per beat (open duct only): time right-to-left, peak systolic and end-diastolic velocity
+let daRtoL = 0, daSteps = 0, beatVmax = -Infinity, beatVmin = Infinity; const vPeaks = [], vEnds = [];
 for (let i = 0; i < steps; i++) {
   for (const k in M) M[k].step_model();
   model.model_time_total += dt;
   for (const n of flowNames) add(n, M[n]?.flow);
+  // mixed right-atrial blood (both RA halves) as it enters the RV: SvO2 for patients with a left-to-right duct, where
+  // the PA (the Monitor's SvO2 site) also receives oxygenated aortic blood
+  if (M.Pda && M.Pda.diameter_relative > 0) {
+    daSteps++; if (M.AAR_DA.flow < 0) daRtoL++;
+    const v = M.Pda.velocity_doppler; if (v > beatVmax) beatVmax = v; if (v < beatVmin) beatVmin = v;
+    if (M.Heart?.ncc_ventricular === 1) { if (Number.isFinite(beatVmax)) { vPeaks.push(beatVmax); vEnds.push(beatVmin); } beatVmax = -Infinity; beatVmin = Infinity; }
+  }
+  if (i % 25 === 0 && M.RV) { calc_blood_composition(M.RV); raN++; raSo2 += M.RV.so2 ?? NaN; }
   if (FETAL) {
     for (const n of fetalFlows) add(n, M[n]?.flow);
     if (i % 25 === 0) {
@@ -124,6 +136,8 @@ const model_values = {
   cbf: perKgMin(acc.AA_BR_ART), sma: perKgMin(acc.AD_INT_ART), renal: perKgMin(acc.AD_KID_ART), hepatic_art: perKgMin(acc.AD_LS_ART),
   rr: vit.rr, vt: toKgMl(acc.vt), mv: toKgMl(acc.mv), ti_ttot: M.Breathing?.ie_ratio, ptif: meanOf(peaks.insp) * 60 / W, ptef: -meanOf(peaks.exp) * 60 / W, crs, rrs, frc: toKgMl(frcMin), vd: toKgMl(acc.ds_vol),
   spo2: vit.spo2_pre, ph: vit.ph, pco2: vit.pco2, hco3: vit.hco3, be: vit.be, po2: vit.po2, etco2: vit.etco2, svo2: vit.svo2,
+  svo2_ra: raSo2 / raN,
+  pda_rtol_pct: daSteps ? (100 * daRtoL) / daSteps : NaN, pda_v_peak: meanOf(vPeaks.slice(1)), pda_v_ed: meanOf(vEnds.slice(1)),
   vo2: (acc.o2_uptake / dt) * 60 * O2_ML_PER_MMOL / W, temp: vit.temp, glucose: AA?.solutes?.glucose, lactate: M.Lactate?.arterial_lactate,
   hb, hct: hb / MCHC * 100, blood_volume: toKgMl(bloodVol),
   gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,

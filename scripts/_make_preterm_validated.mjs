@@ -7,10 +7,12 @@
 //       (docs/Preterm30wkReference.md)
 //   bischoff_no_pda: the Bischoff 2021 no-PDA group (25.5 wk, 0.764 kg) at 72 h, room air, duct closed
 //       (docs/BischoffNoPdaReference.md)
+//   bischoff_ltr_pda: the Bischoff 2021 left-to-right PDA group (25.8 wk, 0.72 kg) at 72 h, FiO2 0.26, PDA ~2.1 mm
+//       (docs/BischoffLtrPdaReference.md)
 // Each is stable on nasal CPAP, with a small restrictive left-to-right PDA (none for bischoff_no_pda), a small PFO, untransfused
 // (delayed cord clamping), enteral feeds + PN, caffeine, in a humidified incubator.
 //
-//   node scripts/_make_preterm_validated.mjs --profile <ga|bischoff_no_pda> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
+//   node scripts/_make_preterm_validated.mjs --profile <ga|bischoff_no_pda|bischoff_ltr_pda> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //
 // The reference sets it is validated against: docs/Preterm<ga>wkReference.md and
 // scripts/reference/preterm_<ga>wk.json (probe: scripts/probe_term_reference.mjs --ref ...).
@@ -126,8 +128,11 @@ log.push(`heart: heart_rate_ref ${HR_REF}; BR_MAP ${termBrMap} -> ${BR_MAP} (win
 log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor: volFactor, mapRef: BR_MAP, mapRefBaseline: termBrMap })));
 for (const n of ["VLB", "VUB"]) if (M[n]) M[n].u_vol *= VEN_UVOL;
 M.Heart.cont_factor_left = CONT; M.Heart.cont_factor_right = CONT;
+if (L.CONT_R != null) M.Heart.cont_factor_right = L.CONT_R; // RV-only contractility (optional lever)
 M.Heart.relax_factor_left = RELAX; M.Heart.relax_factor_right = RELAX;
 M.Pda.diameter_relative = PDA_REL;
+if (L.PDA_LEN != null) M.Pda.length = L.PDA_LEN; // ductal length, mm (optional lever; profiles without it keep term's)
+if (L.PDA_CD != null) M.Pda.discharge_coeff = L.PDA_CD; // orifice discharge coefficient at the pulmonary end (optional lever)
 M.Shunts.diameter_fo = FO_DIAM;
 for (const n of ["BR_ART", "BR_CAP", "BR_VEN"]) { M[n].r_for *= BRAIN_R; M[n].r_back *= BRAIN_R; }
 // splanchnic beds (templated identical in term_neonate, so SMA and coeliac flows read alike)
