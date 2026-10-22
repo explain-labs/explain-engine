@@ -364,8 +364,8 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as bischoff_no_pda
       BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
       SVR: 2.23,            // size rule: 2.1 x 1.061
-      PVR: 3.2,             // 3.1: pulmonary resistances x (size rule 3.85) -> with the narrower ductal jet: PAP near-systemic,
-                            //      ductal flow ~90, no right-to-left time
+      PVR: 3.4,             // 3.1/3.3: pulmonary resistances x (size rule 3.85; 3.2 in 3.1) -> with the narrower ductal jet: PAP near-systemic,
+                            //      ductal flow ~94, no right-to-left time; raised to 3.4 once the larger lung shunt lowered PAP
       CONT: 1.0,            // as bischoff_no_pda: no LV or RV dysfunction in the group
       CONT_R: 1.0,          // RV contractility (Heart.cont_factor_right); 3.2: x1.3/x1.6 raised RV EF only to 42/43 % but RVO rose and CVP fell
       RELAX: 1.12,          // as bischoff_no_pda
@@ -388,10 +388,11 @@ export const PROFILES = {
       RDS_UVOL: 0.80,       // as bischoff_no_pda (starting point): recruited lung at mean airway pressure 7
       THORAX_EL: 2.92,      // size rule: 2.75 x 1.061
       GASEX: 0.324,         // size rule: 0.344 / 1.061
-      IPS_RES: 14860,       // size rule: 14000 x 1.061 (starting point)
+      IPS_RES: 7000,        // 3.3: intrapulmonary shunt resistance (size rule 14860 gave SpO2 95 / PaO2 63 at FiO2 0.26) -> SpO2 89.4,
+                            //      PaO2 45, SvO2 (RA) 72
       SURFACTANT: 0.20,     // as bischoff_no_pda
       FIO2: 0.26,           // reference: Bischoff FiO2 26 % [24, 35]
-      MV_REF: 0.289,        // starting point: 0.335 x 42.2/49 (the no-PDA pCO2 at rest vs this set-point)
+      MV_REF: 0.31,         // 3.3: reference minute volume, L/kg/min (start 0.289) so pCO2 rests at the set-point 49 (ventilation drive 1.12 -> 1.02)
       RR: 65,               // reference (25 wk set)
       IE: 0.38,             // reference (25 wk set)
       RMP_RECAL: 1,         // as bischoff_no_pda
