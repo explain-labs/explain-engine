@@ -30,21 +30,6 @@
    "doi": "10.1136/adc.2010.189142",
    "pmid": "20971721"
   },
-  "skinner1991": {
-   "cite": "Skinner JR et al. Non-invasive assessment of pulmonary arterial pressure in healthy neonates. Arch Dis Child 1991;66:386-90",
-   "doi": "10.1136/adc.66.4_spec_no.386",
-   "pmid": "2025029"
-  },
-  "skinner1992": {
-   "cite": "Skinner JR et al. Pulmonary and systemic arterial pressure in hyaline membrane disease. Arch Dis Child 1992;67:366-73",
-   "doi": "10.1136/adc.67.4_spec_no.366",
-   "pmid": "1586172"
-  },
-  "patel2019": {
-   "cite": "Patel MD et al. Echocardiographic assessment of right ventricular afterload in preterm infants. J Am Soc Echocardiogr 2019;32:884-94",
-   "doi": "10.1016/j.echo.2019.03.015",
-   "pmid": "31272593"
-  },
   "levy2015": {
    "cite": "Levy PT et al. Right ventricular function in preterm and term neonates: RV areas and fractional area change. J Am Soc Echocardiogr 2015;28:559-69",
    "doi": "10.1016/j.echo.2015.01.024",
@@ -364,6 +349,13 @@
    "cite": "Karlsson V et al. Early skin-to-skin care in extremely preterm infants: thermal balance and care environment. J Pediatr 2012;161:422-6",
    "doi": "10.1016/j.jpeds.2012.02.034",
    "pmid": "22497906"
+  },
+  "neocardiolab2025": {
+   "cite": "Neocardiolab. Left to right unrestrictive ductus example (TnECHO and neonatal hemodynamics, patent ductus arteriosus), 2025-09-03. https://www.neocardiolab.com/tnecho-and-neonatal-hemodynamics/patent-ductus-arteriosus/left-to-right-unrestrictive-ductus-example"
+  },
+  "shen1997": {
+   "cite": "Shen CT, Kua KE, Wang NK. Prognostic value of color Doppler echocardiographic findings in premature newborns with patent ductus arteriosus. Zhonghua Min Guo Xiao Er Ke Yi Xue Hui Za Zhi 1997;38:104-10",
+   "pmid": "9151462"
   }
  },
  "variables": [
@@ -500,42 +492,42 @@
    "group": "hemodynamics",
    "label": "Pulmonary artery pressure, systolic",
    "unit": "mmHg",
-   "mean": 27,
+   "mean": 37,
    "sd": null,
-   "low": 22,
-   "high": 34,
+   "low": 30,
+   "high": 43,
    "range_type": "range",
-   "method": "echo TR-jet ratio, derived",
-   "age": "day 3 (72 h)",
+   "method": "derived",
+   "age": "day 3 (median; IQR 1-4 d)",
    "n": null,
    "sources": [
-    "skinner1992",
-    "skinner1991",
-    "patel2019"
+    "neocardiolab2025",
+    "shen1997"
    ],
    "grade": "C",
    "model_readout": "Monitor.minmax.pap_pres_max",
-   "notes": "Derived: RV/systemic systolic pressure ratio 0.60 (user's choice; 28 wk 0.55; Skinner 1992 0.44 healthy / 0.72 HMD) x SBP 45 = 27. Patel 2019: PAAT rises linearly with GA at birth, so relative RV afterload is higher at 25 wk. Ratio grade B, mmHg grade C."
+   "notes": "Unrestrictive L->R duct: PA pressure 'effectively iso-systemic by transmission' (neocardiolab example); systolic a few mmHg under SBP 45. Shen 1997: TR gradient 30.5 +/- 11.9 mmHg with a PDA vs 20.5 +/- 6.9 closed."
   },
   {
    "key": "pap_m",
    "group": "hemodynamics",
    "label": "Pulmonary artery pressure, mean",
    "unit": "mmHg",
-   "mean": 18.5,
+   "mean": 31,
    "sd": null,
-   "low": 15,
-   "high": 23,
+   "low": 26,
+   "high": 33,
    "range_type": "range",
-   "method": "-",
-   "age": "day 3 (72 h)",
+   "method": "derived",
+   "age": "day 3 (median; IQR 1-4 d)",
    "n": null,
    "sources": [
-    "skinner1992"
+    "neocardiolab2025",
+    "shen1997"
    ],
    "grade": "C",
    "model_readout": "Monitor.minmax.pap_pres_mean",
-   "notes": "Derived from pap_s with the Chemla relation (0.61 x sPAP + 2); extrapolation."
+   "notes": "Near-systemic: MAP 34 - ~3 (end-diastolic ductal gradient ~2 mmHg in the neocardiolab example)."
   },
   {
    "key": "pap_d",
@@ -545,17 +537,17 @@
    "mean": null,
    "sd": null,
    "low": null,
-   "high": 25,
-   "range_type": "range",
+   "high": null,
+   "range_type": null,
    "method": "-",
-   "age": "day 3 (72 h)",
+   "age": "day 3 (median; IQR 1-4 d)",
    "n": null,
    "sources": [
-    "skinner1991"
+    "neocardiolab2025"
    ],
    "grade": "C",
    "model_readout": "Monitor.minmax.pap_pres_min",
-   "notes": "Constraint, not a measurement: pure L->R flow through a restrictive duct needs PA pressure below aortic pressure through the whole cycle, so PA diastolic < aortic diastolic (~26)."
+   "notes": "Just below the aortic diastolic pressure (end-diastolic ductal velocity ~0.7 m/s = ~2 mmHg)."
   },
   {
    "key": "lv_edv",
@@ -974,7 +966,7 @@
    ],
    "grade": "C",
    "model_readout": "AAR_DA.flow / weight (aorta -> PA positive)",
-   "notes": "LVO - RVO = duct - PFO = 89 (LVO/RVO IQR: 55-124 at RVO 161); PFO L->R ~10 -> duct ~100. Qp:Qs ~1.7. Must stay L->R all cycle."
+   "notes": "LVO - RVO = duct - PFO = 89 (LVO/RVO IQR: 55-124 at RVO 161); PFO L->R ~10 -> duct ~100. Qp:Qs ~1.7. Right-to-left time < 10 % (see pda_rtol_pct)."
   },
   {
    "key": "pda_diam",
@@ -995,6 +987,69 @@
    "grade": "B",
    "model_readout": "Pda diameter setting",
    "notes": "Bischoff 2021 Table 1, L->R PDA: 2.1 +/- 0.5 mm (2.6 [2.1, 3.3] mm/kg); modified PDA score 9 +/- 1; diastolic flow reversal in the post-ductal aorta in 80 %.",
+   "b": true
+  },
+  {
+   "key": "pda_rtol_pct",
+   "group": "shunts",
+   "label": "Ductal right-to-left time",
+   "unit": "% of cycle",
+   "mean": 0,
+   "sd": null,
+   "low": null,
+   "high": 10,
+   "range_type": "range",
+   "method": "Doppler",
+   "age": "day 3 (median; IQR 1-4 d)",
+   "n": null,
+   "sources": [
+    "bischoff2021"
+   ],
+   "grade": "B",
+   "model_readout": "share of steps with AAR_DA.flow < 0",
+   "notes": "Bischoff 2021 Methods: the bidirectional group is defined as >= 10 % of time right-to-left, so this group stays below it.",
+   "b": true
+  },
+  {
+   "key": "pda_v_peak",
+   "group": "shunts",
+   "label": "Ductal Doppler peak systolic velocity",
+   "unit": "m/s",
+   "mean": 2.4,
+   "sd": null,
+   "low": 1.5,
+   "high": 3.0,
+   "range_type": "range",
+   "method": "CW Doppler",
+   "age": "day 3 (median; IQR 1-4 d)",
+   "n": null,
+   "sources": [
+    "neocardiolab2025"
+   ],
+   "grade": "C",
+   "model_readout": "Pda.velocity_doppler, per-beat maximum",
+   "notes": "neocardiolab unrestrictive L->R example (2 mm duct, preterm): 2.44 m/s (4v^2 ~24 mmHg); pulsatile, velocity ratio > 2.",
+   "b": true
+  },
+  {
+   "key": "pda_v_ed",
+   "group": "shunts",
+   "label": "Ductal Doppler end-diastolic velocity",
+   "unit": "m/s",
+   "mean": 0.7,
+   "sd": null,
+   "low": 0.3,
+   "high": 1.0,
+   "range_type": "range",
+   "method": "CW Doppler",
+   "age": "day 3 (median; IQR 1-4 d)",
+   "n": null,
+   "sources": [
+    "neocardiolab2025"
+   ],
+   "grade": "C",
+   "model_readout": "Pda.velocity_doppler, per-beat minimum",
+   "notes": "neocardiolab example: 0.73 m/s (~2 mmHg): PA pressure just below aortic at end-diastole.",
    "b": true
   },
   {

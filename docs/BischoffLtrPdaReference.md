@@ -48,9 +48,9 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 | Mean arterial pressure | **34** mmHg | 27–42 (P5-P95) | A | 25 wk set | Elsayed 2023, van Zadelhoff 2023, Vesoulis 2016 |
 | Pulse pressure | **19** mmHg | — | B | 25 wk set | Elsayed 2023 |
 | Central venous pressure | **3.5** mmHg | 1.3–5.7 | B | 25 wk set | Choi 2015, Trevor Inglis 2007, Siassi 1980, Abdel-Hady 2008 |
-| Pulmonary artery pressure, systolic | **27** mmHg | 22–34 | C | 25 wk set | Skinner 1992, Skinner 1991, Patel 2019 |
-| Pulmonary artery pressure, mean | **18.5** mmHg | 15–23 | C | 25 wk set | Skinner 1992 |
-| Pulmonary artery pressure, diastolic | — | < 25 | C | 25 wk set | Skinner 1991 |
+| Pulmonary artery pressure, systolic | **37** mmHg | 30–43 | C | Bischoff L→R | Neocardiolab 2025, Shen 1997 |
+| Pulmonary artery pressure, mean | **31** mmHg | 26–33 | C | Bischoff L→R | Neocardiolab 2025, Shen 1997 |
+| Pulmonary artery pressure, diastolic | — | — | C | Bischoff L→R | Neocardiolab 2025 |
 
 ### Heart
 
@@ -87,6 +87,9 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 |---|---|---|---|---|---|
 | Ductal shunt flow (L->R) | **100** mL/kg/min | 60–140 | C | Bischoff L→R | Bischoff 2021 |
 | Ductal diameter | **2.1** mm | 1.6–2.6 (±1 SD) | B | Bischoff L→R | Bischoff 2021 |
+| Ductal right-to-left time | **0** % of cycle | < 10 | B | Bischoff L→R | Bischoff 2021 |
+| Ductal Doppler peak systolic velocity | **2.4** m/s | 1.5–3 | C | Bischoff L→R | Neocardiolab 2025 |
+| Ductal Doppler end-diastolic velocity | **0.7** m/s | 0.3–1 | C | Bischoff L→R | Neocardiolab 2025 |
 | Foramen ovale shunt (L->R) | **10** mL/kg/min | 0–20 | C | Bischoff L→R | Bischoff 2021 |
 
 ### Breathing (spontaneous, CPAP-style)
@@ -159,6 +162,7 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 - SvO₂: read as mixed right-atrial blood (probe key `svo2_ra`), not at the pulmonary artery.
 - Organ flows: keep the 25-week targets; the model shows whatever ductal steal it produces.
 - Blood pressure: keep the Elsayed 25-week references; a low-end diastolic pressure is acceptable.
+- Step 3.1 revision: Bischoff's L->R group is not pure L->R (the bidirectional group starts at 10 % of time right-to-left). With an unrestrictive duct PA pressure is near-systemic (neocardiolab example, Shen 1997), so the PAP references are near-systemic and the duct is checked by its right-to-left time (< 10 %) and Doppler (peak ~2.4, end-diastolic ~0.7 m/s).
 
 ## Sources
 
@@ -167,9 +171,6 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 - **Vesoulis 2016**: Vesoulis ZA et al. Empirical estimation of the normative blood pressure in infants <28 weeks gestation. J Perinatol 2016;36:291-5. doi:10.1038/jp.2015.185; PMID 26633144
 - **Bischoff 2021**: Bischoff AR et al. Assessment of superior vena cava flow and cardiac output in different patterns of PDA shunt. Echocardiography 2021;38:1524-33. doi:10.1111/echo.15163; PMID 34309068
 - **Groves 2011**: Groves AM et al. Functional cardiac MRI in preterm and term newborns. Arch Dis Child Fetal Neonatal Ed 2011;96:F86-91. doi:10.1136/adc.2010.189142; PMID 20971721
-- **Skinner 1991**: Skinner JR et al. Non-invasive assessment of pulmonary arterial pressure in healthy neonates. Arch Dis Child 1991;66:386-90. doi:10.1136/adc.66.4_spec_no.386; PMID 2025029
-- **Skinner 1992**: Skinner JR et al. Pulmonary and systemic arterial pressure in hyaline membrane disease. Arch Dis Child 1992;67:366-73. doi:10.1136/adc.67.4_spec_no.366; PMID 1586172
-- **Patel 2019**: Patel MD et al. Echocardiographic assessment of right ventricular afterload in preterm infants. J Am Soc Echocardiogr 2019;32:884-94. doi:10.1016/j.echo.2019.03.015; PMID 31272593
 - **Levy 2015**: Levy PT et al. Right ventricular function in preterm and term neonates: RV areas and fractional area change. J Am Soc Echocardiogr 2015;28:559-69. doi:10.1016/j.echo.2015.01.024; PMID 25753503
 - **Koestenberger 2011**: Koestenberger M et al. Systolic right ventricular function in preterm and term neonates: TAPSE reference values. Neonatology 2011;100:85-92. doi:10.1159/000322006; PMID 21273793
 - **Toyoshima 2024**: Toyoshima K et al. Biventricular function in preterm infants with PDA ligation: a 3D echocardiographic study. Pediatr Res 2024. doi:10.1038/s41390-024-03180-w; PMID 38615076
@@ -234,3 +235,5 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 - **Alsayigh 2026**: Alsayigh SMGA et al. Early neonatal hyperglycemia in extremely preterm infants. Children 2026;13:387. doi:10.3390/children13030387; PMID 41897099
 - **Fursule 2026**: Fursule A et al. Outcomes of extremely preterm infants with neonatal hyperglycemia and hypernatremia. J Perinatol 2026;46:1657-64. doi:10.1038/s41372-026-02683-0; PMID 41975202
 - **Karlsson 2012**: Karlsson V et al. Early skin-to-skin care in extremely preterm infants: thermal balance and care environment. J Pediatr 2012;161:422-6. doi:10.1016/j.jpeds.2012.02.034; PMID 22497906
+- **Neocardiolab 2025**: Neocardiolab. Left to right unrestrictive ductus example (TnECHO and neonatal hemodynamics, patent ductus arteriosus), 2025-09-03. https://www.neocardiolab.com/tnecho-and-neonatal-hemodynamics/patent-ductus-arteriosus/left-to-right-unrestrictive-ductus-example.
+- **Shen 1997**: Shen CT, Kua KE, Wang NK. Prognostic value of color Doppler echocardiographic findings in premature newborns with patent ductus arteriosus. Zhonghua Min Guo Xiao Er Ke Yi Xue Hui Za Zhi 1997;38:104-10.; PMID 9151462
