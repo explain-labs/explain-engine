@@ -92,6 +92,13 @@ if (ART_EL !== 1.0) {
   enableImplicitAorta(model);
   for (const n of ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"]) if (M[n]) M[n].el_base_factor_scaling_ps = ART_EL;
 }
+// optional: proximal aorta (root + arch) stiffened on top of ART_EL, so arch pressure follows the LV ejection flow
+if (L.AO_PROX_EL != null) { enableImplicitAorta(model); for (const n of ["AA", "AAR"]) M[n].el_base_factor_scaling_ps = (ART_EL || 1) * L.AO_PROX_EL; }
+// optional: arch -> descending aorta resistance x (characteristic impedance between the stiff proximal and the compliant distal aorta)
+// (the AD vessel owns its input resistor AAR_AD and writes AD.r_for_eff onto it each step, so scale AD.r_for)
+if (L.AO_ZC != null) { M.AD.r_for *= L.AO_ZC; M.AD.r_back *= L.AO_ZC; }
+// optional: main and branch pulmonary arteries el_base x (PA compliance)
+if (L.PA_EL != null) for (const n of ["PA", "PAAL", "PAAR"]) if (M[n]) M[n].el_base *= L.PA_EL;
 log.push(`stiffness: heart el_max x${HEART_EL_MAX}, el_min x${HEART_EL_MIN}; arteries x${ART_EL}`);
 
 // 2. lungs: RDS phenotype, recruited by CPAP
