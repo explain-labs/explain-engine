@@ -254,4 +254,85 @@ export const PROFILES = {
       BRAIN_CTL_GAIN: 1.0,  // as 25 wk: 1.0 keeps the autoregulation loop from oscillating (term baked 1.5)
     },
   },
+
+  // Bischoff 2021 no-PDA group (Echocardiography 38:1524, Tables 1-2): the 25 wk profile carried over with
+  // Bischoff's values swapped in. Size-related levers follow the size rule from 0.70 to 0.764 kg (each 25 wk
+  // size correction x 0.70/0.764 = 0.916). Values the paper does not give keep the 25 wk reference. All
+  // "starting point" values are validated in step 3 against docs/BischoffNoPdaReference.md.
+  bischoff_no_pda: {
+    name: "bischoff_no_pda",
+    refDoc: "docs/BischoffNoPdaReference.md",
+    // chemoreceptor set-points = the reference resting gases (Bischoff no-PDA pCO2 43, PaO2 44 from the OI, pH 7.37)
+    CR: { CR_PCO2: 43, CR_PO2: 44, CR_PH: 7.37 },
+    // diagram settings set by the author in the app (the oxygen colour window's upper end, mmol/L)
+    diagram: { to2_hi: 7.8 },
+    description:
+      "Preterm neonate matching the no-PDA group of Bischoff et al. 2021 (25.5 weeks, 0.764 kg) at 72 h: " +
+      "spontaneous breathing at mean airway pressure 6 in room air (the group was mostly on HFJV), duct closed, " +
+      "small PFO, untransfused, trophic feeds + parenteral nutrition, caffeine, humidified incubator. Respiratory " +
+      "support is represented by the inspired FiO2 plus a recruited-lung state. Validated against " +
+      "docs/BischoffNoPdaReference.md.",
+    L: {
+      // --- patient (reference) ---
+      WEIGHT: 0.764,        // kg: Bischoff current weight, median (birth weight 826 g)
+      HEIGHT: 0.32,         // m: as 25 wk
+      GA: 25.5,             // weeks: Bischoff 25.53 +/- 2.07
+      AGE: 3 / 365,         // years: 72 h (author's choice; Bischoff median day 1)
+
+      // --- circulation ---
+      HR_REF: 155,          // reference: Bischoff 155.1 +/- 9.1
+      BR_WINDOW: 1,         // as 25 wk: baroreceptor window scaled with the set-point
+      BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
+      SVR: 2.1,             // 3.1: systemic resistances x (size rule 1.83) -> MAP 34.0 with the stiffer ventricles, baroreflex ~1.01
+      PVR: 3.63,            // size rule: 3.96 x 0.916
+      CONT: 1.0,            // as 25 wk: no LV dysfunction in the group
+      RELAX: 1.12,          // as 25 wk (starting point)
+      HEART_EL_MAX: 4.45,   // size rule: 4.86 x 0.916
+      HEART_EL_MIN: 6.0,    // 3.1: heart chambers el_min x (size rule 4.58 gave SV 1.43, LVO 215) -> SV 1.12, EDV 1.75, LVO 177
+                            //      (Bischoff 170); diastolic stiffness of the immature myocardium, CVP 1.9 -> 2.7
+      ART_EL: 6.54,         // size rule: 7.14 x 0.916
+      VEN_UVOL: 0.77,       // as 25 wk
+      PDA_REL: 0,           // reference: no PDA; 0 = closed (Pda closed-duct path, as term_neonate)
+      FO_DIAM: 0.78,        // size rule: 0.75 mm x sqrt(0.764/0.70); Bischoff: atrial communication in 14/15, net ~0
+      COR_R: 2.74,          // size rule: 2.99 x 0.916
+      BRAIN_R: 1.44,        // 3.3: cerebral bed r x (25 wk 1.95 left autoregulation at 0.50, dilated, once SVR rose to 2.1;
+                            //      SVR also scales the brain bed) -> autoregulation ~1 over minutes 8-10, CBF 28
+      CBF_SET: 0.0214,      // reference: 28 mL/kg/min x 0.764 kg, L/min absolute
+
+      // --- lungs and breathing ---
+      RDS_EL: 9.68,         // size rule: 10.57 x 0.916 (lung compliance 0.6 mL/cmH2O/kg)
+      RDS_UVOL: 0.80,       // as 25 wk (starting point): recruited lung at mean airway pressure 6
+      THORAX_EL: 2.75,      // size rule: 3.0 x 0.916
+      GASEX: 0.344,         // size rule: 0.315 / 0.916 (absolute diffusion, scales with lung size)
+      IPS_RES: 14000,       // 3.2: intrapulmonary shunt resistance (size-rule start 9620 gave SpO2 86.4 / PaO2 36.9 once the output
+                            //   fell) -> SpO2 90.4 / PaO2 43.3 / SvO2 72 in room air; O2 diffusion x2 changed nothing (shunt-limited)
+      SURFACTANT: 0.20,     // as 25 wk (starting point)
+      FIO2: 0.21,           // reference: Bischoff FiO2 21 % [21, 33]
+      MV_REF: 0.335,        // starting point: 25 wk 0.30 x 48/43 for the lower pCO2 set-point
+      RR: 65,               // reference (25 wk set)
+      IE: 0.38,             // reference (25 wk set): Ti/Ttot
+      RMP_RECAL: 1,         // as 25 wk: recalibrate the breathing effort gain on these lungs
+      DS_UVOL: 1.45,        // reference (25 wk set): dead space 3.2 mL/kg
+
+      // --- metabolism, blood, environment ---
+      REABS_WATER: 0.833,   // as 25 wk: urine 3 mL/kg/h at GFR 0.30 mL/min/kg
+      REABS_NACL: 0.90,     // as 25 wk: FENa 10 %
+      MAINT_RATE: 3.0,      // as 25 wk: maintenance intake = resting urine, composition derived from it
+      UMA_DELTA: -3.15,     // starting point: 25 wk 4.35 - 7.5 (BE -7 -> +0.5, uma lowers BE ~1:1)
+      GLUCOSE: 7.0,         // as 25 wk
+      RESP_Q: 0.95,         // as 25 wk: glucose-rich PN
+      VO2_METABOLISM: 5.19, // as 25 wk: total 6.0 mL/kg/min minus the myocardium
+      HB_MMOL: 13.5 / 1.611, // as 25 wk: Hb 13.5 g/dL
+      P50: 18.5,            // as 25 wk
+      ENV_TEMP: 36.0,       // as 25 wk
+      REL_HUMIDITY: 0.80,   // as 25 wk
+      GFR_FACTOR: 1.143,    // as 25 wk: GFR 0.30 mL/min/kg vs the Vieux rule extrapolated to 25 wk
+      AIRWAY_R: 1.53,       // size rule: 1.67 x 0.916
+      INT_R: 1.64,          // as 25 wk (bed ratio)
+      LS_R: 1.8,            // as 25 wk (bed ratio)
+      UB_R: 1.3,            // as 25 wk (bed ratio)
+      BRAIN_AR_GAIN: 1.0,   // Brain.autoregulation_gain (1 = intact, term default)
+      BRAIN_CTL_GAIN: 1.0,  // as 25 wk
+    },
+  },
 };

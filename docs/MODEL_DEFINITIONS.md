@@ -15,6 +15,9 @@ A scenario file is a single JSON document that describes one complete patient/ex
 > and validated against [Fetus30wkReference](./Fetus30wkReference.md); it replaces the archived version. The term
 > fetus `fetus_term` (40 wk, 3.545 kg) followed the same day (`--profile 40`, [TermFetusReference](./TermFetusReference.md)), and the 25-week fetus
 > `fetus_25wk` (0.7 kg) on 2026-10-20 (`--profile 25`, [Fetus25wkReference](./Fetus25wkReference.md)).
+> On 2026-10-22 `bischoff_no_pda` (the no-PDA group of Bischoff et al. 2021: 25.5 wk, 0.764 kg, 72 h, room air,
+> duct closed) joined as a further `_make_preterm_validated.mjs` profile (`--profile bischoff_no_pda`), validated
+> against [BischoffNoPdaReference](./BischoffNoPdaReference.md).
 > The frozen set that the P1 companion and the ToF lesson used (`bischoff_cohort`, `p1_baseline`,
 > `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20: the P1
 > experiments are to be re-run on the current engine, and the ToF lesson is offline until a ToF

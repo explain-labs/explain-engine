@@ -18,6 +18,7 @@ export const TITLES = {
   preterm_28wk: "PRETERM NEONATE (28 WK, 1.0 KG, 72 H, CPAP)",
   preterm_25wk: "PRETERM NEONATE (25 WK, 0.7 KG, 72 H, CPAP)",
   preterm_30wk: "PRETERM NEONATE (30 WK, 1.5 KG, 72 H, CPAP)",
+  bischoff_no_pda: "BISCHOFF 2021 NO PDA (25.5 WK, 0.76 KG, 72 H)",
   bischoff_cohort: "PRETERM COHORT (~25 WK, 0.72 KG, CPAP)",
   term_neonate_cdh: "CONGENITAL DIAPHRAGMATIC HERNIA",
   cdh_severe: "CDH - SEVERE",
