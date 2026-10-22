@@ -372,6 +372,9 @@ export const PROFILES = {
       HEART_EL_MAX: 4.72,   // size rule: 4.45 x 1.061
       HEART_EL_MIN: 6.37,   // size rule: 6.0 x 1.061
       ART_EL: 6.94,         // size rule: 6.54 x 1.061
+      AO_PROX_EL: 3.0,      // 3.5: proximal aorta (AA, AAR) el x on top of ART_EL -> pulsatile unrestrictive ductal Doppler (neocardiolab image)
+      PA_EL: 2.0,           // 3.5: PA/PAAL/PAAR el_base x (stiffer PA follows the aorta in diastole -> low end-diastolic ductal velocity)
+      AO_ZC: 1.0,           // AAR_AD resistance x (tried 5-30 in 3.5: little effect on the ductal shape, kept 1)
       VEN_UVOL: 0.73,       // 3.4: VLB/VUB unstressed volume x (0.77 in bischoff_no_pda) -> CVP 1.3 -> 1.55, PAP back in range
       PDA_REL: 2.1 / 3.0,   // reference: ductal diameter 2.1 mm (Bischoff 2.1 +/- 0.5; Pda.diameter_pa_max = 3 mm)
       PDA_LEN: 14,          // ductal length, mm (term_neonate value; 3.1: length 40 fixed the direction but not the Doppler)
