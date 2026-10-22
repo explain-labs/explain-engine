@@ -364,7 +364,8 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as bischoff_no_pda
       BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
       SVR: 2.23,            // size rule: 2.1 x 1.061
-      PVR: 3.85,            // size rule: 3.63 x 1.061
+      PVR: 3.2,             // 3.1: pulmonary resistances x (size rule 3.85) -> with the narrower ductal jet: PAP near-systemic,
+                            //      ductal flow ~90, no right-to-left time
       CONT: 1.0,            // as bischoff_no_pda: no LV or RV dysfunction in the group
       RELAX: 1.12,          // as bischoff_no_pda
       HEART_EL_MAX: 4.72,   // size rule: 4.45 x 1.061
@@ -372,6 +373,9 @@ export const PROFILES = {
       ART_EL: 6.94,         // size rule: 6.54 x 1.061
       VEN_UVOL: 0.77,       // as bischoff_no_pda
       PDA_REL: 2.1 / 3.0,   // reference: ductal diameter 2.1 mm (Bischoff 2.1 +/- 0.5; Pda.diameter_pa_max = 3 mm)
+      PDA_LEN: 14,          // ductal length, mm (term_neonate value; 3.1: length 40 fixed the direction but not the Doppler)
+      PDA_CD: 0.25,         // 3.1: ductal orifice discharge coefficient (term 0.9): effective jet ~1 mm in the 2.1 mm duct, so the
+                            //      Doppler jet (Q/A_eff) reaches ~1.7 / 0.5 m/s and right-to-left time 19.8 % -> 0 (Bischoff group < 10 %)
       FO_DIAM: 0.76,        // size rule: 0.78 mm x sqrt(0.72/0.764); atrial communication L->R in 14/15
       COR_R: 2.91,          // size rule: 2.74 x 1.061
       BRAIN_R: 1.44,        // as bischoff_no_pda (bed ratio, on top of SVR)

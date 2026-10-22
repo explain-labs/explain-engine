@@ -130,6 +130,8 @@ for (const n of ["VLB", "VUB"]) if (M[n]) M[n].u_vol *= VEN_UVOL;
 M.Heart.cont_factor_left = CONT; M.Heart.cont_factor_right = CONT;
 M.Heart.relax_factor_left = RELAX; M.Heart.relax_factor_right = RELAX;
 M.Pda.diameter_relative = PDA_REL;
+if (L.PDA_LEN != null) M.Pda.length = L.PDA_LEN; // ductal length, mm (optional lever; profiles without it keep term's)
+if (L.PDA_CD != null) M.Pda.discharge_coeff = L.PDA_CD; // orifice discharge coefficient at the pulmonary end (optional lever)
 M.Shunts.diameter_fo = FO_DIAM;
 for (const n of ["BR_ART", "BR_CAP", "BR_VEN"]) { M[n].r_for *= BRAIN_R; M[n].r_back *= BRAIN_R; }
 // splanchnic beds (templated identical in term_neonate, so SMA and coeliac flows read alike)

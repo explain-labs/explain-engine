@@ -154,6 +154,20 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 | Fractional sodium excretion | **10** % | 5–15 | B/C | 25 wk set | Lorenz 1995 |
 | Plasma creatinine | **150** umol/L | 100–220 | B/C | 25 wk set | Miall 1999 |
 
+## First look (step 2, untuned)
+
+`node scripts/probe_term_reference.mjs bischoff_ltr_pda --ref scripts/reference/bischoff_ltr_pda.json`: 53/61 against the
+first reference version. The duct carried 97 mL/kg/min with diastolic reversal in the descending aorta. LVO/RVO and BP fit.
+Out: PAP 36/31 against the small-duct 25-week reference, RV EDV/ESV/EF, SpO₂/PaO₂/SvO₂. After the step 3.1 reference revision
+(near-systemic PAP, ductal direction and Doppler rows) the untuned model showed a right-to-left ductal time of 19.8 % and
+Doppler 0.96 / −0.07 m/s: Bischoff's bidirectional pattern, not the left-to-right one.
+
+## Recalibrations made from this reference (step 3)
+
+| Step | Lever(s) | Why | Result |
+|---|---|---|---|
+| 3.1 | `PDA_CD` 0.9 → 0.25, `PVR` 3.85 → 3.2 (new optional generator levers `PDA_CD`, `PDA_LEN`) | The duct equalised aortic and PA pressure: brief end-diastolic reversal (19.8 % of the cycle), Doppler < 1 m/s. A longer duct fixed the direction but not the Doppler; the model's jet velocity is Q / effective orifice area, so the discharge coefficient is the Doppler lever. PVR keeps PAP near-systemic. | Right-to-left time 0 %, Doppler 1.67 / 0.49 m/s, ductal flow 86, PAP 31/27, diastolic reversal in the descending aorta (lowest −25), LVO 266. Out (8): RV EDV/ESV/EF (EF 40 %), RVO 200, LVO/RVO 1.32, SpO₂ 95.3, PaO₂ 63, SvO₂ 79. Caveat: Cd 0.25 = an effective jet of ~1 mm in the 2.1 mm duct. |
+
 ## Decisions log (2026-10-22)
 
 - Build as a profile of `scripts/_make_preterm_validated.mjs` starting from the calibrated `bischoff_no_pda` profile,
@@ -163,6 +177,7 @@ Bischoff values carry Bischoff's spread (mean ± 1 SD, or the IQR); rows from th
 - Organ flows: keep the 25-week targets; the model shows whatever ductal steal it produces.
 - Blood pressure: keep the Elsayed 25-week references; a low-end diastolic pressure is acceptable.
 - Step 3.1 revision: Bischoff's L->R group is not pure L->R (the bidirectional group starts at 10 % of time right-to-left). With an unrestrictive duct PA pressure is near-systemic (neocardiolab example, Shen 1997), so the PAP references are near-systemic and the duct is checked by its right-to-left time (< 10 %) and Doppler (peak ~2.4, end-diastolic ~0.7 m/s).
+- 3.1 duct lever: discharge coefficient 0.25 with PVR 3.2 (author's choice over Cd 0.35 / PVR 3.0).
 
 ## Sources
 
