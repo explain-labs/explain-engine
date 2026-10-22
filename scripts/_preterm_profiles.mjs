@@ -372,7 +372,7 @@ export const PROFILES = {
       HEART_EL_MAX: 4.72,   // size rule: 4.45 x 1.061
       HEART_EL_MIN: 6.37,   // size rule: 6.0 x 1.061
       ART_EL: 6.94,         // size rule: 6.54 x 1.061
-      VEN_UVOL: 0.77,       // as bischoff_no_pda
+      VEN_UVOL: 0.73,       // 3.4: VLB/VUB unstressed volume x (0.77 in bischoff_no_pda) -> CVP 1.3 -> 1.55, PAP back in range
       PDA_REL: 2.1 / 3.0,   // reference: ductal diameter 2.1 mm (Bischoff 2.1 +/- 0.5; Pda.diameter_pa_max = 3 mm)
       PDA_LEN: 14,          // ductal length, mm (term_neonate value; 3.1: length 40 fixed the direction but not the Doppler)
       PDA_CD: 0.25,         // 3.1: ductal orifice discharge coefficient (term 0.9): effective jet ~1 mm in the 2.1 mm duct, so the
@@ -380,7 +380,7 @@ export const PROFILES = {
       FO_DIAM: 0.5,         // 3.2: Shunts.diameter_fo, mm (size rule 0.76 carried ~20 mL/kg/min L->R that the RV pumped again, RVO 200)
                             //      -> PFO 5.6, RVO 190, LVO/RVO 1.44; atrial communication L->R in 14/15
       COR_R: 2.91,          // size rule: 2.74 x 1.061
-      BRAIN_R: 1.44,        // as bischoff_no_pda (bed ratio, on top of SVR)
+      BRAIN_R: 1.56,        // 3.4: cerebral bed r x (1.44 in bischoff_no_pda left autoregulation at 1.13, constricted) -> ~1 over minutes 8-10
       CBF_SET: 0.0202,      // reference: 28 mL/kg/min x 0.72 kg, L/min absolute
 
       // --- lungs and breathing ---
