@@ -295,7 +295,8 @@ export const PROFILES = {
       PDA_REL: 0,           // reference: no PDA; 0 = closed (Pda closed-duct path, as term_neonate)
       FO_DIAM: 0.78,        // size rule: 0.75 mm x sqrt(0.764/0.70); Bischoff: atrial communication in 14/15, net ~0
       COR_R: 2.74,          // size rule: 2.99 x 0.916
-      BRAIN_R: 1.95,        // as 25 wk (bed ratio, on top of SVR)
+      BRAIN_R: 1.44,        // 3.3: cerebral bed r x (25 wk 1.95 left autoregulation at 0.50, dilated, once SVR rose to 2.1;
+                            //      SVR also scales the brain bed) -> autoregulation ~1 over minutes 8-10, CBF 28
       CBF_SET: 0.0214,      // reference: 28 mL/kg/min x 0.764 kg, L/min absolute
 
       // --- lungs and breathing ---

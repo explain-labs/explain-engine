@@ -166,6 +166,14 @@ RV EDV 2.86 (the 25-week levers were tuned for an output of ~215-250).
 |---|---|---|---|
 | 3.1 | `HEART_EL_MIN` 4.58 → 6.0, `SVR` 1.83 → 2.1 | Output too high. Less venous filling dropped CVP below range; SVR alone was cancelled by the baroreflex. Diastolic stiffness lowers SV and raises CVP, and SVR returns MAP to the set-point. | LVO 177 / RVO 182, SV 1.12, EDV 1.75, EF 64 %, CVP 2.7, MAP 34.0, HR 157, baroreflex 1.01/1.03. 59/61; out: SpO₂ 86.4, PaO₂ 36.9 (lower SvO₂ through the lung shunt). Brain autoregulation 0.52 (dilated), for the flows step. |
 | 3.2 | `IPS_RES` 9620 → 14000 | SpO₂/PaO₂ low once the output fell (darker venous blood through the lung shunt). O₂ diffusion ×2 changed nothing: the lung is shunt-limited. Room air needs less shunt than the 25-week FiO₂ 0.30 at the same SpO₂. | SpO₂ 90.4, PaO₂ 43.3, SvO₂ 72.1, pCO₂ 42.2, mean PAP 18.2, LVO 173. **61/61.** Controllers 0.98–1.04; brain autoregulation 0.50 (dilated). |
+| 3.3 | `BRAIN_R` 1.95 → 1.44 | Brain autoregulation at 0.50 (fully dilated, no reserve) after SVR rose to 2.1, which also scales the brain bed. Lower bed resistance → autoregulation constricts more (as at 25 wk). | Autoregulation 0.98 over minutes 1–10, CBF 28.0; all other values unchanged. **61/61.** |
+
+## Validation result (step 3 complete, 2026-10-22)
+
+**61/61** in range (7 reference-only rows without a model read-out). HR 158, BP 40/26 (34), CVP 2.7, mean PAP 18.2,
+LVO/RVO 175/178, SV 1.11, SVC 81, SpO₂ 90.4, PaO₂ 43.3, pH 7.39, pCO₂ 42.2, BE +0.6, SvO₂ 72. Controllers at rest:
+baroreflex HR 1.02 / SVR 1.03, heart 1.01, ventilation 0.98, brain autoregulation 0.98. A 10-minute run shows no
+drift (per-minute averages constant from minute 2) and no autoregulation oscillation.
 
 ## Decisions log (2026-10-22)
 
@@ -177,6 +185,9 @@ RV EDV 2.86 (the 25-week levers were tuned for an output of ~215-250).
 - Ranges: Bischoff's ±1 SD / IQR for the Bischoff rows.
 - Acid–base: Bischoff's values (pH 7.37, pCO₂ 43, BE +0.5) at 72 h.
 - LV/RV volumes: EF kept, EDV/ESV scaled to SV 1.10.
+- 3.1 output lever: ventricular diastolic stiffness (not venous filling or SVR alone), with SVR for MAP.
+- 3.2 oxygenation: the intrapulmonary shunt.
+- 3.3 brain bed resistance so autoregulation rests at ~1.
 
 ## Sources
 
