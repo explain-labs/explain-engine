@@ -165,6 +165,7 @@ RV EDV 2.86 (the 25-week levers were tuned for an output of ~215-250).
 | Step | Lever(s) | Why | Result |
 |---|---|---|---|
 | 3.1 | `HEART_EL_MIN` 4.58 → 6.0, `SVR` 1.83 → 2.1 | Output too high. Less venous filling dropped CVP below range; SVR alone was cancelled by the baroreflex. Diastolic stiffness lowers SV and raises CVP, and SVR returns MAP to the set-point. | LVO 177 / RVO 182, SV 1.12, EDV 1.75, EF 64 %, CVP 2.7, MAP 34.0, HR 157, baroreflex 1.01/1.03. 59/61; out: SpO₂ 86.4, PaO₂ 36.9 (lower SvO₂ through the lung shunt). Brain autoregulation 0.52 (dilated), for the flows step. |
+| 3.2 | `IPS_RES` 9620 → 14000 | SpO₂/PaO₂ low once the output fell (darker venous blood through the lung shunt). O₂ diffusion ×2 changed nothing: the lung is shunt-limited. Room air needs less shunt than the 25-week FiO₂ 0.30 at the same SpO₂. | SpO₂ 90.4, PaO₂ 43.3, SvO₂ 72.1, pCO₂ 42.2, mean PAP 18.2, LVO 173. **61/61.** Controllers 0.98–1.04; brain autoregulation 0.50 (dilated). |
 
 ## Decisions log (2026-10-22)
 

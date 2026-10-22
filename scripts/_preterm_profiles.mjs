@@ -303,8 +303,8 @@ export const PROFILES = {
       RDS_UVOL: 0.80,       // as 25 wk (starting point): recruited lung at mean airway pressure 6
       THORAX_EL: 2.75,      // size rule: 3.0 x 0.916
       GASEX: 0.344,         // size rule: 0.315 / 0.916 (absolute diffusion, scales with lung size)
-      IPS_RES: 9620,        // starting point: 10500 x 0.916 for the larger lung; FiO2 0.21 vs 0.30 at the same SpO2 target
-                            //   means less shunt is needed (step 3)
+      IPS_RES: 14000,       // 3.2: intrapulmonary shunt resistance (size-rule start 9620 gave SpO2 86.4 / PaO2 36.9 once the output
+                            //   fell) -> SpO2 90.4 / PaO2 43.3 / SvO2 72 in room air; O2 diffusion x2 changed nothing (shunt-limited)
       SURFACTANT: 0.20,     // as 25 wk (starting point)
       FIO2: 0.21,           // reference: Bischoff FiO2 21 % [21, 33]
       MV_REF: 0.335,        // starting point: 25 wk 0.30 x 48/43 for the lower pCO2 set-point
