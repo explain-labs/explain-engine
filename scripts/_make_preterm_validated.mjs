@@ -5,10 +5,12 @@
 //       (docs/Preterm25wkReference.md)
 //   30: preterm_30wk - born at 30 weeks (1.5 kg), nasal CPAP 5 in room air, no surfactant
 //       (docs/Preterm30wkReference.md)
-// Each is stable on nasal CPAP, with a small restrictive left-to-right PDA, a small PFO, untransfused
+//   bischoff_no_pda: the Bischoff 2021 no-PDA group (25.5 wk, 0.764 kg) at 72 h, room air, duct closed
+//       (docs/BischoffNoPdaReference.md)
+// Each is stable on nasal CPAP, with a small restrictive left-to-right PDA (none for bischoff_no_pda), a small PFO, untransfused
 // (delayed cord clamping), enteral feeds + PN, caffeine, in a humidified incubator.
 //
-//   node scripts/_make_preterm_validated.mjs --profile <ga> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
+//   node scripts/_make_preterm_validated.mjs --profile <ga|bischoff_no_pda> [--seconds 300] [--name <scenario>] [--set LEVER=value ...]
 //
 // The reference sets it is validated against: docs/Preterm<ga>wkReference.md and
 // scripts/reference/preterm_<ga>wk.json (probe: scripts/probe_term_reference.mjs --ref ...).
@@ -195,6 +197,7 @@ if (P.diagram && j.diagram_definition?.settings) Object.assign(j.diagram_definit
 // at = label position along the path from dbcFrom (DA: AAR -> PA, FO: LA -> RA); the two paths cross mid-diagram
 const SHUNT_LABEL = { DA: { label: "PDA", at: 0.72 }, FO: { label: "PFO", at: 0.75 } };
 for (const [key, st] of Object.entries(SHUNT_LABEL)) {
+  if (key === "DA" && PDA_REL === 0) continue; // closed duct: no label
   const c = j.diagram_definition?.components?.[key];
   if (!c?.layout) continue;
   c.label = st.label;
