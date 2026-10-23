@@ -451,8 +451,9 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as bischoff_ltr_pda
       BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
       SVR: 2.36,            // size rule: 2.23 x 1.0588 (bischoff_ltr_pda)
-      PVR: 9,               // 3.1: pulmonary resistances x (size rule 3.6 kept the duct left-to-right, PAP 31/26) -> PAP 46/37,
-                            //      right-to-left 31 % of the cycle, net duct 12, Doppler 0.75/0.62 m/s (PVR 5/7 too little; Cd 0.9 velocities ~0.4)
+      PVR: 8,               // 3.1/3.2: pulmonary resistances x (size rule 3.6 kept the duct left-to-right, PAP 31/26; 9 in 3.1) -> with
+                            //      IPS_RES 16500: PAP 45/37, right-to-left 38 % of the cycle, net duct 9, Doppler 0.75/0.61 m/s
+                            //      (PVR 5/7 too little; Cd 0.9 velocities ~0.4; 7.5 -> 30 %, SpO2 88; 8.5 -> 47 %)
       CONT: 1.0,            // starting point (LV dysfunction in 27 %)
       CONT_R: 1.0,          // RV contractility (Heart.cont_factor_right); starting point, RV dysfunction in 47 % is set in step 3
       RELAX: 1.12,          // as bischoff_ltr_pda
@@ -476,7 +477,9 @@ export const PROFILES = {
       RDS_UVOL: 0.80,       // as bischoff_ltr_pda (starting point): recruited lung (mean airway pressure 8 in this group)
       THORAX_EL: 3.09,      // size rule: 2.92 x 1.0588
       GASEX: 0.306,         // size rule: 0.324 / 1.0588
-      IPS_RES: 7410,        // size rule: 7000 x 1.0588 (bischoff_ltr_pda 3.3)
+      IPS_RES: 16500,       // 3.2: intrapulmonary shunt resistance (size rule 7410 gave SpO2 66 / PaO2 24 once PVR 9 pushed 70 % of
+                            //      the pulmonary flow through the fixed shunt) -> SpO2 86.7 / PaO2 39.5; 15000-22000 at PVR 9 overshot
+                            //      the right-to-left time (53-66 %) as the ventilation drive fell
       SURFACTANT: 0.20,     // as bischoff_ltr_pda
       FIO2: 0.28,           // reference: Bischoff FiO2 28 % [26, 92]
       MV_REF: 0.31,         // as bischoff_ltr_pda (starting point)
