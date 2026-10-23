@@ -6,6 +6,7 @@
   "preterm_30wk",
   "bischoff_no_pda",
   "bischoff_ltr_pda",
+  "bischoff_bidir_pda",
   "fetus_term",
   "term_neonate"
 ]
