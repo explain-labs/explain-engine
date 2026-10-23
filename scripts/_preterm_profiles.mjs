@@ -451,13 +451,14 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as bischoff_ltr_pda
       BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
       SVR: 2.36,            // size rule: 2.23 x 1.0588 (bischoff_ltr_pda)
-      PVR: 8,               // 3.1/3.2: pulmonary resistances x (size rule 3.6 kept the duct left-to-right, PAP 31/26; 9 in 3.1) -> with
-                            //      IPS_RES 16500: PAP 45/37, right-to-left 38 % of the cycle, net duct 9, Doppler 0.75/0.61 m/s
-                            //      (PVR 5/7 too little; Cd 0.9 velocities ~0.4; 7.5 -> 30 %, SpO2 88; 8.5 -> 47 %)
-      CONT: 1.0,            // starting point (LV dysfunction in 27 %)
-      CONT_R: 0.65,         // 3.3: RV contractility (Heart.cont_factor_right; RV dysfunction in 47 %) -> LVO/RVO 199/187 (217/212),
-                            //      HR 158, baroreflex + brain autoregulation ~1.0, right-to-left 31 %, RV EF 36 %. Stiffer heart
-                            //      (HEART_EL_MIN 9-13) flipped the duct right-to-left; VEN_UVOL, SVR, LV CONT barely moved LVO; 0.5 -> R->L 20 %, PAP 37
+      PVR: 8.5,             // 3.1/3.2/3.4: pulmonary resistances x (size rule 3.6 kept the duct left-to-right, PAP 31/26; 9 in 3.1, 8 in 3.2)
+                            //      -> with the weaker heart and IPS_RES 20000: PAP 37/31, right-to-left 35 % of the cycle, net duct 9,
+                            //      Doppler 0.62/0.43 m/s (PVR 9 -> 42-46 %; 10 -> 55 %; 8 + IPS 22000 -> 30 %, SpO2 86.5)
+      CONT: 0.4,            // 3.4: LV contractility (LV dysfunction in 27 %), with CONT_R: pump-limited low output -> LVO/RVO 165/157,
+                            //      CVP 3.2, SvO2 (RA) 62; 0.3 gives the same flow (floor); brain autoregulation 0.65 (dilated)
+      CONT_R: 0.4,          // 3.3/3.4: RV contractility (Heart.cont_factor_right; RV dysfunction in 47 %); 0.65 in 3.3 (LVO 199). Stiffer
+                            //      heart (HEART_EL_MIN 9-13) flipped the duct right-to-left; VEN_UVOL / blood volume lowered LVO only with CVP,
+                            //      PAP and SBP below range (hypovolaemic picture); SVR and LV CONT alone barely moved LVO
       RELAX: 1.12,          // as bischoff_ltr_pda
       HEART_EL_MAX: 5.0,    // size rule: 4.72 x 1.0588
       HEART_EL_MIN: 6.74,   // size rule: 6.37 x 1.0588
@@ -479,9 +480,9 @@ export const PROFILES = {
       RDS_UVOL: 0.80,       // as bischoff_ltr_pda (starting point): recruited lung (mean airway pressure 8 in this group)
       THORAX_EL: 3.09,      // size rule: 2.92 x 1.0588
       GASEX: 0.306,         // size rule: 0.324 / 1.0588
-      IPS_RES: 16500,       // 3.2: intrapulmonary shunt resistance (size rule 7410 gave SpO2 66 / PaO2 24 once PVR 9 pushed 70 % of
-                            //      the pulmonary flow through the fixed shunt) -> SpO2 86.7 / PaO2 39.5; 15000-22000 at PVR 9 overshot
-                            //      the right-to-left time (53-66 %) as the ventilation drive fell
+      IPS_RES: 20000,       // 3.2/3.4: intrapulmonary shunt resistance (size rule 7410 gave SpO2 66 / PaO2 24 once PVR 9 pushed 70 % of
+                            //      the pulmonary flow through the fixed shunt; 16500 in 3.2) -> SpO2 83.7 / PaO2 36.1 after 3.4; higher
+                            //      values overshoot the right-to-left time as the ventilation drive falls
       SURFACTANT: 0.20,     // as bischoff_ltr_pda
       FIO2: 0.28,           // reference: Bischoff FiO2 28 % [26, 92]
       MV_REF: 0.31,         // as bischoff_ltr_pda (starting point)
