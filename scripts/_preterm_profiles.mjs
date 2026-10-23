@@ -463,8 +463,10 @@ export const PROFILES = {
       HEART_EL_MAX: 5.0,    // size rule: 4.72 x 1.0588
       HEART_EL_MIN: 6.74,   // size rule: 6.37 x 1.0588
       ART_EL: 7.35,         // size rule: 6.94 x 1.0588
-      AO_PROX_EL: 1.0,      // off (bischoff_ltr_pda 3.5 used 3 for its left-to-right Doppler shape)
-      PA_EL: 1.0,           // off (bischoff_ltr_pda 3.5 used 2)
+      AO_PROX_EL: 1.3,      // 3.6: proximal aorta stiffening on ART_EL (bischoff_ltr_pda 3.5 used 3) -> SBP 40 with PA_EL 2; 2-3 alone gave
+                            //      several duct zero-crossings per beat and descending-aorta reversal -40 to -65
+      PA_EL: 2,             // 3.6: main/branch PA el_base x (as bischoff_ltr_pda 3.5) -> one early-systolic right-to-left phase per beat
+                            //      (12-37 % of the cycle, jet -0.68 m/s) instead of a breath-driven one; PAP systolic 41
       AO_ZC: 1.0,           // AAR_AD resistance x
       VEN_UVOL: 0.73,       // as bischoff_ltr_pda (starting point)
       PDA_REL: 1.7 / 3.0,   // reference: ductal diameter 1.7 mm (Bischoff 1.7 +/- 0.6; Pda.diameter_pa_max = 3 mm)
