@@ -177,6 +177,10 @@ is not the target. Bischoff's right-to-left time (31.5 %) is the numeric target;
   contractility (RV EF ~40 %), not as an exception.
 - Ductal Doppler: the unrestrictive bidirectional morphology (neocardiolab, left panel); probe keys `pda_v_peak`
   (left-to-right peak) and `pda_v_rtl` (right-to-left peak); `pda_v_ed` dropped for this set.
+- Accepted exceptions after step 3.7: LV EDV 1.68 / ESV 0.67 mL/kg (limits 1.65 / 0.65), RV EDV 2.58 / ESV 1.64
+  (limits 2.40 / 1.50) and descending aorta 74 mL/kg/min (limit 70). Stroke volumes and ejection fractions are in range:
+  the ventricles are somewhat large (the dilated, weak RV of this group) at the right stroke volume. Lowering them
+  further would need smaller hearts or a lower output, which in steps 3.3–3.4 cost CVP, PAP or the ductal timing.
 
 ## Sources
 
