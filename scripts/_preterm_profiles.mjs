@@ -495,7 +495,8 @@ export const PROFILES = {
       REABS_WATER: 0.833,   // as bischoff_ltr_pda
       REABS_NACL: 0.90,     // as bischoff_ltr_pda
       MAINT_RATE: 3.0,      // as bischoff_ltr_pda
-      UMA_DELTA: -3.15,     // as bischoff_ltr_pda (starting point); target BE -4.4 (pH 7.32 + pCO2 45 imply ~-3)
+      UMA_DELTA: -0.6,      // 3.5: unmeasured anions (-3.15 from bischoff_ltr_pda gave pH 7.36 / HCO3 25.4) -> pH 7.32, pCO2 45.4,
+                            //      HCO3 23.2, BE -2.1 (fit pH + pCO2, BE follows; +1.35 for BE -4.1 gives pH 7.29)
       GLUCOSE: 7.0,         // as bischoff_ltr_pda
       RESP_Q: 0.95,         // as bischoff_ltr_pda
       VO2_METABOLISM: 5.19, // as bischoff_ltr_pda
