@@ -455,7 +455,9 @@ export const PROFILES = {
                             //      IPS_RES 16500: PAP 45/37, right-to-left 38 % of the cycle, net duct 9, Doppler 0.75/0.61 m/s
                             //      (PVR 5/7 too little; Cd 0.9 velocities ~0.4; 7.5 -> 30 %, SpO2 88; 8.5 -> 47 %)
       CONT: 1.0,            // starting point (LV dysfunction in 27 %)
-      CONT_R: 1.0,          // RV contractility (Heart.cont_factor_right); starting point, RV dysfunction in 47 % is set in step 3
+      CONT_R: 0.65,         // 3.3: RV contractility (Heart.cont_factor_right; RV dysfunction in 47 %) -> LVO/RVO 199/187 (217/212),
+                            //      HR 158, baroreflex + brain autoregulation ~1.0, right-to-left 31 %, RV EF 36 %. Stiffer heart
+                            //      (HEART_EL_MIN 9-13) flipped the duct right-to-left; VEN_UVOL, SVR, LV CONT barely moved LVO; 0.5 -> R->L 20 %, PAP 37
       RELAX: 1.12,          // as bischoff_ltr_pda
       HEART_EL_MAX: 5.0,    // size rule: 4.72 x 1.0588
       HEART_EL_MIN: 6.74,   // size rule: 6.37 x 1.0588
