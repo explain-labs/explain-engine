@@ -249,3 +249,14 @@ is not the target. Bischoff's right-to-left time (31.5 %) is the numeric target;
 - **Fursule 2026**: Fursule A et al. Outcomes of extremely preterm infants with neonatal hyperglycemia and hypernatremia. J Perinatol 2026;46:1657-64. doi:10.1038/s41372-026-02683-0; PMID 41975202
 - **Karlsson 2012**: Karlsson V et al. Early skin-to-skin care in extremely preterm infants: thermal balance and care environment. J Pediatr 2012;161:422-6. doi:10.1016/j.jpeds.2012.02.034; PMID 22497906
 - **Neocardiolab bidirectional**: Neocardiolab. Bidirectional PDA: unrestrictive and restrictive Doppler examples (TnECHO and neonatal hemodynamics, patent ductus arteriosus); image in explain-engine flow_patterns/BidirectionalPda.png.
+
+## First look (step 2, 2026-10-23)
+
+Profile `bischoff_bidir_pda` = the `bischoff_ltr_pda` levers with this group's patient values, the size rule 0.72 → 0.68 kg
+(×1.0588), the duct at 1.7 mm and the step 3.5 arch/PA stiffening off. **43/63** numeric rows in range. The model is
+still the left-to-right patient: duct 74 mL/kg/min net with **no right-to-left time** (target 31.5 %), Doppler 1.93 m/s
+left-to-right peak, PAP 31/26 (target about systemic 45/34), LVO/RVO 275/210 (targets 140/121) with large LV and RV
+volumes, descending aorta 98, SpO₂ 89.9 / PaO₂ 44 (targets 84 / 36), SvO₂ (RA) 74, pH 7.36 / BE +0.4 (targets 7.32 / −4.4),
+CVP 1.30. In range: HR 151, BP 48/25 (37), SVC 87, PFO 6.6, pCO₂ 45.6, RV EF 43 %, organ flows. Controllers: baroreflex
+0.95 / 0.95, ventilation 1.07, brain autoregulation 1.22 (constricted, high LVO and MAP). RV FAC and TAPSE have no model
+read-out.
