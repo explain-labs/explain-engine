@@ -137,6 +137,7 @@ log.push(describeHormoneReferences(scaleHormoneReferences(model, { volumeFactor:
 for (const n of ["VLB", "VUB"]) if (M[n]) M[n].u_vol *= VEN_UVOL;
 M.Heart.cont_factor_left = CONT; M.Heart.cont_factor_right = CONT;
 if (L.CONT_R != null) M.Heart.cont_factor_right = L.CONT_R; // RV-only contractility (optional lever)
+if (L.RV_DELAY != null) { M.Heart.rv_delay = L.RV_DELAY; log.push(`heart: RV activation lags the LV by ${L.RV_DELAY * 1000} ms`); } // optional lever
 M.Heart.relax_factor_left = RELAX; M.Heart.relax_factor_right = RELAX;
 M.Pda.diameter_relative = PDA_REL;
 if (L.PDA_LEN != null) M.Pda.length = L.PDA_LEN; // ductal length, mm (optional lever; profiles without it keep term's)

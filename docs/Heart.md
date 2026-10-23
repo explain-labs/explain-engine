@@ -62,7 +62,9 @@ tachycardia**, and a triggered **PVC** (`trigger_pvc()` → one premature beat a
 Two activation functions are computed each step and pushed onto the chambers as `act_factor`:
 
 - **Atrial** `aaf` — a half-sine over the PQ window (→ atria: LA, RA / RAIVCI, RASVC).
-- **Ventricular** `vaf` — a skewed pulse over `qrs_time + qt_time` (→ ventricles: LV, RV, coronaries).
+- **Ventricular** `vaf` — a skewed pulse over `qrs_time + qt_time` (→ LV, coronaries).
+- **Right ventricular** `rvaf` — the same pulse lagging `vaf` by `rv_delay` seconds (→ RV). At the
+  default `rv_delay` 0 it equals `vaf`, so both ventricles contract together.
 
 The Heart also propagates `ans_sens`, `ans_activity` (scaled by `ans_activity_factor` from the MOB
 hypoxia feedback) to the chambers, so the autonomic and myocardial-oxygen-balance effects reach
@@ -101,7 +103,7 @@ isoelectric at 0 mV.
 
 ## Configuration (model-definition fields)
 
-`heart_rate_ref`, `pq_time`, `qrs_time`, `qt_time`, `av_delay`; ECG amplitudes `p_amp`…`t_amp`;
+`heart_rate_ref`, `pq_time`, `qrs_time`, `qt_time`, `av_delay`, `rv_delay`; ECG amplitudes `p_amp`…`t_amp`;
 `ans_sens`, `ans_activity`, `ans_activity_hr`; the `*_factor` modulators; `pc_el_factor`,
 `pc_extra_volume`. Rhythm/conduction: `sa_node_enabled`, `av_block_mode`, `av_block_ratio`,
 `first_degree_pq_factor`, `vent_pacemaker_mode`, `vent_escape_rate`, `vt_rate`, `pvc_coupling`
@@ -121,5 +123,9 @@ isoelectric at 0 mV.
   wrote `*_esp`, leaving `lv_edp`/`rv_edp`/… at 0 and corrupting the end-systolic values).
 - **MOB coupling.** `ans_activity_factor` scales the sympathetic drive the Heart sends to the
   chambers; it is set by the `Mob` model's hypoxia feedback (1.0 = no effect).
+- **`rv_delay`** is meant for a few milliseconds of RV pre-ejection lag (e.g. a pressure-loaded RV in
+  pulmonary hypertension): the LV ejects first, so aortic pressure leads PA pressure at the start of
+  systole. The delayed pulse is cut off when the next beat starts, which only matters if `rv_delay`
+  approaches the diastolic interval. Used by `bischoff_bidir_pda`.
 - The systole detection reads `LA_LV.flow` / `LV_AA.flow` directly — these mitral/aortic-valve
   connectors are assumed present.

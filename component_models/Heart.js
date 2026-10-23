@@ -15,6 +15,7 @@ export class Heart extends BaseModelClass {
     this.qrs_time = 0.075; // qrs time (s)
     this.qt_time = 0.25; // qt time (s)
     this.av_delay = 0.0005; // delay in the AV-node (s)
+    this.rv_delay = 0.0; // RV activation lag behind the LV (s); 0 = both ventricles together
 
     // -----------------------------------------------
     // conduction / rhythm (default = normal sinus rhythm; all of this is identity at the defaults)
@@ -496,6 +497,20 @@ export class Heart extends BaseModelClass {
       this.vaf = 0.0;
     }
 
+    // right ventricular activation factor: the same pulse, lagging the LV by rv_delay
+    if (this.rv_delay > 0) {
+      const _ncc_rv = this.ncc_ventricular - this.rv_delay / this._t;
+      if (_ncc_rv >= 0 && _ncc_rv < _ventricular_duration) {
+        this.rvaf =
+          (_ncc_rv / (this._kn * _ventricular_duration)) *
+          Math.sin(Math.PI * (_ncc_rv / _ventricular_duration));
+      } else {
+        this.rvaf = 0.0;
+      }
+    } else {
+      this.rvaf = this.vaf;
+    }
+
     // incorporate the ans factors ans sensitivity on the heart function.
     // ans_activity_factor (driven by the Mob myocardial-oxygen-balance hypoxia feedback) scales the
     // sympathetic drive propagated to the chambers; 1.0 = no effect.
@@ -514,7 +529,7 @@ export class Heart extends BaseModelClass {
     if (this._rv) {
       this._rv.ans_sens = this.ans_sens
       this._rv.ans_activity = _eff_ans_activity
-      this._rv.act_factor = this.vaf;
+      this._rv.act_factor = this.rvaf;
     }
 
     if (this._la) {

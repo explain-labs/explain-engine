@@ -459,14 +459,16 @@ export const PROFILES = {
       CONT_R: 0.4,          // 3.3/3.4: RV contractility (Heart.cont_factor_right; RV dysfunction in 47 %); 0.65 in 3.3 (LVO 199). Stiffer
                             //      heart (HEART_EL_MIN 9-13) flipped the duct right-to-left; VEN_UVOL / blood volume lowered LVO only with CVP,
                             //      PAP and SBP below range (hypovolaemic picture); SVR and LV CONT alone barely moved LVO
+      RV_DELAY: 0.008,      // 3.7: RV activation lag behind the LV (s), Heart.rv_delay -> the LV ejects first: L->R surge 0.80 m/s just
+                            //      before the right-to-left jet (image ~0.78); 3/5 ms gave 0.51/0.62; a delay alone weakens the jet (PA_EL)
       RELAX: 1.12,          // as bischoff_ltr_pda
       HEART_EL_MAX: 5.0,    // size rule: 4.72 x 1.0588
       HEART_EL_MIN: 6.74,   // size rule: 6.37 x 1.0588
       ART_EL: 7.35,         // size rule: 6.94 x 1.0588
       AO_PROX_EL: 1.3,      // 3.6: proximal aorta stiffening on ART_EL (bischoff_ltr_pda 3.5 used 3) -> SBP 40 with PA_EL 2; 2-3 alone gave
                             //      several duct zero-crossings per beat and descending-aorta reversal -40 to -65
-      PA_EL: 2,             // 3.6: main/branch PA el_base x (as bischoff_ltr_pda 3.5) -> one early-systolic right-to-left phase per beat
-                            //      (12-37 % of the cycle, jet -0.68 m/s) instead of a breath-driven one; PAP systolic 41
+      PA_EL: 2.5,           // 3.6/3.7: main/branch PA el_base x (2 in 3.6, as bischoff_ltr_pda 3.5) -> one systolic right-to-left phase per
+                            //      beat instead of a breath-driven one; 2.5 with RV_DELAY restores the jet (-0.49 paused / -0.67 breathing); PAP 42.5
       AO_ZC: 1.0,           // AAR_AD resistance x
       VEN_UVOL: 0.73,       // as bischoff_ltr_pda (starting point)
       PDA_REL: 1.7 / 3.0,   // reference: ductal diameter 1.7 mm (Bischoff 1.7 +/- 0.6; Pda.diameter_pa_max = 3 mm)
