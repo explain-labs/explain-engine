@@ -8,6 +8,7 @@
 //   scripts/reference/preterm_28wk.json    (docs/Preterm28wkReference.md)
 //   scripts/reference/fetus_30wk.json      (docs/Fetus30wkReference.md; fetal read-outs switch on when the placenta runs)
 //   scripts/reference/bischoff_ltr_pda.json (docs/BischoffLtrPdaReference.md; SvO2 as svo2_ra, mixed right-atrial blood)
+//   scripts/reference/bischoff_bidir_pda.json (docs/BischoffBidirPdaReference.md; ductal R->L velocity as pda_v_rtl, post-ductal SpO2 as spo2_post)
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
@@ -138,6 +139,7 @@ const model_values = {
   spo2: vit.spo2_pre, ph: vit.ph, pco2: vit.pco2, hco3: vit.hco3, be: vit.be, po2: vit.po2, etco2: vit.etco2, svo2: vit.svo2,
   svo2_ra: raSo2 / raN,
   pda_rtol_pct: daSteps ? (100 * daRtoL) / daSteps : NaN, pda_v_peak: meanOf(vPeaks.slice(1)), pda_v_ed: meanOf(vEnds.slice(1)),
+  pda_v_rtl: meanOf(vEnds.slice(1).map((v) => -v)), spo2_post: vit.spo2_post,
   vo2: (acc.o2_uptake / dt) * 60 * O2_ML_PER_MMOL / W, temp: vit.temp, glucose: AA?.solutes?.glucose, lactate: M.Lactate?.arterial_lactate,
   hb, hct: hb / MCHC * 100, blood_volume: toKgMl(bloodVol),
   gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,
