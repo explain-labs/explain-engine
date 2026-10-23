@@ -260,3 +260,9 @@ volumes, descending aorta 98, SpO₂ 89.9 / PaO₂ 44 (targets 84 / 36), SvO₂ 
 CVP 1.30. In range: HR 151, BP 48/25 (37), SVC 87, PFO 6.6, pCO₂ 45.6, RV EF 43 %, organ flows. Controllers: baroreflex
 0.95 / 0.95, ventilation 1.07, brain autoregulation 1.22 (constricted, high LVO and MAP). RV FAC and TAPSE have no model
 read-out.
+
+## Recalibrations made from this reference (step 3)
+
+| Step | Lever(s) | Why | Result |
+|---|---|---|---|
+| 3.1 | `PVR` 3.6 → 9 (`PDA_CD` 0.25 kept) | The duct ran left-to-right all the time (PAP 31/26, net 74, no right-to-left time). PVR 5 and 7 gave 0 and 6 % right-to-left time; a wider orifice (Cd 0.9) gave the timing but Doppler ~0.4 m/s, below the neocardiolab example. | PAP 46/37, right-to-left 31.4 % of the cycle, net duct 12, Doppler 0.75 / 0.62 m/s, LVO/RVO 224/216, descending aorta 103. New: SpO₂ 66 / PaO₂ 24 (post-ductal 65): the intrapulmonary shunt share rose from 49 to 70 % because `ips_res` is fixed while PVR scales the pulmonary vessels. The right-to-left time is mostly breath-driven (expiration 40 %, inspiration 17 %; 0–4 % with breathing paused) and falls in late diastole / early systole. Out: 14. |

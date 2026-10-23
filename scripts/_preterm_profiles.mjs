@@ -451,7 +451,8 @@ export const PROFILES = {
       BR_WINDOW: 1,         // as bischoff_ltr_pda
       BR_MAP: 34,           // reference (25 wk set): Elsayed 2023 25 wk day-3 invasive median MAP
       SVR: 2.36,            // size rule: 2.23 x 1.0588 (bischoff_ltr_pda)
-      PVR: 3.6,             // size rule: 3.4 x 1.0588 (bischoff_ltr_pda; starting point, the duct direction needs a higher PVR)
+      PVR: 9,               // 3.1: pulmonary resistances x (size rule 3.6 kept the duct left-to-right, PAP 31/26) -> PAP 46/37,
+                            //      right-to-left 31 % of the cycle, net duct 12, Doppler 0.75/0.62 m/s (PVR 5/7 too little; Cd 0.9 velocities ~0.4)
       CONT: 1.0,            // starting point (LV dysfunction in 27 %)
       CONT_R: 1.0,          // RV contractility (Heart.cont_factor_right); starting point, RV dysfunction in 47 % is set in step 3
       RELAX: 1.12,          // as bischoff_ltr_pda
@@ -464,7 +465,7 @@ export const PROFILES = {
       VEN_UVOL: 0.73,       // as bischoff_ltr_pda (starting point)
       PDA_REL: 1.7 / 3.0,   // reference: ductal diameter 1.7 mm (Bischoff 1.7 +/- 0.6; Pda.diameter_pa_max = 3 mm)
       PDA_LEN: 14,          // ductal length, mm (as bischoff_ltr_pda)
-      PDA_CD: 0.25,         // as bischoff_ltr_pda (starting point): ductal orifice discharge coefficient
+      PDA_CD: 0.25,         // 3.1: ductal orifice discharge coefficient, as bischoff_ltr_pda (0.9 gave Doppler ~0.4 m/s, below the image)
       FO_DIAM: 0.5,         // as bischoff_ltr_pda (starting point): Shunts.diameter_fo, mm
       COR_R: 3.08,          // size rule: 2.91 x 1.0588
       BRAIN_R: 1.56,        // as bischoff_ltr_pda (starting point)
