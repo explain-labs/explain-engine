@@ -6910,10 +6910,7 @@
         "oxy_state": "off",
         "oxy_ref_o2": 21,
         "oxy_override_remaining": 0,
-        "oxy_high_o2_flag": false,
-        "breathing_model": [
-          "Breathing"
-        ]
+        "oxy_high_o2_flag": false
       },
       "Fluids": {
         "name": "Fluids",
