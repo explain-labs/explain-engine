@@ -1,231 +1,175 @@
 # Breathing
 
-The Breathing model is the **spontaneous breathing driver**. It decides how much the patient should
-breathe (target minute volume), splits that into a respiratory rate and tidal volume, and turns it into
-a respiratory-muscle pressure that lowers the pleural (`THORAX`) pressure over each breath, which in
-turn drives the lungs. The effort follows the **neural drive**, not the measured tidal volume: the
-lungs, the airway and any device decide how much volume that effort moves. It is the spontaneous
-counterpart to the `Ventilator` device, and the effort partner of [Respiration](./Respiration.md)
-(which sets the mechanics the breath acts against).
+`Breathing` drives spontaneous breathing. It decides how much the patient should breathe (a target minute volume, set by the chemoreflex), splits that into a rate and a tidal volume, and turns it into a respiratory-muscle pressure that lowers the pleural (`THORAX`) pressure each breath. The effort follows the **neural drive**, not the measured tidal volume: the lungs, the airway and any device decide how much volume that effort moves. It is the spontaneous counterpart of the [Ventilator](./Ventilator.md), and the effort partner of [Respiration](./Respiration.md), which sets the mechanics the breath acts against.
+
+## Physiology
+
+The brainstem sets ventilation to keep arterial CO2 (and, weaker, O2) at its set-point: rising pCO2 increases minute ventilation through the chemoreflex. A newborn breathes fast and shallow, about 40/min at 5–6 mL/kg. At a higher drive both rate and depth rise; Mecklenburgh's relation describes the split, with tidal volume rising with rate.
+
+Each breath the diaphragm and intercostal muscles contract during inspiration, lowering the pleural pressure so air flows in, and relax during expiration, which is passive. The same effort moves less air into stiff lungs (RDS) or through a narrow airway, and more on CPAP or pressure support. Patients partly defend their tidal volume against such loads through reflexes and muscle properties, but only partly. The rest is left to the chemoreflex, so a stiff lung shows as faster, shallower breathing and a higher pCO2.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Breathing   (breath-effort generator — no compartment of its own)
-```
-
-Extends `BaseModelClass` directly. It owns no volume/pressure; `calc_model()` runs a breath state
-machine and subtracts its muscle pressure from `THORAX.pres_ext` each step.
-
-## What it models
-
-```
-chemoreflex (ANS) ─► mv_ans_factor ─► target minute volume ─Mecklenburgh─► resp_rate + target Vt
-                                                                                  │
-                                         pmus_max = rmp_gain · load_factor · target Vt
-                                                                                  │
-                    muscle waveform (ramp, then relaxation) ─► THORAX.pres_ext −= pmus ─► lungs
-                                                                                  │
-          measured Vt at the lungs ─► calibration (once) / partial load compensation ◄┘
+  └── Breathing
 ```
 
 ## Properties
 
-### Configuration (set in the model definition)
+### Config (set in the definition JSON)
 
-| Property | Default | Unit | Description |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| `breathing_enabled` | `true` | — | spontaneous breathing on/off (`switch_breathing`) |
-| `minute_volume_ref` | `0.2` | L/kg/min | reference minute volume |
-| `minute_volume_ref_factor` | `1.0` | — | non-persistent multiplier on the reference MV |
-| `minute_volume_ref_scaling_factor` | `1.0` | — | scaling (weight) multiplier on the reference MV |
-| `vt_rr_ratio` | `0.0001212` | — | Mecklenburgh tidal-volume / rate² ratio |
-| `vt_rr_ratio_factor` | `1.0` | — | multiplier on `vt_rr_ratio` |
-| `vt_rr_ratio_scaling_factor` | `1.0` | — | scaling multiplier on `vt_rr_ratio` |
-| `rmp_gain` | calibrated | mmHg/L | muscle pressure per litre of target tidal volume (see *Calibration*) |
-| `rmp_calibrated` | `false` | — | `rmp_gain` holds a calibrated value; written into every scenario by `scripts/_calibrate_breathing.mjs` |
-| `rmp_gain_max` | `100.0` | mmHg | maximum pressure the respiratory muscles can exert (caps `pmus_max`) |
-| `load_compensation` | `0.5` | 0–1 | partial compensation of the effort for loads and support (see *Load compensation*) |
-| `ie_ratio` | `0.3` | — | inspiratory fraction of the breath |
-| `mv_ans_factor` | `1.0` | — | chemoreflex modulation of minute volume, written by `AnsEfferent` `EF_MV` |
-| `ans_activity_factor` | `1.0` | — | global multiplier on minute volume (no engine model writes it; a manual lever) |
-| `thorax` | `["THORAX"]` | — | the container the muscle pressure acts on |
+| `breathing_enabled` | boolean | `true` | Spontaneous breathing on/off (`switch_breathing`); off in the fetal scenarios. |
+| `minute_volume_ref` | L/kg/min | 0.2 | Reference minute volume (term 0.207). |
+| `minute_volume_ref_factor`, `minute_volume_ref_scaling_factor` | – | 1.0 | Persistent multipliers on the reference (no engine model writes them). |
+| `vt_rr_ratio` | L·min/kg | 1.212e-4 | Mecklenburgh ratio: `Vt / RR` per kg (term 1.298e-4). |
+| `vt_rr_ratio_factor`, `vt_rr_ratio_scaling_factor` | – | 1.0 | Multipliers on `vt_rr_ratio`. |
+| `ie_ratio` | – | 0.3 | Inspiratory **fraction** of the breath (Ti/Ttot), not an I:E ratio. Term 0.40, preterm 0.38. |
+| `rmp_gain` | mmHg/L | calibrated | Muscle pressure per litre of target tidal volume. |
+| `rmp_calibrated` | boolean | `false` | `rmp_gain` holds a calibrated value (true in every scenario). |
+| `rmp_gain_max` | mmHg | 100 | Cap on the peak muscle pressure. |
+| `load_compensation` | 0–1 | 0.5 | Partial compensation of the effort for loads and support. |
+| `mv_ans_factor` | – | 1.0 | Chemoreflex modulation of minute volume; written by the `EF_MV` efferent. |
+| `ans_activity_factor` | – | 1.0 | Global multiplier on minute volume; no model writes it (a manual lever). |
+| `thorax` | list | `["THORAX"]` | The container the muscle pressure acts on. |
 
-### Computed / reported (outputs)
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `target_minute_volume` | L/min | demanded minute volume |
-| `resp_rate` | breaths/min | computed rate; latched into the breath timing at each breath start |
-| `resp_rate_measured` | breaths/min | rate inferred from observed breath timing |
-| `target_tidal_volume` | L | demanded tidal volume |
-| `minute_volume` | L/min | achieved MV (`exp_tidal_volume · resp_rate`) |
-| `insp_tidal_volume` | L | lung volume rise over the last inspiration |
-| `exp_tidal_volume` | L | lung volume fall from the breath's peak to its end |
-| `resp_muscle_pressure` | mmHg | current muscle pressure (positive = inspiratory effort) |
-| `pmus_max` | mmHg | peak muscle pressure of the current breath |
-| `load_factor` | — | current effort trim from load compensation |
-| `insp_running` / `exp_running` | — | spontaneous (neural) phase flags; `_insp_running` / `_exp_running` remain as aliases |
-| `ncc_insp` / `ncc_exp` | steps | phase step counters (`ncc_insp === 1` marks the first step of an inspiration) |
+| `target_minute_volume` | L/min | Demanded minute volume. |
+| `resp_rate` | /min | Computed rate (latched into each breath). |
+| `resp_rate_measured` | /min | Rate from the observed breath timing. |
+| `target_tidal_volume` | L | Demanded tidal volume. |
+| `insp_tidal_volume`, `exp_tidal_volume` | L | Lung-volume rise over the last inspiration and fall from its peak; 0 while breathing is off. |
+| `minute_volume` | L/min | `exp_tidal_volume · resp_rate`. |
+| `resp_muscle_pressure` | mmHg | Current muscle pressure (positive = inspiratory effort). |
+| `pmus_max` | mmHg | Peak muscle pressure of the current breath. |
+| `load_factor` | – | Current effort trim from load compensation. |
+| `insp_running`, `exp_running` | boolean | Spontaneous (neural) phase; both false while breathing is off. `_insp_running`/`_exp_running` remain as aliases. |
+| `ncc_insp`, `ncc_exp` | steps | Phase step counters; `ncc_insp === 1` marks the first step of an inspiration. |
 
-## Target minute volume and the rate/volume split
+## Calculation
 
-```
-minute_volume_ref' = minute_volume_ref · minute_volume_ref_factor · minute_volume_ref_scaling_factor · weight
-target_minute_volume = (minute_volume_ref' + (mv_ans_factor − 1)·minute_volume_ref') · ans_activity_factor
-```
-
-The split uses the **Mecklenburgh** relationship `VT / RR = vt_rr_ratio`, i.e. tidal volume scales
-with rate. Substituting into `MV = VT · RR` gives `MV = vt_rr_ratio · RR²`, inverted in
-`vt_rr_controller`:
+### Target minute volume and the rate / volume split
 
 ```
-resp_rate           = sqrt( target_minute_volume / (vt_rr_ratio' · weight) )
-target_tidal_volume = target_minute_volume / resp_rate
+MV_ref               = minute_volume_ref · minute_volume_ref_factor · minute_volume_ref_scaling_factor · weight
+target_minute_volume = (MV_ref + (mv_ans_factor − 1) · MV_ref) · ans_activity_factor
+resp_rate            = √( target_minute_volume / (vt_rr_ratio' · weight) )        Mecklenburgh: MV = ratio · RR²
+target_tidal_volume  = target_minute_volume / resp_rate
 ```
 
-(`vt_rr_ratio'` folds in `vt_rr_ratio_factor` and `vt_rr_ratio_scaling_factor`.) The inversion is
-guarded against a non-positive denominator or target so it cannot produce an `Infinity`/`NaN` rate;
-when breathing is disabled `vt_rr_controller` sets `resp_rate = 0` and returns.
+`vt_rr_ratio'` includes its two factors. The inversion is guarded against a non-positive denominator or target.
 
-**term_neonate (calibrated assumption, 2026-10):**
-- `ie_ratio` 0.40 (it is Ti/Ttot, not I:E): Ti 0.65 s of a 1.63 s cycle in healthy term infants
-  (Schmalisch 2005, dead-space-free flow-through, day 7)
-- `vt_rr_ratio` 1.29795e-4, for RR 40 / Vt 5.3 mL/kg at a minute ventilation of 213 mL/kg/min
-  (Schmalisch: 39.2 ± 8.6 / 5.57 ± 1.06 / 215 ± 52; Hannover day 2: RR 44)
-- `minute_volume_ref` 0.207336 and the chemoreceptor set-points re-anchored, so the chemoreflex is
-  neutral at PaCO₂ 39.7
-- with the linear inspiratory muscle ramp, peak flows are 0.70 / 0.66 L/min/kg (reference
-  0.83 ± 0.20 / 0.64 ± 0.19); infants peak earlier in inspiration
-- see `scripts/_fix_term_breathing_pattern.mjs` and [TermNeonateReference](./TermNeonateReference.md)
+**term_neonate calibration (2026-10):** `ie_ratio` 0.40 (Ti 0.65 s of 1.63 s); `vt_rr_ratio` set for RR 40 / Vt 5.3 mL/kg at 213 mL/kg/min; `minute_volume_ref` 0.207, with the chemoreceptor set-points re-anchored so the chemoreflex is neutral at PaCO2 39.7. With the linear muscle ramp, peak flows are 0.70 / 0.66 L/min/kg (reference 0.83 / 0.64). See `scripts/_fix_term_breathing_pattern.mjs` and [TermNeonateReference](./TermNeonateReference.md).
 
-## Breath phase state machine
+### Breath phases
 
-A breath starts when `_breath_timer` reaches `_breath_interval`. At that moment the timing and the
-target are **latched** for the whole breath, so a chemoreflex change during a breath acts on the next:
+While breathing is on, a breath starts when `_breath_timer` reaches `_breath_interval`. Its timing and target are **latched** for the whole breath, so a chemoreflex change during a breath acts on the next:
 
 ```
-_breath_interval = 60 / resp_rate
-_ti = ie_ratio · _breath_interval        (inspiration)
-_te = _breath_interval − _ti              (expiration)
-target Vt of the breath = target_tidal_volume
+_breath_interval = 60 / resp_rate,   _ti = ie_ratio · _breath_interval,   _te = _breath_interval − _ti
 ```
 
-Inspiration runs until `_breath_timer > _ti`, then expiration until the next breath start. At that
-point the finished breath is closed out (tidal volumes, calibration or load compensation).
+Inspiration runs until `_breath_timer > _ti`, then expiration until the next start, where the finished breath is closed out (tidal volumes, calibration or load compensation).
 
-### Tidal volume at the lungs
+**While breathing is off** there is no breath clock: no phases, tidal and minute volumes 0, rate 0, no muscle pressure. Switching it back on starts a breath at once.
 
-Tidal volumes are measured on the lung compartments (`Respiration.lungs`, normally `ALL` + `ALR`):
-`insp_tidal_volume` is the rise over the inspiration, `exp_tidal_volume` the fall from the breath's
-peak to its end. The measurement does not depend on the airway route: natural airway, ET tube or a
-tube leak all give the volume that actually reached the alveoli.
+**Tidal volumes are measured at the lungs** (`Respiration.lungs`), so they don't depend on the airway route (natural airway, ET tube, leak).
 
-## Respiratory-muscle pressure
+### Muscle pressure
 
 ```
-pmus_max = min( rmp_gain · load_factor · target Vt of the breath , rmp_gain_max )
-pmus(t)  = pmus_max · shape(t)
-THORAX.pres_ext −= pmus(t)
+pmus_max = min( rmp_gain · load_factor · latched target Vt , rmp_gain_max )
+pmus(t)  = pmus_max · shape(t),        THORAX.pres_ext −= pmus(t)
 ```
 
-`shape` is a linear ramp from 0 to 1 over inspiration, then an exponential relaxation over expiration,
-`(e^(−4x) − e^(−4)) / (1 − e^(−4))` with `x` the fraction of expiration elapsed. The pressure acts
-directly on the pleural space; the THORAX resets `pres_ext` every step.
+`shape` ramps linearly from 0 to 1 over inspiration, then relaxes exponentially over expiration, `(e^(−4x) − e^(−4)) / (1 − e^(−4))`, with `x` the fraction of expiration elapsed. The pressure acts on the pleural space; THORAX resets `pres_ext` each step.
 
-Because the effort is a pressure set by the drive, the mechanics shape the breath: stiffer lungs or a
-narrower airway give less volume for the same effort, CPAP or pressure support add volume, and the
-chemoreflex (through `mv_ans_factor`) answers the resulting PaCO2 change with a new rate and target.
+### Calibration
 
-## Calibration
+`rmp_gain` is the effort the patient's own respiratory system needs per litre of tidal volume. It is calibrated once and then frozen:
+- **Starting estimate:** twice the elastance of the lungs and thorax in series, using their effective elastances `el_eff`, so factor layers count.
+- **Per-breath correction** by `(target / exhaled Vt)^0.8`. The gain freezes after 3 consecutive breaths within 2 %, or after 40 breaths.
+- **The shipped scenarios** carry a gain written by `scripts/_calibrate_breathing.mjs`, run on the natural airway with the ventilator off. Re-run it after changing a scenario's lung or thorax mechanics.
+- **Older scenarios** stored `rmp_gain` as an elastance gain; without `rmp_calibrated` the value is discarded and recalibrated.
 
-`rmp_gain` is the effort the patient's own respiratory system needs per litre of tidal volume. It is
-calibrated once and then frozen:
+### Load compensation
 
-- Until `rmp_calibrated` is set, the gain starts from an estimate (twice the elastance of the lungs and
-  thorax in series) and is corrected each breath by `(target / exhaled Vt)^0.8`. It is frozen after
-  three consecutive breaths within 2 %, or after 40 breaths.
-- Every scenario with spontaneous breathing carries a calibrated gain, written by
-  `node scripts/_calibrate_breathing.mjs` (on the natural airway, with the ventilator off). Re-run it
-  after changing a scenario's lung or thorax mechanics. Scenarios with breathing off (fetal, ventilated)
-  calibrate when breathing starts.
-- A scenario saved before this design stored `rmp_gain` as an elastance gain; without
-  `rmp_calibrated` it is discarded and recalibrated.
-
-## Load compensation
-
-Patients partly defend their tidal volume against a load (and give up effort under support) through
-volume-related reflexes and intrinsic muscle properties. `load_compensation` (`lc`, 0–1) models this
-as a proportional trim of the effort, updated each breath and pulled back towards 1:
+A proportional trim of the effort, updated each breath and pulled back toward 1:
 
 ```
-load_factor += 0.2 · [ (target / Vt − 1) · lc − (load_factor − 1) · (1 − lc) ]
-steady state:  load_factor − 1 = lc / (1 − lc) · (target / Vt − 1)
+load_factor += 0.2 · [ (target / Vt − 1) · lc − (load_factor − 1) · (1 − lc) ]       lc = load_compensation (≤ 0.95)
+steady state:  load_factor − 1 = lc / (1 − lc) · (target / Vt − 1),     clamped 0.25–4
 ```
 
-`lc = 0` is a pure pressure generator, `lc → 1` defends the target tidal volume (the behaviour of the
-previous design). The default `0.5` halves the tidal-volume deficit of a load. `load_factor` is
-clamped to 0.25–4.
+`lc = 0` is a pure pressure generator; `lc → 1` defends the target tidal volume. The default 0.5 halves the tidal-volume deficit of a load.
+
+## Factor system
+
+None of the engine's factor layers. Its own multipliers (`*_factor`, `*_scaling_factor`, `mv_ans_factor`, `ans_activity_factor`) multiply the minute volume or the Vt/RR ratio and are never reset.
+
+## Inputs and outputs
+
+- **Reads:** the lungs' volumes; the lungs' and thorax's `el_eff` (initial estimate); `model.weight`.
+- **Writes:** `THORAX.pres_ext`.
+- **Written by:**
+  - the `EF_MV` efferent of the chemoreflex (`mv_ans_factor`);
+  - [Apnea](./Apnea.md) and Resuscitation (`breathing_enabled` through `switch_breathing`);
+  - the Calibrator and scenario scripts (`minute_volume_ref`, `vt_rr_ratio`).
+- **Read by:**
+  - [Ventilator](./Ventilator.md): it arms its patient trigger on `ncc_insp === 1`, disarms on `!insp_running`, and classes spontaneous breaths by `insp_running`;
+  - Monitor (counts a breath on `ncc_insp === 1` while breathing is on);
+  - `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **The rate follows only the drive.** No vagal rate response to stiff lungs, no Hering–Breuer shortening of inspiration (parked).
+- **Central vs obstructive apnoea.** A central apnoea switches breathing off; an obstructive one keeps the drive and closes `MOUTH_DS` (see [Apnea](./Apnea.md)).
+- **One muscle-pressure shape** (linear ramp); infants reach peak flow earlier in inspiration, so peak inspiratory flow is ~15 % low at term.
+- **`resp_rate_measured` has a start-up transient** over the first breaths; the settled value is correct.
+- **Verification:** `npm run validate:resp` (see [TESTING](./TESTING.md)) checks the spontaneous steady state, the chemoreflex, resistive and elastic loads, CPAP and pressure support against clinical ranges. The known failures are the missing vagal and Hering–Breuer reflexes, plus listed ventilator and preterm calibration items.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`:
+From `term_neonate.json`, `models.Breathing` (trimmed to the config props):
 
 ```json
 {
   "name": "Breathing",
-  "description": "spontaneous breathing model",
   "model_type": "Breathing",
   "is_enabled": true,
   "breathing_enabled": true,
-  "minute_volume_ref": 0.2,
-  "minute_volume_ref_factor": 1.0,
-  "minute_volume_ref_scaling_factor": 1.0,
-  "vt_rr_ratio": 0.00012,
-  "vt_rr_ratio_factor": 1.0,
-  "vt_rr_ratio_scaling_factor": 1.0,
-  "rmp_gain_max": 100.0,
-  "rmp_gain": 276.44,
+  "minute_volume_ref": 0.20729,
+  "minute_volume_ref_factor": 1,
+  "minute_volume_ref_scaling_factor": 1,
+  "vt_rr_ratio": 0.00012979,
+  "vt_rr_ratio_factor": 1,
+  "vt_rr_ratio_scaling_factor": 1,
+  "ie_ratio": 0.4,
+  "rmp_gain": 334.48,
   "rmp_calibrated": true,
+  "rmp_gain_max": 100,
   "load_compensation": 0.5,
-  "ie_ratio": 0.3,
-  "mv_ans_factor": 1.0,
-  "ans_activity_factor": 1.0
+  "mv_ans_factor": 0.9978,
+  "ans_activity_factor": 1
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- The **ANS** chemoreflex (`CR_PCO2` → `EF_MV`) writes `mv_ans_factor`; only PaCO2 drives breathing in
-  the shipped scenarios.
-- The **Ventilator** arms its patient trigger on `ncc_insp === 1` and disarms on `!insp_running`;
-  the **Monitor** counts a spontaneous breath on `ncc_insp === 1`.
-- When `breathing_enabled` is false, `resp_rate`, the counters, `target_tidal_volume` and the muscle
-  pressure are zeroed, but the phase machine keeps running, so the lung tidal volumes are still
-  measured (e.g. ventilator-driven breaths).
+One instance in every scenario.
 
-## Apnea coupling
+| Scenario | Breathing | `minute_volume_ref` | `vt_rr_ratio` | `ie_ratio` | `rmp_gain` |
+|---|---|---|---|---|---|
+| term_neonate | on | 0.207 | 1.30e-4 | 0.40 | 334 |
+| preterm_30wk / 28wk / 25wk | on | 0.285 / 0.30 / 0.30 | 7.9e-5 / 7.8e-5 / 7.1e-5 | 0.38 | 790 / 1263 / 2371 |
+| bischoff no-PDA / L→R / bidir | on | 0.335 / 0.31 / 0.31 | 7.9e-5 / 7.3e-5 / 7.3e-5 | 0.38 | 1943 / 2084 / 2190 |
+| fetal ×3 | off | (term values) | | 0.40 | 334 |
 
-`breathing_enabled` (via `switch_breathing`) is the lever the [Apnea](./Apnea.md) controller uses to
-model a **central** apnea: switching it off removes the muscle pressure. An **obstructive** apnea leaves
-the drive on but occludes `MOUTH_DS` (`no_flow = true`): the effort continues against a closed airway,
-and the rising PaCO2 strengthens the recovery breaths through the chemoreflex. The `Resuscitation`
-device switches breathing off during CPR.
+## References
 
-## Verification
-
-`npm run validate:resp` (see [TESTING](./TESTING.md)) checks the spontaneous steady state, the
-chemoreflex, resistive and elastic loads, CPAP and pressure support against clinical ranges. The
-redesign moved the suite from 52 pass / 13 known failures to all checks passing except the listed
-known failures (no vagal rate response to stiff lungs, no Hering–Breuer reflex under pressure
-support, and the ventilator and preterm calibration items).
-
-## Notes & caveats
-
-- **Rate and mechanics.** The rate follows the minute-volume demand (Mecklenburgh) and therefore the
-  chemoreflex; there is no vagal rate response to stiff lungs and no Hering–Breuer shortening of
-  inspiration.
-- **`resp_rate_measured` has a startup transient.** `_rr_factor` starts at 0, so the
-  `_rr_counter > 4·_rr_factor` branch fires repeatedly until it settles after the first breaths (same
-  pattern as the `Heart` measured-rate logic). The settled value is correct.
+The term breathing pattern (rate, tidal volume, minute ventilation, Ti/Ttot, peak flows) is referenced in [TermNeonateReference](./TermNeonateReference.md) (Schmalisch 2005; Hannover 2018).
