@@ -39,7 +39,7 @@ All props and their defaults are `Resistor`'s: see [Resistor → Properties](./R
 | Property | Typical value | Role |
 |---|---|---|
 | `no_back_flow` | `true` | One-way: no flow when the downstream pressure is higher. |
-| `r_for` | 55 mmHg·s/L | Forward resistance of the open valve (all valves, all scenarios). |
+| `r_for` | 55 mmHg·s/L | Forward resistance of the open valve (all valves, all scenarios; to be retuned, see [limitations](#assumptions-and-limitations)). |
 | `r_back` | 55 mmHg·s/L | Only acts if `no_back_flow` is turned off (regurgitation). |
 | `no_flow` / `is_enabled` | `false` / `true` | Atresia, or an alternative connection switched off. |
 | `implicit` | `true` on the outflow valves `LV_AA`, `RV_AA` | Stable flow into the stiff aorta (see [Resistor](./Resistor.md#implicit-flow-implicit)). |
@@ -61,7 +61,7 @@ Exactly [`Resistor`'s](./Resistor.md#calculation): forward flow `Δp / r_for_eff
 ## Assumptions and limitations
 
 - **Ideal valves.** Instant opening and closing, no leaflet dynamics, no closing backflow, no regurgitation unless configured.
-- **One resistance for every valve.** All valves have `r_for` 55 mmHg·s/L in all scenarios, from 25 weeks to term, so the open-valve resistance doesn't scale with valve size. At neonatal flows the drop across an open valve is a fraction of a mmHg, so this matters only for stenosis modelling.
+- **One resistance for every valve, and too high at term.** All valves have `r_for` 55 mmHg·s/L in all scenarios. At term that gives peak open-valve gradients of mitral 7.8, aortic 7.1, tricuspid 5.3 and pulmonary 4.7 mmHg. Normal neonatal velocities (about 0.5–0.7 m/s across the atrioventricular valves, 0.8–1.0 m/s across the outflow valves; ΔP ≈ 4v²) suggest roughly 1–2 and 3–4 mmHg. In the 1 kg preterm the gradients are 1.4–5.3 mmHg. A linear resistance also gives a gradient proportional to flow, where a real valve's grows with flow². The valve resistances are to be retuned per scenario in the scenario re-validation session.
 - **The type is a label.** The UI shows the same fields for `HeartValve` and `Resistor`. Nothing in the engine branches on the type.
 
 ## Example definition (JSON)

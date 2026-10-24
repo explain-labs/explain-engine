@@ -109,7 +109,7 @@ The only model that writes a factor is `Heart`: its `pc_el_factor` (pericardial 
   - `el_k` gives +10 mmHg at 10 mL beyond that reserve (10⁵ mmHg/L²).
   - `el_base` is 0.
   - So `pc_el_factor` has no effect at rest and only acts once the pericardium is stretched (e.g. by `pc_extra_volume`).
-- **The pericardium's `el_k` is the same 10⁵ mmHg/L² in every scenario** (term, fetal and 25-week preterm alike); only `u_vol` follows the heart size. In a 0.7 kg infant, 10 mL beyond the reserve is more than the whole reserve volume (7 mL).
+- **The pericardial wall scales with the heart.** `el_k` = 10⁵ mmHg/L² × (35.2 mL / reserve)² (`scripts/_scale_pericardium.mjs`), so every scenario gets the same pressure for the same fractional stretch beyond its reserve: from 10⁵ at term to 2.6·10⁶ at 25 weeks. An effusion of 50 % of the reserve lowers LVO by 10 % at term and 6–7 % at 25–28 weeks.
 - **The thorax elastance** (`el_base` 50 mmHg/L term, 150 at 25 weeks) represents the chest wall. Its `u_vol` and `el_base` are scenario-calibrated values.
 
 ## Example definition (JSON)
