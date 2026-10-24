@@ -12420,8 +12420,7 @@
      "BloodCapacitance",
      "BloodVessel",
      "HeartChamber",
-     "BloodTimeVaryingElastance",
-     "BloodPump"
+     "BloodTimeVaryingElastance"
     ],
     "preductal_art_bloodgas": {
      "ph": 7.3585649380697555,

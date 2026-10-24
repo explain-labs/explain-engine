@@ -140,7 +140,6 @@ export class Drugs extends BaseModelClass {
       "HeartChamber",
       "BloodCapacitance",
       "BloodTimeVaryingElastance",
-      "BloodPump",
     ];
   }
 

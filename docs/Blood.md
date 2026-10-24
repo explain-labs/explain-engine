@@ -38,7 +38,7 @@ It does not move volume or compute pressure; flow mixing is done per-compartment
 | `solutes` | object | Reference circulating solute set (Na, K, Ca, Mg, Cl, lactate, albumin, phosphates, uma, hemoglobin, glucose, …) |
 | `P50_0` | mmHg | O₂–Hb affinity baseline (pO₂ at 50% saturation): fetal HbF ≈ 18.8, neonatal 20.0, adult 26.7 (default 20.0) |
 | `haldane_coeff` | unitless | Haldane-effect strength propagated to every compartment; `0` disables it (default 1.0) |
-| `blood_containing_modeltypes` | array | Model types treated as blood compartments: `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance`, `BloodPump` |
+| `blood_containing_modeltypes` | array | Model types treated as blood compartments: `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance` |
 
 ### Computed / published (dependent)
 

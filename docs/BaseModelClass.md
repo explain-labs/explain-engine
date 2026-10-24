@@ -12,8 +12,7 @@ None. This class is the contract that makes something a "model" the engine can b
 BaseModelClass
   ├── Capacitance
   │     ├── BloodCapacitance
-  │     │     ├── BloodVessel
-  │     │     └── BloodPump
+  │     │     └── BloodVessel
   │     └── GasCapacitance
   ├── TimeVaryingElastance
   │     ├── BloodTimeVaryingElastance

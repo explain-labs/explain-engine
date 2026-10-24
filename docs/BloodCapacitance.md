@@ -18,8 +18,7 @@ In the shipped scenarios a plain BloodCapacitance is used only for compartments 
 BaseModelClass
   └── Capacitance              (volume, elastance, pressure)
         └── BloodCapacitance   (blood composition mixing)
-              ├── BloodVessel  (adds resistance, flow, ANS coupling)
-              └── BloodPump    (adds a pump head; standby, no scenario uses it)
+              └── BloodVessel  (adds resistance, flow, ANS coupling)
 ```
 
 `BloodTimeVaryingElastance` and `HeartChamber` carry the same blood properties but descend from `TimeVaryingElastance`. All four share the mixing code in [`helpers/BloodMixing.js`](../helpers/BloodMixing.js).

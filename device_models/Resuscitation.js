@@ -153,7 +153,7 @@ export class Resuscitation extends BaseModelClass {
 
     // apply the compression force to the targets as an external pressure. Every compartment reads
     // pres_ext (Capacitance / TimeVaryingElastance / Container / GasCapacitance) — unlike pres_cc,
-    // which only GasCapacitance and BloodPump read. Use += so it composes with other external
+    // which only GasCapacitance reads. Use += so it composes with other external
     // pressures (e.g. the thorax container) and is reset by each compartment's calc_pressure per step.
     for (const [key, value] of Object.entries(this.chest_comp_targets)) {
       const m = this._model_engine.models[key];

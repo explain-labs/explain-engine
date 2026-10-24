@@ -18,8 +18,7 @@ Blood or gas moves between compartments only through separate connectors (`Resis
 BaseModelClass
   └── Capacitance
         ├── BloodCapacitance      (+ blood composition mixing)
-        │     ├── BloodVessel     (+ own resistance, ANS; composes its factors multiplicatively)
-        │     └── BloodPump       (+ pump head; standby)
+        │     └── BloodVessel     (+ own resistance, ANS; composes its factors multiplicatively)
         └── GasCapacitance        (+ gas composition, atmospheric pressure, humidity, heat)
 ```
 

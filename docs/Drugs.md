@@ -31,7 +31,7 @@ injection_site.drugs{}   volume_in mixing carries    diffuse global term on     
 - **TRANSPORT** — handled entirely by the engine. `Drugs` only **seeds** the drug key (value `0.0`)
   into every blood-carrying compartment once (`_seed_drugs`, lazily on first step); the existing
   `volume_in` mixing then advects it for free, like solutes. Blood model types that participate:
-  `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance`, `BloodPump` —
+  `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance` —
   except compartments flagged `blood_pool: false` (the `URINE` collection compartment, set by
   `Kidneys`), which are not blood and are neither seeded, cleared nor scanned.
 - **SINK** — elimination is a **diffuse first-order** term (`clearance.global`, 1/s, e.g. COMT/MAO/

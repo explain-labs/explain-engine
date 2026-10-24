@@ -356,9 +356,26 @@ The other H-Q coefficients are **fit to published pump characteristics** (`head 
 hq_b·(rpm/1000)·Q`, with `hq_c = 0`): the deadhead (`Q=0`) scaled as rpm² fixes `hq_a`, and the rated
 flow at max rpm fixes the Euler-slip falloff `hq_b`. For the Rotaflow the deadhead is fixed by two
 independent data points (~108 mmHg shut-off at 2000 rpm and ~700 mmHg at 5000 rpm → `hq_a ≈ 28`); the
-others are anchored to their deadhead magnitude and rated flow (see [BloodPump](./BloodPump.md) for the
-coefficient table and sources). The linear `N·Q` falloff keeps a finite slope at low flow, so raising
-afterload reduces flow across the operating range. Note the **circuit** (cannula size, venous return)
+others are anchored to their deadhead magnitude and rated flow. The linear `N·Q` falloff keeps a finite
+slope at low flow, so raising afterload reduces flow across the operating range.
+
+| Pump | `hq_a` | `hq_b` | `hq_c` | deadhead @ max rpm | rated flow |
+|---|---|---|---|---|---|
+| Abbott PediMag | 21.16 | 5.2 | 15.4 | ~640 mmHg @5500 | ~1.5 L/min |
+| Abbott CentriMag | 23.17 | 0.85 | 0.38 | ~710 mmHg @5500 | 10 L/min |
+| Getinge Rotaflow RF-32 | 28 | 13.0 | 0 | ~700 mmHg @5000 | ~10 L/min |
+| Medtronic Bio-Pump BP-50 | 20 | 28.9 | 0 | ~180 mmHg @3000 | neonatal |
+
+The CentriMag is fitted to the manufacturer's H-Q curves (CentriMag Circulatory Support System
+Operation Manual PL-0047 Rev 11, Fig. 14, pump only, blood analog 4.02 cP), by least squares over points
+read off all eight rpm curves (2000–5500 rpm), within 4.8 mmHg RMS. The curves are nearly flat with flow
+(≈ −6 mmHg per L/min at 3000 rpm), so `hq_b`/`hq_c` are small. The manual's "maximum pressure head of
+600 mmHg" is a rated limit; the 5500 rpm curve starts at ≈ 710 mmHg. The Rotaflow and Bio-Pump
+coefficients are anchored to each pump's published deadhead and rated flow; they are **not** digitized
+from the full manufacturer H-Q figures (which were not accessible), so their mid-curve shape is the
+theoretical Euler-slip (linear) default. Sources: Wang et al 2020 *Artif Organs* (Rotaflow / CentriMag /
+PediMag paediatric ECMO characterisation), the ROTAFLOW/CentriMag adult ECLS comparison, and the
+manufacturers' rated-flow specifications. Note the **circuit** (cannula size, venous return)
 sets the achievable flow ceiling, so a small patient stays preload-limited (e.g. ~0.5 L/min for a term
 neonate) regardless of pump rating — afterload changes then move flow little until the preload limit is
 relieved.
@@ -468,10 +485,9 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   [`Thermoregulation`](./Thermoregulation.md) (which resumes warming `ECLS_OXY` toward core).
 - **References are resolved lazily** each tick while running; a missing sub-model skips the tick rather
   than dereferencing undefined.
-- **Pump logic is mirrored in `BloodPump`.** The H-Q head + roller flow-source model in this device is
-  mirrored in [`BloodPump.calc_pressure`](./BloodPump.md) (kept consistent, though no scenario uses that
-  standby class); `ECLS_PUMP` is a [`BloodVessel`](./BloodVessel.md) driven externally rather than a
-  `BloodPump`.
+- **The pump is a `BloodVessel` driven by this device.** `ECLS_PUMP` is a [`BloodVessel`](./BloodVessel.md);
+  the H-Q head and the roller flow source are applied by `Ecls` through its `p1_ext`/`p2_ext`. (A standby
+  `BloodPump` class that mirrored this logic was removed in the v1.0 documentation pass.)
 - **Flow is preload/afterload limited by the *circuit*, not the pump rating.** The H-Q curve sets the
   head; the cannula sizes and venous return set the achievable flow. A term neonate stays ~0.5 L/min
   even at high rpm (correct); increasing `pump_rpm` past the preload limit just raises head, not flow.
@@ -613,7 +629,7 @@ day (commits span 21:00–23:29), so this one date covers every change below. Co
   characteristic** (`head = hq_a·(rpm/1000)² − hq_b·(rpm/1000)·Q`), a **roller flow-source** controller,
   and a **pump device library** (PediMag, CentriMag, Rotaflow RF-32, Bio-Pump BP-50, generic roller).
 - H-Q coefficients **fit to published characteristics** — `hq_a` from the rpm²-scaled deadhead
-  (Rotaflow anchored by two independent points), `hq_b` from rated flow. See [BloodPump](./BloodPump.md).
+  (Rotaflow anchored by two independent points), `hq_b` from rated flow. See [Pump device library](#pump-device-library).
 
 ### Oxygenator gas transfer (`494bb15`, `9602a13`, `bd22b0a`)
 

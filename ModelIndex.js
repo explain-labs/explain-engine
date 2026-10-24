@@ -13,7 +13,6 @@ export { Blood } from "./component_models/Blood";
 export { BloodCapacitance } from "./component_models/BloodCapacitance";
 export { BloodTimeVaryingElastance } from "./component_models/BloodTimeVaryingElastance";
 export { BloodVessel } from "./component_models/BloodVessel";
-export { BloodPump } from "./component_models/BloodPump";
 export { Fluids } from "./component_models/Fluids";
 
 export { HeartValve } from "./component_models/HeartValve";

@@ -29,7 +29,6 @@ export class Blood extends BaseModelClass {
       "HeartChamber",
       "BloodCapacitance",
       "BloodTimeVaryingElastance",
-      "BloodPump",
     ];
 
     // initialize dependent properties

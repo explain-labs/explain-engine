@@ -125,7 +125,7 @@ compartment type reads (blood vessels, heart chambers, the thorax `Container`, g
 is added (`+=`) so it composes with other external pressures and is consumed + reset by each
 compartment's `calc_pressure` every step.
 
-> Previously the force was written to `pres_cc`, which only `GasCapacitance` and `BloodPump` read — so
+> Previously the force was written to `pres_cc`, which only `GasCapacitance` (and the since-removed `BloodPump`) read — so
 > the compressions reached the lungs but **not** the heart chambers or vessels, and generated no
 > circulation. Writing `pres_ext` makes compressions actually drive forward flow. Because `pres_ext`
 > is reset each step, a compression can lag a given compartment by at most one step depending on model
