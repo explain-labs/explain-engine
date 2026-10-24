@@ -5573,7 +5573,7 @@
     "heart_rate_ref": 155,
     "pq_time": 0.1,
     "qrs_time": 0.075,
-    "qt_time": 0.25,
+    "qt_time": 0.4,
     "av_delay": 0.0005,
     "sa_node_enabled": true,
     "av_block_mode": "none",

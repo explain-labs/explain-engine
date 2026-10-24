@@ -44,7 +44,8 @@ BaseModelClass
 | `pq_time` | s | 0.1 | Atrial activation (P wave) and PQ interval. |
 | `av_delay` | s | 0.0005 | AV-node pause after the PQ interval, before the QRS. |
 | `qrs_time` | s | 0.075 | Ventricular depolarisation (QRS). |
-| `qt_time` | s | 0.25 | QT at 60 bpm; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Also sets how long the ventricles contract (see [limitations](#assumptions-and-limitations)). |
+| `qt_time` | s | 0.4 | QT at 60 bpm (a QTc), from QRS onset; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Sets both the ECG QT and how long the ventricles contract. 0.4 in every scenario (neonatal QTc ~0.40 s). |
+| `act_peak` | – | 0.85 | Fraction of the QT at which ventricular activation peaks (end-systole). |
 | `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together. `bischoff_bidir_pda` uses 0.008. |
 
 ### Config: rhythm and conduction
@@ -144,15 +145,17 @@ BaseModelClass
 5. **Escape / ectopic pacemaker.**
    - If the ventricles have been quiet for `60 / vent_escape_rate` (or `60 / vt_rate` in `vt` mode) and aren't refractory, they fire on their own. At normal rates conducted beats always come first, so the escape pacemaker only appears when conduction fails.
    - A pending PVC fires `pvc_coupling` after `trigger_pvc()`.
-6. **ECG** (`calc_ecg`): a sum of Gaussian waves (P in the PQ interval; Q, R, S in the QRS; T in the QT), positioned relative to each phase, so the trace follows the timing settings. Isoelectric baseline 0 mV.
+6. **ECG** (`calc_ecg`): a sum of Gaussian waves (P in the PQ interval; Q, R, S in the QRS; T in the QT), positioned relative to each phase (T in the ST–T phase, which lasts `cqt_time − qrs_time` after the QRS), so the trace follows the timing settings. Isoelectric baseline 0 mV.
 7. **Rate measurement** and the `ncc_*` counters advance.
 8. **Activation** (`calc_varying_elastance`):
    ```
    aaf = sin(π·n_a/N_a)                       N_a = pq_time/dt, while 0 ≤ n_a < N_a
-   vaf = (n_v / (0.579·N_v)) · sin(π·n_v/N_v)  N_v = (qrs_time + cqt_time)/dt
+   x = n_v/N_v                                N_v = cqt_time/dt (the QT includes the QRS)
+   vaf = ½(1 − cos(π·x/p))        for x < p   p = act_peak
+       = ½(1 + cos(π·(x−p)/(1−p)))  for p ≤ x < 1, else 0
    rvaf = vaf shifted by rv_delay
    ```
-   The factor 0.579 normalises the peak of `vaf` to 1. Heart writes these values to the chambers' `act_factor`:
+   A raised cosine that rises to 1 at end-systole (`act_peak` of the QT) and falls over the rest, so the ventricles eject for most of the QT. Heart writes these values to the chambers' `act_factor`:
    - `aaf` → LA, RA (or RAIVCI/RASVC);
    - `vaf` → LV and COR;
    - `rvaf` → RV.
@@ -189,10 +192,10 @@ Each is applied as a delta to the *shared* persistent layer, so the chamber's fa
 
 ## Assumptions and limitations
 
-- **QT sets both the ECG and the contraction.** `qt_time` 0.25 s gives an ECG QTc of 0.25 s, where the neonatal normal is about 0.40 s. Lengthening it would also lengthen ventricular contraction (`N_v`), which the scenarios are calibrated on. An ECG-only QT is a possible later change.
-- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.25 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
+- **QT sets both the ECG and the contraction.** With `qt_time` 0.40 the ECG QTc is 0.40 s and the ventricles eject for 157–180 ms (LV) in the postnatal and fetal scenarios at rest (term 180 ms at 121/min; fetus_term 166 ms; the fetal reference is 169 ms, Peixoto 2024, doi:10.1017/S1047951124025927). Until the 2026-10 re-validation QT was 0.25 s and the contraction lasted QRS + QT with a late-peaking `x·sin(πx)` pulse: ejection lasted only 118–131 ms, so peak flows and valve gradients were too high, and lengthening QT alone ate into diastolic filling (term mitral inflow 213 → 104 ms per beat). Counting the QT from QRS onset and the raised-cosine pulse keep filling, EF and output (≤1.4 % change).
+- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.4, `act_peak` 0.85 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
 - **The AV delay is nearly zero.** The PR interval is essentially `pq_time`, and atrial contraction (the `aaf` pulse) spans the whole PQ interval, ending just as the ventricles activate.
-- **`cardiac_cycle_time` is the activation time, not the RR interval** (0.35 s against 0.50 s at term). `Mob` currently uses it as the beat duration when it amortises the stroke-work O2 cost, which overestimates stroke-work MVO2 (×1.4 at term) and flattens its rise with heart rate. To be fixed in the `Mob` pass.
+- **`cardiac_cycle_time` is the activation time, not the RR interval** (≈0.28 s against 0.50 s at term). `Mob` therefore uses its own measured beat interval for the stroke-work O2 cost (since v1.0).
 - **End-diastolic and end-systolic pressures are transmural.** They exclude the pericardial (and thoracic) pressure, which is about −3 to −8 mmHg at term, so they read higher than a catheter's cavity pressure. Transmural is the right quantity for wall stress (`HeartFunction`).
 - **Rate factors add.** Each factor adds `(factor − 1)·HR_ref`; they don't multiply.
 - **Systole timing needs the left-heart valves.** `LA_LV` and an LV outflow valve are assumed present unless the LV has no outflow.
@@ -217,7 +220,7 @@ From `term_neonate.json`, `models.Heart` (trimmed to the main config props; `com
   "heart_rate_ref": 120.3333,
   "pq_time": 0.1,
   "qrs_time": 0.075,
-  "qt_time": 0.25,
+  "qt_time": 0.4,
   "av_delay": 0.0005,
   "ans_sens": 1,
   "av_block_mode": "none",
@@ -253,4 +256,6 @@ Scenario differences:
 ## References
 
 - Bazett HC. An analysis of the time-relations of electrocardiograms. *Heart* 1920;7:353–370. (QT rate correction.)
+- Peixoto AB et al. Influence of pre-existing maternal diabetes mellitus on fetal myocardial performance index and systolic-to-diastolic duration ratio. *Cardiol Young* 2025;35:53–59. doi:10.1017/S1047951124025927 (fetal LV ejection time 0.169 s in controls).
+- Zhu F et al. Cardiopulmonary physiological effects of diuretic therapy in preterm infants with chronic pulmonary hypertension. *J Perinatol* 2023;43:1288–1294. doi:10.1038/s41372-023-01742-0 (preterm RV ejection time ≈ 200 ms from RVET:PAAT 5.9 × PAAT 34 ms).
 - Term calibration sources (Satoh 2016, He 2011, Agata 1994, Jhaveri 2023) are listed in [TermNeonateReference](./TermNeonateReference.md).
