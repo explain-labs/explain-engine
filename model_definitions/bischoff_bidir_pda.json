@@ -11924,8 +11924,7 @@
     "pulmonary_capillaries_right": [
      "RL_ART_RL_CAP",
      "RL_CAP_RL_VEN"
-    ],
-    "pres_atm": 760
+    ]
    },
    "Surfactant": {
     "name": "Surfactant",
