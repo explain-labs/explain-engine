@@ -258,8 +258,8 @@ export class Pda extends BaseModelClass {
     aar_da.r_k = 0;
 
     // ----- velocity outputs -----
-    // Jet peak from the Bernoulli (kinetic) term only: B·Q² (mmHg) = 4·v² → v = sign(Q)·√(B·Q²/4).
-    // Because B = K_BERNOULLI/A_eff², this is identically the continuity velocity Q/A_eff through the
+    // Jet peak from the Bernoulli (kinetic) term only: B·Q² (mmHg) = ½ρv² (see jet_velocity).
+    // Because B = K_BERNOULLI/A_eff², this is exactly the continuity velocity Q/A_eff through the
     // effective orifice — the modified-Bernoulli jet and continuity are the same number, so this is
     // honest across the whole closure trajectory (no viscous loss is attributed to velocity). Driven
     // by the resistive flow, so it carries the sign of the shunt and reverses cleanly during
