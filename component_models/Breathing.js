@@ -113,7 +113,17 @@ export class Breathing extends BaseModelClass {
     // out the interval latched while it was off
     const resumed = this.breathing_enabled && !this._was_enabled;
     this._was_enabled = this.breathing_enabled;
-    if (this._breath_timer >= this._breath_interval || resumed) {
+    if (!this.breathing_enabled) {
+      // no breath clock while breathing is off (apnoea, fetus): no phases, nothing measured; the
+      // first breath after switching back on starts at once
+      this.insp_running = false;
+      this.exp_running = false;
+      this.insp_tidal_volume = 0.0;
+      this.exp_tidal_volume = 0.0;
+      this.minute_volume = 0.0;
+      this._breath_timer = 0.0;
+      this._breath_interval = 0.0;
+    } else if (this._breath_timer >= this._breath_interval || resumed) {
       this._end_breath(v_lung);
       this._breath_timer = 0.0;
       this._breath_interval = this.resp_rate > 0 ? 60.0 / this.resp_rate : 60.0;
@@ -134,7 +144,7 @@ export class Breathing extends BaseModelClass {
       this.insp_tidal_volume = Math.max(this._v_max - this._v_start, 0.0);
     }
 
-    this._breath_timer += this._t;
+    if (this.breathing_enabled) this._breath_timer += this._t;
     if (this.insp_running) this.ncc_insp += 1;
     if (this.exp_running) this.ncc_exp += 1;
 
@@ -203,10 +213,12 @@ export class Breathing extends BaseModelClass {
     // first estimate before calibration: the elastic pressure of a litre on the lungs and thorax in
     // series, doubled for the resistive part and the ramp; calibration refines it within a few breaths
     let c_lungs = 0.0;
-    for (const l of this._lung_models) c_lungs += 1.0 / Math.max(l.el_base_eff ?? l.el_base, 1e-6);
+    // el_eff includes the factor layers; before the compartment's first step it is still 0
+    const el = (m) => (m.el_eff > 0.0 ? m.el_eff : m.el_base);
+    for (const l of this._lung_models) c_lungs += 1.0 / Math.max(el(l), 1e-6);
     const e_lungs = c_lungs > 0 ? 1.0 / c_lungs : 0.0;
     const thorax = this._thorax_model();
-    const e_thorax = thorax ? (thorax.el_base_eff ?? thorax.el_base ?? 0.0) : 0.0;
+    const e_thorax = thorax ? (el(thorax) ?? 0.0) : 0.0;
     return Math.max(2.0 * (e_lungs + e_thorax), 1.0);
   }
 
