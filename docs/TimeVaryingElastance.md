@@ -81,7 +81,7 @@ BaseModelClass
 | Layer | Writers |
 |---|---|
 | `_factor` (reset every step) | `HeartChamber` internally (ANS, drugs, load) |
-| `_factor_ps` | `Heart`: `set_contractility` → `el_max_factor_ps`, `set_relaxation` → `el_min_factor_ps` (left and right separately); the `Calibrator` (`el_max_factor_ps`); the user via `setPropValue` |
+| `_factor_ps` | `Heart`: `set_contractillity` (sic) → `el_max_factor_ps`, `set_relaxation` → `el_min_factor_ps` (left and right separately); the `Calibrator` (`el_max_factor_ps`); the user via `setPropValue` |
 | `_factor_scaling_ps` | `ModelScaler` (`scale_heart_el_min`/`el_max`, whole heart or left/right) |
 
 ## Inputs and outputs
