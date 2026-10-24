@@ -42,13 +42,16 @@ export class HeartChamber extends TimeVaryingElastance {
     // calculate the elastances and non-linear elastance incorporating the factors
     //  β-adrenergic receptors dominate in the myocardium
     
-    // ans influences ANS diastolic function B1 receptor activation -> lusitropic effect
-    this.el_min_eff = this.el_min
-        + (this.el_min_factor - 1) * this.el_min
-        + (this.el_min_factor_ps - 1) * this.el_min
-        + (this.el_min_factor_scaling_ps - 1) * this.el_min
-        + (this.el_min_drug_factor - 1) * this.el_min   // drug lusitropy (Drugs PK/PD): <1 lowers el_min = better relaxation
-        - (this.ans_activity - 1) * this.el_min * this.ans_sens
+    // diastolic modulation: relaxation factors, drug lusitropy and the ANS (B1 receptor activation ->
+    // lusitropic effect). It scales the whole diastolic curve, the linear el_min and the non-linear el_k,
+    // so it keeps working when a chamber's diastolic stiffness is (partly) quadratic
+    const el_min_mod =
+          (this.el_min_factor - 1)
+        + (this.el_min_factor_ps - 1)
+        + (this.el_min_factor_scaling_ps - 1)
+        + (this.el_min_drug_factor - 1)   // drug lusitropy (Drugs PK/PD): <1 lowers the stiffness = better relaxation
+        - (this.ans_activity - 1) * this.ans_sens
+    this.el_min_eff = this.el_min * (1 + el_min_mod)
 
     // ans influences ANS systolic function B1 receptor activation -> positive intropic effect
     this.el_max_eff = this.el_max
@@ -66,6 +69,7 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.el_k_factor_ps - 1) * this.el_k
         + (this.el_k_factor_scaling_ps - 1) * this.el_k
         + (this.el_k_remodel_factor - 1) * this.el_k     // chronic remodeling diastolic stiffening (HeartFunction)
+        + el_min_mod * this.el_k                         // the diastolic modulation above
 
     // the ANS and drug lusitropy terms subtract, so the sum could fall below zero: an elastance can't be
     // negative (it would give a negative diastolic pressure)
