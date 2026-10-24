@@ -31,7 +31,6 @@ export class Resistor extends BaseModelClass {
     this.implicit = false;
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
     this.p2_ext = 0.0; // external pressure on the outlet (mmHg)
-    this.fixed_composition = false;
     // Mixing without net flow (L/s): an equal volume exchanged both ways each step. Blood: eddies and
     // vortex flow between compartments that are one continuous pool (helpers/BloodMixing.js
     // exchange_blood). Gas: molecular diffusion and cardiogenic mixing (helpers/GasMixing.js
