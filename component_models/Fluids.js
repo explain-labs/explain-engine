@@ -10,7 +10,6 @@ export class Fluids extends BaseModelClass {
     // initialize independent properties
     this.fluids_temp = 37.0
     this.fluids = {}
-    this.default_volume = 10;
     // continuous maintenance intake (enteral/IV) that replaces what the kidneys excrete, so blood
     // volume and composition stay steady at rest. 0 = off
     this.maintenance_rate = 0.0; // mL/kg/h
@@ -22,8 +21,7 @@ export class Fluids extends BaseModelClass {
     this.running_fluids = [];
 
     // initialize local properties (preceded with _)
-    this._default_time = 10;
-    this._default_type = "normal_saline"
+    this._default_time = 10; // default bolus time (s); the UI reads it as the add_volume default
     this._update_interval = 0.015;      // update interval (s)
     this._update_counter = 0.0;         // update interval counter (s)
   }

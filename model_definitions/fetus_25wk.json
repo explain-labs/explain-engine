@@ -7175,7 +7175,6 @@
       "phosphates": 1.768
      }
     },
-    "default_volume": 10,
     "maintenance_rate": 3,
     "maintenance_fluid": "maintenance",
     "maintenance_site": "IVCI"
