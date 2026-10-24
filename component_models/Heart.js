@@ -55,6 +55,10 @@ export class Heart extends BaseModelClass {
 
     this.pc_el_factor = 1.0; // elastance factor of the pericardium
     this.pc_extra_volume = 0.0; // additional volume of the pericardium
+    // systolic coronary inflow resistance: the contracting myocardium compresses the intramural vessels,
+    // so the coronary inflow resistance (AA_COR) is multiplied by (1 + cor_r_systolic_factor · vaf).
+    // 0 = no systolic rise (the coronary bed then only has its own elastance swing)
+    this.cor_r_systolic_factor = 0.0;
   
     // -----------------------------------------------
     // dependent properties
@@ -130,6 +134,7 @@ export class Heart extends BaseModelClass {
     this._la_lv = null;
     this._lv_aa = null;
     this._coronaries = null;
+    this._aa_cor = null;
 
     this._systole_running = false
 
@@ -173,6 +178,7 @@ export class Heart extends BaseModelClass {
 
     // coronary circulation model (not always present in the model, so we check for its presence)
     this._coronaries = this._model_engine.models["COR"] || this._model_engine.models["CORONARIES"] || null;
+    this._aa_cor = this._model_engine.models["AA_COR"] || null; // coronary inflow resistor
 
     // pericardium model (not always present in the model, so we check for its presence)
     this._pc = this._model_engine.models["PERICARDIUM"] || null;
@@ -531,6 +537,12 @@ export class Heart extends BaseModelClass {
 
     if (this._coronaries) {
       this._coronaries.act_factor = this.vaf;
+    }
+
+    // systolic rise of the coronary inflow resistance (non-persistent layer: AA_COR resets it after
+    // use; Heart steps before AA_COR, so this step's value applies)
+    if (this._aa_cor && this.cor_r_systolic_factor > 0.0) {
+      this._aa_cor.r_factor = 1.0 + this.cor_r_systolic_factor * this.vaf;
     }
 
     // analyze current state
