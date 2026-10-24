@@ -1,195 +1,110 @@
 # Placenta
 
-The `Placenta` model is a **coordinator** for the **fetal** placental circulation and gas exchange.
-Like [Pda](./Pda.md) and [Shunts](./Shunts.md), it owns no physics of its own — it drives a set of
-pre-built sub-models (umbilical and fetal-placental blood vessels, the maternal blood pool, and a
-blood-blood gas diffusor) from a single set of parameters, and switches the whole unit on or off.
+`Placenta` is the coordinator of the fetal placental circulation:
+- **the cord:** umbilical arteries from the descending aorta, umbilical vein back to the IVC;
+- **the fetal placenta:** arteries, villous capillaries, veins;
+- **the maternal blood pool** the villi exchange gases with.
 
-> **This is the FETAL placenta.** It exchanges gases against a **fixed-composition maternal pool**
-> (`PL_MAT`) whose O₂/CO₂ contents are held at constant scalars (`mat_to2`/`mat_tco2`) — i.e. an
-> idealized, infinite maternal reservoir. The *maternal* intervillous bed and uterine supply are
-> modelled separately by [MaternalPlacenta](./MaternalPlacenta.md) and [Uterus](./Uterus.md); when
-> those are active they take over the maternal pool (see `skip_mat_gas_write` below).
+It switches the unit on (fetal life) and off (after birth), clamps the cord, sets the resistances, the maternal gas content and the exchange constants. The blood and the gas transfer live in its sub-models.
+
+## Physiology
+
+In the fetus the placenta is the lung. About 40 % of the combined ventricular output leaves the descending aorta through the two umbilical arteries. It flows through the villous capillaries, where it takes up oxygen and gives off CO2 by diffusion with the mother's blood in the intervillous space, and returns oxygenated through the umbilical vein. That vein's blood reaches the IVC (in reality largely through the ductus venosus) and, by preferential streaming, crosses the foramen ovale to the left heart and the brain.
+
+At birth the cord is clamped: placental flow stops, the low-resistance placental bed is lost (systemic resistance rises), and gas exchange must move to the lungs.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Placenta   (group coordinator — no compartment of its own)
+  └── Placenta
 ```
-
-Extends `BaseModelClass` directly. `calc_model()` writes onto referenced sub-models; it has no
-`el_base`/`vol`/`r_for` of its own.
-
-## What it models
-
-Fetal blood leaves the descending aorta, runs through the umbilical arteries to the fetal side of the
-placenta, exchanges O₂/CO₂ with maternal blood across the placental membrane, and returns via the
-umbilical vein to the inferior vena cava.
-
-```
-DA ──[PL_UMB_ART]──► PL_FETAL_ART ─► PL_FETAL_CAP ─► PL_FETAL_VEN ──[PL_UMB_VEN]──► (PL_UMB_VEN_IVCI) ──► IVCI
-                                          │
-                                    [PL_GASEX: BloodDiffusor]
-                                          │
-                                       PL_MAT  (maternal pool, fixed composition)
-```
-
-| Reference | Model | Role |
-|---|---|---|
-| `_umb_art` / `_umb_ven` | `PL_UMB_ART` / `PL_UMB_VEN` | umbilical artery / vein (`BloodVessel`s) |
-| `_plf_art` / `_plf_cap` / `_plf_ven` | `PL_FETAL_ART/CAP/VEN` | fetal-placental arterioles / capillaries / venules (`BloodVessel`s) |
-| `_plm` | `PL_MAT` | maternal blood pool — a `fixed_composition` reservoir held at `mat_to2`/`mat_tco2` |
-| `_gas_exchanger` | `PL_GASEX` | `BloodDiffusor` exchanging O₂/CO₂ between fetal capillary and maternal pool |
-| `_umb_ven_ret` | `PL_UMB_VEN_IVCI` | standalone umbilical-vein → IVC return resistor (Placenta-owned) |
 
 ## Properties
 
-### Configuration (set in the model definition)
+### Config (set in the definition JSON)
 
-| Property | Default | Unit | Description |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| `placenta_running` | `false` | — | master on/off (drives `is_enabled` of all sub-models) |
-| `umb_clamped` | `true` | — | clamp the umbilical/fetal vessels (`no_flow`) while running |
-| `skip_mat_gas_write` | `false` | — | when true, do **not** write `PL_MAT` gases here (the Uterus coupling is authoritative) |
-| `umb_art_res` | `800` | mmHg·s/L | umbilical-artery resistance |
-| `umb_art_res_factor` | `1.0` | — | multiplier on `umb_art_res` |
-| `umb_ven_res` | `100` | mmHg·s/L | umbilical-vein resistance |
-| `umb_ven_res_factor` | `1.0` | — | multiplier on `umb_ven_res` |
-| `plf_res` | `2000` | mmHg·s/L | fetal-placental resistance (applied to art/cap/ven) |
-| `plf_res_factor` | `1.0` | — | multiplier on `plf_res` |
-| `mat_to2` | `6.85` | mmol/L | maternal total O₂ content held on `PL_MAT` |
-| `mat_tco2` | `23` | mmol/L | maternal total CO₂ content held on `PL_MAT` |
-| `dif_o2` | `0.0005` | mmol/mmHg·s | O₂ diffusion constant pushed to `PL_GASEX` |
-| `dif_co2` | `0.001` | mmol/mmHg·s | CO₂ diffusion constant pushed to `PL_GASEX` |
+| `placenta_running` | boolean | `false` | Enables the whole unit (flow and gas exchange). `true` in the fetal scenarios. |
+| `umb_clamped` | boolean | `true` | Stops flow in the cord and placenta (`no_flow`) while the unit stays enabled, e.g. cord occlusion. `false` in the fetal scenarios. |
+| `umb_art_res`, `umb_art_res_factor` | mmHg·s/L, – | 800, 1.0 | Resistance of the umbilical arteries `PL_UMB_ART`. |
+| `umb_ven_res`, `umb_ven_res_factor` | mmHg·s/L, – | 100, 1.0 | Resistance of the umbilical vein `PL_UMB_VEN`. |
+| `plf_res`, `plf_res_factor` | mmHg·s/L, – | 2000, 1.0 | Resistance of each fetal-placenta vessel (`PL_FETAL_ART`, `_CAP`, `_VEN`). |
+| `mat_to2`, `mat_tco2` | mmol/L | 6.85, 23 | Total O2 and CO2 content of the maternal pool `PL_MAT`. |
+| `dif_o2`, `dif_co2` | mmol/(mmHg·s) | 0.0005, 0.001 | Diffusion constants given to the exchanger `PL_GASEX`. |
+| `skip_mat_gas_write` | boolean | `false` | Leave `PL_MAT`'s gases alone (when `Uterus` drives the maternal pool, see [Uterus](./Uterus.md)). |
 
-### Read-outs
+The `*_factor` props are plain persistent multipliers; nothing resets them.
 
-The model has no read-outs of its own. Read umbilical flow from the vessels (`PL_UMB_ART.flow` /
-`PL_UMB_VEN.flow`). (Older scenario files still carry `umb_art_flow`/`umb_art_velocity`/
-`umb_ven_flow`/`umb_ven_velocity` keys from a removed, never-computed output set; the base
-`init_model` copies them onto the instance, where nothing reads them.)
+## Calculation
 
-### Local (internal)
+Every 15 ms, if all seven sub-models exist (otherwise skipped):
 
-`_update_interval` (0.015 s) / `_update_counter` throttle the loop; `_umb_art`/`_umb_ven`/`_plf_*`/
-`_plm`/`_gas_exchanger`/`_umb_ven_ret` cache the sub-model references resolved in `init_model`.
+1. `is_enabled` of all of them, and of the return resistor `PL_UMB_VEN_IVCI`, follows `placenta_running`. Stopping the placenta therefore stops flow *and* exchange.
+2. If running:
+   - `no_flow` of the cord and placenta vessels and of `PL_UMB_VEN_IVCI` = `umb_clamped`;
+   - base resistances: `PL_UMB_ART` = `umb_art_res·factor`, `PL_UMB_VEN` = `umb_ven_res·factor`, the three fetal-placenta vessels = `plf_res·factor` each;
+   - `PL_MAT.to2/tco2` = `mat_to2/mat_tco2` (unless `skip_mat_gas_write`);
+   - `PL_GASEX.dif_o2/dif_co2` = `dif_o2/dif_co2`.
 
-## Calculation cycle (`calc_model`)
+These are the levers. Writing `PL_GASEX.dif_o2`, `PL_MAT.to2` or the vessels' `r_for` directly is overwritten within 15 ms.
 
-Every `_update_interval` (0.015 s):
+## Factor system
 
-1. **Guard** — return if any required sub-model reference is missing.
-2. **Sync enabled state** — every sub-model's `is_enabled` (including the `_umb_ven_ret` return
-   resistor) is set to `placenta_running`. This runs on **every** tick (not only while running) so
-   that *stopping* the placenta actually disables flow and gas exchange.
-3. **Only while running:**
-   - **Clamp** — set `no_flow = umb_clamped` on the umbilical/fetal vessels and on the return
-     resistor (so a clamp stops flow on both sides).
-   - **Resistances** — `umb_art_res · factor`, `umb_ven_res · factor`, `plf_res · factor` onto the
-     `r_for`/`r_back` of the respective vessels (`plf_res` is applied to the fetal art/cap/ven trio).
-   - **Maternal gases** — unless `skip_mat_gas_write`, hold `PL_MAT.to2 = mat_to2`,
-     `PL_MAT.tco2 = mat_tco2` (the maternal pool is `fixed_composition`, so the diffusor draws from it
-     without depleting it).
-   - **Diffusion constants** — push `dif_o2`, `dif_co2` to the gas exchanger.
+None of its own. It writes the base `r_for`/`r_back` of its vessels; their own factor layers still apply (they compose multiplicatively, see [BloodVessel](./BloodVessel.md#factor-system)).
+
+## Inputs and outputs
+
+- **Writes:** its sub-models (above).
+- **Written by:** the user and the fetal scenario generators (`scripts/_make_fetus*.mjs`, from the per-gestation table in `scripts/_ga_tables.mjs`); `Uterus` sets `skip_mat_gas_write` when coupled.
+- **Read by:** nothing reads Placenta directly. The fetal oxygenation follows from its sub-models.
+
+## Assumptions and limitations
+
+- **No gestational age inside.** The constants in the code are term values (cord 55 cm, umbilical-artery cross-section 0.147 cm²). Fetal scenarios set the props per gestation (`_ga_tables.mjs`, see [fetal_circulation](./fetal_circulation.md)).
+- **Gas exchange runs at full equilibration.** At the shipped settings fetal capillary blood equilibrates completely with the maternal pool: umbilical-vein pCO2 equals `PL_MAT` pCO2. So `mat_to2`/`mat_tco2` are the effective gas setpoints, and `dif_o2`/`dif_co2` have little authority. Calibrate fetal gases through the maternal contents.
+- **The maternal pool is an infinite reservoir.** `PL_MAT` is `fixed_composition` with adult blood (`P50_0` 26.7). `mat_to2`/`mat_tco2` are contents (mmol/L), not partial pressures; they must be consistent with the pool's haemoglobin and P50.
+  - **term_neonate** ships haemoglobin 7.5 mmol/L with 3.825 / 24.29 mmol/L. The code defaults (6.85 / 23) date from a pool with neonatal blood.
+  - **`Blood` writes to `PL_MAT` too** (`set_solute`, `set_P50`). Changing a fetal haemoglobin changes the maternal pool as well; the generators snapshot and restore it.
+- **Not in any scaler group.** `ModelScaler.scale_to_weight` doesn't shrink the placenta; each fetal scenario sets its placental volumes explicitly.
+- **The return resistor stays a standalone `Resistor`.** `PL_UMB_VEN_IVCI` must **not** be an entry in `IVCI.inputs`. As a vessel-owned connector, `IVCI` would rewrite its `is_enabled`/`no_flow` every step, and stopping or clamping the placenta would leak placental blood into the fetal IVC. Its resistance (49 mmHg·s/L) is a scenario value that Placenta doesn't set, and it is the same in every fetal scenario. The ductus venosus isn't modelled separately.
+- **No placental transfusion.** At clamping, the blood in the cord and placenta (~83 mL at term) stays there; delayed cord clamping and cord milking can't be represented.
 
 ## Example definition (JSON)
 
-From `archive/term_fetus.json` (placenta running, cord unclamped):
+From `fetus_term.json`, `models.Placenta` (trimmed to the config props; `components` holds the sub-models):
 
 ```json
 {
   "name": "Placenta",
-  "description": "Placenta model",
   "model_type": "Placenta",
   "is_enabled": true,
   "placenta_running": true,
   "umb_clamped": false,
-  "skip_mat_gas_write": false,
-  "umb_art_res": 680,
-  "umb_art_res_factor": 1,
-  "umb_ven_res": 100,
-  "umb_ven_res_factor": 1,
-  "plf_res": 1500,
-  "plf_res_factor": 1,
-  "mat_to2": 7.4,
-  "mat_tco2": 21,
-  "dif_o2": 0.03,
+  "umb_art_res": 585,
+  "umb_ven_res": 115,
+  "plf_res": 1298,
+  "mat_to2": 5.4,
+  "mat_tco2": 21.6,
+  "dif_o2": 0.003,
   "dif_co2": 0.04
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- In **fetal** scenarios (e.g. `archive/term_fetus.json`) the placenta is the gas exchanger and the lungs are
-  inert; the open FO ([Shunts](./Shunts.md)) and ductus arteriosus ([Pda](./Pda.md)) complete fetal
-  circulation.
-- **Birth transition** is modelled by clamping (`umb_clamped = true`, flow stops) and then stopping
-  (`placenta_running = false`, the whole unit is disabled).
-- When the **maternal–fetal coupling** is active, [Uterus](./Uterus.md) / [MaternalPlacenta](./MaternalPlacenta.md)
-  drive `PL_MAT` instead; set `skip_mat_gas_write = true` so the maternal pool has exactly **one**
-  authoritative writer per step.
+One instance in every scenario. It owns `PL_UMB_ART`, `PL_FETAL_ART`, `PL_FETAL_CAP`, `PL_FETAL_VEN`, `PL_UMB_VEN` (BloodVessels), `PL_MAT` (BloodCapacitance) and `PL_GASEX` (BloodDiffusor). The return resistor `PL_UMB_VEN_IVCI` is a top-level resistor.
 
-## Notes & caveats
+| Scenario | Running | Resistances art / ven / placenta | `mat_to2` / `mat_tco2` | Fetoplacental blood |
+|---|---|---|---|---|
+| fetus_term | yes | 585 / 115 / 1298 | 5.4 / 21.6 | ~83 mL |
+| fetus_30wk | yes | 1095 / 160 / 2430 | 5.6 / 21.5 | ~46 mL |
+| fetus_25wk | yes | 2245 / 330 / 4980 | 6.0 / 21.0 | ~26 mL |
+| postnatal scenarios | no (clamped) | – | – | – |
 
-- **Gestational age is not a parameter of this model.** Every constant here is anchored at term
-  (the literature comments cite 37–39 week measurements: cord 55 cm, umbilical-artery CSA
-  0.147 cm²). Nothing in the engine reads `model.gestational_age`. Gestation-specific fetal
-  scenarios therefore set these props explicitly from a per-GA table in
-  [`scripts/_ga_tables.mjs`](../scripts/_ga_tables.mjs), applied by
-  [`scripts/_make_fetus.mjs`](../scripts/_make_fetus.mjs) — see
-  [fetal_circulation.md](./fetal_circulation.md).
-- **The coordinator props are the levers — not the sub-models.** While the placenta is running,
-  `calc_model` rewrites `PL_GASEX.dif_o2`/`dif_co2` from `this.dif_o2`/`dif_co2`, and
-  `PL_MAT.to2`/`tco2` from `mat_to2`/`mat_tco2`, on **every update interval** (0.015 s, not every
-  model step). Writing to `PL_GASEX.dif_o2` or `PL_MAT.to2` directly is
-  silently clobbered. Likewise the umbilical/fetal-placental resistors are rewritten from
-  `umb_art_res`/`umb_ven_res`/`plf_res` (times their `*_factor` multipliers, which are plain
-  persistent props — set once, never reset per step).
-- **Gas exchange sits on a full-equilibration plateau.** At the shipped fetal settings the exchanger
-  equilibrates fetal capillary blood essentially completely to the maternal pool (umbilical-vein
-  pCO₂ equals `PL_MAT` pCO₂ exactly). So `mat_to2`/`mat_tco2` are the *effective* gas setpoints and
-  `dif_o2`/`dif_co2` have little authority — raising them changes almost nothing. Calibrate fetal
-  oxygenation and pCO₂ through the maternal contents.
-- **`PL_*` compartments are outside every scaler group.** No placental compartment appears anywhere
-  in a scenario's `scaler_config`, so `ModelScaler.scale_to_weight` does **not** shrink the placenta.
-  A fetus scaled to a smaller weight keeps a term-sized placental blood volume unless it is trimmed
-  explicitly (at 30 wk that is the difference between 164 and 122 mL/kg of fetoplacental blood).
-- **`PL_MAT` holds the *mother's* blood, and `Blood` writes to it.** `Blood.set_solute()` and
-  `Blood.set_P50()` propagate to every registered blood component, `PL_MAT` included. Setting a
-  fetal haemoglobin or unmeasured-anion value therefore changes the maternal pool too — and because
-  `mat_to2` pins its O₂ *content*, lowering its haemoglobin below the implied carrying capacity
-  drives the pool to 100% saturation with a wildly unphysiological dissolved pO₂, which then
-  propagates down the umbilical vein. Snapshot and restore `PL_MAT.P50_0` and `PL_MAT.solutes`
-  after any such write (`_make_fetus.mjs` §E and `build_patient.mjs`'s `restoreMaternalPool()` do).
-- **`term_neonate` ships adult maternal blood in `PL_MAT`.** Its `PL_MAT` carries adult blood
-  (`solutes.hemoglobin` 7.5 mmol/L, `P50_0` 26.7 mmHg) with `mat_to2` 3.825 / `mat_tco2` 24.29 mmol/L.
-  The code defaults (`mat_to2` 6.85, `mat_tco2` 23) date from a pool that carried the neonatal
-  haemoglobin and P50, so they are not a consistent pair with adult blood — set `mat_to2`/`mat_tco2`
-  together with the pool's haemoglobin/P50. (The placenta is off in `term_neonate`; the values only
-  matter once it runs.)
-- **Diffusion constants: scenario vs code default.** `term_neonate` sets `dif_o2` = `dif_co2` = 0.01
-  mmol/(mmHg·s) on both the Placenta and `PL_GASEX`; the code defaults are 0.0005 / 0.001, and the
-  archived `term_fetus` uses 0.03 / 0.04. Because the exchanger sits on a full-equilibration plateau
-  (above), these differences have little effect on fetal gases.
-- **Two independent off-switches.** `placenta_running = false` disables every sub-model (flow *and*
-  gas exchange stop). `umb_clamped = true` stops flow only (via `no_flow`) while the placenta keeps
-  running — useful to model cord occlusion with the unit otherwise intact.
-- **Maternal pool is an infinite reservoir.** `PL_MAT` is `fixed_composition`, so the diffusor
-  exchanges gases with it without changing its composition; the Placenta also re-asserts
-  `mat_to2`/`mat_tco2` each update interval while running (unless `skip_mat_gas_write`).
-- **`mat_to2`/`mat_tco2` are total contents (mmol/L), not partial pressures** — the gas exchange
-  itself is partial-pressure driven inside `PL_GASEX`, which derives pCO₂/pO₂ from these contents.
-- **Sub-model references are required.** `calc_model` skips the tick if any is missing rather than
-  dereferencing null.
-- **The umbilical-vein → body return is an autonomous resistor under Placenta control.** The return
-  segment `PL_UMB_VEN → IVCI` is the resistor `PL_UMB_VEN_IVCI`, declared as a standalone `Resistor`
-  in the model definition — deliberately **not** an entry in `IVCI.inputs`. If it were an IVCI input,
-  `IVCI` (a `BloodVessel`) would auto-create and co-manage it, re-asserting its `is_enabled`/`no_flow`
-  every step and leaving it outside the placenta's two off-switches (a one-way leak of placental blood
-  into the fetal IVC whenever the unit was stopped or clamped). As a free resistor, nothing else owns
-  it: the `Placenta` resolves it by name in `init_model` (`_umb_ven_ret`) and drives its `is_enabled`
-  (= `placenta_running`) and `no_flow` (= `umb_clamped`) alongside the rest of the unit. Its
-  resistance is left at the scenario value, so running-unclamped hemodynamics are unchanged.
-  **When wiring a new placenta scenario, connect the umbilical vein to the IVC with a standalone
-  `PL_UMB_VEN_IVCI` resistor — do not add `PL_UMB_VEN` to `IVCI.inputs`,** or the off-switches break.
+## References
+
+- Umbilical artery cross-section at 37–39 weeks: doi:10.18203/2320-1770.ijrcog20183851.
+- Spurway J, Logan P, Pak S. The development, structure and blood flow within the umbilical cord with particular reference to the venous system. *Australas J Ultrasound Med* 2012;15(3):97–102. doi:10.1002/j.2205-0140.2012.tb00013.x.
+- Fetal placental (tissue) volume at term: doi:10.7863/jum.2008.27.11.1583.

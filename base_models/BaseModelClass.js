@@ -10,15 +10,13 @@ const resolve_model_class = (model_type) => get_model_class(model_type) ?? Built
 
 // This base model class is the blueprint for all the model objects (classes). It incorporates the properties and methods which all model objects must implement 
 export class BaseModelClass {
-  // model interface list as described above
-
   constructor(model_ref, name = "") {
     // initialize independent properties which all models implement
     this.name = name; // name of the model object
     this.description = ""; // description for documentation purposes
     this.is_enabled = false; // flag whether the model is enabled or not
     this.model_type = ""; // holds the model type e.g. BloodCapacitance
-    this.components = {}; // holds a dictionary 
+    this.components = {}; // sub-models this model owns, keyed by name: { name: definition } (see init_model)
 
     // initialize local properties
     this._model_engine = model_ref; // object holding a reference to the model engine

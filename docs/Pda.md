@@ -1,193 +1,141 @@
 # Pda
 
-A `Pda` (Patent Ductus Arteriosus) is a component model representing the ductus arteriosus — the fetal shunt between the aortic arch and the pulmonary artery. Unlike a typical `BloodVessel`, the `Pda` is a thin coordinator: it owns a single `Resistor` sub-model (`AAR_DA`, connecting `AAR` → `PA`) and drives its resistance from a set of geometric inputs (diameter, length, viscosity), implementing the **standard quadratic stenosis element** `ΔP = R·Q + B·Q²`.
+`Pda` is the ductus arteriosus: the connection between the aortic arch (`AAR`) and the pulmonary trunk (`PA`). Each step it turns the duct's size into a resistance (viscous loss along the duct plus a Bernoulli loss at its narrowest point), sets it on the duct resistor `AAR_DA`, and reports the shunt flow and the Doppler velocities a clinician would measure.
 
-See also: [Pda-velocity.md](./Pda-velocity.md) for the rationale behind the velocity outputs.
+## Physiology
+
+Before birth the duct carries most of the right ventricle's output past the fluid-filled lungs into the descending aorta. After birth, rising oxygen and falling prostaglandin E2 constrict it, functionally within days, starting at the pulmonary end. In preterm infants it often stays open: blood then runs left-to-right from the aorta into the lungs ("ductal steal"), flooding the lungs and draining the systemic circulation in diastole. When pulmonary pressure is high, flow becomes bidirectional or right-to-left and lowers the post-ductal saturation.
+
+The **size** of the duct sets how much flows, and its **shape** sets the Doppler picture:
+- **Large, unrestrictive duct:** low flow velocity, aortic and pulmonary pressures nearly equal, flow following the pressure difference over the cycle.
+- **Restrictive duct (narrow, short throat):** a fast continuous jet (2–3 m/s) over a large pressure difference.
+
+Prostaglandin E1 keeps a constricting duct open (duct-dependent heart disease).
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Pda    (coordinates the single resistor AAR_DA)
+  └── Pda
 ```
-
-The `Pda` does not extend `Capacitance` or `BloodVessel` itself. It steps once per cycle and writes the derived resistance onto its resistor.
-
-## What it models
-
-The ductus arteriosus is a short conical vessel (~2–3 cm) connecting the pulmonary trunk to the descending aorta. In utero it is held open by PGE₂; after birth, rising PO₂ and falling PGE₂ trigger smooth-muscle constriction that closes it functionally within 12–24 hours, followed by fibrotic remodeling over 2–3 weeks.
-
-The model represents the duct as a **linearly tapered cone**, wider at the aortic end and narrower at the pulmonary end. Closure scales both diameters together via `diameter_relative` from `1.0` (fully open) to `0.0` (closed). The whole duct is a **single resistor** carrying the quadratic stenosis element `ΔP = R·Q + B·Q²`:
-
-- `R·Q` — the **viscous** (Hagen-Poiseuille) loss integrated over the full tapered cone (`res`).
-- `B·Q²` — the **convective / Bernoulli orifice** loss at the narrowest (pulmonary) end, the vena contracta. `B = K_BERNOULLI / A_eff²` with `A_eff = discharge_coeff · A_pa`. This term *is* the modified-Bernoulli relation, so the jet velocity it produces is self-consistent with the flow and with continuity through the effective orifice.
-
-```
-AAR ──[AAR_DA: Resistor]── PA
-         r_for/r_back = res + B·|Q|
-         (quadratic stenosis element; r_k = 0)
-```
-
-There is **no intermediate compartment**: the duct was historically modeled as two resistors around a small `DA` blood-capacitance, but that capacitance was numerically vestigial (a 1000× change in its compliance moved shunt/velocity/gas by 0%, and it turned over ~2.5×/s so it neither delayed nor buffered transport), so the duct was collapsed to a single resistor between `AAR` and `PA`. Blood-gas composition propagates by the `Resistor`'s direct `volume_out`/`volume_in` mixing between the two compartments.
-
-**Numerical scheme.** The quadratic term is applied via a **semi-implicit linearization**: each step `AAR_DA.r_for/r_back` is set to `res + B·|Q_prev|` (and `r_k = 0`), so the resistor solves `Q = ΔP / (res + B·|Q_prev|)`. At steady state this reproduces `ΔP = res·Q + B·Q²` exactly, but it is unconditionally stable. The engine's native explicit quadratic term (`Resistor.r_k`, evaluating `flow = (ΔP − r_k·Q_prev²)/r_for`) is **not** used here: for an open duct the viscous resistance (~10³–10⁴) is far below `2·√(B·ΔP)` (~2×10⁴), so the explicit form diverges.
-
-## Calculation cycle (`calc_model`)
-
-**Closed-duct fast path.** When `diameter_relative === 0` (the postnatal steady state) the cone math,
-the Bernoulli √, and the continuity divisions all degenerate, so `calc_model` short-circuits: it
-forces `no_flow = true` and `r_for/r_back = 1e8` on the resistor (`r_k = 0`, `B = 0`), zeroes the
-velocities, and returns early. The full path below runs only while the duct is patent
-(`diameter_relative > 0`).
-
-Each open-duct step executes in this order:
-
-1. **Viscosity** — pulled from the upstream `AAR` compartment (tracks hematocrit).
-2. **Diameters** — `diameter_ao` and `diameter_pa` from the effective relative diameter `diameter_relative_eff = diameter_relative · diameter_drug_factor` (PGE1 patency) × their respective maxima, each capped at the anatomic max.
-3. **Flow gating** — set `no_flow` when the pulmonary end is fully constricted (`diameter_pa === 0`).
-4. **Viscous resistance** — `res = calc_conical_resistance(d_ao, d_pa, length, viscosity)` over the full cone.
-5. **Bernoulli orifice term** — compute `B = K_BERNOULLI / A_eff²` from the pulmonary effective orifice area, then set `AAR_DA.r_for/r_back = res + B·|Q_prev|` (semi-implicit quadratic stenosis element).
-6. **Velocities** — the honest Bernoulli jet (`velocity_doppler = sign(Q)·√(B·Q²/4)`) plus the anatomic continuity bulk means (`velocity_ao`, `velocity_pa`) for reference.
 
 ## Properties
 
-### Geometry (independent)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `diameter_ao_max` | mm | Maximum diameter at the aortic end (open duct) |
-| `diameter_pa_max` | mm | Maximum diameter at the pulmonary end (open duct) |
-| `diameter_relative` | 0..1 | Linear scale on both end diameters. 1 = fully open, 0 = closed |
-| `length` | mm | Total length of the cone |
-
-### Physics inputs (independent)
-
-| Property | Unit | Description |
-|---|---|---|
-| `discharge_coeff` | 0.3..1 | Effective vena-contracta contraction `Cd` of the pulmonary orifice. The Bernoulli coefficient uses `A_eff = Cd · A_pa`, so `B ∝ 1/Cd²`. The single tuning knob for peak jet velocity (lower `Cd` → tighter jet → higher velocity). Default `0.9` (smooth converging duct; a sharp-edged hole would be ~0.6) |
-| `diameter_drug_factor` | multiplier | Patency multiplier owned by the `Drugs` model (`1.0` = neutral). Prostaglandin E1 (alprostadil / PGE1) drives this above `1.0` to hold a constricting duct open in duct-dependent CHD; it multiplies `diameter_relative` (the product is capped at the anatomic max). **It does not reopen a fully-closed duct** — the `diameter_relative === 0` fast path stays keyed on the raw value (clinically the duct is maintained patent from birth on PGE1, never allowed to reach 0). Default `1.0` |
-
-### Dependent (recomputed each step)
-
-| Property | Unit | Description |
-|---|---|---|
-| `diameter_relative_eff` | 0..1 | Effective relative diameter after the drug factor (`diameter_relative · diameter_drug_factor`); the read-out that actually drives the geometry |
-| `diameter_ao` | mm | Current diameter at aortic end (= `min(diameter_relative_eff · diameter_ao_max, diameter_ao_max)`) |
-| `diameter_pa` | mm | Current diameter at pulmonary end (= `min(diameter_relative_eff · diameter_pa_max, diameter_pa_max)`) |
-| `viscosity` | cP | Blood viscosity pulled from the upstream `AAR` compartment |
-| `flow` | L/s | Shunt flow through the duct; +ve = L→R (aorta → pulmonary) |
-| `flow_ao`, `flow_pa` | L/s | Aliases of `flow` (single resistor now; kept for probe/back-compat) |
-| `res` | mmHg·s/L | Viscous resistance of the full cone (linear part, pushed to `AAR_DA.r_for/r_back`) |
-| `bernoulli_b` | mmHg·s²/L² | Orifice Bernoulli coefficient `B = K_BERNOULLI / A_eff²` (quadratic part, folded into `AAR_DA.r_for/r_back` as `B·|Q_prev|`) |
-
-### Velocity outputs (dependent)
-
-| Property | Unit | Description |
-|---|---|---|
-| `velocity_doppler` | m/s | Jet peak from the Bernoulli (kinetic) term: `sign(Q)·√(|B·Q²|/4)`. Equals continuity `Q/A_eff` through the effective orifice, so it is honest across both open and restrictive regimes and reverses sign cleanly during bidirectional / PHT shunting |
-| `velocity_ao` | m/s | Bulk mean velocity at the *anatomic* aortic end (continuity, `Q/A`) — for reference / open-duct flows |
-| `velocity_pa` | m/s | Bulk mean velocity at the *anatomic* pulmonary end (continuity, `Q/A`) — for reference / open-duct flows |
-
-`velocity_doppler` is now the single value to monitor. See [Pda-velocity.md](./Pda-velocity.md) for why the quadratic element makes one honest velocity possible (the old jet-correction outputs and `jet_exponent` were removed).
-
-## Closure
-
-The duct seals purely through its resistance: as `diameter_relative → 0`, the cone collapses and
-`res → ∞` (Hagen-Poiseuille `~1/d⁴`), and at exactly `diameter_relative === 0` the closed-duct fast
-path forces `no_flow = true` with `r_for/r_back = 1e8`. (The earlier model additionally stiffened a
-`DA` capacitance via a BloodVessel-style `el = el_base · (R/R_open)^alpha` coupling; with the duct
-collapsed to a single resistor and no intermediate compartment, that coupling — and the `el_base`/
-`alpha` parameters — were removed.)
-
-## Resistance formulas
-
-The two functions below compute only the **viscous** (`R·Q`) part of the stenosis element. The
-**Bernoulli** (`B·Q²`) part is computed inline in `calc_model` from the pulmonary effective orifice
-area: `B = K_BERNOULLI / A_eff²`, `A_eff = discharge_coeff · π·(d_pa/2)²`, with `K_BERNOULLI = ρ/(2·133.322)·1e-6 ≈ 3.976e-6` (mmHg·s²/L²·m², ρ ≈ 1060 kg/m³) — the prefactor that makes `B·Q² ≈ 4·v²`, the textbook modified-Bernoulli form.
-
-### Uniform cylinder — `calc_resistance(diameter, length, viscosity)`
-
-Standard Hagen-Poiseuille:
-
-```
-R = (8 · μ · L) / (π · r⁴)        in Pa·s/m³
-```
-
-then converted to `mmHg·s/L`.
-
-### Conical taper — `calc_conical_resistance(d1, d2, length, viscosity)`
-
-Hagen-Poiseuille integrated over a linearly tapered cone:
-
-```
-R = (8 · μ · L) / (3 · π) · (r1² + r1·r2 + r2²) / (r1³ · r2³)    in Pa·s/m³
-```
-
-then converted to `mmHg·s/L`. Reduces to the uniform cylinder when `r1 = r2`.
-
-Both functions return a large sentinel (`1e8`) when the geometry collapses (`d ≤ 0` or `L ≤ 0`).
-
-## Sub-model wiring
-
-The Pda references two models by name, cached in `init_model()`:
-
-| Reference | Looks up | Type | Role |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| `_aar_da` | `AAR_DA` | `Resistor` | AAR → PA, the duct; gets `r_for/r_back = res + B·|Q_prev|` (`r_k = 0`) and `no_flow` |
-| `_aar` | `AAR` | `BloodCapacitance` | upstream (aortic-arch) compartment, read-only viscosity source |
+| `diameter_ao_max` | mm | 3.0 | Fully open diameter at the aortic end. |
+| `diameter_pa_max` | mm | 2.0 | Fully open diameter at the pulmonary (narrowest) end. **Equal to `diameter_ao_max` in every shipped scenario**, so the duct is a cylinder there. |
+| `diameter_relative` | – | 0.0 | Patency fraction 0–1, scaling both ends together; 0 = closed. term 0, preterm 0.27–0.33, Bischoff L→R 0.7, fetal 1. |
+| `length` | mm | 20 | Length of the duct (the Poiseuille term). A restrictive jet needs a short throat (~1–2 mm). term 14, fetus 25 wk 7.9. |
+| `discharge_coeff` | – | 0.9 | Vena-contracta coefficient of the pulmonary-end orifice; lower = tighter jet. Bischoff patients 0.25 (calibration lever). |
 
-`AAR_DA` is declared in the Pda's `components` dictionary in the model definition JSON and instantiated
-by `BaseModelClass.init_model()` before `Pda.init_model()` caches the reference. `AAR` is a top-level
-circuit compartment (not owned by the Pda).
+### Set by other models
+
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `diameter_drug_factor` | – | 1.0 | Patency multiplier from `Drugs` (PGE1 > 1). Multiplies `diameter_relative`, capped at the anatomic maximum. It cannot reopen a fully closed duct (`diameter_relative` 0). |
+| `viscosity` | cP | 6 | Read from `AAR` every step (follows the haematocrit). |
+
+### Outputs
+
+| Property | Unit | Description |
+|---|---|---|
+| `diameter_relative_eff` | – | `diameter_relative · diameter_drug_factor`. |
+| `diameter_ao`, `diameter_pa` | mm | Current diameters at both ends. |
+| `res` | mmHg·s/L | Viscous resistance of the duct (conical Poiseuille). |
+| `bernoulli_b` | mmHg·s²/L² | Orifice coefficient at the pulmonary end (see [Orifice](./Orifice.md)). |
+| `flow` | L/s | Shunt flow; positive = left-to-right (aorta → pulmonary artery). |
+| `flow_ao`, `flow_pa` | L/s | Aliases of `flow` (kept for older probes). |
+| `velocity_doppler` | m/s | Jet velocity through the vena contracta, `Q / A_eff`: **the Doppler value to watch**. |
+| `velocity_ao`, `velocity_pa` | m/s | Mean velocity through the anatomic area at each end (`Q / A`). |
+| `velocity_pa_max`, `velocity_pa_min` | m/s | Per-beat extremes of `velocity_pa`, latched at each new ventricular activation. |
+| `velocity_doppler_max`, `velocity_doppler_min` | m/s | Per-beat extremes of `velocity_doppler` (min < 0 = right-to-left). |
+| `forward_fraction` | – | Fraction of the previous beat with left-to-right flow. |
+
+## Calculation
+
+Each step (skipped if `AAR_DA` is missing):
+
+1. **Closed duct** (`diameter_relative` exactly 0). `AAR_DA` is sealed (`no_flow`, resistance 10⁸) and the outputs are zeroed.
+2. **Geometry.**
+   ```
+   d_ao = min(diameter_relative · drug_factor · diameter_ao_max, diameter_ao_max)
+   d_pa = likewise with diameter_pa_max
+   ```
+3. **Viscous resistance** over a linearly tapered cone (Hagen–Poiseuille integrated along the length):
+   ```
+   res = 8·η·L / (3π) · (r₁² + r₁·r₂ + r₂²) / (r₁³ · r₂³)        (a cylinder when r₁ = r₂)
+   ```
+4. **Bernoulli loss** at the pulmonary end: `B = K_BERNOULLI / (Cd · π·r_pa²)²`.
+5. **Resistor:** `AAR_DA.r_for = AAR_DA.r_back = res + B·|Q_prev|`, with `r_k = 0`. The quadratic loss is linearised with the previous step's flow (semi-implicit, stable). It differs from the exact `res·Q + B·Q²` by about 1 % of the Bernoulli term per 0.5 ms step (see [Shunts](./Shunts.md#calculation)).
+6. **Velocities:**
+   - `velocity_doppler = jet_velocity(B, Q) = Q / A_eff`;
+   - `velocity_ao` and `velocity_pa` are `Q / A` at the anatomic areas;
+   - then the per-beat envelope is updated.
+
+**Doppler velocity.** Because `B·Q²` is the kinetic (Bernoulli) loss, `velocity_doppler` is the velocity through the vena contracta, consistent across the whole closure trajectory. The viscous loss along the duct doesn't accelerate the blood, so it isn't attributed to the jet. Two consequences:
+- a **long, narrow duct** is viscous-limited: low flow and low velocity even across a large gradient;
+- the jet can't exceed `√(gradient / 3.975)`: a faster jet needs a larger aorta–pulmonary pressure difference, not a different duct geometry.
+
+Earlier versions reported other velocity outputs (from a separate `DA` compartment and the old 4·v² rule); they were replaced by this single orifice velocity, consistent with [Shunts](./Shunts.md) and [Orifice](./Orifice.md).
+
+## Factor system
+
+None of its own. It writes the **base** `r_for`/`r_back`/`r_k`/`no_flow` of `AAR_DA` every step. `AAR_DA` is `implicit` in every scenario.
+
+## Inputs and outputs
+
+- **Reads:** `AAR.viscosity`, `AAR_DA.flow`, `Heart.ncc_ventricular` (beat boundary).
+- **Writes:** `AAR_DA.r_for`, `r_back`, `r_k`, `no_flow`.
+- **Written by:** `Drugs` (`diameter_drug_factor`); the user and the scenario generators (diameters, length, `discharge_coeff`).
+- **Read by:**
+  - `probe_vitals` (duct shunt), and `Monitor` through its configurable `flow_targets`;
+  - `scripts/probe_pda.mjs`, `probe_term_reference.mjs` and the P1 paper scripts (Doppler envelope);
+  - `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **No closure physiology.** Constriction by oxygen and falling PGE2, closure from the pulmonary end first, and the wall's passive and active elastance aren't computed. The duct's size is a scenario or user setting.
+- **Symmetric patency.** `diameter_relative` scales both ends together. The shipped scenarios also set both ends equal, so the duct is a cylinder.
+- **Absolute millimetres.** The diameters and `length` aren't scaled with body size; each scenario sets them (the fetal scenarios use Szpinda's gestational regressions, see [fetal_circulation](./fetal_circulation.md)).
+- **PGE1 cannot reopen a closed duct** (`diameter_relative` 0 is a hard stop).
+- **Reopening transient.** On the first step after reopening, the Bernoulli term is 0 (no previous flow), so flow briefly overshoots for one step.
 
 ## Example definition (JSON)
+
+From `bischoff_ltr_pda.json`, `models.Pda` (trimmed to the config props; `components` holds `AAR_DA`):
 
 ```json
 {
   "name": "Pda",
-  "description": "ductus arteriosus model",
-  "is_enabled": true,
   "model_type": "Pda",
-  "components": {
-    "AAR_DA": {
-      "name": "AAR_DA",
-      "description": "ductus arteriosus (aorta-pulmonary) resistor",
-      "is_enabled": true,
-      "model_type": "Resistor",
-      "r_for": 100000000,
-      "r_back": 100000000,
-      "r_k": 0,
-      "comp_from": "AAR",
-      "comp_to": "PA",
-      "no_flow": true,
-      "no_back_flow": false
-    }
-  },
-  "diameter_ao_max": 3.0,
-  "diameter_pa_max": 2.0,
-  "diameter_relative": 0,
-  "length": 20,
-  "discharge_coeff": 0.9
+  "is_enabled": true,
+  "diameter_ao_max": 3,
+  "diameter_pa_max": 3,
+  "diameter_relative": 0.7,
+  "length": 14,
+  "discharge_coeff": 0.25,
+  "diameter_drug_factor": 1
 }
 ```
 
-## Usage notes
+## Usage in the scenarios
 
-- **`diameter_ao_max` / `diameter_pa_max` / `length` are absolute millimetres that no scaler
-  touches, and `diameter_relative` is a `[0..1]` patency fraction, not a size.** A scenario
-  scaled to a smaller body keeps a term-sized duct unless the millimetres are set explicitly.
-  The gestational regressions quoted above are what the fetal scenarios use for this; see
-  [fetal_circulation.md](./fetal_circulation.md).
-- **Closure is symmetric in this model.** Real PDA closure proceeds from the pulmonary end first, but the current implementation scales both `diameter_ao` and `diameter_pa` by the same `diameter_relative`. Asymmetric closure would require independent scaling factors.
-- **`velocity_doppler` is the value to monitor** — it is the honest jet peak across both open and restrictive regimes (it equals continuity `Q/A_eff` through the effective orifice). `velocity_pa`/`velocity_ao` remain as anatomic continuity bulk means for reference. Some older model definitions still watch `Pda.velocity_pa`; consider repointing the chart channel to `velocity_doppler`.
-- **A restrictive jet requires an orifice-like (short) throat `length`.** Because the viscous term scales with `length` (Poiseuille over the cone) while the Bernoulli term does not, a long, narrow duct is viscous-limited and will *not* jet — flow and velocity both stay low even at a large trans-ductal gradient (this is physically correct, and is what makes the new element honest where the old `√(full gradient/4)` over-reported). To model a restrictive/closing PDA, set `length` to the throat length (~1–2 mm) and tune `discharge_coeff` (lower → tighter jet). The `preterm_28wk_restrictive_pda` scenario uses `length = 1.5`, `discharge_coeff = 0.5` (≈2.5 m/s continuous L→R, low pulsatility).
-- **Velocity is gradient-limited.** Since `B·Q² = 4·v²` and `B·Q²` can at most equal the full trans-ductal gradient, the peak jet velocity cannot exceed `√(gradient/4)`. Raising peak velocity beyond that ceiling requires a larger systemic–pulmonary pressure difference (e.g. higher SVR / lower PVR), not duct geometry.
-- **Viscosity is dynamic.** `viscosity` is pulled from the upstream `AAR` compartment each step (which itself follows hematocrit), so `res` tracks viscosity changes automatically.
+One instance in every scenario, owning `AAR_DA` (`AAR` → `PA`, implicit):
 
-## Per-beat velocity envelope (paper companion read-outs)
+| Scenario | `diameter_relative` × max (mm) | `length` (mm) | `discharge_coeff` | Duct |
+|---|---|---|---|---|
+| term_neonate, bischoff_no_pda | 0 | 14 | 0.9 | closed |
+| preterm_25wk / 28wk / 30wk | 0.27 / 0.33 / 0.3 × 3 | 14 | 0.9 | small, open |
+| bischoff_ltr_pda / bidir_pda | 0.7 / 0.57 × 3 | 14 | 0.25 | haemodynamically significant (2.1 / 1.7 mm) |
+| fetus_25wk / 30wk / term | 1 × 3.9 / 4.6 / 6 | 7.9 / 10.1 / 14.4 | 0.9 | fetal, wide open |
 
-`velocity_pa_max` / `velocity_pa_min` (Eq. 12 continuity velocity at the pulmonary end),
-`velocity_doppler_max` / `velocity_doppler_min` (Bernoulli jet) and `forward_fraction` (fraction of
-the beat with left-to-right flow) are latched once per beat, at the restart of the Heart's
-ventricular counter. They exist so the ductal Doppler patterns of the cardiovascular paper can be
-compared from the slow stream (see `papers/p1/`); the instantaneous values are unchanged.
+The archived `pda_restrictive_ltr` uses a short throat (`length` 1.5 mm, `discharge_coeff` 0.35, `diameter_relative` 0.13) for a restrictive jet.
+
+## References
+
+- Szpinda M. Morphometric study of the ductus arteriosus during human development. 2007 (fetal diameter and length regressions).
+
+The orifice constant is derived in [Orifice](./Orifice.md). The Bischoff calibration is in [BischoffLtrPdaReference](./BischoffLtrPdaReference.md).

@@ -16,11 +16,13 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
        slowly lowering the circulating blood volume (diuresis).
     GFR autoregulation (myogenic + tubuloglomerular feedback) modulates the afferent
        arteriole (the KID_ART BloodVessel -> its AD_KID_ART input resistor) to hold GFR
-       and renal blood flow ~constant across renal perfusion pressure. Default off; the
-       term_neonate and adult_female scenarios ship with it enabled. See _run_autoregulation.
+       and renal blood flow ~constant across renal perfusion pressure. Default off; every shipped
+       scenario enables it. See _run_autoregulation.
 
-  NOT in this version: hormonal control of reabsorption (RAAS/ADH), clearance/acid-base,
-  tubular load / transport maxima. Albumin & hemoglobin are NOT filtered (retained in blood).
+  Hormonal hooks: reabs_factor_adh (ADH, water) and reabsorption_factors (aldosterone, per solute),
+  written by Hormones. NOT in this version: acid-base handling, tubular load / transport maxima.
+  Only filterable_solutes are filtered; everything else (albumin, Hb, glucose, drugs, O2/CO2) stays
+  in the blood and concentrates as urine water leaves.
 */
 
 export class Kidneys extends BaseModelClass {
@@ -50,13 +52,13 @@ export class Kidneys extends BaseModelClass {
     // -----------------------------------------------
     // GFR autoregulation (myogenic + tubuloglomerular feedback). Default OFF so existing
     // scenarios are byte-identical until enabled. A closed-loop controller adjusts the
-    // AFFERENT arteriole — the KID_ART BloodVessel — by writing its r_factor_ps; the vessel
-    // propagates that to its owned input resistor (AD_KID_ART) each step. Constricting the
+    // AFFERENT arteriole through the r_factor_ps of its inflow resistor AD_KID_ART (owned by the
+    // KID_ART BloodVessel), on top of the systemic channels Circulation adds to KID_ART. Constricting the
     // afferent (r_factor_ps > 1) cuts renal inflow, lowering KID_CAP.pres -> NFP -> GFR, and
     // also lowers KID_ART.pres (more drop upstream): since we SENSE KID_ART.pres, the loop is
     // NEGATIVE feedback (sense high -> constrict -> pressure falls), hence self-correcting.
     this.autoregulation_enabled = false; // master gate for autoregulation
-    this.aff_vessel_name = "KID_ART"; // afferent arteriole BloodVessel (the effector)
+    this.aff_resistor_name = "AD_KID_ART"; // inflow resistor of the afferent arteriole (the effector)
 
     // myogenic limb (fast, pressure-sensing). Senses the pressure the afferent feels.
     this.myogenic_input_model = "KID_ART"; // model whose pressure drives the myogenic response
@@ -133,7 +135,7 @@ export class Kidneys extends BaseModelClass {
     this._urine = null; // reference to the URINE bladder (sink)
 
     // autoregulation locals
-    this._aff_vessel = null; // reference to the afferent arteriole BloodVessel (effector)
+    this._aff_resistor = null; // reference to the afferent arteriole's inflow resistor (effector)
     this._autoreg_update_interval = 0.015; // run the controller every 15 ms (perf)
     this._autoreg_update_counter = 0.0; // accumulator for the update interval
     this._tgf_setpoint_seeded = false; // whether the TGF setpoint has been auto-seeded
@@ -221,16 +223,16 @@ export class Kidneys extends BaseModelClass {
 
   // interval-gated autoregulation controller. Resolves the afferent vessel lazily (like
   // _kid_cap), handles the enabled<->disabled transition, and otherwise runs the myogenic +
-  // TGF control logic on a 15 ms tick. Writes only to the afferent vessel's r_factor_ps (the
-  // BloodVessel propagates it to its owned input resistor AD_KID_ART each step).
+  // TGF control logic on a 15 ms tick. Writes only to the afferent inflow resistor's r_factor_ps
+  // (AD_KID_ART, owned by the KID_ART BloodVessel).
   _run_autoregulation() {
-    if (!this._aff_vessel) this._aff_vessel = this._model_engine.models[this.aff_vessel_name] ?? null;
+    if (!this._aff_resistor) this._aff_resistor = this._model_engine.models[this.aff_resistor_name] ?? null;
 
-    if (!this.autoregulation_enabled || !this._aff_vessel) {
+    if (!this.autoregulation_enabled || !this._aff_resistor) {
       // on the enabled->disabled transition, release the afferent factor exactly once so no
       // stale constriction/dilation persists and the model reverts to linear behaviour
-      if (this._was_autoreg_active && this._aff_vessel) {
-        this._aff_vessel.r_factor_ps = 1.0;
+      if (this._was_autoreg_active && this._aff_resistor) {
+        this._aff_resistor.r_factor_ps = 1.0;
         this.myogenic_factor = 1.0;
         this.tgf_factor = 1.0;
         this.afferent_factor = 1.0;
@@ -316,9 +318,11 @@ export class Kidneys extends BaseModelClass {
     if (this.afferent_factor < this.afferent_factor_min) this.afferent_factor = this.afferent_factor_min;
     if (this.afferent_factor > this.afferent_factor_max) this.afferent_factor = this.afferent_factor_max;
 
-    // write to the afferent BloodVessel; it composes r_factor_ps and pushes the resulting
-    // resistance to its owned input resistor (AD_KID_ART) on its own step this same cycle
-    this._aff_vessel.r_factor_ps = this.afferent_factor;
+    // write to the afferent arteriole's inflow resistor, on top of the resistance its BloodVessel
+    // (KID_ART) passes down. Not to KID_ART.r_factor_ps: Circulation adds the systemic channels (SVR,
+    // Hormones, Drugs) there, and an absolute write here would erase them (Brain does the same with
+    // AA_BR_ART)
+    this._aff_resistor.r_factor_ps = this.afferent_factor;
   }
 
   // plasma oncotic pressure, simple linear approximation tied to albumin so it both
@@ -373,13 +377,23 @@ export class Kidneys extends BaseModelClass {
     src.vol = vol_after < 0.0 ? 0.0 : vol_after;
     this._urine.vol = new_uvol;
 
-    // hemoconcentration: albumin & hemoglobin are NOT filtered (total amount conserved), so
-    // their concentration rises as the plasma volume shrank
+    // concentration: everything that is not filtered keeps its mass in the smaller volume, so its
+    // concentration rises by vol_before / vol_after: albumin and haemoglobin (hemoconcentration),
+    // the other unfiltered solutes (glucose: no glucosuria), the drugs, and the blood's O2 and CO2
     if (vol_after > 0.0) {
       const ratio = vol_before / vol_after;
-      for (const s of ["albumin", "hemoglobin"]) {
-        if (src.solutes?.[s] !== undefined) src.solutes[s] *= ratio;
+      if (src.solutes) {
+        for (const s in src.solutes) {
+          if (!this.filterable_solutes.includes(s) && typeof src.solutes[s] === "number") src.solutes[s] *= ratio;
+        }
       }
+      if (src.drugs) {
+        for (const d in src.drugs) {
+          if (typeof src.drugs[d] === "number") src.drugs[d] *= ratio;
+        }
+      }
+      src.to2 *= ratio;
+      src.tco2 *= ratio;
     }
   }
 

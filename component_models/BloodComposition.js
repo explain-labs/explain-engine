@@ -13,7 +13,6 @@ const right_hp_wide   = 1.0e-3; // upper bound for H⁺ concentration (mmol/L): 
 // last value (it was pH 6.5-8.23; an acute acid load below 6.5 then froze the gases for good)
 const delta_ph_limits = 0.1; // delta for pH limits
 const n               = 2.7; // Hill coefficient
-const alpha_o2        = 1.38e-5; // O2 solubility coefficient
 const left_o2_wide    = 0; // lower bound for pO2
 const right_o2_wide   = 1000.0; // upper bound for pO2 (headroom for ECMO/oxygenator hyperoxia toward the ~700 mmHg sweep-gas po2)
 const delta_o2_limits = 10.0; // delta for pO2 limits
@@ -25,8 +24,8 @@ const DEFAULT_HALDANE_COEFF = 1.0; // default Haldane coefficient (0 = effect of
 // HCO3 hardly rose with pCO2. Each compartment stands in for the whole extracellular fluid it
 // exchanges with, so Hb buffers at its effective ECF concentration: a fraction of the blood Hb (the
 // basis of the standard base excess, Hb_eff ~3 mmol/L at a blood Hb of ~9). Buffer value per mmol/L
-// of Hb: 2.3 mmol/L per pH unit (Van Slyke). The acute in vivo response is then ~+1 mmol/L HCO3 per
-// 10 mmHg pCO2.
+// of Hb: 2.3 mmol/L per pH unit (Van Slyke). The acute in vivo response (~+1 mmol/L HCO3 per
+// 10 mmHg pCO2) is then approximated: ~0.8 mmol/L per 10 mmHg on the term_neonate composition.
 const DEFAULT_HB_BUFFER_FRACTION = 1.0 / 3.0;
 const HB_BUFFER_SLOPE = 2.3; // mmol/L per pH unit per mmol/L Hb
 
@@ -39,7 +38,7 @@ let P50 = 0;
 let log10_p50 = 0;
 let P50_n = 0;
 let left_o2 = 0; // lower bound for pO2
-let right_o2 = 800.0; // upper bound for pO2
+let right_o2 = right_o2_wide; // upper bound for pO2
 let left_hp = left_hp_wide; // lower bound for H⁺ concentration
 let right_hp = right_hp_wide; // upper bound for H⁺ concentration
 
@@ -54,7 +53,7 @@ let hco3 = 0.0;
 let be = 0.0;
 let to2 = 0.0;
 let hemoglobin = 0.0;
-let dpg = 5.0;
+let dpg = 5.0; // 2,3-DPG (mmol/L): fixed at the reference, so dDPG is always 0
 let temp = 0.0;
 let tco2 = 0.0;
 let sid = 0.0;
@@ -124,7 +123,6 @@ export function calc_blood_composition(bc) {
     bc._bc_cache_initialized = true;
 }
 
-// These functions are the same as in the wasm module, but implemented in JavaScript
 function _calc_blood_composition_js(bc) {
     let sol = bc.solutes;
     tco2 = bc.tco2;

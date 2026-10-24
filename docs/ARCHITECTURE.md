@@ -84,6 +84,7 @@ The worker's outbound `type` strings are translated to `ModelEmitter` events you
 | `data_slow` | `data_slow` | stores `modelDataSlow` |
 | `rtf` | `rtf` | stores `modelData` (realtime fast) |
 | `rts` | `rts` | stores `modelDataSlow` (realtime slow) |
+| `rt_perf` | `rt_perf` | stores `realtime_factor`: simulated / wall-clock time over ~1 s of the realtime loop (< 1 = falling behind) |
 | `prop_value` | `prop_value` | — |
 | `model_props` | `model_props` | — |
 | `model_types` | `model_types` | — |
@@ -144,14 +145,15 @@ Listeners are stored in an instance field `_listeners: Map<string, Set<Function>
 1. **Reset.** `errors = 0`; `model_initialized = false`; clear `model_data`/`model_data_slow`; `clearInterval(rtClock)`.
 2. **Fresh `model` object** with empty `models: {}`, and empty `scaler_config`.
 3. **Copy engine-level settings.** Every top-level key of the definition except `models` is copied onto `model` (`weight`, `modeling_stepsize`, `model_time_total`, `scaler_config`, …).
-4. **Instantiate.** For each entry in `model_definition.models`, look up the class by `sub_model_def.model_type` in `available_model_map`. If found, `new model_class(model, name, model_type)` and store on `model.models[name]`. A missing type or a constructor throw increments `errors` and emits a `status` `ERROR:` message. (The constructor's 3rd `model_type` arg is ignored by the base class.)
-5. **Initialize (only if `errors < 1`).** For each instance, build `args` as a `[{key, value}, …]` list from the definition entry and call `init_model(args)`. An init throw increments `errors` and emits a `status` `ERROR:`.
-6. **Attach helpers.** `model.DataCollector = new DataCollector(model)`, `model.TaskScheduler = new TaskScheduler(model)`, `model.ModelScaler = new ModelScaler(model, model.scaler_config)`.
-7. **Freeze baseline weight.** `model._baseline_weight = model.weight` (the weight-scaling anchor `reset()`/`scale_to_weight()` use).
-8. **Wire the realtime data plane.** Construct `ChannelWriter` and `AnimationPacker`, acquire the anim snapshot, and `DataCollector.set_channels(...)`. Failures here are caught and degrade to the legacy object path (they do **not** fail the build).
-9. **Emit.** If `errors > 0`: `status` `ERROR: model build failed` and return `false`. Otherwise emit `model_ready` and return `true`.
+4. **Instantiate the top-level models.** For each entry in `model_definition.models`, look up the class by `sub_model_def.model_type` in `available_model_map`. If found, `new model_class(model, name, model_type)` and store on `model.models[name]`. A missing type or a constructor throw increments `errors` and emits a `status` `ERROR:` message. (The constructor's 3rd `model_type` arg is ignored by the base class.)
+5. **Instantiate the sub-models.** Every model declared in a `components` map is instantiated into `model.models` too, recursively, in the same order `BaseModelClass.init_model` would use (all of a model's components, then each component's own), with the same error handling.
+6. **Initialize (only if `errors < 1`).** For each **top-level** instance, build `args` as a `[{key, value}, …]` list from the definition entry and call `init_model(args)`. Each owner initializes its own sub-models from its `init_model`. An init throw increments `errors` and emits a `status` `ERROR:`.
+7. **Attach helpers.** `model.DataCollector = new DataCollector(model)`, `model.TaskScheduler = new TaskScheduler(model)`, `model.ModelScaler = new ModelScaler(model, model.scaler_config)`.
+8. **Freeze baseline weight.** `model._baseline_weight = model.weight` (the weight-scaling anchor `reset()`/`scale_to_weight()` use).
+9. **Wire the realtime data plane.** Construct `ChannelWriter` and `AnimationPacker`, acquire the anim snapshot, and `DataCollector.set_channels(...)`. Failures here are caught and degrade to the legacy object path (they do **not** fail the build).
+10. **Emit.** If `errors > 0`: `status` `ERROR: model build failed` and return `false`. Otherwise emit `model_ready` and return `true`.
 
-Note the two-pass structure: **all** instances are constructed before **any** are initialized. This is what lets `init_model` resolve cross-model references (`this._lv = this._model_engine.models["LV"]`) — every sibling already exists by the time init runs.
+Note the two-pass structure: **all** instances, sub-models included, are constructed before **any** are initialized. This is what lets `init_model` resolve cross-model references (`this._lv = this._model_engine.models["LV"]`, `Heart` finding Mob's `COR`, `Blood` and `Gas` collecting every compartment) regardless of where the owner sits in the definition. A model found that way may not be initialized yet: its definition values arrive when its owner's `init_model` runs.
 
 ---
 
@@ -164,7 +166,7 @@ Note the two-pass structure: **all** instances are constructed before **any** ar
 3. `TaskScheduler.run_tasks()`.
 4. `model.model_time_total += model.modeling_stepsize`.
 
-**What "insertion order" means in practice.** The top-level entries of `model_definition.models` are inserted first, in JSON order. Sub-models declared in a composite's `components` are inserted later, while that composite runs `init_model`, so every one of them steps **after all top-level entries**. For `term_neonate` (172 models):
+**What "insertion order" means in practice.** The top-level entries of `model_definition.models` are inserted first, in JSON order. Sub-models declared in a composite's `components` are inserted after them (build step 5, in owner order), so every one of them steps **after all top-level entries**. For `term_neonate` (172 models):
 1. the 25 systems (`Heart` at position 1, which sets the chambers' `act_factor`);
 2. the 43 top-level resistors;
 3. the `Heart` components (chambers, valves, `PERICARDIUM`);
@@ -188,7 +190,7 @@ Every model lives in `base_models/`, `component_models/`, or `device_models/` an
 
 - **`static model_type`** — the string key used in `available_model_map` and in definition JSON. Model classes carry **no UI metadata**; the edit schema is a consumer concern (in explain-ui it lives at `src/model-interface/registry.ts`).
 - **`constructor(model_ref, name = "")`** — `model_ref` is the whole engine `model` object; the base stores it as `this._model_engine` and caches `this._t = model_ref.modeling_stepsize`. Initialize independent props (config), dependent props (computed outputs), and `_`-prefixed local refs here. (`build()` passes a 3rd `model_type` arg the base ignores.)
-- **`init_model(args)`** — base impl maps each `{key, value}` in `args` onto `this[key]`, then instantiates and inits anything declared in `this.components` (registering each on `model.models`), and finally sets `this._is_initialized = true`. Override to resolve cross-model references, then call/replicate the base behaviour.
+- **`init_model(args)`** — base impl maps each `{key, value}` in `args` onto `this[key]`, then inits everything declared in `this.components` (instantiating any that don't exist yet, which in a normal build `build()` has already done), and finally sets `this._is_initialized = true`. Override to resolve cross-model references, then call/replicate the base behaviour.
 - **`step_model()`** — base impl runs `calc_model()` only when `is_enabled && _is_initialized`. Don't override unless you need custom gating.
 - **`calc_model()`** — where the physics happens. Override this.
 
@@ -211,7 +213,7 @@ Core physics params are never used raw. Each tunable has a base value plus three
 The formula (see `Capacitance.calc_elastances` / `Resistor.calc_resistance`):
 
 ```
-p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling-1)*p
+p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling_ps-1)*p
 ```
 
 When adding a tunable param, follow this convention so it composes with interventions and scaling.
@@ -221,12 +223,7 @@ When adding a tunable param, follow this convention so it composes with interven
 - **[`BloodVessel`](./BloodVessel.md)** — most of the circulation — overrides `calc_resistances`/`calc_elastances` and composes **multiplicatively**. The three R layers are multiplied by the ANS multiplier, `r_eff = r · factor · factor_ps · factor_scaling_ps · (1 + (ans_activity − 1)·ans_sens)`. Elastance follows R through the α-coupling: `el_eff = el_base · (el layers) · (R multiplier)^α`. Its `u_vol` uses the inherited additive layers, then is multiplied by the ANS unstressed-volume multiplier.
 - **[`HeartChamber`](./HeartChamber.md)** stays additive but adds extra terms: drug, Mob, load and remodelling factors, plus an ANS term that is *subtracted* for `el_min` (lusitropy).
 
-**⚠️ The scaling-layer suffix is NOT uniform across the engine.** Verify before you copy:
-
-- The **capacitance / resistor / time-varying-elastance** family uses **`*_factor_scaling_ps`** (e.g. `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `r_factor_scaling_ps` in [`Capacitance.js`](../base_models/Capacitance.js) / [`Resistor.js`](../base_models/Resistor.js)).
-- The **diffusor / exchanger** family uses **`*_factor_scaling`** with **no `_ps`** (e.g. `dif_o2_factor_scaling`, `dif_co2_factor_scaling` in [`GasDiffusor.js`](../base_models/GasDiffusor.js); likewise `GasExchanger`, `BloodDiffusor`).
-
-If you scale a diffusor through the `*_scaling_ps` name it will silently do nothing.
+**The scaling layer is always named `*_factor_scaling_ps`**, in every family: `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `r_factor_scaling_ps` ([`Capacitance.js`](../base_models/Capacitance.js), [`Resistor.js`](../base_models/Resistor.js)), and `dif_o2_factor_scaling_ps`, `dif_co2_factor_scaling_ps` ([`GasExchanger.js`](../base_models/GasExchanger.js), [`BloodDiffusor.js`](../base_models/BloodDiffusor.js)). The diffusors used `*_factor_scaling` (no `_ps`) until the v1.0 documentation pass.
 
 ### 7b. `ncc_*` cycle counters live on the components
 
@@ -234,17 +231,21 @@ The cycle counters are fields of the models that drive them, advanced once per s
 
 ### 7c. Blood/gas composition propagation
 
-There is no global solver moving solutes around — composition rides the flow. `Resistor.calc_flow` moves volume by calling `comp_from.volume_out(flow*dt)` then `comp_to.volume_in(...)`. `BloodCapacitance.volume_in(dvol, comp_from)` mixes the incoming substances by the incoming volume fraction:
+There is no global solver moving solutes around — composition rides the flow. `Resistor.calc_flow` moves volume by calling `comp_from.volume_out(flow*dt)` then `comp_to.volume_in(...)`. The blood compartments' `volume_in(dvol, comp_from)` (`BloodCapacitance`, `BloodTimeVaryingElastance`, `HeartChamber`, all through [`helpers/BloodMixing.js`](../helpers/BloodMixing.js) `mix_blood_in`) mixes the incoming blood by the incoming volume fraction, with `vol` the volume after the inflow (exact mass balance):
 
 ```
-concentration += ((concentration_from - concentration) * dvol) / vol
+concentration += (concentration_from - concentration) * dvol / vol
 ```
 
-applied to `to2`, `tco2`, every entry in `solutes` and `drugs`, plus `temp` and `viscosity` (treated as solutes). This dilution is how blood gases, solutes, drugs, and temperature propagate through the circuit. Gas compartments propagate analogously through `GasDiffusor`/`GasExchanger` partial-pressure-driven diffusion. See [`BloodCapacitance.md`](./BloodCapacitance.md).
+applied to `to2`, `tco2`, every entry in `solutes` and `drugs`, and `temp`. **Viscosity is not mixed**: `Blood` derives it from each compartment's haemoglobin every step. This dilution is how blood gases, solutes, drugs and temperature propagate through the circuit; a `fixed_composition` compartment keeps its composition.
 
-### 7d. ModelScaler touches only the scaling layer
+Gas compartments do the same for their gas composition in `GasCapacitance.volume_in`. Exchange **between** blood and gas, or across a membrane, is done by the diffusors and exchangers (`GasExchanger` alveolus↔capillary, `BloodDiffusor` placenta). Mixing without net flow between two compartments of one continuous pool is `Resistor.mix_flow` (see [Resistor](./Resistor.md#mixing-without-net-flow-mix_flow)). See [`BloodCapacitance.md`](./BloodCapacitance.md).
 
-[`ModelScaler`](./ModelScaler.md) writes the `*_factor_scaling_ps` layer (and direct volume adjustments) — never the `_ps` user layer — so its scaling composes cleanly with user/scenario adjustments. It is not the layer's only writer: the [Calibrator](./Calibrator.md)'s PAP lever writes `r_factor_scaling_ps` on `IPSL`/`IPSR`. The base params are written only by `incorporate()`, which bakes every scaling layer of every component named in the scaler config into its base and resets the factor to `1.0`. Weight scaling (`scale_to_weight`) is linear and volume-only — the inverse elastance/resistance scaling is commented out, and nothing scales heart rate or VO₂. `scaleModel(group, factor)` routes through the big `switch` in `ModelEngine.scale_model` to the many `scale_*` methods (`scale_blood_volume`, `scale_systemic_resistances`, `scale_to_weight`, …). `reset` calls `ModelScaler.reset()` and restores `model.weight = model._baseline_weight`.
+### 7d. Who writes the scaling layer
+
+[`ModelScaler`](./ModelScaler.md) writes the `*_factor_scaling_ps` layer for elastances, resistances and unstressed volumes, never the `_ps` user layer, so its scaling composes with user and scenario adjustments. Its **volume** scaling is the exception: it multiplies the raw `vol` and `u_vol` of the compartments in the scaler config. The factor groups set the layer **absolutely** (1.0 = no scaling), so anything left in it is replaced by the next `scale` command. `incorporate()` bakes the scaling layers of every component named in the scaler config into the base values (`u_vol`, `el_base`, `el_min`, `el_max`, `r_for`/`r_back`) and resets those factors to `1.0`, keeping the model's behaviour (BloodVessel's R→E coupling, HeartChamber's `el_k` and the additive models' `_ps` layers are carried along; only the heart chambers' additive ANS term changes, see [ModelScaler](./ModelScaler.md#incorporate-baking-the-layer)). **Since v1.0 every shipped scenario is baked**, and the generators and `build_patient.mjs` end with `incorporate`, so a scenario as loaded has all scaling layers at 1.0.
+
+ModelScaler is not the layer's only writer: the [Calibrator](./Calibrator.md)'s PAP lever writes `r_factor_scaling_ps` on `IPSL`/`IPSR`, and `Uterus` and `MaternalPlacenta` write the scaling layer of their own vessels (pregnancy adaptation). A `ModelScaler.reset()` or `incorporate()` on those components would interact with them. Weight scaling (`scale_to_weight`) is linear and volume-only — the inverse elastance/resistance scaling is commented out, and nothing scales heart rate or VO₂. `scaleModel(group, factor)` routes through the big `switch` in `ModelEngine.scale_model` to the many `scale_*` methods (`scale_blood_volume`, `scale_systemic_resistances`, `scale_to_weight`, …). `reset` calls `ModelScaler.reset()` and restores `model.weight = model._baseline_weight`.
 
 ---
 
@@ -257,22 +258,27 @@ applied to `to2`, `tco2`, every entry in `solutes` and `drugs`, plus `temp` and 
 5. **Export it from [`ModelIndex.js`](../ModelIndex.js).** The engine builds `available_model_map` from everything `ModelIndex` exports. **Forgetting this export is the usual cause of "model type not found" at build.**
 6. **Reference the `model_type`** in your `model_definitions/*.json` `models` map.
 7. **Add a `model_type` entry to the consumer's edit schema** (in explain-ui: `src/model-interface/registry.ts`) so the parameters become editable in the app (the engine ships no UI metadata).
-8. **Write a doc** in `docs/engine/` following the template in §10.
+8. **Write a doc** in `docs/` following the template in §9.
 
 ---
 
-## 9. The house doc template
+## 9. The house doc template (v1.0)
 
-Every per-class doc in `docs/engine/` should follow this structure (the canonical exemplar is [`BloodCapacitance.md`](./BloodCapacitance.md)):
+Every per-class doc in `docs/` follows this structure. The exemplar is [`BloodCapacitance.md`](./BloodCapacitance.md). A page has two layers: sections 1–2 are written for students and clinicians (plain language, no code), and sections 3–11 are the developer reference. Leave out a section only when it would be empty, and say so in one line when a reader would expect it (e.g. "No factors of its own").
 
-1. **Title + one-paragraph summary** — what the model is, in plain terms.
-2. **Inheritance** — an ASCII tree showing the chain up to `BaseModelClass`, and which classes extend this one.
-3. **What it models** — the physiological/engineering role.
-4. **Properties** — tables split into inherited vs. unique, with `Property | Unit | Description` columns. Mark sentinel values (e.g. `-1 = not calculated`).
-5. **Calc / math sections** — the equations and the order `calc_model()` runs them, referencing the actual method names.
-6. **Factor system** — the three-tier table for this model's tunables (link to §7a here rather than re-deriving it).
-7. **Example definition (JSON)** — a real, minimal `models` entry.
-8. **Usage in the model** — how it's wired into scenarios and which models reference it.
+1. **Title + summary.** One or two sentences: what the model is.
+2. **Physiology.** What it represents in the patient or device, in plain language, and what a clinician would see change when it changes. No code identifiers beyond the model's name.
+3. **Inheritance.** An ASCII tree up to `BaseModelClass`, plus the classes that extend this one.
+4. **Properties.** Tables with `Property | Unit | Default | Description`, split into *config* (set in the definition JSON), *outputs* (computed each step), and *set by other models* (props another model writes onto this one). The default is the constructor value; a scenario usually overrides it. Mark sentinel values (e.g. `-1 = not calculated`). For inherited props, link to the parent's table instead of repeating it.
+5. **Calculation.** The equations in the order `calc_model()` runs them, under the actual method names, plus any overridden hooks (`volume_in`, …).
+6. **Factor system.** Which tunables carry the three layers and whether they compose additively or multiplicatively. Link to §7a, don't re-derive it.
+7. **Inputs and outputs.** Which models this one reads and writes, and which models read or write it.
+8. **Assumptions and limitations.** Simplifications, calibrated constants and their rationale, and known gaps.
+9. **Example definition (JSON).** A real entry copied from a canonical scenario (`term_neonate` where possible), trimmed to the config props, with the scenario and path named.
+10. **Usage in the scenarios.** Where it is instantiated and what it is wired to.
+11. **References.** Literature for the equations and default values. If the class introduces no literature-derived values, say so.
+
+**Short form** for helpers and very small classes: title + summary, API (functions/methods with arguments and return values), where it is used, notes.
 
 ---
 
@@ -280,16 +286,20 @@ Every per-class doc in `docs/engine/` should follow this structure (the canonica
 
 One line each; follow the link for detail.
 
-- **[DataCollector](./DataCollector.md)** — fast (`watch_list`, default `sample_interval` 0.005 s) and slow (`watch_list_slow`, 1.0 s) watchlists of dot-path props; `collect_data()` buffers, `get_model_data()` drains, `clean_up()` drops disabled-model entries. Always watches `Heart.ncc_*`.
+- **[DataCollector](./DataCollector.md)** — fast (`watch_list`, default `sample_interval` 0.005 s) and slow (`watch_list_slow`, 1.0 s) watchlists of dot-path props; `collect_data()` buffers, `get_model_data()` drains, `clean_up()` drops entries whose model no longer exists (a disabled model keeps its watch). Always watches `Heart.ncc_*`.
 - **[TaskScheduler](./TaskScheduler.md)** — deferred mutations every `_task_interval` (0.015 s): numeric tweens (type 0), instant boolean/string swaps (type 1), scheduled method calls (type 2). Writes directly to model props (usually a `*_factor_ps` or base param).
-- **[ModelScaler](./ModelScaler.md)** — linear (volume-only) weight scaling and manual subsystem scaling; writes the `*_factor_scaling_ps` layer and raw volumes; routed via `ModelEngine.scale_model`.
+- **[ModelScaler](./ModelScaler.md)** — group scaling (absolute, on the `*_factor_scaling_ps` layer), linear volume-only weight scaling, and `incorporate` (bake); routed via `POST "scale"` → `ModelEngine.scale_model`.
+- **[BloodMixing](./BloodMixing.md)**, **[GasMixing](./GasMixing.md)** — composition mixing on inflow and exchange without net flow (§7c).
+- **[Orifice](./Orifice.md)** — Bernoulli orifice term and jet velocity (Shunts, Pda).
+- **[Units](./Units.md)** — shared physical constants (STPD O2 conversion, gas constant, water vapour).
 - **[Calibrator](./Calibrator.md)** — shared closed-loop secant calibration (`buildLiveControllers`/`runCalibration`/`measureWindow`); backs both offline patient-building and the live `tune_model` path.
 - **[ChannelWriter](./ChannelWriter.md)** — typed realtime data-plane writer (chart ring + anim snapshot); flushed each realtime tick.
 - **[RealtimeChannels](./RealtimeChannels.md)** — the `RT_MSG` message constants and channel/transport descriptors for the typed data plane.
 - **[AnimationPacker](./AnimationPacker.md)** — builds the component→slot registry and packs per-frame sprite animation data from the live model.
 - **[RealTimeMovingAverage](./RealTimeMovingAverage.md)** — moving-average helper used for smoothing realtime-derived signals.
+- **[ModelRegistry](./ModelRegistry.md)** — `model_type` → class lookup that lets `BaseModelClass` instantiate sub-models (built-in or custom) without an import cycle; filled by `ModelEngine` at startup.
 
-### Realtime read side (`explain/realtime/`, main thread)
+### Realtime read side (`realtime/`, main thread)
 
 The mirror of the `ChannelWriter`/`AnimationPacker` write side, running on the **main thread** — separate from the control-plane `ModelEmitter` events:
 

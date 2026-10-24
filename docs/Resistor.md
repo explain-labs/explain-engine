@@ -1,207 +1,205 @@
 # Resistor
 
-A `Resistor` moves volume between two compartments driven by their pressure difference. It is the
-**flow element** of the circuit and the canonical implementation of the factor / effective-value
-pattern for resistances; `HeartValve` is a thin subclass, and `BloodVessel` creates `Resistor`s
-internally.
+A `Resistor` moves blood or gas between two compartments, driven by the pressure difference between them. It is the flow element of every circuit in the model (vessels, valves, airways, ventilator and ECLS tubing) and the reference implementation of the additive factor pattern for resistances.
+
+## Physiology
+
+Blood flows from high to low pressure, and how much flows depends on the *resistance* of the path: flow = pressure difference / resistance. Narrow or constricted vessels have a high resistance. Resistance in mmHg·s/L is the same quantity as SVR or PVR, only in absolute units and for one connection.
+
+Some refinements are available:
+- **Valves.** A connection can let flow through in one direction only (heart valves, venous valves), or have a higher resistance backwards than forwards.
+- **Turbulence.** Through a narrow opening (a stenotic valve, a restrictive duct) the pressure loss grows with the *square* of the flow (Bernoulli). An optional non-linear term models this.
+- **Mixing without net flow.** Between two compartments that are really one continuous space (the two halves of the right atrium, the dead space and the alveoli), blood or gas also mixes by eddies or diffusion without any net flow.
+- **Occlusion.** A connection can be closed completely (a clamped cord, an obstructed airway, a closed duct).
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Resistor          (pressure-driven flow between two compartments)
-        └── HeartValve      (+ no_back_flow valve behaviour)
+  └── Resistor
+        └── HeartValve   (no code of its own: same class under its own model_type)
 ```
 
-See [BaseModelClass.md](./BaseModelClass.md) for the lifecycle contract and shared fields.
+A valve's one-way behaviour comes from `no_back_flow: true` in its definition, not from the class. Several plain Resistors are one-way too (`RAIVCI_RV`, `RASVC_RV`, `VLB_IVCI`, `VUB_SVC`, …).
 
-## What it models
+**Vessel-owned connectors.** A [`BloodVessel`](./BloodVessel.md) creates one Resistor per entry in its `inputs`, named `<input>_<vessel>` (e.g. `PA_PAAL`). Every step the vessel writes its own effective values into that connector:
 
-Flow from `comp_from` to `comp_to`, with separate forward/backward resistances and an optional
-non-linear (turbulent) term:
+- `r_for`, `r_back`, `r_k`;
+- `no_flow`, `no_back_flow`;
+- `p1_ext`, `p2_ext`;
+- `is_enabled`.
 
-```
-ΔP = (comp_from.pres + p1_ext) − (comp_to.pres + p2_ext)
-forward  (ΔP ≥ 0):  flow = (ΔP − r_k_eff · prev_flow²) / r_for_eff
-backward (ΔP < 0):  flow = (ΔP + r_k_eff · prev_flow²) / r_back_eff     (unless no_back_flow)
-```
-
-The resistor does not store volume itself — it reads the two compartments' pressures, computes a flow,
-and hands the volume across via their `volume_out`/`volume_in` methods.
+So set those on the vessel, not on the connector: a value written on the connector is overwritten. `implicit`, `mix_flow`, `no_flow_ext` and the connector's own factor layers are **not** overwritten. In term_neonate 42 of the 75 resistors are vessel-owned and 33 stand alone (valves, shunts, airways, devices).
 
 ## Properties
 
-### Config / independent (set in the definition JSON)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `r_for` | mmHg·s/L | Forward flow resistance |
-| `r_back` | mmHg·s/L | Backward flow resistance |
-| `r_k` | mmHg·s²/L² | Non-linear (turbulent) resistance coefficient |
-| `comp_from` | string | Name of the upstream compartment |
-| `comp_to` | string | Name of the downstream compartment |
-| `no_flow` | bool | When true, block all flow (set `flow = 0` and return) |
-| `no_flow_ext` | bool | Same effect as `no_flow`, for a controller that does not own the resistor (an owning BloodVessel re-copies its own `no_flow` every step and would overwrite a gate written there; e.g. MaternalPlacenta's drainage) |
-| `no_back_flow` | bool | When true, block backward flow (valve behaviour) |
-| `p1_ext` | mmHg | External pressure added at the inlet (non-persistent; cleared each step — but see the BloodVessel note below) |
-| `p2_ext` | mmHg | External pressure added at the outlet (non-persistent; cleared each step) |
-| `fixed_composition` | bool | Passed through to the endpoints' volume handling |
-| `mix_flow` | L/s | Exchange without net flow, blood or gas (default `0` = off); see [Dispersive mixing](#dispersive-mixing--mix_flow) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `comp_from` | – | `""` | Upstream compartment (name). Positive flow goes from here to `comp_to`. |
+| `comp_to` | – | `""` | Downstream compartment (name). |
+| `r_for` | mmHg·s/L | 1.0 | Forward resistance (flow from `comp_from` to `comp_to`). |
+| `r_back` | mmHg·s/L | 1.0 | Backward resistance. |
+| `r_k` | mmHg·s²/L² | 0.0 | Turbulent (quadratic) coefficient: an extra pressure loss `r_k·flow²`. 0 in every shipped scenario. |
+| `no_flow` | boolean | `false` | Closes the connection. |
+| `no_flow_ext` | boolean | `false` | A second, independent closing gate for a model that does not own the resistor (an owning BloodVessel rewrites `no_flow` every step). Used by `MaternalPlacenta`. |
+| `no_back_flow` | boolean | `false` | One-way connection (valve). |
+| `implicit` | boolean | `false` | Numerical scheme for stiff pairs; see [Implicit flow](#implicit-flow-implicit). |
+| `mix_flow` | L/s | 0.0 | Exchange without net flow; see [Mixing without net flow](#mixing-without-net-flow-mix_flow). |
+| `r_factor`, `r_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. `r_factor` scales both `r_for` and `r_back`. |
+| `r_factor_ps`, `r_k_factor_ps` | – | 1.0 | Persistent factors. |
+| `r_factor_scaling_ps`, `r_k_factor_scaling_ps` | – | 1.0 | Persistent scaling factors. |
 
-Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
-`r_factor`, `r_k_factor` (non-persistent); `r_factor_ps`, `r_k_factor_ps` (persistent);
-`r_factor_scaling_ps`, `r_k_factor_scaling_ps` (scaling). Note a **single** `r_factor` layer scales
-both `r_for` and `r_back`.
+### Outputs
 
-### Computed / dependent (engine outputs)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `flow` | L/s | 0.0 | Flow this step: positive forward, negative backward, 0 when closed. |
+| `r_for_eff`, `r_back_eff` | mmHg·s/L | 1000 | Effective resistances after the factor layers (and the implicit correction). |
+| `r_k_eff` | mmHg·s²/L² | 0 | Effective turbulent coefficient. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `flow` | L/s | Current flow (positive = forward, negative = backward) |
-| `r_for_eff` | mmHg·s/L | Effective forward resistance after the factor layers |
-| `r_back_eff` | mmHg·s/L | Effective backward resistance after the factor layers |
-| `r_k_eff` | mmHg·s²/L² | Effective non-linear coefficient after the factor layers |
-| `_comp_from` / `_comp_to` | ref | Resolved references to the up/downstream compartments |
-| `_prev_flow` | L/s | Flow from the previous step (used by the non-linear term) |
+### Set by other models
 
-## Calculation cycle (`calc_model`)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `p1_ext`, `p2_ext` | mmHg | 0.0 | Extra pressure on the inlet / outlet for this step, reset to 0 after use. On a vessel-owned connector the vessel copies its own `p1_ext`/`p2_ext` every step, so a value written on the vessel acts until it is set back to 0. |
 
-Each step: resolve `_comp_from`/`_comp_to` from `model.models`, then `calc_resistance()` →
-`calc_flow()`.
+### Internal
 
-### `calc_resistance`
+| Property | Description |
+|---|---|
+| `_comp_from`, `_comp_to` | Cached references to the two compartments. Re-resolved when `comp_from`/`comp_to` change (e.g. ECLS re-cannulation) or when the engine's `_models_version` changes (bumped at every `calculate()` call and realtime tick). |
 
-```
-r_for_eff  = r_for  + (r_factor − 1)·r_for   + (r_factor_ps − 1)·r_for   + (r_factor_scaling_ps − 1)·r_for
-r_back_eff = r_back + (r_factor − 1)·r_back  + (r_factor_ps − 1)·r_back  + (r_factor_scaling_ps − 1)·r_back
-r_k_eff    = r_k    + (r_k_factor − 1)·r_k   + (r_k_factor_ps − 1)·r_k   + (r_k_factor_scaling_ps − 1)·r_k
-```
+## Calculation
 
-Then resets the non-persistent factors `r_factor` and `r_k_factor` to `1.0`.
+`calc_model()` resolves the compartment references, then runs `calc_resistance()` → `calc_flow()` → the mixing exchange.
 
-### `calc_flow`
+1. **`calc_resistance`**
+   ```
+   r_for_eff  = r_for  · (1 + (r_factor − 1) + (r_factor_ps − 1) + (r_factor_scaling_ps − 1))
+   r_back_eff = r_back · (same three layers)
+   r_k_eff    = r_k    · (1 + (r_k_factor − 1) + (r_k_factor_ps − 1) + (r_k_factor_scaling_ps − 1))
+   ```
+   `r_factor` and `r_k_factor` are reset to 1. With `implicit`, `dt·(E_from + E_to)` is added to both effective resistances.
+2. **`calc_flow`**, with `p1 = comp_from.pres + p1_ext` and `p2 = comp_to.pres + p2_ext` (then `p1_ext`/`p2_ext` are reset):
+   - closed (`no_flow` or `no_flow_ext`): `flow = 0`;
+   - `p1 ≥ p2`: forward, `flow = f(p1 − p2, r_for_eff)`;
+   - `p1 < p2` and not `no_back_flow`: backward, `flow = −f(p2 − p1, r_back_eff)`;
+   - `p1 < p2` with `no_back_flow`: `flow = 0`;
+   - a non-positive effective resistance gives `flow = 0` (guard against Infinity/NaN).
 
-1. Compute inlet/outlet pressures including the non-persistent `p1_ext`/`p2_ext`, then clear those and
-   reset `flow` to `0`. **On a resistor owned by a [BloodVessel](./BloodVessel.md)** (one of its
-   `inputs`) the clearing is moot: the vessel keeps its own `p1_ext`/`p2_ext` and copies them onto the
-   resistor every step, so a value written on the *vessel* acts as persistent until a writer sets it
-   back to 0.
-2. If `no_flow` or `no_flow_ext`, set `_prev_flow = 0` and return.
-3. Pick the direction by the sign of `ΔP` (forward if `ΔP ≥ 0`, else backward unless `no_back_flow`),
-   guard against a non-positive effective resistance, and compute `flow` with the lagged non-linear
-   term.
-4. Move the volume across:
-   - `comp_from.volume_out(flow · Δt)` returns any volume it could not supply;
-   - `comp_to.volume_in(flow · Δt − un-supplied, comp_from)` adds the rest and mixes composition.
+   `f(Δp, R)` solves `Δp = R·f + r_k·f²` exactly for this step:
 
-   This `volume_out` → `volume_in` handshake conserves volume — a resistor never creates volume from
-   an empty compartment.
-5. Store `_prev_flow = flow` (or clear it to `0` when no flow occurred — no-flow or blocked backflow)
-   so the non-linear term stays consistent next step.
+   ```
+   f = 2·Δp / (R + √(R² + 4·r_k·Δp))        (= Δp / R when r_k = 0)
+   ```
+
+   This form has no cancellation for small `r_k`. Because the loss is solved in the same step, the flow can't lag, oscillate or reverse direction.
+3. **Volume transfer** (forward; mirrored for backward flow):
+   ```
+   not_removed = comp_from.volume_out(flow·dt)
+   comp_to.volume_in(flow·dt − not_removed, comp_from)
+   ```
+   The upstream compartment returns what it could not supply, so a resistor never creates volume out of an empty compartment. `volume_in` also mixes the incoming blood or gas composition.
+4. **Mixing**: if `mix_flow > 0` and the connection is open, an equal volume is swapped both ways (see below).
 
 ## Factor system
 
-The resistances are **never used raw**. Each parameter combines three multiplier layers **additively
-against the base** into an `*_eff` value:
+`r_for`/`r_back` (one shared family) and `r_k` carry the three layers, composed **additively** (see [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern)). Writers in the current code:
 
-| Layer | Persistence | Set by |
-|---|---|---|
-| `<p>_factor` | reset to `1.0` every step | transient interventions |
-| `<p>_factor_ps` | persistent | user / scenario / regulator models (ANS, Circulation…) |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (allometric/weight scaling) |
+| Layer | Writers |
+|---|---|
+| `r_factor` (reset every step) | `Respiration` (airways), `Uterus`, `Heart` (`AA_COR`, systolic coronary resistance) |
+| `r_factor_ps` | `Circulation`, `Brain`, `Kidneys`, `Hormones`, `Respiration`, `Surfactant`, the `Calibrator`; the user and scenarios via `setPropValue` |
+| `r_factor_scaling_ps` | `ModelScaler`; the `Calibrator` (PAP lever on `IPSL`/`IPSR`); `Uterus`, `MaternalPlacenta` |
 
-```
-p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)·p
-```
+The factors of a vessel-owned connector multiply on top of the vessel's own effective resistance, which the vessel already composes from its own layers.
 
-`r_factor` / `r_factor_ps` / `r_factor_scaling_ps` apply identically to both `r_for` and `r_back`;
-`r_k` has its own `r_k_factor` family. This is the same pattern as [`Capacitance`](./Capacitance.md).
+## Inputs and outputs
 
-## Notes
+- **Reads:** `pres` of `comp_from` and `comp_to`; their elastances (`el_eff`, or `el_min_eff`/`el_max_eff`/`act_factor`) when `implicit`.
+- **Writes:** the volume of both compartments (`volume_out`/`volume_in`); their composition through `volume_in` and the mixing exchange.
+- **Written by:** an owning `BloodVessel` (see [Inheritance](#inheritance)); `Shunts`, `Pda`, `Placenta`, `MaternalPlacenta`, `Respiration`, `Apnea` and the devices (`no_flow`, resistances); the factor writers above.
+- **Read by:** `Heart` (the mitral and aortic flows mark end-diastole and end-systole), `Mob` (`AA_COR` coronary flow), `Monitor` (its `flow_targets` read-outs), `DataCollector` watchers (the UI's flow charts).
 
-- **Non-linear term.** It reads `_prev_flow`, not the just-reset `flow` — an explicit lagged scheme; at
-  steady state `prev_flow == flow`. (An earlier version used the zeroed `flow`, so `r_k` was inert.)
-- **Resistance guard.** A non-positive effective resistance is skipped (no flow) to avoid an
-  Infinity/NaN flow.
-- `r_k` is `0` in the standard scenarios, so the linear Poiseuille term dominates; the non-linear term
-  is available for turbulent/stenotic elements.
+## Assumptions and limitations
 
-## Example definition (JSON)
+- **Resistive, not inertial.** There is no inertance: flow responds instantly to the pressure difference. Flow waveforms are shaped only by the compartments' elastances and the resistances.
+- **Laminar unless `r_k` is set.** Every shipped resistor is linear (`r_k = 0`). The duct and septal shunts compute their orifice losses separately (see [Pda](./Pda.md), [Shunts](./Shunts.md), `helpers/Orifice.js`).
+- **Valves are ideal switches.** A `no_back_flow` connection closes instantly at zero pressure difference. There is no valve leaflet dynamics and no regurgitation unless `no_back_flow` is false with a finite `r_back`.
+- **Explicit volume update.** See [Implicit flow](#implicit-flow-implicit) for when that matters.
 
-```json
-{
-  "name": "PA_PAAL",
-  "description": "input connector for PAAL",
-  "model_type": "Resistor",
-  "is_enabled": true,
-  "r_for": 1493.7,
-  "r_back": 1493.7,
-  "r_k": 0,
-  "comp_from": "PA",
-  "comp_to": "PAAL",
-  "no_flow": false,
-  "no_back_flow": false,
-  "p1_ext": 0,
-  "p2_ext": 0,
-  "fixed_composition": false
-}
-```
+## Implicit flow (`implicit`)
 
-## Usage in the model
+`implicit` switches one resistor from the explicit `Δp / R` to the backward-Euler solution for the two compartments it joins, `Δp / (R + dt·(E_from + E_to))`. It does this by adding `dt·(E_from + E_to)` to `r_for_eff`/`r_back_eff` each step. `E` is the compartment's current **local** elastance: `el_eff`, or a time-varying elastance's instantaneous value, plus the slope `2·el_k_eff·S` of the non-linear term above the unstressed volume (for a time-varying elastance on its diastolic curve). It is a numerical scheme, not a change of the resistor law. Both forms are first-order accurate and agree when `R >> dt·ΣE`.
 
-- Every connection that carries flow between two compartments is a `Resistor` (a typical neonate
-  scenario has ~40 of them wiring the circuit together by `comp_from`/`comp_to`).
-- Set `no_back_flow` for valve-like behaviour (or use `HeartValve`).
-- `r_factor_ps` is the standard lever for vasoconstriction/dilation (PVR/SVR adjustments by ANS and
-  scenario tuning); `r_factor_scaling_ps` is written by `ModelScaler` for weight-based scaling.
+Explicit integration of two capacitances joined by a small resistance is stable only while `dt·(E_from + E_to)/R < 2`. For three equal capacitances in a row, as in the aorta (AA → AAR → AD, joined by `AA_AAR` and `AAR_AD`, R ≈ 70 mmHg·s/L), the limit is 4/3. Stiffening the large arteries, which a small infant's pulse pressure needs, crosses that limit at about ×2–3. Measured on the 0.72 kg Bischoff infant (AA pressure range, mmHg):
 
-## Implicit (backward-Euler) flow — `implicit`
-
-`implicit` (default `false`) switches the flow of one resistor from the explicit `Δp / R` to the
-backward-Euler solution for the two compartments it joins, `Δp / (R + dt·(E_from + E_to))`, by
-adding `dt·(E_from + E_to)` to `r_for_eff` / `r_back_eff` each step (`E` = the compartment's current
-`el_eff`, or a time-varying elastance's instantaneous value). It is a numerical scheme, not a
-change of the resistor law: both forms are first-order accurate and agree when `R >> dt·ΣE`.
-
-Why it exists: explicit integration of two capacitances joined by a small resistance is stable
-only while `dt·(E_from + E_to)/R < 2`, and for three equal capacitances in a row (the aorta AA →
-AAR → AD, joined by `AA_AAR`, `AAR_AD`, R ≈ 70 mmHg·s/L) only below 4/3. Stiffening the large
-arteries, which a small infant's pulse pressure needs, crosses that limit at about ×2–3. Measured
-on the 0.72 kg Bischoff infant (AA pressure range, mmHg):
-
-| stiffness | explicit | implicit `AA_AAR`, `AAR_AD` | explicit, half time step |
+| Arterial stiffness | Explicit | Implicit `AA_AAR`, `AAR_AD` | Explicit, half time step |
 |---|---|---|---|
 | ×1.8 | 23.6–35.7 | 23.6–35.8 | 23.7–35.7 |
 | ×3 | unstable | 21.4–39.8 | 21.5–39.6 |
 | ×5 | unstable | 18.4–44.7 | 18.2–44.4 |
 
-The patient builder and the live tuner set it on `AA_AAR` and `AAR_AD`; bundled scenarios do not
-(yet), so their numbers are unchanged.
+All 10 shipped scenarios set it on 13 resistors: the outflow valves (`LV_AA`, `RV_AA`), the aortic chain (`AA_AAR`, `AAR_AD`) and the aortic branches (`AA_COR`, `AA_BR_ART`, `AA_RUB`, `AAR_DA`, `AD_LS_ART`, `AD_KID_ART`, `AD_INT_ART`, `AD_RLB`, `AD_PL_UMB_ART`). The 8 scenarios with quadratic heart chambers also set it on `RAIVCI_RASVC`, the low-resistance (13 mmHg·s/L) link between the two right-atrial halves: their stiffness grows with filling, and the explicit scheme then flipped the flow's sign every step. The patient builder and the live tuner set it the same way on the aorta.
 
-## Dispersive mixing — `mix_flow`
+## Mixing without net flow (`mix_flow`)
 
-Flow through a resistor carries upstream blood downstream (advection). Between two compartments that are
-really one continuous pool — the two halves of the right atrium, say — real blood also mixes by eddies
-and vortex flow, even when the net and oscillating flow between them is close to zero. Molecular
-diffusion cannot stand in for it (O2 needs minutes to diffuse a millimetre).
+Flow carries upstream blood downstream (advection). Between two compartments that are really one continuous pool, blood also mixes by eddies and vortex flow, even when the net flow between them is close to zero. Molecular diffusion can't stand in for that: O2 needs minutes to diffuse a millimetre.
 
-`mix_flow` (L/s) adds that exchange. Each step an equal volume `dv = mix_flow · dt` is swapped both
-ways, with no net volume, using the pre-exchange concentrations
-([`helpers/BloodMixing.js`](../helpers/BloodMixing.js) `exchange_blood`):
+`mix_flow` (L/s) adds that exchange. Each step an equal volume `dv = mix_flow·dt` is swapped both ways, with no net volume change, using the pre-exchange concentrations:
 
 ```
-c_a += (c_b − c_a) · dv / V_a        c_b += (c_a − c_b) · dv / V_b
+c_a += (c_b − c_a)·dv / V_a        c_b += (c_a − c_b)·dv / V_b
 ```
 
-so `c_a·V_a + c_b·V_b` is conserved for to2, tco2, every solute and drug and temperature (viscosity follows the haemoglobin).
-`dv` is clamped to half the smaller volume; a `fixed_composition` end keeps its composition, and a
-`no_flow` connection does not exchange. It acts only when both ends carry blood (`to2`), and only on
-a plain `Resistor`/`HeartValve` (a `BloodVessel` overrides `calc_model`). The equilibration time
-constant between the two compartments is about `V_a·V_b / ((V_a + V_b) · mix_flow)`.
+So `c_a·V_a + c_b·V_b` is conserved:
+- **Blood:** for `to2`, `tco2`, every solute and drug, and temperature ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js) `exchange_blood`). Viscosity follows the haemoglobin.
+- **Gas:** for the five species O2, CO2, N2, H2O and other ([`helpers/GasMixing.js`](../helpers/GasMixing.js) `exchange_gas`). This stands for molecular diffusion and cardiogenic mixing at the airway–alveolus junction, which go on without flow (in apnoea). It uses the composition at the connecting ends, so a series dead space exchanges through its distal sub-tank.
 
-**Gas.** Between two gas compartments the same swap runs on the five species (O2, CO2, N2, H2O,
-other) by [`helpers/GasMixing.js`](../helpers/GasMixing.js) `exchange_gas`. It stands for molecular
-diffusion and cardiogenic mixing at the airway–alveolus junction, which go on without flow (in
-apnoea). It uses the composition at the connecting ends, so a series dead space exchanges through its
-distal sub-tank, not its bulk.
+Further rules:
+- `dv` is clamped to half the smaller volume.
+- A `fixed_composition` end keeps its composition.
+- A closed connection doesn't exchange.
+- The equilibration time constant is about `V_a·V_b / ((V_a + V_b)·mix_flow)`.
 
+Shipped values (all 10 scenarios): `RAIVCI_RASVC` 0.01 L/s (right-atrial halves), `DS_ALL` and `DS_ALR` 0.001 L/s (dead space to alveoli).
+
+## Example definition (JSON)
+
+From `term_neonate.json`, `models.Circulation.components.PV_LA` (trimmed). The pulmonary venous inflow to the left atrium has a backward resistance 10× the forward one:
+
+```json
+{
+  "name": "PV_LA",
+  "model_type": "Resistor",
+  "is_enabled": true,
+  "comp_from": "PV",
+  "comp_to": "LA",
+  "r_for": 204.8,
+  "r_back": 2048.4,
+  "r_k": 0,
+  "no_flow": false,
+  "no_back_flow": false,
+  "implicit": false,
+  "mix_flow": 0
+}
+```
+
+## Usage in the scenarios
+
+Term_neonate has 75: 70 `Resistor` and 5 `HeartValve` (`LA_LV`, `RV_PA`, `RV_AA`, `LV_AA`, `LV_PA`; each `r_for` 55, one-way).
+
+- **Vessel-owned (42):** the connector into every `BloodVessel`.
+- **Stand-alone (33):**
+  - heart inflow (`RAIVCI_RV`, `RASVC_RV`, `PV_LA`, `IVCI_RAIVCI`, `SVC_RASVC`) and the valves;
+  - shunts (`AAR_DA`, `LA_RAIVCI`, `LA_RASVC`, `VSD`, `IPSL`, `IPSR`, `RAIVCI_RASVC`);
+  - coronaries (`AA_COR`, `COR_RAIVCI`, `COR_RASVC`);
+  - airways (`MOUTH_DS`, `DS_ALL`, `DS_ALR`);
+  - ventilator and ECLS circuit connections;
+  - the umbilical vein (`PL_UMB_VEN_IVCI`).
+
+## References
+
+No literature-derived values in this class. The resistances are scenario parameters (see the `*Reference.md` pages). The quadratic loss is the standard Bernoulli form (Δp ∝ Q²); the shipped orifice coefficients live in `helpers/Orifice.js`.

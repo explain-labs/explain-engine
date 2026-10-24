@@ -1,144 +1,118 @@
 # Fluids
 
-The `Fluids` model administers **intravenous fluids** — boluses and infusions — into a blood
-compartment over a set time. It is a small scheduler: a call queues a fluid, and each update step it
-drips a fraction of that fluid's volume (with its solute composition) into the target compartment via
-the compartment's `volume_in`. It holds no volume itself; it pushes volume and composition onto an
-existing blood compartment.
+`Fluids` gives fluids into the blood: timed **boluses and infusions** of named fluids (saline, Ringer's lactate, packed red cells, albumin, dextrose), and a continuous **maintenance** intake that replaces what the kidneys excrete. Each fluid is a composition (solutes in mmol/L, albumin in g/L, no O2 or CO2) mixed into a blood compartment through its normal `volume_in`, so everything it carries spreads with the circulation.
+
+## Physiology
+
+Fluid therapy changes the blood in three ways:
+- **volume:** preload, cardiac output, blood pressure;
+- **dilution:** haemoglobin, albumin and everything the fluid lacks;
+- **composition:**
+  - normal saline (154 mmol/L Na and Cl) lowers the strong ion difference and causes a hyperchloraemic acidosis;
+  - Ringer's lactate is "balanced" (its lactate is metabolised to bicarbonate);
+  - packed red cells raise haemoglobin;
+  - 20 % albumin raises the oncotic pressure;
+  - dextrose provides glucose.
+
+A newborn's maintenance intake (feeds or IV fluid) replaces urine, insensible losses and growth.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Fluids   (IV fluid/infusion scheduler)
+  └── Fluids
 ```
-
-Fluids extends `BaseModelClass` directly. It owns no compartment and declares no `components`; it
-mutates the blood compartments named as infusion sites through their `volume_in` method (see
-[`BloodCapacitance`](./BloodCapacitance.md)).
-
-## What it models
-
-A queue of in-progress infusions. Each queued fluid carries a target site, a per-step volume
-increment, a remaining time, and a solute composition drawn from the `fluids` library. Every update
-interval the scheduler delivers each fluid's increment and advances its timer, removing fluids whose
-time has elapsed.
 
 ## Properties
 
-### Configuration (independent)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `fluids_temp` | °C | Temperature stamped on every administered fluid (default 37.0) |
-| `fluids` | object | Library `{ fluidType: { solute: concentration, … } }` of available fluids |
-| `default_volume` | mL | Default bolus volume offered to the UI |
-| `maintenance_rate` | mL/kg/h | Continuous maintenance intake (default `0` = off) |
-| `maintenance_fluid` | — | Key in `fluids` giving its composition (default `"maintenance"`; missing = water) |
-| `maintenance_site` | — | Compartment receiving it (default `IVCI`) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `fluids` | {name: {solute: value}} | `{}` | The fluid library (see the table below). |
+| `fluids_temp` | °C | 37 | Temperature of given fluids. |
+| `maintenance_rate` | mL/kg/h | 0 | Continuous maintenance intake. term 1.35, preterm and fetal 3. |
+| `maintenance_fluid` | – | `"maintenance"` | Its composition (a key in `fluids`; missing = water). |
+| `maintenance_site` | – | `"IVCI"` | Compartment receiving it. |
 
-### Local / internal (`_`-prefixed)
+### State (saved with the state)
 
-| Property | Unit | Description |
-|---|---|---|
-| `_update_interval` | s | Processing cadence (`0.015`) |
-| `_update_counter` | s | Accumulates `_t` toward `_update_interval` |
-| `_running_fluid_list` | array | Queue of in-progress fluid objects |
-| `_default_time` | s | Vestigial default infusion time (unused) |
-| `_default_type` | string | Vestigial default fluid type (unused) |
+| Property | Description |
+|---|---|
+| `running_fluids` | Boluses and infusions in progress: `{vol, time_left, delta, site, to2, tco2, temp, solutes, drugs}` each. A state saved mid-bolus finishes it after reload. |
 
-Fluids publishes no dependent read-out properties.
+### The fluid library (every scenario)
 
-## Administering a fluid — `add_volume(volume, in_time, fluid_in, site)`
+| Fluid | Composition |
+|---|---|
+| `normal_saline` | Na 154, Cl 154 |
+| `ringers_lactate` | Na 130, Cl 109, K 4, Ca 1.4, lactate 28 |
+| `packed_cells` | Hb 12 mmol/L (~19 g/dL), Na 140, K 4.5, Cl 105, glucose 25: a fresh unit with a plasma-equivalent base |
+| `albumin_20%` | albumin 200 g/L, Na 130, Cl 42, unmeasured anions 32 (the caprylate and tryptophan stabilisers) |
+| `d5`, `d10` | glucose 278, 555 |
+| `maintenance` | per scenario: the resting urine composition (term Na 69, K 20.6, Cl 64, …), so intake balances output |
 
-| Argument | Default | Meaning |
-|---|---|---|
-| `volume` | — | volume to give, in **mL** |
-| `in_time` | 10 | duration over which to give it, in **seconds** |
-| `fluid_in` | `"normal_saline"` | fluid type — key into the `fluids` dictionary for the solute mix |
-| `site` | `"VLB"` | name of the target blood compartment |
+## Calculation
 
-It builds a fluid object and pushes it onto the running list:
+**`add_volume(volume, in_time = 10, fluid_in = "normal_saline", site = "VLB")`** (mL, s) queues a fluid: `delta = volume / (in_time / 0.015)` per update, with the fluid's composition copied from the library (an unknown name gives pure water).
 
-```
-vol       = volume / 1000                                  (mL → L)
-time_left = in_time                                        (s)
-delta     = (volume/1000) / (in_time / _update_interval)   (L delivered per processing step)
-solutes   = { ...fluids[fluid_in] }                        (composition of the chosen fluid)
-to2 = tco2 = 0,  temp = fluids_temp,  drugs = {}
-```
+**Every 15 ms:**
+1. Finished entries are dropped. For each running entry, `site.volume_in(delta, fluid)` mixes the increment in, then `time_left` counts down. A missing site is skipped.
+2. **Maintenance:** `maintenance_rate · weight / 1000 · Δt / 3600` L of the maintenance fluid into `maintenance_site`.
 
-`delta` is sized so the full volume is delivered across the `in_time / _update_interval` processing
-steps. An unknown `fluid_in` yields empty solutes (`{...undefined}` → `{}`), i.e. a solute-free
-fluid, rather than an error.
+**Effects** (term_neonate, 20 mL/kg over 10 min, read 1 min later):
 
-## Processing — `process_fluid_list` (every `_update_interval`, 0.015 s)
+| Fluid | Hb (mmol/L) | Albumin (g/L) | Na | Lactate | BE | MAP |
+|---|---|---|---|---|---|---|
+| before | 10.0 | 25 | 138 | 1.5 | −2.4 | 58 |
+| normal saline | 8.0 | 20 | 141 | 1.3 | **−7.1** | 62 |
+| Ringer's lactate | 8.0 | 20 | 137 | **4.2** | −4.3 | 61 |
+| 20 % albumin, 5 mL/kg | 9.4 | **35** | 138 | 1.5 | −3.7 | 59 |
+| packed cells, 15 mL/kg | 10.3 | 21 | 139 | 1.4 | +0.2 | 66 |
 
-`calc_model` accumulates `_t` into `_update_counter`; once it exceeds `_update_interval` the counter
-resets and `process_fluid_list` runs:
+## Factor system
 
-1. **Drop finished fluids** — `removeByProperty` filters out any with `time_left ≤ 0`.
-2. **For each remaining fluid:**
-   - Deliver this step's increment: `models[site]?.volume_in(delta, fluid)` — the compartment adds
-     `delta` litres and mixes in the fluid's composition (solutes, temperature, viscosity) by volume
-     fraction. (See [`BloodCapacitance`](./BloodCapacitance.md)'s `volume_in` mixing logic.)
-   - Decrement `vol` by `delta` and advance the timer (`time_left -= _update_interval`); when it
-     reaches 0, zero the delta so no further volume is added before the fluid is removed next cycle.
+None.
 
-The delivery happens **before** the timer/zeroing, so the final increment is actually administered.
+## Inputs and outputs
 
-## Maintenance intake — `process_maintenance`
+- **Reads:** the fluid library; `model.weight`.
+- **Writes:** the target compartment, through `volume_in` (volume and composition).
+- **Written by:** the user and bot (`add_volume`, rates); the scenario generators (maintenance rate and composition).
+- **Read by:** `DataCollector` watchers.
 
-Every update the maintenance fluid flows continuously into `maintenance_site`:
-`dvol = maintenance_rate · weight / 1000 · elapsed / 3600` litres, mixed in with `volume_in` like a
-bolus (no O2/CO2, `fluids_temp`). It stands for enteral feeding / maintenance IV fluid and replaces
-what the kidneys excrete, so blood volume and composition hold at rest. A scenario that sets it to its
-resting urine flow and urine composition is steady by construction; the kidneys then decide whether
-the patient gains or loses volume when perturbed.
+## Assumptions and limitations
 
-## Notes & caveats
-
-- **Full dose is delivered.** The increment is applied before the timer is zeroed; an earlier ordering
-  zeroed the last `delta` before delivering it, losing one step's worth — negligible for a long
-  infusion but significant for a short bolus (a one-step bolus delivered nothing).
-- **Missing target site is skipped** (optional-chaining guard) rather than throwing.
-- **Composition is gas-free.** Administered fluid carries `to2 = tco2 = 0` and no haemoglobin, so a
-  large bolus dilutes the compartment's oxygen/CO₂ content and its Hb; [`Blood`](./Blood.md) derives
-  viscosity from the Hb, so the blood thins too — the intended haemodilution effect.
-- **Vestigial fields.** `fluid.vol` is decremented but not used as a stop condition (delivery is
-  timer-driven); `_default_time` / `_default_type` are unused.
+- **Everything stays in the blood.** There is no interstitial compartment, so all of a crystalloid bolus stays intravascular, where in vivo most leaves within minutes. Dilution and its acid–base effect are therefore stronger than in vivo, and albumin draws no fluid in.
+- **Gas-free fluids:** a bolus dilutes O2 and CO2 content and haemoglobin (and so viscosity), as intended.
+- **Packed cells are a fresh unit:** no storage lesion (high K, low pH, lactate), no citrate effect on calcium.
+- **Ringer's lactate's lactate is cleared by [Lactate](./Lactate.md)** toward its baseline (half-life ~6 min), standing in for hepatic metabolism; no bicarbonate is generated beyond what the lower lactate implies.
+- **Timing:** boluses run on the 15 ms update; the last increment can overshoot by a fraction of a step (< 0.1 %).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`:
+From `term_neonate.json`, `models.Fluids` (trimmed to two fluids):
 
 ```json
 {
   "name": "Fluids",
-  "description": "fluids model",
-  "is_enabled": true,
   "model_type": "Fluids",
-  "components": {},
+  "is_enabled": true,
   "fluids_temp": 37,
   "fluids": {
-    "normal_saline":  { "na": 154, "cl": 154 },
-    "ringers_lactate":{ "na": 130, "cl": 109, "ca": 1.4, "k": 4 },
-    "packed_cells":   { "hemoglobin": 12 },
-    "albumin_20%":    { "albumin": 20 },
-    "d5":             { "glucose": 278 },
-    "d10":            { "glucose": 555 }
+    "normal_saline": { "na": 154, "cl": 154 },
+    "ringers_lactate": { "na": 130, "cl": 109, "ca": 1.4, "k": 4, "lact": 28 }
   },
-  "default_volume": 10
+  "maintenance_rate": 1.352,
+  "maintenance_fluid": "maintenance",
+  "maintenance_site": "IVCI"
 }
 ```
 
-(The adult `adult_female.json` scenario ships the same library with `default_volume: 250`.)
+## Usage in the scenarios
 
-## Usage in the model
+One instance in every scenario with the library above; maintenance 1.35 mL/kg/h (term, fetus_term) or 3 mL/kg/h (preterm, Bischoff, fetal 25/30 wk), each matching its resting urine output.
 
-- One Fluids instance per scenario; the UI exposes `add_volume` (via the model-interface registry) so
-  the user can give boluses/infusions interactively, and scenario events can schedule infusions.
-- Targets any blood compartment by name; the default site `VLB` is the lower-body venous pool.
-- Solute keys in the `fluids` library must match the solute names tracked on the target compartment
-  (`na`, `cl`, `ca`, `k`, `hemoglobin`, `albumin`, `glucose`, …) so they mix correctly through
-  [`BloodCapacitance`](./BloodCapacitance.md)'s composition mixing.
+## References
+
+Standard product compositions. 20 % albumin's anions are an estimate from its charge at 200 g/L plus the stabilisers.

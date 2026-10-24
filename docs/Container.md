@@ -1,156 +1,143 @@
 # Container
 
-A `Container` is an enclosing compartment that **wraps other compartments** and squeezes them with its
-own recoil pressure — the model of the thorax and the pericardium. Its volume is the sum of what it
-contains, and its pressure is transmitted to those contents. It reuses the elastance machinery of
-[`Capacitance`](./Capacitance.md) but holds no flow of its own.
+A `Container` is an elastic compartment that encloses other compartments. Its volume is the sum of what it contains, and its pressure is added to the outside pressure of every compartment inside it. The model uses it for the thorax and the pericardium.
+
+## Physiology
+
+The heart and lungs don't sit in open space. The lungs, the great vessels and the heart sit inside the chest (the *thorax*), and the heart sits inside its own sac (the *pericardium*). The pressure in these spaces acts on everything inside:
+
+- **Thorax.** When the breathing muscles contract, the pressure in the chest falls below atmospheric. That suction expands the lungs and draws blood into the intrathoracic veins and the right heart. Chest compressions and positive-pressure ventilation raise the same pressure.
+- **Pericardium.** At normal filling the pericardium is slack and doesn't squeeze the heart. Once the heart (or fluid in the sac) fills it beyond its reserve, the sac becomes very stiff very quickly (a J-shaped pressure–volume curve). It then limits filling of all four chambers together. That is the mechanism of **cardiac tamponade** and pericardial constraint.
+
+Containers nest: the pericardium sits inside the thorax, so a fall in chest pressure reaches the heart chambers through both.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Container          (sum contained volume → elastance → broadcast pressure)
+  └── Container
 ```
 
-`Container` extends `BaseModelClass` directly (it does not derive from `Capacitance`), but implements
-the same `el_base`/`u_vol`/`el_k` factor pattern and the same `calc_pressure` recoil formula, with one
-difference: the non-linear term only acts on a **stretched** container,
-
-```
-S      = vol − u_vol_eff
-pres_in = (S > 0 ? el_k_eff · S² : 0) + el_eff · S
-```
-
-because `S²` is also positive below the unstressed volume, where it would push the wrong way: a
-slack pericardium must not squeeze an under-filled heart. That is what gives the pericardium its
-J-shaped curve: slack up to a reserve volume (`u_vol`), then a steep `el_k` wall (pericardial
-constraint, tamponade via `Heart.pc_extra_volume`). Note that `el_k` is in mmHg/L², so with
-volumes of millilitres it needs values of ~10⁵ to matter. See [BaseModelClass.md](./BaseModelClass.md)
-for the lifecycle contract.
-
-## What it models
-
-```
-THORAX (Container) ── contains ──► PERICARDIUM (Container) ── contains ──► LV, RV, LA, RA, COR
-        ── also contains ──► lungs (ALL, ALR), great vessels, …
-```
-
-`THORAX` holds the lungs, heart and intrathoracic vessels; `PERICARDIUM` (inside the thorax) holds the
-heart chambers. Containers nest, so pressure propagates inward (thorax → pericardium → chambers). A
-container's own volume is derived from its members, so it does not store fluid itself and is never a
-flow endpoint.
+`Container` extends `BaseModelClass` directly, not `Capacitance`. It repeats the `u_vol`/`el_base`/`el_k` elastance machinery and factor layers, but it holds no fluid, so nothing flows into or out of it.
 
 ## Properties
 
-### Config / independent (set in the definition JSON)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume of the container |
-| `el_base` | mmHg/L | Baseline (linear) elastance |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient (acts only above `u_vol`) |
-| `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
-| `vol_extra` | L | Additional fixed volume added to the contained sum |
-| `contained_components` | string[] | Names of the models this container encloses |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `u_vol` | L | 0.0 | Unstressed volume: below it the container exerts no recoil. For the pericardium this is the reserve volume. |
+| `el_base` | mmHg/L | 0.0 | Linear elastance. |
+| `el_k` | mmHg/L² | 0.0 | Non-linear elastance; acts only above `u_vol`. Volumes are in litres, so 10 mL of stretch is 0.01 L and `el_k` = 10⁵ gives 10 mmHg. |
+| `vol_extra` | L | 0.0 | Volume added to the contained sum, e.g. pericardial fluid (written by `Heart` from `pc_extra_volume`). |
+| `contained_components` | string[] | `[]` | Names of the enclosed models. |
+| `u_vol_factor`, `el_base_factor`, `el_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. |
+| `u_vol_factor_ps`, `el_base_factor_ps`, `el_k_factor_ps` | – | 1.0 | Persistent factors. |
+| `u_vol_factor_scaling_ps`, `el_base_factor_scaling_ps`, `el_k_factor_scaling_ps` | – | 1.0 | Persistent scaling factors (`ModelScaler`). |
 
-Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
-`u_vol_factor`, `el_base_factor`, `el_k_factor` (non-persistent);
-`u_vol_factor_ps`, `el_base_factor_ps`, `el_k_factor_ps` (persistent);
-`u_vol_factor_scaling_ps`, `el_base_factor_scaling_ps`, `el_k_factor_scaling_ps` (scaling).
+### Outputs
 
-### Computed / dependent (engine outputs)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `vol` | L | 0.0 | `vol_extra` + the volumes of the enabled contained models. |
+| `pres_in` | mmHg | 0.0 | Recoil pressure of the container wall. |
+| `pres` | mmHg | 0.0 | `pres_in + pres_ext`: the pressure passed to the contents. |
+| `el_eff`, `el_k_eff`, `u_vol_eff` | as above | 0.0 | Effective values after the factor layers. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `vol` | L | Container volume (`vol_extra + Σ contained.vol`) |
-| `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
-| `pres_in` | mmHg | Internal recoil pressure |
-| `el_eff` | mmHg/L | Effective elastance after the factor layers |
-| `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
+### Set by other models
 
-## Calculation cycle (`calc_model`)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `pres_ext` | mmHg | 0.0 | External pressure for this step, reset to 0 after use. Written by: `Breathing` (muscle pressure, subtracted from THORAX), `Resuscitation` (chest compressions, added to THORAX), the THORAX on the PERICARDIUM (its own `pres`). |
 
-Each step: `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
+## Calculation
 
-### `calc_elastances`
+`calc_model()` runs `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
 
-Composes `el_eff` and `el_k_eff` from the base values and the three factor layers (identical to
-[`Capacitance`](./Capacitance.md)), then resets the non-persistent `el_base_factor` / `el_k_factor`
-to `1.0`.
+1. **`calc_elastances`**: `el_eff` and `el_k_eff` from the base value and the three factor layers, composed additively (see [Factor system](#factor-system)). Then the non-persistent factors are reset.
+2. **`calc_volumes`**:
 
-### `calc_volumes`
+   ```
+   vol       = vol_extra + Σ vol of the contained models that exist and are enabled
+   u_vol_eff = u_vol · (additive factor layers)
+   ```
 
-```
-vol = vol_extra + Σ contained.vol          (over members that exist and are enabled)
-u_vol_eff = u_vol + (u_vol_factor − 1)·u_vol + (u_vol_factor_ps − 1)·u_vol + (u_vol_factor_scaling_ps − 1)·u_vol
-```
+3. **`calc_pressure`**, with `S = vol − u_vol_eff`:
 
-Then resets the non-persistent `u_vol_factor` to `1.0`. Members are looked up by name in
-`model.models`; missing or disabled members are skipped.
+   ```
+   pres_in = (S > 0 ? el_k_eff · S² : 0) + el_eff · S
+   pres    = pres_in + pres_ext
+   for every contained model that exists and is enabled:  model.pres_ext += pres
+   pres_ext = 0
+   ```
 
-### `calc_pressure`
+   The non-linear term only acts on a stretched container, because `S²` is also positive below `u_vol`, where it would push the wrong way: a slack pericardium must not squeeze an under-filled heart. The contained models add their `pres_ext` to their own pressure and reset it in their own `calc_pressure`, so the contributions don't accumulate.
 
-```
-pres_in = el_k_eff · (vol − u_vol_eff)² + el_eff · (vol − u_vol_eff)
-pres    = pres_in + pres_ext
-for each contained component (existing & enabled):  component.pres_ext += pres
-pres_ext := 0
-```
+**Step order and lag.** Each model steps once per step, in insertion order (see [BaseModelClass](./BaseModelClass.md#composite-models-components)). In the shipped scenarios the order is: `Breathing` → heart chambers → `PERICARDIUM` → lungs and vessels → `THORAX`. So:
+- the lungs and intrathoracic vessels feel the thorax pressure **one step** late;
+- the heart chambers feel it **two steps** late (through the pericardium);
+- the chambers feel the pericardial pressure one step late.
 
-The container's full pressure is **added** to every contained component's `pres_ext`, which those
-components read in their own `calc_pressure`. Because contents reset `pres_ext` each step, the
-contributions compose without accumulating.
+At the 0.5 ms step size this is 0.5–1 ms, negligible against a 400 ms heartbeat.
 
 ## Factor system
 
-`el_base`, `u_vol`, `el_k` are **never used raw**. Each combines three multiplier layers **additively
-against the base** into an `*_eff` value:
-
-| Layer | Persistence | Set by |
-|---|---|---|
-| `<p>_factor` | reset to `1.0` every step | transient interventions |
-| `<p>_factor_ps` | persistent | user / scenario / regulator models (e.g. `Breathing`) |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling) |
+`u_vol`, `el_base` and `el_k` carry the three layers (`_factor`, `_factor_ps`, `_factor_scaling_ps`) and compose **additively**, as in [`Capacitance`](./Capacitance.md):
 
 ```
 p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)·p
 ```
 
-Same pattern as [`Capacitance`](./Capacitance.md).
+The only model that writes a factor is `Heart`: its `pc_el_factor` (pericardial stiffness) moves `PERICARDIUM.el_base_factor_ps` and `el_k_factor_ps` together. See [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
 
-## Notes
+## Inputs and outputs
 
-- **Membership is name-based and enable-aware.** Volume is summed and pressure transmitted only for
-  members that resolve to a model and are `is_enabled`; missing or disabled members are skipped (so a
-  disabled chamber neither adds phantom volume nor accumulates an unbounded `pres_ext`).
-- **Sub-unstressed operation matters.** The thorax runs *below* its unstressed volume (`vol < u_vol`),
-  so a higher elastance makes `pres_in` more negative — this is how `Breathing`'s muscle effort
-  (which raises `THORAX.el_base_factor`) produces inspiratory suction.
-- The order of stepping sets whether a content sees this step's container pressure or last step's (at
-  most one step of lag) — inherent to sequential stepping, stable at the default step size.
+- **Reads:** `vol` and `is_enabled` of each contained model.
+- **Writes:** `pres_ext` of each contained model, every step.
+- **Written by:**
+  - `Breathing` and `Resuscitation` (THORAX `pres_ext`);
+  - `Heart` (PERICARDIUM `vol_extra` from `pc_extra_volume`, and the stiffness factors from `pc_el_factor`);
+  - `ModelScaler` (scaling factors).
+- **Read by:** `Breathing` (THORAX elastance, to size the respiratory effort), `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **Uniform pressure.** The whole container has one pressure. Regional differences (e.g. pleural pressure gradients from apex to base) aren't modelled.
+- **Membership is by name.** Missing or disabled members are skipped for both the volume and the pressure. Skipping disabled members also stops a disabled compartment, which never resets its `pres_ext`, from accumulating pressure.
+- **Pericardium calibration** (`scripts/_fix_pericardium.mjs`):
+  - `u_vol` is 1.15 × the maximal (end-diastolic) heart volume at rest, so the pericardium is slack at rest (term: 30.7 mL in it against 35.2 mL).
+  - `el_k` gives +10 mmHg at 10 mL beyond that reserve (10⁵ mmHg/L²).
+  - `el_base` is 0.
+  - So `pc_el_factor` has no effect at rest and only acts once the pericardium is stretched (e.g. by `pc_extra_volume`).
+- **The pericardial wall scales with the heart.** `el_k` = 10⁵ mmHg/L² × (35.2 mL / reserve)² (`scripts/_scale_pericardium.mjs`), so every scenario gets the same pressure for the same fractional stretch beyond its reserve: from 10⁵ at term to 2.6·10⁶ at 25 weeks. An effusion of 50 % of the reserve lowers LVO by 10 % at term and 6–7 % at 25–28 weeks.
+- **The thorax elastance** (`el_base` 50 mmHg/L term, 150 at 25 weeks) represents the chest wall. Its `u_vol` and `el_base` are scenario-calibrated values.
 
 ## Example definition (JSON)
 
+From `term_neonate.json`, `models.Heart.components.PERICARDIUM` (trimmed to the config props):
+
 ```json
 {
-  "name": "UPPER_BODY",
-  "description": "passive container grouping cephalic vessels for tilt",
+  "name": "PERICARDIUM",
   "model_type": "Container",
   "is_enabled": true,
-  "u_vol": 0,
+  "u_vol": 0.03525,
   "el_base": 0,
-  "el_k": 0,
-  "pres_ext": 0,
+  "el_k": 100000,
   "vol_extra": 0,
-  "contained_components": ["BR_ART", "BR_CAP", "BR_VEN", "RUB", "VUB", "THORAX"]
+  "contained_components": ["RAIVCI", "RASVC", "RV", "LA", "LV", "COR"]
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- `THORAX` and `PERICARDIUM` are the canonical containers (created inside the respiration/heart
-  composite models); they transmit intrathoracic/pericardial pressure to the lungs, great vessels and
-  heart chambers.
-- `Breathing` drives `THORAX.el_base_factor` to generate the inspiratory pressure swing.
-- Also used as passive grouping containers (e.g. `UPPER_BODY`) for postural/tilt experiments.
+All 10 shipped scenarios have the same two containers:
+
+| Instance | Owner | Contains | Role |
+|---|---|---|---|
+| `THORAX` | `Respiration` | `ALL`, `ALR` (lungs), `PERICARDIUM`, `AA`, `AAR`, `PA`, `PAAL`, `PAAR`, `PV`, `IVCI`, `SVC`, lung arteries/capillaries/veins (`LL_*`, `RL_*`) | Chest wall and pleural pressure; target of the breathing muscles and of chest compressions. |
+| `PERICARDIUM` | `Heart` | `RAIVCI`, `RASVC`, `RV`, `LA`, `LV`, `COR` | Pericardial constraint and tamponade. |
+
+## References
+
+No literature-derived values in this class. The pericardial reserve and wall stiffness are calibration choices documented in `scripts/_fix_pericardium.mjs`.

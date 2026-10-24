@@ -17,8 +17,10 @@ export function orifice_b(diameter_mm, cd) {
   return area_eff > 0 ? K_BERNOULLI / (area_eff * area_eff) : 0.0;
 }
 
-// Modified-Bernoulli jet velocity (m/s) for flow q (L/s) through an orifice with coefficient b:
-// B·Q² = 4·v²  →  v = sign(Q)·√(B·Q²/4)
+// Jet velocity (m/s) for flow q (L/s) through an orifice with coefficient b: the kinetic loss B·Q² is
+// ½ρv² in mmHg, i.e. (K_BERNOULLI·1e6)·v² ≈ 3.975·v², so v = sign(Q)·√(B·Q² / (K_BERNOULLI·1e6)). Because
+// B = K_BERNOULLI / A_eff², this is exactly the continuity velocity Q/A_eff through the vena contracta.
+// (The clinical "ΔP = 4v²" rounds 3.975 up to 4, which would read 0.3 % low.)
 export function jet_velocity(b, q) {
-  return Math.sign(q) * Math.sqrt(Math.abs(b * q * q) / 4.0);
+  return Math.sign(q) * Math.sqrt(Math.abs(b * q * q) / (K_BERNOULLI * 1.0e6));
 }

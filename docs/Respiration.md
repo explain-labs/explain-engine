@@ -1,129 +1,88 @@
 # Respiration
 
-`Respiration` is a **coordinator**, not a physical compartment (the same pattern as
-[Circulation](./Circulation.md)). It groups the models of the respiratory tract by name and applies
-whole-system adjustments to their elastance, resistance and gas-exchange factors. It owns no volume,
-pressure or flow of its own.
+`Respiration` coordinates the respiratory system; it holds no gas itself. It groups the airway, lung, thorax and gas-exchange models by name and gives them system-wide levers: lung and chest-wall stiffness, upper and lower airway resistance, and gas-exchange capacity. It configures the airway dead space as a series (plug-flow) dead space, and it owns **atelectasis**: collapse of part of a lung, its recruitment and derecruitment with pressure, and resorption collapse behind a blocked bronchus.
 
-It is the *mechanical/structural* counterpart to [Breathing](./Breathing.md): `Breathing` generates
-the breath effort, while `Respiration` sets the lung/thorax stiffness, airway resistance and
-gas-exchange efficiency that the breath acts against.
+## Physiology
+
+The respiratory system is the airways (upper: nose, larynx, trachea; lower: bronchi down to the alveolar ducts), the lungs, and the chest wall around them. Disease acts on a few properties at once:
+- **compliance:** stiff lungs in RDS, a stiff or floppy chest wall;
+- **resistance:** bronchospasm, secretions, a narrow tube;
+- **exchange surface:** lost alveoli, oedema.
+
+**Atelectasis** is collapse of alveoli. A collapsed region loses its gas volume, its share of the lung's compliance and its exchange surface, but its blood keeps flowing past without picking up oxygen: an intrapulmonary shunt, partly limited by hypoxic pulmonary vasoconstriction. Collapsed units reopen above an *opening pressure* (a recruitment manoeuvre, a sustained inflation) and close again below a lower *closing pressure*. That hysteresis is why PEEP keeps a recruited lung open. Behind a blocked bronchus (mucus plug, a tube in the other main bronchus) the trapped gas is absorbed into the blood and the lung collapses: fast if the gas was oxygen, slowly if it was air, because nitrogen dissolves poorly.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Respiration   (group coordinator — no physics of its own)
+  └── Respiration
 ```
-
-Extends `BaseModelClass` directly; `calc_model()` iterates over named members and writes onto their
-persistent factor layers rather than computing any physics itself.
-
-## What it models
-
-A single set of system-wide multipliers over the respiratory tree:
-
-- **Lung / chest-wall stiffness** — `el_lungs_factor`, `el_thorax_factor`.
-- **Airway resistance** — `res_upper_airways_factor`, `res_lower_airways_factor`.
-- **Gas-exchange efficiency** — `gex_factor` (drives both O₂ and CO₂ diffusion).
-- **Atelectasis** — `atelectasis_left`, `atelectasis_right`: the collapsed fraction of each lung (see
-  [Atelectasis](#atelectasis)).
-
-Each multiplier is translated into a **delta** on the corresponding `*_factor_ps` of the grouped
-models, so it composes additively with other writers of that persistent layer.
 
 ## Properties
 
-### Group lists (set in the model definition)
+### Config: groups (names of models)
 
-| List | Default members | Role |
+| Property | Scenario value | Used by |
 |---|---|---|
-| `upper_airways` | `["MOUTH_DS"]` | mouth → dead-space resistor |
-| `lower_airways` (`_left`/`_right`) | `["DS_ALL", "DS_ALR"]` | dead-space → alveolar resistors |
-| `dead_space` | `["DS"]` | conducting-airway gas compartment |
-| `thorax` | `["THORAX"]` | chest-wall container |
-| `lungs` (`left_lung`/`right_lung`) | `["ALL", "ALR"]` | alveolar gas compartments |
-| `gas_exchangers` (`_left`/`_right`) | `["GASEX_LL", "GASEX_RL"]` | blood↔gas exchangers |
-| `pleural_space_left`/`_right` | `[]` | reserved (declared, not driven) |
-| `intrapulmonary_shunt` | `["IPS"]` (scenarios override, e.g. `["IPSL","IPSR"]`) | reserved (declared, not driven) |
+| `upper_airways` | `["MOUTH_DS"]` | `res_upper_airways_factor` |
+| `lower_airways` | `["DS_ALL", "DS_ALR"]` | `res_lower_airways_factor` |
+| `lower_airways_left`, `lower_airways_right` | `["DS_ALL"]`, `["DS_ALR"]` | bronchus obstruction |
+| `dead_space` | `["DS"]` | series dead space |
+| `thorax` | `["THORAX"]` | `el_thorax_factor` |
+| `lungs`, `left_lung`, `right_lung` | `["ALL", "ALR"]`, `["ALL"]`, `["ALR"]` | `el_lungs_factor`; atelectasis; the dead space's distal end |
+| `gas_exchangers`, `gas_exchanger_left_lung`, `gas_exchanger_right_lung` | `GASEX_LL`, `GASEX_RL` | `gex_factor`; atelectasis |
+| `intrapulmonary_shunt_left`, `intrapulmonary_shunt_right` | `["IPSL"]`, `["IPSR"]` | atelectasis perfusion |
+| `pulmonary_capillaries_left`, `pulmonary_capillaries_right` | `xL_ART_xL_CAP`, `xL_CAP_xL_VEN` | atelectasis perfusion |
 
-> Note: older definitions store this list under the misspelled key `gas_echangers`; `init_model`
-> maps it onto `gas_exchangers`.
+Older (archived) scenarios spell `gas_exchangers` as `gas_echangers`; `init_model` accepts it.
 
-### Factor inputs (set in the model definition)
+### Config: system levers
 
-| Property | Default | Method | Drives |
-|---|---|---|---|
-| `el_lungs_factor` | `1.0` | `set_el_lung_factor` | `el_base_factor_ps` on the lungs |
-| `el_thorax_factor` | `1.0` | `set_el_thorax_factor` | `el_base_factor_ps` on the thorax |
-| `res_upper_airways_factor` | `1.0` | `set_upper_airway_resistance` | `r_factor_ps` on the upper airways |
-| `res_lower_airways_factor` | `1.0` | `set_lower_airway_resistance` | `r_factor_ps` on the lower airways |
-| `gex_factor` | `1.0` | `set_gasexchange` | `dif_o2_factor_ps` **and** `dif_co2_factor_ps` on the exchangers |
+Multipliers around 1; a change is added as a delta to the members' persistent layer (see [Calculation](#calculation)).
 
-### Atelectasis inputs
-
-| Property | Default | Method | Drives |
-|---|---|---|---|
-| `atelectasis_left` / `_right` | `0.0` | `set_atelectasis_left` / `_right` | collapsed fraction of that lung, clamped `0..atelectasis_max` |
-| `atelectasis_max` | `0.9` | — | upper clamp (a fully collapsed lung has no aerated volume left to scale) |
-| `atelectasis_hpv` | `0.3` | — | share of the collapsed units' perfusion that hypoxic pulmonary vasoconstriction removes from the lung |
-| `atelectasis_recruitable` | `true` | — | pressure reopens and re-collapses the affected units; `false` = obstructive/resorption atelectasis |
-| `atelectasis_open_pressure` / `_open_sd` | `25` / `3` cmH₂O | — | opening pressures of the collapsed units (normal distribution, on the distending pressure) |
-| `atelectasis_close_pressure` / `_close_sd` | `8.5` / `1.5` cmH₂O | — | closing pressures of the affected units |
-| `atelectasis_tau_open` / `_tau_close` | `3` / `30` s | — | recruitment and derecruitment time constants |
-| `intrapulmonary_shunt_left` / `_right` | `["IPSL"]` / `["IPSR"]` | — | the lung's shunt resistors (art → ven) |
-| `pulmonary_capillaries_left` / `_right` | `["LL_ART_LL_CAP", "LL_CAP_LL_VEN"]` / `["RL_…"]` | — | the lung's gas-exchanging path, in series |
-
-### Series dead space (pushed to the `dead_space` compartments every update)
-
-| Property | Default | Drives |
+| Property | Default | Acts on |
 |---|---|---|
-| `dead_space_segments` | `32` | `series_segments` on each dead-space compartment (1 = classic well-mixed) |
-| `dead_space_dispersion` | `0.015` | `dispersion_coeff` (axial dispersion between the sub-tanks) |
-| `dead_space_diffusion` | `0` | `diffusion_rate` (L/s per interface: molecular diffusion along the dead space, also without flow) |
+| `el_lungs_factor` | 1.0 | lungs' `el_base_factor_ps` |
+| `el_thorax_factor` | 1.0 | thorax's `el_base_factor_ps` |
+| `res_upper_airways_factor` | 1.0 | upper airways' `r_factor_ps` |
+| `res_lower_airways_factor` | 1.0 | lower airways' `r_factor_ps` |
+| `gex_factor` | 1.0 | gas exchangers' `dif_o2_factor_ps` and `dif_co2_factor_ps` |
 
-Each update the loop also sets the dead space's `distal_models` to `lungs`, so gas leaves towards the
-alveoli from the distal end of the chain. See
-[GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space) for the model and its
-calibration.
+### Config: series dead space
 
-### Local (internal)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `dead_space_segments` | – | 32 | Composition sub-tanks of the dead space (1 = well mixed). |
+| `dead_space_dispersion` | – | 0.015 | Axial dispersion coefficient. |
+| `dead_space_diffusion` | L/s per interface | 0 | Molecular diffusion along the dead space; scenarios 1e-5. |
 
-`_update_interval` (0.015 s) / `_update_counter` throttle the loop; `_prev_*` shadow each factor so a
-change can be detected and applied as a delta.
+Written onto every `dead_space` compartment each update, with `distal_models = lungs` (see [GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)).
 
-## Calculation cycle (`calc_model`)
+### Config: atelectasis
 
-One throttled loop (every 0.015 s). It first pushes the series-dead-space configuration onto the
-`dead_space` compartments (cheap, and keeps it live-editable). It then applies each factor **only when
-it changed** (guarded by a `_prev_*` comparison). Each changed input calls its `set_*` method, then stores the new value into
-`_prev_*`.
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `atelectasis_left`, `atelectasis_right` | fraction | 0 | Collapsed fraction of each lung (clamped to `atelectasis_max`). Setting it also defines the unstable region. |
+| `atelectasis_max` | fraction | 0.9 | Upper limit. |
+| `atelectasis_hpv` | fraction | 0.3 | Share of the collapsed units' blood that hypoxic vasoconstriction diverts away from the lung. |
+| `atelectasis_recruitable` | boolean | true | Pressure can reopen collapsed units. Off = obstructive/resorption atelectasis. |
+| `atelectasis_open_pressure`, `atelectasis_open_sd` | cmH2O | 25, 3 | Opening pressures (normal distribution). |
+| `atelectasis_close_pressure`, `atelectasis_close_sd` | cmH2O | 8.5, 1.5 | Closing pressures. |
+| `atelectasis_tau_open`, `atelectasis_tau_close` | s | 3, 30 | Recruitment and derecruitment time constants. |
+| `airway_obstructed_left`, `airway_obstructed_right` | boolean | false | A plug in the main bronchus. |
+| `atelectasis_resorb_tau_air`, `atelectasis_resorb_tau_o2` | s | 1800, 240 | Resorption time constant with trapped air and trapped oxygen. |
 
-## The `set_*` methods — delta application
+## Calculation
 
-Every target is a **persistent** factor (`*_factor_ps`) that accumulates contributions from several
-models, so `Respiration` applies the **delta** since its last call, not the absolute value:
+**Every step:** while a lung has atelectasis, its perfusion split is rewritten on the non-persistent `r_factor` of its shunt and capillary resistors (see [Atelectasis](#atelectasis)).
 
-```
-delta = new_factor − prev_factor
-for each model in the group:  factor_ps += delta   (clamped at 0)
-this.<factor> := new_factor          (prev_factor stored by calc_model after the call)
-```
+**Every 15 ms:**
+1. The series dead-space settings are pushed to the dead-space compartments.
+2. Each lever that changed since the last update is applied by its setter: the change `new − previous` is added to the members' persistent layer, clamped at 0. Several models share these layers, so Respiration only ever adds its own change. A set-and-clear round trip restores the start values.
+3. Changed atelectasis or obstruction settings are applied.
+4. Per lung: an obstructed lung resorbs; an open lung with an unstable region recruits or derecruits with its distending pressure.
 
-The delta is computed **once** so every model in the group gets the same change, and each factor is
-clamped at 0 (negative elastance/resistance/diffusion factors are non-physical). `set_gasexchange`
-applies the delta to both the O₂ and CO₂ diffusion factors, clamping each independently.
-
-## Factor system
-
-`Respiration` does not itself carry the three-tier `_factor`/`_factor_ps`/`_factor_scaling_ps` pattern
-(it has no base physics param). Instead it is one of the *writers* of the **persistent** `*_factor_ps`
-tier on the grouped models: `el_base_factor_ps` (lungs/thorax), `r_factor_ps` (airways) and
-`dif_o2/co2_factor_ps` (exchangers). It never touches the non-persistent (`_factor`) or scaling
-(`_factor_scaling_ps`) tiers — those belong to transient interventions and `ModelScaler` respectively.
-
-All factor inputs default to 1.0 (no effect). Disease scenarios raise lung/airway factors (e.g. RDS →
-stiff lungs, bronchospasm → high lower-airway resistance) or lower `gex_factor` (impaired diffusion).
+The setters (`set_el_lung_factor`, `set_el_thorax_factor`, `set_upper_airway_resistance`, `set_lower_airway_resistance`, `set_gasexchange`, `set_atelectasis_left/right`, `set_airway_obstructed_left/right`) can also be called directly; each records its new value, so a change is applied once either way. `set_tube_block(side, state)` is called by the Ventilator.
 
 ## Atelectasis
 
@@ -160,7 +119,7 @@ Each shunt resistor is scaled by `G_ips / (s'·G_tot')` and each capillary resis
 set from conductance ratios, the shunt share does not depend on the scenario's `Shunts.ips_res`
 (preterm 1600–4200, term 5000). With `c = 0` nothing is written.
 
-On `term_neonate`, right lung, room air (`scripts/probe_atelectasis.mjs`):
+On `term_neonate`, right lung, room air (`scripts/probe_atelectasis.mjs`, measured when atelectasis was introduced, 2026-10):
 
 | c | SaO₂ | PaO₂ | lung Qs | Qs/Qt | ALR ml | CMV 20/5: Vte | C (ml/mbar) |
 |---|---|---|---|---|---|---|---|
@@ -214,7 +173,7 @@ re-collapses most of it.
 The opening pressure is 25 cmH₂O (sd 3), the range of a neonatal sustained inflation. CMV 20/5
 recruits only a little (its peak sits in the tail), while PIP 28 or a sigh of 27 mbar opens most of it.
 
-Trace on `term_neonate`, right lung, set to 0.6 on SLE CMV 20/5 (`scripts/probe_atelectasis.mjs`):
+Trace on `term_neonate`, right lung, set to 0.6 on SLE CMV 20/5 (`scripts/probe_atelectasis.mjs`, 2026-10):
 
 | phase | c | SaO₂ | lung Qs | ALR ml |
 |---|---|---|---|---|
@@ -262,51 +221,59 @@ On term_neonate with a right-mainstem tube on CMV 20/5, the left lung's collapse
 0.26 on air and 0.67 on oxygen. A right bronchial plug in a spontaneously breathing baby takes SaO₂
 from 96 to 76 % in 5 minutes.
 
+## Factor system
+
+None of its own. It writes:
+
+| Target | Layer |
+|---|---|
+| lungs, thorax | `el_base_factor_ps` (levers, atelectasis); lungs' `u_vol_factor_ps` (atelectasis) |
+| airways | `r_factor_ps` (levers); `no_flow` (obstruction) |
+| gas exchangers | `dif_o2_factor_ps`, `dif_co2_factor_ps` (`gex_factor`, atelectasis) |
+| shunt and capillary resistors | `r_factor`, every step while there is atelectasis |
+
+## Inputs and outputs
+
+- **Reads:** the lungs' `pres_in`, `fo2`, `vol`, `u_vol_eff`, `el_eff`; the resistors' layers.
+- **Writes:** the layers above; the dead space's series settings; trapped-lung volume (`volume_out`) during resorption.
+- **Written by:** the user and bot (levers, atelectasis, plugs); the [Ventilator](./Ventilator.md#airway-events) (`set_tube_block`); scenario generators (`el_lungs_factor`, `gex_factor`).
+- **Read by:** `DataCollector` watchers and the probes (`atelectasis_left/right`).
+
+## Assumptions and limitations
+
+- **Levers add.** The persistent layers are shared, so simultaneous writers add their changes. A layer driven to the 0 clamp loses the part of the change below 0.
+- **Membership is by name.** Only models named in the lists are affected.
+- **Atelectasis is per lung, not regional,** and calibrated on the term lung. In preterm lungs, [Surfactant](./Surfactant.md)'s own whole-lung recruitment runs in parallel; their effects add.
+- **The perfusion split assumes the shunt and capillary paths share one pressure drop** (`xL_ART` → `xL_VEN`).
+
 ## Example definition (JSON)
 
-From `term_neonate.json`:
+From `term_neonate.json`, `models.Respiration` (trimmed: groups and atelectasis defaults left out):
 
 ```json
 {
   "name": "Respiration",
-  "description": "high level respiration model",
   "model_type": "Respiration",
   "is_enabled": true,
-  "upper_airways": ["MOUTH_DS"],
-  "lower_airways": ["DS_ALL", "DS_ALR"],
-  "lower_airways_left": ["DS_ALL"],
-  "lower_airways_right": ["DS_ALR"],
-  "dead_space": ["DS"],
-  "thorax": ["THORAX"],
   "lungs": ["ALL", "ALR"],
-  "left_lung": ["ALL"],
-  "right_lung": ["ALR"],
-  "gas_exchangers": ["GASEX_LL", "GASEX_RL"],
-  "intrapulmonary_shunt": ["IPSL", "IPSR"],
-  "el_lungs_factor": 1.0,
-  "el_thorax_factor": 1.0,
-  "res_upper_airways_factor": 1.0,
-  "res_lower_airways_factor": 1.0,
-  "gex_factor": 1.0
+  "thorax": ["THORAX"],
+  "el_lungs_factor": 1,
+  "el_thorax_factor": 1,
+  "res_upper_airways_factor": 1,
+  "res_lower_airways_factor": 1,
+  "gex_factor": 1,
+  "dead_space_segments": 32,
+  "dead_space_dispersion": 0.015,
+  "dead_space_diffusion": 1e-5,
+  "atelectasis_left": 0,
+  "atelectasis_right": 0
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- Disease models (RDS / surfactant, CDH, bronchospasm) set `el_lungs_factor`,
-  `res_lower_airways_factor` or `gex_factor` to impose stiff lungs, narrowed airways or impaired
-  diffusion without touching the individual compartment definitions.
-- Because the targets are the shared `*_factor_ps` layer, Respiration composes with whatever the
-  surfactant/recruitment model or `ModelScaler` is doing to the same compartments.
-- It is the structural partner of [Breathing](./Breathing.md) (effort generator) and the respiratory
-  analogue of [Circulation](./Circulation.md) (vascular-tree coordinator).
+One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. All ten scenarios use the defaults above for every lever (1) and for atelectasis (0); disease in the preterm and Bischoff scenarios is carried by the compartments' own values and by Surfactant (enabled there).
 
-## Notes & caveats
+## References
 
-- **Factors are cumulative and shared.** `*_factor_ps` is written by several models; `Respiration`
-  only adds its delta. A factor driven to the 0 clamp stops tracking further decreases until the
-  target rises again — inherent to the per-model persistent-factor scheme.
-- **Side- and space-specific lists.** The `left_lung`/`right_lung` and
-  `gas_exchanger_left_lung`/`_right_lung` lists are used by atelectasis; `pleural_space_left/right`,
-  `intrapulmonary_shunt` and the `_left`/`_right` airway lists are declared but not used by any method.
-- **Group membership is name-based** — a model is only affected if its name is in the relevant list.
+- Hickling KG. The pressure-volume curve is greatly modified by recruitment: a mathematical model of ARDS lungs. *Am J Respir Crit Care Med* 1998;158:194–202. doi:10.1164/ajrccm.158.1.9708049 (normally distributed opening and closing pressures).

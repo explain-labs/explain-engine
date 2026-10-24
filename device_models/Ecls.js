@@ -221,7 +221,7 @@ export class Ecls extends BaseModelClass {
     // flow at max rpm fixes the Euler-slip falloff hq_b. Notably the Rotaflow deadhead is consistent
     // across two independent data points (~108 mmHg @2000 rpm shut-off, ~700 mmHg @5000 rpm) giving
     // hq_a≈28. The linear (N·Q) falloff keeps a finite slope at low flow (afterload sensitivity) rather
-    // than the flat low-flow curve a pure Q^2 term would give. See docs/BloodPump.md for the table/sources.
+    // than the flat low-flow curve a pure Q^2 term would give. See docs/Ecls.md (pump device library) for the table/sources.
     this.pumps = {
       "Abbott PediMag": { // pediatric mag-lev centrifugal, ~1.5 L/min max, 14 mL prime
         // No H-Q curve is published. Deadhead ~640 mmHg @5500 rpm: the published 540 mmHg "max outflow

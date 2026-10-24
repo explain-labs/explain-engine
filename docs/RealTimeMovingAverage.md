@@ -45,4 +45,5 @@ Re-initializes the buffer (`values`, `count`, `writeIndex`, `sum`, `currentAvera
 
 - **Changing the window means a new instance.** There is no resize method; callers compare `windowSize` and construct a fresh `RealTimeMovingAverage` when it changes (as `Ecls` does).
 - **O(1) update via incremental sum.** Float rounding can accumulate over very long runs since `sum` is maintained additively rather than recomputed; for the signal magnitudes and window sizes used here this is negligible.
+- **A NaN never leaves.** One non-finite sample makes `sum` NaN, and subtracting it again when it leaves the window keeps it NaN; only `reset()` (or a new instance) recovers. Callers feed it finite values.
 - **Self-contained.** No imports, no SharedArrayBuffer, no worker messaging — purely a numeric helper that can be used anywhere in the engine.

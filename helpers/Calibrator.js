@@ -240,13 +240,10 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
       makeController({ signGuard: true, maxStepFrac: 0.5, key, readKey: READ_KEY[key] ?? key, target: targets[key], tol: tol(key), ...spec }),
     );
 
-  // MAP <- systemic arteriolar resistance. Nudge the arterioles' persistent r_factor_ps DIRECTLY
-  // (delta-accumulating), NOT Circulation.svr_factor_art: that master knob is owned and OVERWRITTEN
-  // every step by the Hormones model (RAAS, Hormones.js -> _circ.svr_factor_art = svr_factor), so a
-  // write to it does not stick and the live MAP tune cannot lower MAP. Circulation's own master knobs
-  // (svr_factor_art/_ven/_drug) all fan out DELTAS to these same arterioles' r_factor_ps, so applying
-  // our own delta composes additively with the Hormones/ANS/Drugs contributions instead of colliding,
-  // and is not clobbered. ↑ factor => ↑ resistance => ↑ MAP.
+  // MAP <- systemic resistance. Nudge the vessels' persistent r_factor_ps DIRECTLY (delta-accumulating).
+  // Circulation's channels (svr_factor_art/_ven, _drug, _hormones_art/_ven) fan out DELTAS to the same
+  // r_factor_ps, so our own delta composes additively with them and with the user's SVR setting, over
+  // the whole systemic set rather than only Circulation's arterioles. ↑ factor => ↑ resistance => ↑ MAP.
   if (targets.map != null && model.models.Circulation) {
     // Align the baroreflex arterial-pressure set-point to the target so the ANS defends the NEW
     // operating point instead of dragging MAP back toward the loaded baseline (mirrors the offline
@@ -315,9 +312,10 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
     mk(key, { lo: ips0 ? DIF_O2_FLOOR / 10 : DIF_O2_FLOOR, hi: 8, sign: +1, gain: key === "po2" ? 0.03 : 0.06, value: start, set });
   }
   // Pulse pressure (sys/dia pair) <- stiffness of the large elastic arteries (AA, AAR, AD), their
-  // el_base_factor_ps, as in the builder. It multiplies the size stiffening a built small patient
-  // carries in el_base_factor_scaling_ps, and the product must stay below ARTERIAL_EL_MAX, so the
-  // upper bound is what that scaling leaves. The aortic resistors are switched to implicit
+  // el_base_factor_ps, as in the builder. The upper bound is what ARTERIAL_EL_MAX leaves of any size
+  // stiffening still in el_base_factor_scaling_ps; the shipped scenarios have it baked into el_base
+  // (v1.0), so their bound is the full x5.7 on top of the loaded stiffness (preterm_25wk, implicit
+  // aorta: stable at x5.7, ABP 76/14). The aortic resistors are switched to implicit
   // integration first (a running scenario may predate them); without that the chain fails near ×2
   // and a live tune, unlike the builder, cannot discard a failed run.
   if (targets.pp != null) {

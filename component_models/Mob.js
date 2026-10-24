@@ -13,13 +13,13 @@ export class Mob extends BaseModelClass {
 
     1. Basal MVO2:        bm_vo2 = bm_vo2_per_g · hw                [mmol/s]
     2. Stroke-work MVO2:  sw_vo2 = (SW_lv + SW_rv)[J] / (mech_efficiency · caloric_equiv_o2)
-                                   · O2_MMOL_PER_ML / cycle_time    [mmol/s]
+                                   · O2_MMOL_PER_ML / beat_interval    [mmol/s]
        where SW_* is the per-beat ventricular stroke work (P-V loop area, mmHg·L → J),
        computed as the area of the P-V loop via trapezoidal P·dV
        integration over the cardiac cycle.
 
-  Per-step consumption is mob_vo2 · dt, subtracted from the COR (coronary
-  bloodpool) to2 with proportional CO2 added back via resp_q.
+  Per-step consumption is mob_vo2 · dt, taken from the COR (coronary blood pool) as far as COR
+  holds the O2, with CO2 added at resp_q for the O2 actually used; the shortfall is o2_deficit.
 
   Owns the coronary sub-components (COR, AA_COR, COR_RAIVCI, COR_RASVC) declared
   under its `components` block in the model definition JSON.
@@ -59,11 +59,15 @@ export class Mob extends BaseModelClass {
     this.cont_factor_max = 1;
     this.cont_factor_min = 0.01;
     this.cont_tc = 5;
-    this.ans_factor = 1;
     this.ans_factor_max = 1;
     this.ans_factor_min = 0.01;
     this.ans_tc = 5;
     this.ans_activity_factor = 1;
+
+    // hypoxia gains (rebuilt every step from the *_min/*_max bounds)
+    this.hr_g = 0.0;
+    this.cont_g = 0.0;
+    this.ans_g = 0.0;
 
     // Dependent / output properties
     this.hw = 0.0;
@@ -75,6 +79,8 @@ export class Mob extends BaseModelClass {
     this.stroke_work_rv = 0.0;
     this.stroke_work_total = 0.0;
     this.mob = 0.0;
+    this.beat_interval = 0.0; // s — measured time between the last two beats (amortises the stroke work)
+    this.o2_deficit = 0.0; // mmol/s — myocardial O2 demand COR could not supply this step (0 at rest)
 
     // Local references and integration state
     this._aa = null;
@@ -88,6 +94,7 @@ export class Mob extends BaseModelClass {
     this._d_cont = 0.0;
     this._d_ans = 0.0;
     this._sw_vo2_per_beat = 0.0;
+    this._beat_timer = 0.0; // s since the last beat started
     this._prev_lv_vol = 0.0;
     this._prev_lv_pres = 0.0;
     this._prev_rv_vol = 0.0;
@@ -116,6 +123,7 @@ export class Mob extends BaseModelClass {
     this._heart = this._model_engine.models["Heart"];
     this._lv = this._model_engine.models["LV"];
     this._rv = this._model_engine.models["RV"];
+    if (!this._aa || !this._aa_cor || !this._cor || !this._heart || !this._lv || !this._rv) return;
 
     const to2_cor = this._cor.to2;
     const tco2_cor = this._cor.tco2;
@@ -135,7 +143,6 @@ export class Mob extends BaseModelClass {
 
     // Per-step consumption [mmol]
     this.mvo2_step = this.mob_vo2 * this._t;
-    const co2_production = this.mvo2_step * this.resp_q;
 
     // Hypoxia-driven feedback to Heart
     this.calc_hypoxia_effects();
@@ -145,23 +152,25 @@ export class Mob extends BaseModelClass {
     const o2_use = this.mvo2_step / this._t;
     this.mob = o2_inflow - o2_use; // myocardial O2 balance (mmol/s): coronary O2 delivery minus use
 
-    // Update coronary blood pool
+    // Update coronary blood pool: take the demand as far as COR holds the O2, CO2 from the O2 used
+    this.o2_deficit = 0.0;
     if (vol_cor > 0) {
-      const new_to2_cor = (to2_cor * vol_cor - this.mvo2_step) / vol_cor;
-      const new_tco2_cor = (tco2_cor * vol_cor + co2_production) / vol_cor;
-      if (new_to2_cor >= 0) {
-        this._cor.to2 = new_to2_cor;
-        this._cor.tco2 = new_tco2_cor;
-      }
+      const used = Math.min(this.mvo2_step, Math.max(to2_cor * vol_cor, 0.0));
+      this._cor.to2 = (to2_cor * vol_cor - used) / vol_cor;
+      this._cor.tco2 = (tco2_cor * vol_cor + used * this.resp_q) / vol_cor;
+      this.o2_deficit = (this.mvo2_step - used) / this._t;
     }
   }
 
   calc_sw_vo2() {
     // Capture stroke work at the rising edge of cardiac_cycle_running
+    this._beat_timer += this._t;
     if (
       this._heart.cardiac_cycle_running &&
       !this._heart.prev_cardiac_cycle_running
     ) {
+      this.beat_interval = this._beat_timer;
+      this._beat_timer = 0.0;
       this.stroke_work_lv = this._pv_area_lv_dec - this._pv_area_lv_inc;
       this.stroke_work_rv = this._pv_area_rv_dec - this._pv_area_rv_inc;
       this.stroke_work_total = this.stroke_work_lv + this.stroke_work_rv;
@@ -205,9 +214,13 @@ export class Mob extends BaseModelClass {
     this._prev_rv_vol = this._rv.vol;
     this._prev_rv_pres = this._rv.pres;
 
-    // Amortize per-beat O2 cost across the current cycle duration
-    const cc_time = this._heart.cardiac_cycle_time;
-    return cc_time > 0 ? this._sw_vo2_per_beat / cc_time : 0.0;
+    // Amortise the per-beat O2 cost over the beat interval (RR), not the contraction: the work is paid
+    // for over the whole cycle. Before the first full beat after a build or load, the set rate gives
+    // the interval; a pause longer than the last interval stretches it, so an arrested heart stops
+    // paying for its last beat
+    let interval = this.beat_interval > 0.0 ? this.beat_interval : (this._heart.heart_rate > 0.0 ? 60.0 / this._heart.heart_rate : 0.0);
+    if (this._beat_timer > interval) interval = this._beat_timer;
+    return interval > 0.0 ? this._sw_vo2_per_beat / interval : 0.0;
   }
 
   calc_hypoxia_effects() {

@@ -1,125 +1,149 @@
 # Surfactant
 
-The `Surfactant` model turns the previously **static** preterm RDS lung phenotype — baked-in stiff
-alveoli, low FRC, reduced alveolar diffusion and an intrapulmonary shunt — into a **dynamic,
-treatable** process: pressure-driven alveolar **recruitment / derecruitment with hysteresis**, plus a
-**surfactant-therapy** response. It is a slow **process controller** in the same family as
-[`Hormones`](./Hormones.md) / [`Kidneys`](./Kidneys.md) / `Lactate`: it holds no compartment,
-resolves references to other models lazily, and is **neutral at rest**. A scenario that ships it keeps
-its calibrated RDS operating point unchanged and only diverges when PEEP/CPAP changes or surfactant is
-given.
+`Surfactant` turns the preterm lung's respiratory distress syndrome (RDS) into a dynamic, treatable process. The fraction of open alveoli rises and falls with the mean distending pressure, with hysteresis (recruitment above an opening threshold, derecruitment below a closing one). Giving surfactant lowers both thresholds, so the same CPAP or PEEP now opens the lung. The open fraction drives the lungs' compliance and FRC, the gas-exchange surface and the intrapulmonary shunt. It holds no compartment, and it is **neutral at rest**: a scenario keeps its calibrated operating point until PEEP changes or surfactant is given.
 
-It is the *pathophysiology/therapy* layer that sits on top of the lung mechanics owned by
-[`Respiration`](./Respiration.md), the alveolar gas exchange of [`GasExchanger`](./GasExchanger.md),
-and the venous admixture of [`Shunts`](./Shunts.md) — driven by the airway pressure that
-[`Breathing`](./Breathing.md) and the [`Ventilator`](./Ventilator.md) impose.
+## Physiology
 
-## Recruitment state
+Surfactant lowers the surface tension in the alveoli. Without it, as in a preterm infant before ~34 weeks, small alveoli collapse at end-expiration:
+- the lung is stiff and its functional residual capacity (FRC) low;
+- blood flows past collapsed alveoli unoxygenated;
+- the infant needs pressure (CPAP, PEEP) to keep the lung open.
 
-```
-SENSOR (lazy refs)                  STATE                         EFFECTORS (owned while running)
-ALL.pres_in ─┐ mean, smoothed                                     ALL/ALR.el_base_factor   1−el_gain·r   (compliance)
-ALR.pres_in ─┴─► P_tp ──► [ hysteresis dead zone ] ──► open_fraction ─► ALL/ALR.u_vol_factor 1+uvol_gain·r (FRC)
-                          TCP ····· TOP                            GASEX_*.dif_o2/co2_factor 1+dif_gain·r  (gas exchange)
-surfactant ───► lowers TOP/TCP                                    IPSL/IPSR.r_factor_ps    1+ips_gain·r   (less shunt)
-```
+A collapsed region reopens only above its opening pressure and recollapses below a lower closing pressure. Between the two, it holds. This hysteresis is why a recruited lung stays open on less pressure than it took to open it.
 
-`open_fraction` ∈ `[0,1]` is the fraction of alveoli that are open. It is driven by the mean
-(breath-averaged) **transpulmonary pressure** `P_tp` = alveolar recoil pressure (`GasCapacitance.pres_in`,
-averaged over both lungs `ALL`/`ALR` and smoothed first-order over `pres_tc` so tidal swings don't
-dominate):
+Exogenous surfactant, instilled into the trachea, works within minutes: compliance improves, FRC rises, oxygenation improves and the needed FiO2 falls. It doesn't change the lung's structural immaturity.
+
+## Inheritance
 
 ```
-dOpen = [ k_open·max(0, P_tp − TOP)·(1 − open)     recruit above the opening threshold
-        − k_close·max(0, TCP − P_tp)·open ] · dt   derecruit below the closing threshold
+BaseModelClass
+  └── Surfactant
 ```
 
-Between the closing threshold `TCP` and the opening threshold `TOP` there is a hysteresis **dead zone**
-(`open` holds) — the signature of lung recruitment.
+## Properties
 
-## Auto-centered thresholds (the robustness trick)
+### Config (set in the definition JSON)
 
-At warm-up (after `_warmup_delay` = 30 s, once the circuit has settled) the model captures the baseline
-mean `P_tp` (`P0`), `open_fraction` (`f0`) and `surfactant` level (`surf0`), then centers the dead zone
-on `P0`:
-
-```
-TOP = P0 + open_margin  − surf_open_gain ·(surfactant − surf0)
-TCP = P0 − close_margin − surf_close_gain·(surfactant − surf0)
-```
-
-So at the scenario's own baseline (`surfactant == surf0`, `P_tp == P0`) the operating pressure sits
-inside the dead zone → `open` holds at `f0` → the model is **neutral and stable at ANY scenario's
-operating point with no per-scenario threshold tuning**. Raising PEEP pushes `P_tp` above `TOP` →
-recruit; losing PEEP pushes it below `TCP` → derecruit; **surfactant lowers `TOP`/`TCP`** so the same
-prevailing airway pressure now recruits the lung. Recruitment is **gated off until seeded** (`open_fraction`
-holds at its init value during warm-up), so the `f0` (≈ 0.5) headroom is identical for every scenario
-regardless of the warm-up pressure transient.
-
-## Effectors
-
-All effects are referenced to `f0`, so each factor is exactly `1.0` at baseline. With
-`r = open_fraction − f0` (`+` = recruited above baseline, `−` = derecruited):
-
-| Channel | Target | Factor | Effect of recruitment |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| `el_lung_factor` | `ALL`/`ALR`.`el_base_factor` | `1 − el_gain·r` | lower elastance / more compliant |
-| `uvol_lung_factor` | `ALL`/`ALR`.`u_vol_factor` | `1 + uvol_gain·r` | higher FRC |
-| `dif_factor` | `GASEX_LL`/`GASEX_RL`.`dif_o2_factor` & `dif_co2_factor` | `1 + dif_gain·r` | more gas-exchange surface |
-| `ips_factor` | `IPSL`/`IPSR`.`r_factor_ps` | `1 + ips_gain·r` | higher shunt resistance → less venous admixture |
+| `surfactant_running` | boolean | `true` | Master switch. Off releases every effect to 1 once, then idles. |
+| `lung_models` | list | `["ALL", "ALR"]` | Alveolar compartments. |
+| `gasex_models` | list | `["GASEX_LL", "GASEX_RL"]` | Gas exchangers. |
+| `shunt_models` | list | `["IPSL", "IPSR"]` | Intrapulmonary shunt resistors. |
+| `surfactant` | 0–1 | 0.3 | Surfactant maturity: 0 = severe deficiency, 1 = mature or fully treated. Scenarios: 25 wk and Bischoff 0.2, 28 wk 0.25, 30 wk 0.3. |
+| `surfactant_target` | 0–1 or null | null | Therapy target the maturity ramps toward; null holds it. Set by `administer_surfactant`. |
+| `surfactant_tc` | s | 180 | Ramp time constant of the therapy response. |
+| `open_margin`, `close_margin` | mmHg | 2, 2 | Half-widths of the dead zone above and below the baseline pressure. |
+| `surf_open_gain`, `surf_close_gain` | mmHg per unit | 14, 12 | Fall of the opening and closing thresholds per unit rise in maturity. |
+| `k_open`, `k_close` | 1/(mmHg·s) | 0.5, 0.5 | Recruitment and derecruitment rates. |
+| `pres_tc` | s | 4 | Smoothing of the transpulmonary pressure (averages out tidal swings). |
+| `el_gain`, `uvol_gain`, `dif_gain`, `ips_gain` | per unit `r` | 0.7, 1.5, 2.0, 6.0 | Effect gains (see [Calculation](#calculation)). |
+| `el_factor_min`, `el_factor_max`, `uvol_factor_min`, `uvol_factor_max`, `dif_factor_min`, `dif_factor_max`, `ips_factor_min`, `ips_factor_max` | – | 0.2/3, 0.3/3, 0.1/5, 0.1/30 | Clamps on the effect factors. |
 
-Each factor is clamped (`el` `[0.2,3.0]`, `uvol` `[0.3,3.0]`, `dif` `[0.1,5.0]`, `ips` `[0.1,30.0]`).
+### Baseline (captured, saved with the state)
 
-**Which factor layer matters.** The first three use the **non-persistent** factor layer
-(`el_base_factor` / `u_vol_factor` / `dif_*_factor`) — reset to `1.0` each step by the compartment and
-**re-written here every step** — so they compose additively with the [`Respiration`](./Respiration.md)
-controller, which owns the persistent `*_factor_ps` layer (see the
-[factor / effective-value pattern](./Capacitance.md)). The shunt instead modulates the **persistent**
-`r_factor_ps` on `IPSL`/`IPSR` (those resistors carry their `r_for`/`r_back` from `Shunts.ips_res`);
-that channel is **owned by Surfactant** and released back to `1.0` on disable.
-
-## Surfactant therapy
-
-`surfactant` ∈ `[0,1]` is alveolar maturity: `0` = severe deficiency (RDS), `1` = mature / fully
-treated (default baseline `0.3`). The dosing API instills surfactant and ramps maturity up first-order:
-
-```
-administer_surfactant(target = 1.0)   // sets surfactant_target; callable via callModelFunction / TaskScheduler
-surfactant += dt·(1/surfactant_tc)·(surfactant_target − surfactant)   // surfactant_tc = 180 s
-```
-
-The acute compliance/recruitment response therefore develops over a few minutes. Setting
-`surfactant_target = null` holds maturity at its current value.
-
-## Read-outs
-
-| Read-out | Meaning |
-|---|---|
-| `open_fraction` | recruited alveolar fraction `[0,1]` |
-| `transpulmonary_pressure` | smoothed mean `P_tp` (mmHg) |
-| `open_pressure` / `close_pressure` | current `TOP` / `TCP` (mmHg) |
-| `surfactant` | current alveolar maturity `[0,1]` |
-| `el_lung_factor` / `uvol_lung_factor` / `dif_factor` / `ips_factor` | applied effector factors |
-
-## Configuration & calibration
-
-| Parameter | Default | Meaning |
+| Property | Unit | Description |
 |---|---|---|
-| `surfactant` / `surfactant_tc` | `0.3` / `180.0` s | baseline maturity / therapy ramp time constant |
-| `open_margin` / `close_margin` | `2.0` / `2.0` mmHg | dead-zone half-widths above/below `P0` |
-| `surf_open_gain` / `surf_close_gain` | `14.0` / `12.0` mmHg | drop in `TOP` / `TCP` per unit surfactant rise |
-| `k_open` / `k_close` | `0.5` / `0.5` (1/(mmHg·s)) | recruitment / derecruitment rates |
-| `pres_tc` | `4.0` s | smoothing of `P_tp` |
-| `el_gain` / `uvol_gain` / `dif_gain` / `ips_gain` | `0.7` / `1.5` / `2.0` / `6.0` | effect gains per unit `r` |
-| `_warmup_delay` | `30.0` s | delay before capturing `P0` / `f0` / `surf0` |
+| `baseline_captured` | boolean | The baseline has been captured (30 s after a fresh build). |
+| `baseline_ptp` | mmHg | P0: the smoothed transpulmonary pressure at capture. |
+| `baseline_open_fraction` | 0–1 | f0: the open fraction at capture, the neutral reference. |
+| `baseline_surfactant` | 0–1 | surf0: the maturity at capture. |
 
-> **Calibration note.** A spontaneously-breathing preterm runs at a **low** mean `P_tp` (~1–3 mmHg), so
-> the margins are deliberately small and the surfactant gains large: a therapeutic dose must clearly
-> pull the opening threshold below the prevailing airway pressure for recruitment to occur.
+### Outputs
 
-## Gating
+| Property | Unit | Description |
+|---|---|---|
+| `open_fraction` | 0–1 | Fraction of open alveoli (0.5 in every scenario at build). |
+| `transpulmonary_pressure` | mmHg | Smoothed mean alveolar recoil pressure (`pres_in` of the lungs). |
+| `open_pressure`, `close_pressure` | mmHg | Current opening and closing thresholds. |
+| `el_lung_factor`, `uvol_lung_factor`, `dif_factor`, `ips_factor` | – | Applied effect factors. |
 
-`surfactant_running` (default `true`) is the master gate. When set `false`, `_release_channels()` runs
-**once** — resetting `el_base_factor`/`u_vol_factor` on the lungs, `dif_o2_factor`/`dif_co2_factor` on
-the gas exchangers, and the persistent `r_factor_ps` on the shunts all back to `1.0` — then the model
-idles. This is the clean "off" switch that returns the lung to its underlying (static) phenotype.
+## Calculation
+
+Each step:
+
+1. **Therapy:** `surfactant += dt/surfactant_tc · (surfactant_target − surfactant)` while a target is set.
+2. **Pressure:** the lungs' mean `pres_in`, smoothed over `pres_tc`.
+3. **Baseline** (once, 30 s after a fresh build): P0, f0 and surf0 are captured. A loaded state that already has `baseline_captured` keeps its own.
+4. **Thresholds**, centred on the scenario's own baseline:
+   ```
+   TOP = P0 + open_margin  − surf_open_gain  · (surfactant − surf0)
+   TCP = P0 − close_margin − surf_close_gain · (surfactant − surf0)
+   ```
+   At baseline P0 sits inside the dead zone, so any scenario is neutral without per-scenario tuning.
+5. **Recruitment** (after the baseline is captured):
+   ```
+   d open / dt = k_open · max(0, P − TOP) · (1 − open)  −  k_close · max(0, TCP − P) · open
+   ```
+6. **Effects**, with `r = open_fraction − f0` (1.0 at baseline), each clamped:
+   ```
+   el_lung_factor   = 1 − el_gain · r      → ALL/ALR.el_base_factor     (stiffer when derecruited)
+   uvol_lung_factor = 1 + uvol_gain · r    → ALL/ALR.u_vol_factor       (FRC)
+   dif_factor       = 1 + dif_gain · r     → GASEX_*.dif_o2/co2_factor  (exchange surface)
+   ips_factor       = 1 + ips_gain · r     → IPSL/IPSR.r_factor_ps      (less shunt when recruited)
+   ```
+
+`administer_surfactant(target = 1.0)` sets `surfactant_target` (clamped 0–1); it is callable through `callModelFunction` or the TaskScheduler.
+
+**Example** (preterm_25wk, surfactant given): after 15 min the open fraction is 1.0, `el_lung_factor` 0.65, `ips_factor` 4. SaO2 rises 90.9 → 97.8 %, PaO2 55 → 89 and PaCO2 falls 48 → 43 mmHg; left alveolar volume 7.1 → 11.4 mL.
+
+## Factor system
+
+| Target | Layer | Note |
+|---|---|---|
+| lungs | `el_base_factor`, `u_vol_factor` (non-persistent) | rewritten every step; composes with Respiration's `*_factor_ps` |
+| gas exchangers | `dif_o2_factor`, `dif_co2_factor` (non-persistent) | |
+| IPSL, IPSR | `r_factor_ps` (persistent) | owned by Surfactant; reset to 1 on switch-off |
+
+## Inputs and outputs
+
+- **Reads:** the lungs' `pres_in`.
+- **Writes:** the layers above.
+- **Written by:** the user and the bot (`administer_surfactant`, `surfactant_running`, `surfactant`); the scenario generators.
+- **Read by:** Respiration's atelectasis perfusion (computes against IPSL/IPSR's `r_factor_ps`); `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **Whole-lung, one open fraction.** No regional or gravity-dependent collapse; both lungs share one state. [Respiration](./Respiration.md#atelectasis)'s per-lung atelectasis runs independently, and their effects add.
+- **Relative to the baseline.** Effects are deviations from the open fraction at capture (0.5 in every scenario), so the scenario's static RDS phenotype stays its baked values plus these deviations.
+- **Calibrated for a low operating pressure.** A spontaneously breathing preterm runs at a mean transpulmonary pressure of ~1–3 mmHg, so the margins are small and the surfactant gains large: a dose must pull the opening threshold clearly below the prevailing pressure to recruit.
+- **No surfactant kinetics.** Maturity only ramps toward the target. There is no inactivation (meconium, protein leak), no redosing decay, no effect on the airway.
+- **The first 30 s of a fresh build** hold the open fraction while the baseline is captured.
+
+## Example definition (JSON)
+
+From `preterm_25wk.json`, `models.Surfactant` (trimmed to the config props):
+
+```json
+{
+  "name": "Surfactant",
+  "model_type": "Surfactant",
+  "is_enabled": true,
+  "surfactant_running": true,
+  "lung_models": ["ALL", "ALR"],
+  "gasex_models": ["GASEX_LL", "GASEX_RL"],
+  "shunt_models": ["IPSL", "IPSR"],
+  "surfactant": 0.2,
+  "surfactant_target": null,
+  "surfactant_tc": 180,
+  "open_margin": 2,
+  "close_margin": 2,
+  "surf_open_gain": 14,
+  "surf_close_gain": 12,
+  "k_open": 0.5,
+  "k_close": 0.5,
+  "pres_tc": 4,
+  "el_gain": 0.7,
+  "uvol_gain": 1.5,
+  "dif_gain": 2,
+  "ips_gain": 6
+}
+```
+
+## Usage in the scenarios
+
+In the six preterm and Bischoff scenarios, with the defaults above and `surfactant` 0.2–0.3. Not in term_neonate or the fetal scenarios.
+
+## References
+
+No literature values; the gains and thresholds are calibrated on the preterm scenarios' response to CPAP and surfactant.

@@ -246,15 +246,13 @@ teaching:
 ## Workflow
 
 ```bash
-node scripts/_make_fetus.mjs 30                       # generate from term_fetus + the GA table
-node scripts/probe_fetus.mjs fetus_30wk --seconds 150 # read the panel; iterate the table row
-node scripts/reseed_fetus.mjs 30                      # dry run -> /tmp/fetus_30wk_reseed.json
-node scripts/reseed_fetus.mjs 30 --write              # bake the equilibrium into the scenario
-node scripts/probe_fetus.mjs fetus_30wk --seconds 20  # the reseed took if this matches the 150 s run
-node scripts/probe_fetus.mjs                          # regression: fetus_term must be unchanged
+node scripts/_make_fetus_validated.mjs --profile 30                  # term_neonate -> fetus_30wk (fetal transform, baked)
+node scripts/probe_term_reference.mjs fetus_30wk --ref scripts/reference/fetus_30wk.json   # vs Fetus30wkReference
 ```
 
-Adding a gestation is one row in `FETAL` (`scripts/_ga_tables.mjs`) plus a make/probe/reseed loop.
+Adding a gestation is a profile in `scripts/_fetal_profiles.mjs` plus a reference set
+(`docs/Fetus<ga>wkReference.md`, `scripts/reference/fetus_<ga>wk.json`). The older
+`_make_fetus.mjs`/`reseed_fetus.mjs` loop (from the archived `term_fetus`) is in `scripts/archive/`.
 
 `scripts/build_patient.mjs` also understands fetal baselines — it auto-detects one, seeds from the
 same `FETAL` table, skips the neonatal RDS/PDA levers, and drives pO₂/pCO₂ from

@@ -101,10 +101,13 @@ export class Surfactant extends BaseModelClass {
     // local parameters
     this._warmup_delay = 30.0; // s before capturing the baseline P0 / f0
     this._warmup_counter = 0.0;
-    this._seeded = false;
-    this._p0 = 0.0; // captured baseline mean transpulmonary pressure
-    this._f0 = 0.5; // captured baseline open_fraction (neutral reference)
-    this._surf0 = 0.3; // captured baseline surfactant level
+
+    // captured baseline (the neutral reference). Public so a saved state keeps it: re-capturing after
+    // a reload would make a treated or derecruited lung the new neutral and drop its effect
+    this.baseline_captured = false;
+    this.baseline_ptp = 0.0; // P0: baseline mean transpulmonary pressure (mmHg)
+    this.baseline_open_fraction = 0.5; // f0: baseline open_fraction
+    this.baseline_surfactant = 0.3; // surf0: baseline surfactant level
     this._ptp_smooth = null; // smoothed P_tp state
     this._was_active = false;
     this._lungs = null;
@@ -114,7 +117,7 @@ export class Surfactant extends BaseModelClass {
 
   init_model(args) {
     super.init_model(args);
-    this._surf0 = this.surfactant; // provisional; re-anchored at warm-up seed
+    if (!this.baseline_captured) this.baseline_surfactant = this.surfactant; // provisional; re-anchored at warm-up
   }
 
   calc_model() {
@@ -140,25 +143,25 @@ export class Surfactant extends BaseModelClass {
     this.transpulmonary_pressure = this._ptp_smooth;
 
     // --- seed the neutral baseline (P0, f0, surf0) once the circuit has settled ---
-    if (!this._seeded) {
+    if (!this.baseline_captured) {
       this._warmup_counter += this._t;
       if (this._warmup_counter >= this._warmup_delay) {
-        this._p0 = this._ptp_smooth;
-        this._f0 = this.open_fraction;
-        this._surf0 = this.surfactant;
-        this._seeded = true;
+        this.baseline_ptp = this._ptp_smooth;
+        this.baseline_open_fraction = this.open_fraction;
+        this.baseline_surfactant = this.surfactant;
+        this.baseline_captured = true;
       }
     }
 
     // --- hysteresis thresholds, auto-centered on the baseline pressure, lowered by surfactant ---
-    const d_surf = this.surfactant - this._surf0;
-    this.open_pressure = this._p0 + this.open_margin - this.surf_open_gain * d_surf;
-    this.close_pressure = this._p0 - this.close_margin - this.surf_close_gain * d_surf;
+    const d_surf = this.surfactant - this.baseline_surfactant;
+    this.open_pressure = this.baseline_ptp + this.open_margin - this.surf_open_gain * d_surf;
+    this.close_pressure = this.baseline_ptp - this.close_margin - this.surf_close_gain * d_surf;
 
     // --- recruit / derecruit (dead zone between TCP and TOP) — only after the baseline is seeded, so
     // open_fraction holds at its init value (= f0) during warm-up and the recruitment headroom is the
     // same for every scenario regardless of the warm-up pressure transient ---
-    if (this._seeded) {
+    if (this.baseline_captured) {
       const p = this._ptp_smooth;
       let d_open = 0.0;
       if (p > this.open_pressure) d_open += this.k_open * (p - this.open_pressure) * (1.0 - this.open_fraction);
@@ -167,8 +170,8 @@ export class Surfactant extends BaseModelClass {
     }
 
     // --- map recruitment (relative to baseline f0) onto the lung-mechanics effector channels ---
-    if (this._seeded) {
-      const r = this.open_fraction - this._f0; // +ve = recruited above baseline, −ve = derecruited
+    if (this.baseline_captured) {
+      const r = this.open_fraction - this.baseline_open_fraction; // +ve = recruited above baseline, −ve = derecruited
       this.el_lung_factor = this._clamp(1.0 - this.el_gain * r, this.el_factor_min, this.el_factor_max);
       this.uvol_lung_factor = this._clamp(1.0 + this.uvol_gain * r, this.uvol_factor_min, this.uvol_factor_max);
       this.dif_factor = this._clamp(1.0 + this.dif_gain * r, this.dif_factor_min, this.dif_factor_max);

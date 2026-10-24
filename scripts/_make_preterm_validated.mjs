@@ -224,6 +224,9 @@ j.provenance_note = `generated from term_neonate by scripts/_make_preterm_valida
 model.name = NAME;
 model.description = desc;
 
+// bake the scaling layer into the base values, so 1.0 means this scenario for the app's and the bot's
+// scale levers (they set that layer absolutely; a stored calibration there would be overwritten)
+eng.scale("incorporate", 1);
 j.model_definition = serializeState(model);
 const text = JSON.stringify(j, null, 1) + "\n";
 JSON.parse(text);

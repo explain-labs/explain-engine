@@ -8,15 +8,16 @@ its own reference doc; this page is the map.
 (two-thread design, message protocol, build/step loop, the cross-cutting patterns every model uses,
 and how to add a new model). Then dive into the per-class docs below.
 
-Each per-class doc follows the same house template (see the template section in
-[ARCHITECTURE](./ARCHITECTURE.md)): summary → inheritance → what it models → property tables →
-calculation/math → factor system → example JSON → usage. The exemplar is
-[BloodCapacitance](./BloodCapacitance.md).
+Each per-class doc follows the v1.0 house template (see the template section in
+[ARCHITECTURE](./ARCHITECTURE.md)): summary → physiology in plain language → inheritance → property
+tables (with defaults) → calculation → factor system → inputs and outputs → assumptions and
+limitations → example JSON → usage in the scenarios → references. Helpers and module functions use a
+short form. The exemplar is [BloodCapacitance](./BloodCapacitance.md). Pages marked *experimental*
+(MaternalPlacenta, Uterus, Resuscitation) describe models whose app panels are hidden as unfinished.
 
-> **Cross-cutting footgun:** the factor/effective-value scaling tier is **not uniformly named**.
-> The capacitance/resistor/time-varying-elastance family uses `*_factor_scaling_ps`, but the
-> diffusor/exchanger family (`GasDiffusor`, `GasExchanger`, `BloodDiffusor`) uses `*_factor_scaling`
-> (no `_ps`). See [ARCHITECTURE §cross-cutting patterns](./ARCHITECTURE.md).
+> **Factor layers:** every tunable has `*_factor` (per step), `*_factor_ps` (persistent) and
+> `*_factor_scaling_ps` (scaling) layers; the name is the same in every model family. See
+> [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
 
 ---
 
@@ -45,7 +46,6 @@ The reusable physical primitives every component model is built from.
 | [TimeVaryingElastance](./TimeVaryingElastance.md) | Compartment whose elastance varies over the cardiac cycle; basis for heart chambers. |
 | [Container](./Container.md) | Enclosing pressure container (thorax/pericardium); applies external pressure to members. |
 | [BloodDiffusor](./BloodDiffusor.md) | Diffusion of O₂/CO₂/solutes between two blood compartments. |
-| [GasDiffusor](./GasDiffusor.md) | Diffusion of gases between two gas compartments. |
 | [GasExchanger](./GasExchanger.md) | O₂/CO₂ transfer across the blood–gas (alveolar–capillary) barrier. |
 
 ## Blood side
@@ -56,7 +56,8 @@ The reusable physical primitives every component model is built from.
 | [BloodCapacitance](./BloodCapacitance.md) | Blood-filled compartment; `volume_in` mixes gases/solutes/drugs/temp/viscosity by volume fraction. **(template exemplar)** |
 | [BloodTimeVaryingElastance](./BloodTimeVaryingElastance.md) | Time-varying-elastance compartment carrying blood composition (pumping chamber). |
 | [BloodVessel](./BloodVessel.md) | Vessel segment with embedded resistor + ANS tone; **multiplicative** factor composition + α-coupling. |
-| [BloodPump](./BloodPump.md) | Active blood-pump compartment (flow source). |
+| [BloodMixing](./BloodMixing.md) | Blood composition mixing on inflow and exchange without net flow (`mix_blood_in`, `exchange_blood`). *(helper)* |
+| [Orifice](./Orifice.md) | Bernoulli orifice term and jet velocity shared by Shunts and Pda (`orifice_b`, `jet_velocity`). *(helper)* |
 | [BloodComposition](./BloodComposition.md) | Acid–base / oxygenation solver (`calc_blood_composition`): Stewart SID + O₂/CO₂ dissociation, Haldane/Bohr coupling. *(module function, not a model_type)* |
 
 ## Gas side
@@ -65,7 +66,8 @@ The reusable physical primitives every component model is built from.
 |---|---|
 | [Gas](./Gas.md) | Gas-phase manager: atmospheric pressure, humidity, gas composition init. |
 | [GasCapacitance](./GasCapacitance.md) | Gas-filled elastic compartment (lung/airway); tracks partial pressures/fractions. |
-| [GasComposition](./GasComposition.md) | Computes gas partial pressures/fractions from total pressure, humidity, temperature. *(module function)* |
+| [GasComposition](./GasComposition.md) | Builds a gas compartment's composition from a dry FiO2, temperature and humidity. *(module function)* |
+| [GasMixing](./GasMixing.md) | Gas exchange between two gas compartments without net flow (`exchange_gas`, used by `Resistor.mix_flow`). *(helper)* |
 
 ## Cardiac
 
@@ -74,7 +76,7 @@ The reusable physical primitives every component model is built from.
 | [Heart](./Heart.md) | Master cardiac driver: HR, conduction/cycle counters, activation, ECG, arrhythmias (AV block / escape / VT / PVC). |
 | [HeartChamber](./HeartChamber.md) | A single chamber (LA/LV/RA/RV); time-varying elastance with ANS, mob, drug, load & remodel factors. |
 | [HeartFunction](./HeartFunction.md) | Load-induced contractility compromise (afterload mismatch, wall-stress dilation, remodeling). |
-| [HeartValve](./HeartValve.md) | Cardiac valve — thin directional [Resistor](./Resistor.md) subclass. *(intentional stub)* |
+| [HeartValve](./HeartValve.md) | Cardiac valve: a one-way [Resistor](./Resistor.md) under its own type. |
 | [Mob](./Mob.md) | Myocardial oxygen balance / heart-muscle metabolism. |
 
 ## Vascular & circulatory
@@ -83,19 +85,18 @@ The reusable physical primitives every component model is built from.
 |---|---|
 | [Circulation](./Circulation.md) | High-level circulation orchestrator; wires/scales the systemic & pulmonary network. |
 | [Shunts](./Shunts.md) | Intracardiac/extracardiac shunts (foramen ovale, VSD, intrapulmonary). |
-| [Pda](./Pda.md) | Patent ductus arteriosus: single AAR→PA resistor with quadratic stenosis; drug-modulated diameter. |
-| [Pda-velocity](./Pda-velocity.md) | Design rationale for the PDA Doppler velocity output (+ retained historical analysis). |
-| [Placenta](./Placenta.md) | **Fetal** placenta as a gas exchanger to a fixed maternal pool. |
-| [MaternalPlacenta](./MaternalPlacenta.md) | **Maternal** intervillous-space bed / spiral-artery perfusion. |
-| [Uterus](./Uterus.md) | Uterine circulation + pregnancy adaptation + contractions/labor (IUP waveform, MVU). |
+| [Pda](./Pda.md) | Ductus arteriosus: viscous (cone) + Bernoulli resistance on `AAR_DA`, drug-modulated diameter, Doppler velocity envelope. |
+| [Placenta](./Placenta.md) | **Fetal** placenta: cord, villous circulation and exchange with a fixed maternal pool. |
+| [MaternalPlacenta](./MaternalPlacenta.md) | **Maternal** intervillous-space bed / spiral-artery perfusion. *(experimental)* |
+| [Uterus](./Uterus.md) | Uterine circulation + pregnancy adaptation + contractions/labor (IUP waveform, MVU). *(experimental)* |
 
 ## Control & regulatory
 
 | Doc | Models |
 |---|---|
 | [Ans](./Ans.md) | Autonomic nervous system controller; hub doc for the afferent→efferent baro/chemoreflex loop. |
-| [AnsAfferent](./AnsAfferent.md) | Afferent receptor pathway (sensor → firing rate). *(stub → [Ans](./Ans.md))* |
-| [AnsEfferent](./AnsEfferent.md) | Efferent effector pathway (firing rate → effect factor). *(stub → [Ans](./Ans.md))* |
+| [AnsAfferent](./AnsAfferent.md) | Afferent receptor (input → firing rate, piecewise linear with a time constant). |
+| [AnsEfferent](./AnsEfferent.md) | Efferent pathway (summed, clamped firing rate → effect factor on a target). |
 | [Hormones](./Hormones.md) | RAAS/ADH controllers acting on vascular tone & fluid balance. |
 | [Kidneys](./Kidneys.md) | Renal filtration (NFP/GFR autoregulation, reabsorption, urine, per-solute mass balance). |
 | [Brain](./Brain.md) | Cerebral autoregulation (CBF control) + ICP / Monro-Kellie. |
@@ -115,9 +116,9 @@ The reusable physical primitives every component model is built from.
 
 | Doc | Models |
 |---|---|
-| [Breathing](./Breathing.md) | Spontaneous breathing drive; muscle pressure on the active airway inlet (MOUTH_DS or VENT_ETTUBE). |
+| [Breathing](./Breathing.md) | Spontaneous breathing drive: chemoreflex minute volume split into rate and tidal volume, muscle pressure on the thorax. |
 | [Apnea](./Apnea.md) | Apnea of prematurity: episodic ventilation suppression (central/obstructive/mixed) → emergent desaturation + hypoxic bradycardia. |
-| [Respiration](./Respiration.md) | Respiratory subsystem orchestrator (lung mechanics / gas-exchange wiring & scaling). |
+| [Respiration](./Respiration.md) | Respiratory coordinator: lung, chest-wall, airway and exchange levers, series dead space, atelectasis (recruitment, resorption). |
 | [Surfactant](./Surfactant.md) | Dynamic RDS alveolar recruitment/derecruitment with hysteresis + surfactant therapy. |
 
 ## Devices (`device_models/`)
@@ -128,7 +129,7 @@ The reusable physical primitives every component model is built from.
 | [Sle6000](./Sle6000.md) | SLE6000 neonatal ventilator, the ventilator of every scenario up to 30 kg: the Ventilator driven through the device's modes, settings, circuits and monitored values, with the OxyGenie closed-loop O2 controller. |
 | [Ecls](./Ecls.md) | Extracorporeal life support (ECMO): pump, oxygenator, cannulae. |
 | [Monitor](./Monitor.md) | Patient monitor; derives displayed vitals from model state. |
-| [Resuscitation](./Resuscitation.md) | Resuscitation interventions (chest compressions). |
+| [Resuscitation](./Resuscitation.md) | CPR: chest compressions and ventilation cycles. *(experimental)* |
 
 ## Engine helpers (`helpers/`)
 
@@ -138,14 +139,16 @@ Infrastructure that the worker attaches to the live `model` object — not physi
 |---|---|
 | [DataCollector](./DataCollector.md) | Dual-rate (fast 0.005 s / slow 1.0 s) property watchlists + sample buffers. |
 | [TaskScheduler](./TaskScheduler.md) | Deferred/tweened prop mutations and scheduled model-function calls. |
-| [ModelScaler](./ModelScaler.md) | Subsystem scaling and linear (volume-only) weight scaling; writes the `*_factor_scaling_ps` layer (the Calibrator also writes it on IPSL/IPSR) and raw volumes. |
+| [ModelScaler](./ModelScaler.md) | Group scaling (absolute factor on the `*_factor_scaling_ps` layer), volume-only weight scaling and `incorporate` (bake). The shipped scenarios are baked, so 1.0 = the scenario as loaded. |
+| [ModelRegistry](./ModelRegistry.md) | Name → class registry that lets `BaseModelClass` build built-in and custom models as sub-components. |
+| [Units](./Units.md) | Shared constants: STPD O2 conversion, gas constant, water vapour pressure. |
 | [Calibrator](./Calibrator.md) | Closed-loop calibration controllers (shared by patient-build and live `tune_model`). |
 | [ChannelWriter](./ChannelWriter.md) | Worker→main realtime producer; writes samples into shared-memory ring buffers. |
 | [RealtimeChannels](./RealtimeChannels.md) | Shared constants/layout for the realtime channel protocol. |
 | [AnimationPacker](./AnimationPacker.md) | Packs per-component animation values (magnitude/tint) into the animation channel. |
 | [RealTimeMovingAverage](./RealTimeMovingAverage.md) | O(1) rolling-average smoother for realtime signals. |
 
-## Realtime read side (`explain/realtime/`, main thread)
+## Realtime read side (`realtime/`, main thread)
 
 The main-thread mirror of the `ChannelWriter`/`RealtimeChannels`/`AnimationPacker` write side.
 
@@ -170,5 +173,5 @@ Not tied to a single class — physiology/clinical background and scenario-build
 | [Preterm30wkReference](./Preterm30wkReference.md) | Literature reference values for a preterm neonate born at 30 weeks (~1.5 kg) at ~72 h on nasal CPAP 5 in room air without surfactant, with a small PDA (hemodynamics, heart, flows, shunts, breathing, gases, metabolism, blood, kidneys), graded by evidence, with the balance rules and the matching JSON for validating `preterm_30wk`. |
 | [Fetus25wkReference](./Fetus25wkReference.md) | Literature reference values for a human fetus in utero at 25 weeks (0.7 kg, as preterm_25wk), not in labour, graded by evidence (gases extrapolated, ovine values marked), with the balance rules and the matching JSON for validating `fetus_25wk`. |
 | [Fetus30wkReference](./Fetus30wkReference.md) | Literature reference values for a human fetus in utero at 30 weeks (~1.5 kg), not in labour (hemodynamics, heart, flow distribution, cordocentesis gases, blood, metabolism, kidneys), graded by evidence with ovine values marked, with the balance rules and the matching JSON for validating `fetus_30wk`. |
-| [TermFetusReference](./TermFetusReference.md) | Literature reference values for a human fetus in utero at 40 weeks (3.545 kg, as term_neonate), not in labour, graded by evidence with ovine values marked, with the balance rules and the matching JSON for validating `term_fetus`. |
+| [TermFetusReference](./TermFetusReference.md) | Literature reference values for a human fetus in utero at 40 weeks (3.545 kg, as term_neonate), not in labour, graded by evidence with ovine values marked, with the balance rules and the matching JSON for validating `fetus_term`. |
 | [chd_duct_fo_dependent](./chd_duct_fo_dependent.md) | Duct- & foramen-ovale-dependent CHD taxonomy, lesion catalog, engine-lever mapping, build roadmap, bibliography. |

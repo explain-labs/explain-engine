@@ -1,86 +1,99 @@
 # BaseModelClass
 
-`BaseModelClass` is the abstract root every model in the engine extends. It defines the common
-**lifecycle** (construct → init → step → calc) and the shared fields the engine relies on; subclasses
-add the actual physics in `calc_model()`. It has **no `model_type`** of its own and is never
-instantiated directly, and it carries **no factor system** — the factor / effective-value pattern is
-introduced by the elastance/resistance subclasses ([`Capacitance`](./Capacitance.md),
-[`Resistor`](./Resistor.md), [`TimeVaryingElastance`](./TimeVaryingElastance.md)).
+`BaseModelClass` is the root class every model in the engine extends. It defines the lifecycle (construct → `init_model` → `step_model` → `calc_model`), the shared fields the engine relies on, and the `components` mechanism through which a model owns sub-models. It has no `model_type` of its own and is never instantiated directly.
+
+## Physiology
+
+None. This class is the contract that makes something a "model" the engine can build, step, record and scale. All physiology lives in the subclasses.
 
 ## Inheritance
 
 ```
-BaseModelClass                       (abstract root — lifecycle + shared fields)
-  ├── Capacitance                        → BloodCapacitance → BloodVessel, GasCapacitance
-  ├── Resistor                           → HeartValve
-  ├── TimeVaryingElastance               → HeartChamber, BloodTimeVaryingElastance
+BaseModelClass
+  ├── Capacitance
+  │     ├── BloodCapacitance
+  │     │     └── BloodVessel
+  │     └── GasCapacitance
+  ├── TimeVaryingElastance
+  │     ├── BloodTimeVaryingElastance
+  │     └── HeartChamber
+  ├── Resistor
+  │     └── HeartValve
   ├── Container
-  └── … every component & device model (Heart, Breathing, Ans, Ventilator, …)
+  ├── BloodDiffusor, GasExchanger
+  ├── Ventilator
+  │     └── Sle6000
+  └── every other component and device model (Heart, Circulation, Blood, Gas, Ans, Kidneys, Ecls, Monitor, …)
 ```
 
-## What it models
-
-Nothing physiological on its own — it is the contract that makes a class a "model" the engine can
-build, step, collect from and scale. Every component lives in `explain/base_models/`,
-`explain/component_models/`, or `explain/device_models/` and ultimately extends this class.
+The base classes live in `base_models/`, the component models in `component_models/` and the devices in `device_models/`.
 
 ## Properties
 
-### Shared fields (independent / config)
+### Config (set in the definition JSON)
 
-| Property | Description |
-|---|---|
-| `name` | Unique model name (its key in `model.models`) |
-| `description` | Free-text description (documentation only) |
-| `is_enabled` | When false the model is skipped in the step loop; defaults to `false` |
-| `model_type` | The class key used at build time and in the definition JSON (set by subclasses) |
-| `components` | Dictionary of sub-models this model owns (composite-model mechanism) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `name` | – | constructor argument | Unique model name, and its key in `model.models`. |
+| `description` | – | `""` | Free text, for documentation and the UI only. |
+| `is_enabled` | boolean | `false` | When `false`, `step_model` skips the model. Every definition sets it explicitly. |
+| `model_type` | – | `""` | Class key, used at build time to pick the class. Set from the definition (the class's static `model_type` holds the same string). |
+| `components` | object | `{}` | Sub-models this model owns: `{ name: definition }`. See [Composite models](#composite-models-components). |
 
-### Local / internal fields
+### Internal
 
-| Property | Description |
-|---|---|
-| `_model_engine` | Reference to the whole engine `model` object (shared state, counters, other models) |
-| `_t` | The modeling step size, **captured at construction** from `model_engine.modeling_stepsize` |
-| `_is_initialized` | Set `true` at the end of `init_model`; gates stepping |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `_model_engine` | – | constructor argument | Reference to the whole engine `model` object (other models, `weight`, `modeling_stepsize`, …). |
+| `_t` | s | `modeling_stepsize` | Step size, copied once at construction. |
+| `_is_initialized` | boolean | `false` | Set `true` at the end of `init_model`. Gates stepping. |
 
-## Lifecycle
+## Calculation (lifecycle)
 
-1. **Construct** `(model_ref, name = "")` — store the engine reference as `_model_engine`, snapshot
-   the step size into `_t`, and set the shared-field defaults. (`build()` passes a 3rd `model_type`
-   argument that the base constructor ignores.)
-2. **`init_model(args)`** — apply the definition's `{key, value}` args onto the instance
-   (`this[arg.key] = arg.value`); then for each entry in `this.components`: instantiate the sub-model
-   into `model.models` (only if a model of that name does not already exist) and call `init_model` on
-   it with its own args. Finally set `_is_initialized = true`.
-3. **`step_model()`** — called every step by the engine; runs `calc_model()` **only when
-   `is_enabled && _is_initialized`**. Don't override unless you need custom gating.
-4. **`calc_model()`** — empty here; **overridden by almost every subclass** to do the per-step
-   calculation. This is where the physics lives.
+1. **`constructor(model_ref, name = "")`**: stores the engine reference, copies the step size into `_t`, and sets the defaults above. `build()` passes a third `model_type` argument, which the base ignores. A subclass calls `super(model_ref, name)` first, then declares its own config props, outputs and `_`-prefixed locals.
+2. **`init_model(args)`**: `args` is the definition as a list of `{key, value}` pairs.
+   1. Each pair is copied onto the instance (`this[key] = value`), including `components`.
+   2. For each entry in `this.components`, a sub-model is instantiated into `model.models`, **unless a model with that name already exists**. `build()` has already created all declared sub-models (see below), so in a normal build this step only matters for models added at runtime.
+   3. Each sub-model is initialized with its own definition as args, so its sub-models are handled the same way, recursively.
+   4. `_is_initialized` is set `true`.
+3. **`step_model()`**: called every step by the engine. Runs `calc_model()` only when `is_enabled && _is_initialized`. Override it only to change that gate.
+4. **`calc_model()`**: empty here. Subclasses put their per-step calculation in it.
 
-## Composite models (`components`)
+A subclass that overrides `init_model` to resolve references to other models (e.g. `this._lv = this._model_engine.models["LV"]`) calls `super.init_model(args)`, or applies the args and sets `_is_initialized = true` itself.
 
-A model can own a local sub-network by declaring sub-models in `components`. `init_model` instantiates
-each into the global `model.models` map (skipping any name that already exists) and initializes it, so
-the children still participate in the global step loop, data collection and scaling. `Pda`,
-`Placenta`, `Ecls` and the `Ventilator` use this to own their internal circuits.
+### Composite models (`components`)
 
-## Subclass contract
+A model can own a local sub-network by listing sub-models in `components`. The sub-models are full members of `model.models`: they are stepped, recorded by the `DataCollector` and scaled like any other model. In the shipped scenarios 11 models own sub-models: Heart, Circulation (most vessels), Mob (the coronaries), Ans, Respiration, Ventilator, Ecls, Placenta, Pda, Shunts and Kidneys. Some sub-models own sub-models of their own.
 
-- Declare a static `model_type` string (the key used at build time and in the definition JSON), and
-  add an `export` line in `explain/ModelIndex.js` so the engine's `available_model_map` can find it.
-- In the constructor, call `super(model_ref, name)`, then initialize independent (config) props,
-  dependent (computed) props, and `_`-prefixed local refs.
-- Override `init_model` only to resolve cross-model references (e.g.
-  `this._lv = this._model_engine.models["LV"]`); call `super.init_model(args)` (or set
-  `_is_initialized = true` yourself) so stepping is enabled.
-- Override `calc_model()` with the per-step physics.
+**Build order.** `ModelEngine.build()`:
+1. instantiates every model in the definition, in definition order;
+2. instantiates every declared sub-model, recursively, before any `init_model` runs;
+3. calls `init_model` on the top-level models, in definition order. Each owner initializes its own sub-models from its `init_model`.
+
+So when any `init_model` runs, every model of the scenario already exists, and a lookup by name finds it regardless of where its owner sits in the file. A model found that way may not be initialized yet; its definition values are applied when its owner's `init_model` runs.
+
+**Step order.** The step loop runs models in insertion order: the top-level models in definition order, then the sub-models, each owner's direct sub-models first, then theirs.
+
+## Factor system
+
+None. The factor/effective-value layers start at [`Capacitance`](./Capacitance.md), [`Resistor`](./Resistor.md) and [`TimeVaryingElastance`](./TimeVaryingElastance.md). See [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
+
+## Inputs and outputs
+
+- **Reads:** `model_ref.modeling_stepsize` at construction.
+- **Written by:** `ModelEngine.build()` (construction, `init_model`); `TaskScheduler` and the UI (`setPropValue`), which can write any prop including `is_enabled`.
+- **Read by:** `ModelEngine` (`step_model` every step), `DataCollector` (watched props), `ModelScaler`, and every model that resolves a reference to another model by name.
+
+## Assumptions and limitations
+
+- **Unknown args are kept, not rejected.** `init_model` copies every key onto the instance, so a typo or a key left over from an older class becomes a stray property instead of a build error. `scripts/doc_audit.mjs` lists such keys per class ("scenario keys unknown to the class").
+- **`_t` is a snapshot.** It is copied at construction. No runtime setter changes `modeling_stepsize`, so this is safe today. A future runtime step-size change would have to refresh `_t` on every model (and on `TaskScheduler`).
+- **A sub-model whose name is already a top-level model is not replaced.** The owner initializes the existing model again with the sub-model's definition, so the later values win.
+- **Models added at runtime** (`add_model_to_engine`) create their sub-models in their own `init_model`. Models that collect compartments at build time (`Blood`, `Gas`) don't see them.
 
 ## Example definition (JSON)
 
-`BaseModelClass` is abstract — there is no definition block for it. Every concrete model's definition,
-however, carries the shared fields it defines (`name`, `description`, `is_enabled`, `model_type`,
-`components`) alongside that model's own parameters:
+`BaseModelClass` has no definition of its own. Every definition carries its shared fields next to the class's own parameters. From `term_neonate.json`, `models.PA_PAAL` (trimmed):
 
 ```json
 {
@@ -92,18 +105,10 @@ however, carries the shared fields it defines (`name`, `description`, `is_enable
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- The foundational contract for every model; you extend it (directly or via an intermediate like
-  `Capacitance` / `Resistor` / `TimeVaryingElastance`) to add a new model.
-- The engine's build/step machinery (`ModelEngine`), `DataCollector` and `ModelScaler` all rely on
-  these shared fields and the `is_enabled && _is_initialized` gate.
+Every model extends it, directly or through `Capacitance`, `Resistor`, `TimeVaryingElastance` or another intermediate class. To add a model, see [ARCHITECTURE §8](./ARCHITECTURE.md#8-how-to-add-a-new-model).
 
-## Notes
+## References
 
-- **`_t` is a snapshot.** It is read once at construction. There is no runtime setter for
-  `modeling_stepsize`, and the build sets it before any model is constructed, so `_t` is always correct
-  in practice — but a future runtime step-size change would need `_t` refreshed on every model (and on
-  `TaskScheduler`).
-- The base `init_model` does **not** error on unknown args — it assigns any `{key, value}` straight
-  onto the instance, so definition typos become stray properties rather than build failures.
+None: this is software structure, not physiology.

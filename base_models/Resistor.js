@@ -31,7 +31,6 @@ export class Resistor extends BaseModelClass {
     this.implicit = false;
     this.p1_ext = 0.0; // external pressure on the inlet (mmHg)
     this.p2_ext = 0.0; // external pressure on the outlet (mmHg)
-    this.fixed_composition = false;
     // Mixing without net flow (L/s): an equal volume exchanged both ways each step. Blood: eddies and
     // vortex flow between compartments that are one continuous pool (helpers/BloodMixing.js
     // exchange_blood). Gas: molecular diffusion and cardiogenic mixing (helpers/GasMixing.js
@@ -59,7 +58,6 @@ export class Resistor extends BaseModelClass {
     this.r_for_eff = 1000;  // calculated forward resistance (mmHg/L*s)
     this.r_back_eff = 1000; // calculated backward resistance (mmHg/L*s)
     this.r_k_eff = 0; // calculated non-linear resistance coefficient (mmHg·s²/L²)
-    this._prev_flow = 0.0; // flow from previous model step (L/s)
     this._ref_version = -1; // _models_version the cached _comp_from/_comp_to were resolved at
     this._ref_from = null; // comp_from / comp_to names they were resolved for
     this._ref_to = null;
@@ -125,13 +123,26 @@ export class Resistor extends BaseModelClass {
       }
   }
 
-  // current elastance of a compartment for the implicit correction: a capacitance's el_eff, or a
-  // time-varying elastance's instantaneous value between its minimum and maximum
+  // current local elastance dP/dV of a compartment for the implicit correction: a capacitance's el_eff, or
+  // a time-varying elastance's instantaneous value between its minimum and maximum, plus the slope of the
+  // non-linear term above the unstressed volume (2·el_k·S; for a time-varying elastance it belongs to the
+  // diastolic curve, so it fades with the activation)
   _elastance(c) {
     if (!c) return 0.0;
+    const s = typeof c.vol === "number" && typeof c.u_vol_eff === "number" ? c.vol - c.u_vol_eff : 0.0;
+    const k = s > 0.0 && typeof c.el_k_eff === "number" ? 2.0 * c.el_k_eff * s : 0.0;
     if (typeof c.el_max_eff === "number" && typeof c.act_factor === "number")
-      return c.el_min_eff + (c.el_max_eff - c.el_min_eff) * c.act_factor;
-    return typeof c.el_eff === "number" ? c.el_eff : 0.0;
+      return c.el_min_eff + k + (c.el_max_eff - c.el_min_eff - k) * c.act_factor;
+    return typeof c.el_eff === "number" ? c.el_eff + k : 0.0;
+  }
+
+  // flow magnitude (L/s) for a pressure drop dp >= 0 through a linear resistance r plus the turbulent
+  // term: dp = r * f + r_k_eff * f^2. Solved exactly for this step, in the form without cancellation,
+  // f = 2 dp / (r + sqrt(r^2 + 4 r_k dp)), so the turbulent loss never lags, chatters or reverses the
+  // flow. r_k_eff = 0 keeps the plain dp / r.
+  _flow(dp, r) {
+    if (!(this.r_k_eff > 0.0)) return dp / r;
+    return (2.0 * dp) / (r + Math.sqrt(r * r + 4.0 * this.r_k_eff * dp));
   }
 
   calc_flow() {
@@ -147,29 +158,18 @@ export class Resistor extends BaseModelClass {
     this.flow = 0.0;
 
     // return if no flow is allowed across this resistor
-    if (this.no_flow || this.no_flow_ext) {
-      this._prev_flow = 0.0;
-      // return from this function
-      return;
-    }
+    if (this.no_flow || this.no_flow_ext) return;
 
     // calculate the forward flow between two components
     if (_p1_t >= _p2_t) {
       // guard against a non-positive resistance (would produce Infinity/NaN flow)
-      if (this.r_for_eff <= 0.0) {
-        this._prev_flow = 0.0;
-        return;
-      }
-      // calculate the forward flow. The non-linear term uses the previous step's flow (explicit
-      // lagged scheme) — not this.flow, which was just reset to 0 above.
-      this.flow = (_p1_t - _p2_t - this.r_k_eff * Math.pow(this._prev_flow, 2)) / this.r_for_eff;
+      if (this.r_for_eff <= 0.0) return;
+      // calculate the forward flow: dp = r_for_eff * flow + r_k_eff * flow^2 (see _flow)
+      this.flow = this._flow(_p1_t - _p2_t, this.r_for_eff);
 
       // update the volumes of the connected components but do not remove the volume which could not be removed from the upstream component (to prevent volume loss)
       const vol_not_removed = this._comp_from.volume_out(this.flow * this._t);
       this._comp_to.volume_in(this.flow * this._t - vol_not_removed, this._comp_from);
-
-      // store the previous flow
-      this._prev_flow = this.flow;
       
       // return from this function
       return;
@@ -178,27 +178,18 @@ export class Resistor extends BaseModelClass {
     // calculate the backward flow between two components
     if (_p1_t < _p2_t && !this.no_back_flow) {
       // guard against a non-positive resistance (would produce Infinity/NaN flow)
-      if (this.r_back_eff <= 0.0) {
-        this._prev_flow = 0.0;
-        return;
-      }
-      // calculate the backward flow. The non-linear term uses the previous step's flow (explicit
-      // lagged scheme) — not this.flow, which was just reset to 0 above.
-      this.flow = (_p1_t - _p2_t + this.r_k_eff * Math.pow(this._prev_flow, 2)) / this.r_back_eff;
+      if (this.r_back_eff <= 0.0) return;
+      // calculate the backward flow (negative), same relation on the pressure difference's magnitude
+      this.flow = -this._flow(_p2_t - _p1_t, this.r_back_eff);
 
       // update the volumes of the connected components but do not remove the volume which could not be removed from the upstream component (to prevent volume loss)
       let vol_not_removed = this._comp_to.volume_out(-this.flow * this._t);
       this._comp_from.volume_in(-this.flow * this._t - vol_not_removed,this._comp_to);
 
-      // store the previous flow
-      this._prev_flow = this.flow;
-
       // return from this function
       return;
     }
 
-    // reached only when p1 < p2 and backflow is blocked: no flow occurred this step,
-    // so clear the stored flow to keep the non-linear term consistent next step
-    this._prev_flow = 0.0;
+    // reached only when p1 < p2 and backflow is blocked: no flow this step
   }
 }

@@ -1,177 +1,128 @@
-# Mob — Myocardial Oxygen Balance
+# Mob
 
-`Mob` models the **oxygen economy of the heart muscle**: how much O₂ the myocardium consumes, how
-that O₂ is drawn from the coronary blood pool, and how myocardial **hypoxia** feeds back onto cardiac
-function (rate, contractility, autonomic drive). It is the cardiac analogue of
-[`Metabolism`](./Metabolism.md) — but where Metabolism is a passive tissue sink, `Mob` also closes a
-regulatory loop with the `Heart`.
+`Mob` is the **myocardial oxygen balance**. It computes the heart's own O2 consumption, a basal part plus the cost of its mechanical stroke work, and takes it from the coronary blood pool `COR`. When coronary O2 runs low it depresses heart rate, contractility and the heart's response to sympathetic drive: the ischaemic, failing myocardium. It owns the coronary circulation (`COR` and its connectors) as sub-models.
+
+## Physiology
+
+The heart extracts more of its blood's oxygen than any other organ, about 70 % at rest (coronary sinus saturation ~30 %). It can therefore raise its O2 supply almost only by raising coronary flow. Its O2 use has two parts:
+- a **basal** part, for ion pumps and housekeeping;
+- a **work** part, proportional to the pressure–volume work of each beat (the P–V loop area) and divided by the contractile efficiency (~35 % of the extra O2 becomes external work).
+
+The left ventricle is perfused mainly in diastole, when the muscle relaxes (see [Heart](./Heart.md) for the systolic compression). Coronary hypoxia makes the myocardium beat slower and weaker. Severe ischaemia ends in bradycardia and failure, a key step in neonatal collapse.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Mob   (myocardial O₂ consumption + coronary draw + hypoxia feedback)
+  └── Mob
 ```
-
-Mob extends `BaseModelClass` directly. It **owns the coronary sub-network** (`COR`, `AA_COR`,
-`COR_RAIVCI`, `COR_RASVC`) declared under its `components` block; the base `init_model` instantiates
-those into `model.models` so they participate in the global step loop.
-
-## What it models
-
-Myocardial VO₂ as the sum of a basal term and a stroke-work term (both natively in mmol O₂ per gram
-of heart tissue), the per-step consumption of that O₂ from the coronary blood pool with CO₂ added
-back via the respiratory quotient, and three first-order-smoothed hypoxia feedback channels onto the
-Heart (rate, contractility, autonomic activity).
 
 ## Properties
 
-### Configuration (independent)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `mob_active` | bool | Master on/off; `calc_model` returns immediately when false |
-| `to2_ref` | mmol/L | Upper edge of the coronary-O₂ hypoxia window (no effect at/above) |
-| `to2_min` | mmol/L | Lower edge of the hypoxia window (floor of activation) |
-| `resp_q` | unitless | Myocardial respiratory quotient (CO₂ produced / O₂ consumed), default `0.8` |
-| `bm_vo2_per_g` | mmol/(g·s) | Basal myocardial O₂ cost per gram of myocardium |
-| `mech_efficiency` | — | Incremental (contractile) work efficiency: O₂ energy = stroke work / efficiency, default `0.35` |
-| `caloric_equiv_o2` | J/mL | Energy per mL O₂ (STPD), default `20.1` |
-| `hw_intercept`, `hw_slope` | g, g/g | Heart-mass-from-body-weight regression: `hw = hw_intercept + hw_slope · weight_kg · 1000` |
-| `hr_factor_min/max`, `hr_tc` | unitless, s | Heart-rate hypoxia channel bounds + time constant |
-| `cont_factor_min/max`, `cont_tc` | unitless, s | Contractility hypoxia channel bounds + time constant |
-| `ans_factor_min/max`, `ans_tc` | unitless, s | Autonomic hypoxia channel bounds + time constant |
-
-### Computed / read-out (dependent)
-
-| Property | Unit | Description |
-|---|---|---|
-| `hw` | g | Heart weight derived from body weight |
-| `bm_vo2` | mmol/s | Basal myocardial O₂ consumption rate |
-| `sw_vo2` | mmol/s | Stroke-work O₂ consumption rate |
-| `mob_vo2` | mmol/s | Total myocardial O₂ consumption (`bm_vo2 + sw_vo2`) |
-| `mvo2_step` | mmol | O₂ consumed this step (`mob_vo2 · Δt`) |
-| `stroke_work_lv` / `stroke_work_rv` / `stroke_work_total` | mmHg·mL | Per-beat P-V loop area (left / right / sum) |
-| `hr_factor` / `cont_factor` / `ans_activity_factor` | unitless | Current values of the three hypoxia channels (1.0 = no effect) |
-| `mob` | mmol/s | Myocardial O₂ balance: coronary O₂ delivery (`AA_COR.flow · AA.to2`) minus consumption |
-
-## Oxygen consumption
-
-Two physiologically explicit terms, both in **mmol O₂ / s**, scaled by heart weight `hw`:
-
-```
-hw      = hw_intercept + hw_slope · weight_kg · 1000           [g]   (heart mass from body weight)
-bm_vo2  = bm_vo2_per_g · hw                                    [mmol/s]   basal metabolism
-sw_vo2  = stroke_work_total[J] / (mech_efficiency · caloric_equiv_o2) · O2_MMOL_PER_ML / cycle_time   [mmol/s]
-mob_vo2 = bm_vo2 + sw_vo2
-```
-
-### Stroke work (`calc_sw_vo2`)
-
-**Stroke work** is the area of the ventricular pressure–volume loop, accumulated by trapezoidal `P·dV`
-integration each step and split by flow direction:
-
-- filling (dV > 0) accumulates into `_pv_area_*_inc`
-- ejection (dV < 0) accumulates into `_pv_area_*_dec`
-- at the rising edge of `Heart.cardiac_cycle_running` (start of a new cycle):
-  `stroke_work = _pv_area_dec − _pv_area_inc` (the enclosed loop area), the per-beat O₂ cost
-  `_sw_vo2_per_beat = stroke_work_total · 0.133322 J/(mmHg·L) / (mech_efficiency · caloric_equiv_o2) · O2_MMOL_PER_ML` is computed (the P-V area is in mmHg·L), and the accumulators reset. The edge is `Heart.cardiac_cycle_running` rising while `Heart.prev_cardiac_cycle_running` is 0.
-
-The per-beat stroke-work cost is then amortized over the current `cardiac_cycle_time` to give the
-`sw_vo2` rate.
-
-## Coronary pool update
-
-Per step, `mvo2_step = mob_vo2 · Δt` is drawn from the coronary blood pool `COR`, with CO₂ added back
-via the respiratory quotient `resp_q`:
-
-```
-COR.to2  := (to2·vol − mvo2_step) / vol
-COR.tco2 := (tco2·vol + mvo2_step·resp_q) / vol
-```
-
-The update is applied only when it keeps `to2 ≥ 0` (see caveats).
-
-## Hypoxia feedback to the Heart (`calc_hypoxia_effects`)
-
-Coronary O₂ (`COR.to2`) drives a one-sided `activation_function`: at/above `to2_ref` there is no
-effect; below it the activation goes negative, reaching its floor at `to2_min`. The per-channel gain
-is rebuilt each step (`(factor_max − factor_min) / (to2_ref − to2_min)`) so live edits to the
-bounds take effect. Three independent channels each low-pass the activation with their own time
-constant (`hr_tc`, `cont_tc`, `ans_tc`) and map it onto a factor in `[*_min, *_max]`:
-
-| Channel | Computed factor | Written to | Effect |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| Heart rate | `hr_factor` | `Heart.hr_mob_factor` | lowers heart rate (bradycardia) |
-| Contractility | `cont_factor` | each chamber's `el_max_mob_factor` (LV, RV, LA, and RAIVCI/RASVC if present) | lowers `el_max` (negative inotropy) |
-| Autonomic | `ans_activity_factor` | `Heart.ans_activity_factor` | scales the sympathetic drive the Heart propagates to the chambers |
+| `mob_active` | boolean | `true` | Switch. |
+| `bm_vo2_per_g` | mmol O2/g/s | 3.7e-5 | Basal O2 use per gram of heart. |
+| `hw_intercept`, `hw_slope` | g, g/g | 7.799, 0.004296 | Heart weight = intercept + slope · body weight (g): 23 g at 3.5 kg, 10.8 g at 0.7 kg. |
+| `mech_efficiency` | – | 0.35 | Incremental (contractile) efficiency: stroke work / O2 energy. With the basal part included, whole-heart efficiency is the textbook ~15–20 %. |
+| `caloric_equiv_o2` | J/mL O2 | 20.1 | Energy per mL O2 (STPD). |
+| `resp_q` | – | 0.8 | Myocardial respiratory quotient. |
+| `to2_ref`, `to2_min` | mmol/L | 0.2, 0.0002 | Coronary O2 content below which hypoxia effects start, and where they reach their floor. |
+| `hr_factor_min`, `hr_factor_max`, `hr_tc` | –, s | 0.01, 1, 5 | Heart-rate channel range and time constant. |
+| `cont_factor_min`, `cont_factor_max`, `cont_tc` | –, s | 0.01, 1, 5 | Contractility channel. |
+| `ans_factor_min`, `ans_factor_max`, `ans_tc` | –, s | 0.01, 1, 5 | Sympathetic-responsiveness channel. |
 
-At normal coronary O₂ all three factors are 1.0 (no effect); under severe coronary hypoxia each drives
-toward its `*_min` (default 0.01), i.e. profound suppression of rate, contractility and autonomic
-responsiveness — the model of an ischemic, failing myocardium.
+### Outputs
 
-### How the channels reach the physics
+| Property | Unit | Description |
+|---|---|---|
+| `hw` | g | Heart weight. |
+| `bm_vo2`, `sw_vo2`, `mob_vo2` | mmol/s | Basal, stroke-work and total myocardial O2 use. |
+| `mvo2_step` | mmol | O2 demanded this step. |
+| `stroke_work_lv`, `stroke_work_rv`, `stroke_work_total` | mmHg·L | P–V loop areas of the last beat. |
+| `beat_interval` | s | Measured time between the last two beats. |
+| `mob` | mmol/s | Instantaneous O2 balance: coronary O2 inflow (`AA_COR.flow · AA.to2`) minus use. |
+| `o2_deficit` | mmol/s | Demand `COR` could not supply this step (0 at rest). |
+| `hr_factor`, `cont_factor`, `ans_activity_factor` | – | Applied hypoxia effects (1 = none). |
+| `hr_g`, `cont_g`, `ans_g` | – | Hypoxia gains (rebuilt every step). |
 
-- **`hr_mob_factor`** is read in `Heart.calc_model` (heart-rate sum).
-- **`el_max_mob_factor`** is read in `HeartChamber.calc_elastances` as an additive factor on `el_max`
-  (alongside `el_max_factor`, `el_max_factor_ps`, …).
-- **`ans_activity_factor`** is read in `Heart.calc_varying_elastance`: the chambers receive
-  `ans_activity · ans_activity_factor` instead of `ans_activity`, so it scales the sympathetic
-  inotropy/lusitropy term in `HeartChamber.calc_elastances`.
+## Calculation
 
-## Notes & caveats
+Each step (skipped if `AA`, `AA_COR`, `COR`, `Heart`, `LV` or `RV` is missing):
 
-- **Contractility and autonomic channels compound.** Because the autonomic channel also acts on
-  contractility (it scales `ans_activity`, which drives `el_max`/`el_min`), hypoxia suppresses
-  contractility through **two** channels; the combined strength should be validated/tuned (via
-  `cont_factor_min` and `ans_factor_min`) against expected behaviour in the host app.
-- **O₂-debt handling freezes the pool.** When a step's consumption would drive `COR.to2` negative, the
-  whole coronary update is skipped (O₂ not floored to 0, no CO₂ added), so `COR.to2` cannot fall below
-  one step's consumption. Under extreme ischemia the hypoxia signal therefore plateaus rather than
-  reaching `to2_min`.
-- **Negative stroke work is not guarded.** If the filling-phase P·dV area exceeds the ejection-phase
-  area (`stroke_work_total < 0`), `sw_vo2` and hence `mob_vo2` can go negative, which would *add* O₂ to
-  the coronary pool. This does not occur for a normally ejecting ventricle.
-- **Model references are not null-guarded.** `AA`, `AA_COR`, `COR`, `Heart`, `LV`, `RV` and the
-  Heart's `_lv`/`_rv`/`_la` are dereferenced directly; a configuration lacking any of them throws.
+1. **Basal:** `bm_vo2 = bm_vo2_per_g · hw`.
+2. **Stroke work.** Each step adds the trapezoidal P·dV of LV and RV, split into filling and ejection areas. At each new beat (rising edge of `Heart.cardiac_cycle_running`) the loop area of the finished beat is stored and the beat interval measured:
+   ```
+   O2 per beat = max(SW_lv + SW_rv, 0) · 0.133322 J/(mmHg·L) / (mech_efficiency · 20.1 J/mL) / 22.414
+   sw_vo2      = O2 per beat / beat_interval
+   ```
+   Before the first beat after a build or load, `60 / Heart.heart_rate` stands in for the interval. A pause longer than the last interval stretches it, so an arrested heart stops paying for its last beat.
+3. **Coronary pool.** The step's demand `mob_vo2 · dt` is taken from `COR` as far as it holds O2; CO2 is added at `resp_q` for the O2 used; the shortfall is `o2_deficit`.
+4. **Hypoxia effects.** The activation is `min(COR.to2, to2_ref) − to2_ref` (≤ 0, floored at `to2_min − to2_ref`). It is smoothed per channel and mapped linearly so the factor is 1 at `to2_ref` and `*_min` at `to2_min`:
+   - `Heart.hr_mob_factor` = `hr_factor` (heart-rate sum);
+   - each chamber's `el_max_mob_factor` = `cont_factor` (LV, RV, LA and the right-atrial halves);
+   - `Heart.ans_activity_factor` = `ans_activity_factor` (scales the sympathetic drive the Heart passes to the chambers).
+
+## Factor system
+
+None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is one of HeartChamber's additive `el_max` layers.
+
+## Inputs and outputs
+
+- **Reads:** `COR` (`to2`, `tco2`, `vol`), `AA.to2`, `AA_COR.flow`, `LV`/`RV` (`vol`, `pres`), Heart (`cardiac_cycle_running`, `heart_rate`); `model.weight`.
+- **Writes:** `COR.to2`, `COR.tco2`; `Heart.hr_mob_factor`, `Heart.ans_activity_factor`; the chambers' `el_max_mob_factor`.
+- **Read by:** Heart and the chambers (the channels); `DataCollector` watchers and the probes.
+
+## Assumptions and limitations
+
+- **Behaviour at rest** (30 s averages, after the beat-interval fix):
+
+  | Scenario | Heart weight | Basal + stroke work | Per 100 g | Coronary flow | `COR` / arterial to2 |
+  |---|---|---|---|---|---|
+  | term_neonate | 23.0 g | 1.15 + 1.39 mL/min | 11.0 mL/min | 40 mL/min (174 per 100 g) | 6.9 / 9.6 mmol/L |
+  | preterm_25wk | 10.8 g | 0.54 + 0.20 | 6.8 | 9.0 (83 per 100 g) | 3.9 / 7.5 |
+  | fetus_term | 23.0 g | 1.15 + 1.73 | 12.5 | 32.6 (141 per 100 g) | 1.9 / 5.7 |
+
+- **The coronary flow is high for the heart's O2 use.** At term the heart extracts only ~30–35 % of its arterial O2, against ~70 % in vivo. Aburawi's neonatal LAD flow of 8.2 mL/min points to a total coronary flow of roughly 20–30 mL/min, not 40. Listed for the scenario re-validation (retune `AA_COR` per scenario and check the extraction).
+- **The hypoxia effects start only at a very low `COR.to2`** (0.2 mmol/L, ~2 % saturation). At rest they are inactive, and they engage only in profound coronary hypoxia.
+- **Contractility is depressed twice** under hypoxia: `cont_factor` lowers `el_max`, and `ans_activity_factor` lowers the sympathetic inotropy. Their combined strength is set by `cont_factor_min` and `ans_factor_min`.
+- **Heart weight follows body weight only** (no hypertrophy).
+
+### History (v1.0)
+
+- **The stroke-work cost was spread over the contraction** (`Heart.cardiac_cycle_time`) instead of the beat, overstating it by RR / contraction time (×1.41 at term). The O2 the heart no longer uses moved to `Metabolism.vo2` in every scenario, so whole-body VO2 and the gases are unchanged (`scripts/_fix_mob_beat_interval.mjs`).
+- **An O2 shortfall used to skip the whole step's uptake**, so the heart consumed nothing in ischaemia.
 
 ## Example definition (JSON)
 
-From `term_neonate.json` (coronary sub-components abbreviated):
+From `term_neonate.json`, `models.Mob` (trimmed to the config props; `components` holds `COR`, `AA_COR`, `COR_RAIVCI`, `COR_RASVC`):
 
 ```json
 {
   "name": "Mob",
-  "description": "myocardial oxygen balance v2 (basal + stroke-work, mmol O2/g)",
-  "is_enabled": true,
   "model_type": "Mob",
-  "components": {
-    "COR":        { "model_type": "BloodTimeVaryingElastance", "u_vol": 0.00028, "el_min": 30000, "el_max": 90000, "...": "..." },
-    "AA_COR":     { "model_type": "Resistor", "comp_from": "AA",  "comp_to": "COR", "r_for": 75000, "...": "..." },
-    "COR_RAIVCI": { "model_type": "Resistor", "comp_from": "COR", "comp_to": "RAIVCI", "...": "..." },
-    "COR_RASVC":  { "model_type": "Resistor", "comp_from": "COR", "comp_to": "RASVC",  "...": "..." }
-  },
+  "is_enabled": true,
   "mob_active": true,
-  "to2_min": 0.0002,
-  "to2_ref": 0.2,
-  "resp_q": 0.8,
   "bm_vo2_per_g": 3.7e-5,
-  "mech_efficiency": 0.35,
-  "caloric_equiv_o2": 20.1,
   "hw_intercept": 7.799,
   "hw_slope": 0.004296,
-  "hr_factor_max": 1, "hr_factor_min": 0.01, "hr_tc": 5,
-  "cont_factor_max": 1, "cont_factor_min": 0.01, "cont_tc": 5,
-  "ans_factor_max": 1, "ans_factor_min": 0.01, "ans_tc": 5
+  "mech_efficiency": 0.35,
+  "caloric_equiv_o2": 20.1,
+  "resp_q": 0.8,
+  "to2_ref": 0.2,
+  "to2_min": 0.0002,
+  "hr_factor_min": 0.01, "hr_factor_max": 1, "hr_tc": 5,
+  "cont_factor_min": 0.01, "cont_factor_max": 1, "cont_tc": 5,
+  "ans_factor_min": 0.01, "ans_factor_max": 1, "ans_tc": 5
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- One Mob instance per scenario carrying a heart; it is the only consumer of coronary-pool O₂ and the
-  sole source of myocardial hypoxia feedback.
-- The coronary network it owns (`COR` + connecting resistors) is *not* listed in
-  [`Metabolism`](./Metabolism.md)'s `metabolic_active_models` — the heart's O₂ economy is handled
-  exclusively here.
-- Its hypoxia channels reach the `Heart`/`HeartChamber` physics through `hr_mob_factor`,
-  `el_max_mob_factor` and `ans_activity_factor` (see above).
+One instance in every scenario, with the defaults above, owning the coronary bed (`AA` → `AA_COR` → `COR` → right atrium).
+
+## References
+
+- Aburawi EH, Malcus P, Thuring A, Fellman V, Pesonen E. Coronary flow in neonates with impaired intrauterine growth. *J Am Soc Echocardiogr* 2012;25(3):313–8. doi:10.1016/j.echo.2011.11.019 (healthy controls: LAD flow 8.2 ± 3.0 mL/min at 1 week).

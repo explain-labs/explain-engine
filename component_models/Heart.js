@@ -55,6 +55,10 @@ export class Heart extends BaseModelClass {
 
     this.pc_el_factor = 1.0; // elastance factor of the pericardium
     this.pc_extra_volume = 0.0; // additional volume of the pericardium
+    // systolic coronary inflow resistance: the contracting myocardium compresses the intramural vessels,
+    // so the coronary inflow resistance (AA_COR) is multiplied by (1 + cor_r_systolic_factor · vaf).
+    // 0 = no systolic rise (the coronary bed then only has its own elastance swing)
+    this.cor_r_systolic_factor = 0.0;
   
     // -----------------------------------------------
     // dependent properties
@@ -67,12 +71,15 @@ export class Heart extends BaseModelClass {
     this.ncc_ventricular = 0; // ventricular contraction counter
     this.ncc_atrial = 0; // atrial contraction counter
     this.cardiac_cycle_running = 0; // signal whether or not the cardiac cycle is running (0 = not, 1 = running)
-    this.cardiac_cycle_time = 0.353; // cardiac cycle time (s)
+    this.cardiac_cycle_time = 0.353; // electrical activation time of the last beat: SA firing to end of QT (s), NOT the RR interval
+    this.cqt_time = 0.0; // rate-corrected QT time of the current beat (Bazett, s)
+    this.aaf = 0.0; // atrial activation factor (0-1)
+    this.vaf = 0.0; // ventricular activation factor (0-1)
+    this.rvaf = 0.0; // right-ventricular activation factor (0-1); equals vaf unless rv_delay > 0
 
     this.lv_edv = this.lv_esv = 0.0
     this.lv_edp = 0.0
     this.lv_esp = 0.0
-    this.lv_sp = 0.0
     this.lv_sv = 0.0
     this.lv_ef = 0.0
 
@@ -80,7 +87,6 @@ export class Heart extends BaseModelClass {
     this.rv_esv = 0.0
     this.rv_edp = 0.0
     this.rv_esp = 0.0
-    this.rv_sp = 0.0
     this.rv_sv = 0.0
     this.rv_ef = 0.0
 
@@ -88,13 +94,11 @@ export class Heart extends BaseModelClass {
     this.ra_esv = 0.0
     this.ra_edp = 0.0
     this.ra_esp = 0.0
-    this.ra_sp = 0.0
 
     this.la_edv = 0.0
     this.la_esv = 0.0
     this.la_edp = 0.0
     this.la_esp = 0.0
-    this.la_sp = 0.0
 
 
     // -----------------------------------------------
@@ -124,18 +128,15 @@ export class Heart extends BaseModelClass {
     this._la = null;
     this._lv = null;
     this._ra = null;
-    this._ra_rv = null;
     this._raivci = null;
-    this._raivci_rv = null;
     this._rasvc = null;
-    this._rasvc_rv = null;
     this._rv = null;
     this._la_lv = null;
     this._lv_aa = null;
     this._coronaries = null;
+    this._aa_cor = null;
 
     this._systole_running = false
-    this._diastole_running = false
 
     this.prev_la_lv_flow = 0.0;
     this.prev_lv_aa_flow = 0.0;
@@ -160,23 +161,13 @@ export class Heart extends BaseModelClass {
     this._la = this._model_engine.models["LA"] || null;
     this._la_lv = this._model_engine.models["LA_LV"] || null;
 
-    // right atrial components (atrium and tricuspid valve)
+    // right atrium: a single RA, or (split right atrium) its IVC and SVC halves
     this._ra = this._model_engine.models["RA"] || null;
-    this._ra_rv = this._model_engine.models["RA_RV"] || null;
-
-    // preferential flow models are not always present in the model, so we check for their presence
     this._raivci = this._model_engine.models["RAIVCI"] || null;
-    this._raivci_rv = this._model_engine.models["RAIVCI_RV"] || null;
     this._rasvc = this._model_engine.models["RASVC"] || null;
-    this._rasvc_rv = this._model_engine.models["RASVC_RV"] || null;
-    this._raivci_rasvc = this._model_engine.models["RAIVCI_RASVC"] || null;
 
-    // right ventricular components (ventricle and pulmonary valve)
+    // right ventricle
     this._rv = this._model_engine.models["RV"] || null;
-    this._rv_pa = this._model_engine.models["RV_PA"] || null;
-    
-    // TGA or other congenital heart diseases may not have a normal connection
-    this._rv_aa = this._model_engine.models["RV_AA"] || null; 
 
     // left ventricular components (ventricle and aortic valve)
     this._lv = this._model_engine.models["LV"] || null;
@@ -187,11 +178,7 @@ export class Heart extends BaseModelClass {
 
     // coronary circulation model (not always present in the model, so we check for its presence)
     this._coronaries = this._model_engine.models["COR"] || this._model_engine.models["CORONARIES"] || null;
-    this._aa_cor = this._model_engine.models["AA_COR"] || null;
-    
-    // preferential flow models are not always present in the model, so we check for their presence
-    this._cor_raivci = this._model_engine.models["COR_RAIVCI"] || null;
-    this._cor_rasvc = this._model_engine.models["COR_RASVC"] || null;
+    this._aa_cor = this._model_engine.models["AA_COR"] || null; // coronary inflow resistor
 
     // pericardium model (not always present in the model, so we check for its presence)
     this._pc = this._model_engine.models["PERICARDIUM"] || null;
@@ -258,7 +245,7 @@ export class Heart extends BaseModelClass {
         cont_left !== this.prev_cont_factor_left ||
         cont_right !== this.prev_cont_factor_right
       ) {
-        this.set_contractillity(cont_left, cont_right);
+        this.set_contractility(cont_left, cont_right);
       }
       this.prev_cont_factor_left = cont_left;
       this.prev_cont_factor_right = cont_right;
@@ -327,10 +314,8 @@ export class Heart extends BaseModelClass {
     // set the cardiac cycle
     if (this._systole_running) {
       this.cardiac_cycle_state = 1
-      this._diastole_running = false
     } else {
       this.cardiac_cycle_state = 0
-      this._diastole_running = true
     }
 
     // calculate heart rate from the reference value and influencing factors
@@ -554,6 +539,12 @@ export class Heart extends BaseModelClass {
       this._coronaries.act_factor = this.vaf;
     }
 
+    // systolic rise of the coronary inflow resistance (non-persistent layer: AA_COR resets it after
+    // use; Heart steps before AA_COR, so this step's value applies)
+    if (this._aa_cor && this.cor_r_systolic_factor > 0.0) {
+      this._aa_cor.r_factor = 1.0 + this.cor_r_systolic_factor * this.vaf;
+    }
+
     // analyze current state
     this.analyze()
   }
@@ -601,20 +592,17 @@ export class Heart extends BaseModelClass {
     // skip if no pericardium model is present in this configuration
     if (!this._pc) return;
 
-    // get the current factor from the model
-    let f_pc_el = this._pc.el_base_factor_ps;
-
     // calculate the delta
     let delta = new_el_factor - this.prev_pc_el_factor;
 
-    // guard the extremes
-    f_pc_el = Math.max(f_pc_el + delta, 0);
-
-    // set the new factor
-    this._pc.el_base_factor_ps = f_pc_el;
+    // scale the whole pressure-volume curve: the linear elastance and the non-linear wall. The
+    // shipped pericardium is el_base 0 with all its stiffness in el_k, so a factor on el_base
+    // alone did nothing. Guard the extremes.
+    this._pc.el_base_factor_ps = Math.max(this._pc.el_base_factor_ps + delta, 0);
+    this._pc.el_k_factor_ps = Math.max(this._pc.el_k_factor_ps + delta, 0);
   }
 
-  set_contractillity(new_cont_factor_left, new_cont_factor_right) {
+  set_contractility(new_cont_factor_left, new_cont_factor_right) {
     // get the current factors from the model
     let f_ps_la = this._la.el_max_factor_ps;
     let f_ps_lv = this._lv.el_max_factor_ps;

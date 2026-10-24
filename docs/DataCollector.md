@@ -67,6 +67,8 @@ The two ECG entries (`ncc_atrial`, `ncc_ventricular`) are constructed in the con
 | `clean_up_slow()` | Same for the slow watchlist. |
 | `set_sample_interval(v=0.005)` / `set_sample_interval_slow(v=1.0)` | Change a sampling period. |
 | `set_channels(writer, on_registry)` | Attach the realtime typed transport, set `legacy_mode = false`, build the initial chart slot index. |
+| `_exists(item)` *(private)* | True while the item's model is still the instance in `model.models` (used by `clean_up`). |
+| `_add_ecg_watches()` *(private)* | Adds the two `Heart.ncc_*` watches when the model has a `Heart`. |
 | `_find_model_prop(prop)` *(private)* | Resolves a dot-path against `model.models` (see below). Returns a descriptor or `null`. |
 | `_rebuild_chart_index()` *(private)* | Re-derives `chart_slots`, bumps `registry_version`, reallocates the ring, re-fires the registry callback. No-op without an attached writer. |
 
@@ -86,9 +88,11 @@ This is the read side of the model contract; the write side (deferred mutation o
 
 ## Notes / caveats
 
-- **ECG counters are always watched.** The constructor pushes `Heart.ncc_atrial` and `Heart.ncc_ventricular` onto `watch_list` regardless of any user watchlist, and `clear_watchlist()` re-adds them. ECG reconstruction therefore always has its source data even when the client subscribed to nothing. These two entries resolve `model.models["Heart"]` at construction time, so the build must have a `Heart` component.
+- **ECG counters are always watched.** The constructor pushes `Heart.ncc_atrial` and `Heart.ncc_ventricular` onto `watch_list` regardless of any user watchlist, and `clear_watchlist()` re-adds them. ECG reconstruction therefore always has its source data even when the client subscribed to nothing. These two entries resolve `model.models["Heart"]` at construction time; a build without a `Heart` simply has no ECG watches (it used to fail in `collect_data`).
 - **`get_model_data*` is destructive.** It returns the buffer and immediately resets it to `[]`. Call it once per drain; a second call returns nothing until more is collected.
 - **`clean_up()` drops only watches whose model is gone.** It runs after every `calculate()` and removes entries whose model is no longer the instance in `model.models` (e.g. after a rebuild), re-firing the chart-index rebuild in typed mode when it drops something. A merely **disabled** model keeps its watch: while it is off the typed path writes `0`, the object paths omit its key and the slow path skips it, so a model switched back on (ventilator, ECLS) is charted again, and the forced `Heart.ncc_*` watches can never be dropped.
 - **Two divergent collection paths.** With a `ChannelWriter` attached and `rt_active` true, the fast stream is packed into a Float64 ring (no per-sample object allocation). Offline `calculate()` and legacy mode keep using `collected_data`, so `get_model_data()` still returns rows. Slow data always uses the object buffer.
 - **`_channels` / `_on_chart_registry` are non-enumerable** on purpose: `get_model_state` posts the whole model graph (which reaches the collector through every component's `_model_engine` back-reference), and these function-bearing fields must not be structure-cloned.
+- **The first sample comes one interval in:** the counters start at 0, so a 1 s calculation from build yields ~199 fast rows and the first slow row only after the next step.
+- **Buffers grow until drained.** `calculate()` drains them at its end and posts them as `data` / `data_slow` messages; a caller that steps the engine without draining keeps every row.
 - **Time is rounded** to 4 decimals (`Math.round(model_clock * 10000) / 10000`) before being stored.

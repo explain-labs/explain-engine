@@ -3,7 +3,6 @@ export { BloodDiffusor } from "./base_models/BloodDiffusor";
 export { Capacitance }  from "./base_models/Capacitance";
 export { Container} from "./base_models/Container";
 export { GasCapacitance } from "./component_models/GasCapacitance";
-export { GasDiffusor } from "./base_models/GasDiffusor"
 export { GasExchanger } from "./base_models/GasExchanger";
 export { Resistor } from "./base_models/Resistor";
 export { TimeVaryingElastance } from "./base_models/TimeVaryingElastance";
@@ -13,7 +12,6 @@ export { Blood } from "./component_models/Blood";
 export { BloodCapacitance } from "./component_models/BloodCapacitance";
 export { BloodTimeVaryingElastance } from "./component_models/BloodTimeVaryingElastance";
 export { BloodVessel } from "./component_models/BloodVessel";
-export { BloodPump } from "./component_models/BloodPump";
 export { Fluids } from "./component_models/Fluids";
 
 export { HeartValve } from "./component_models/HeartValve";

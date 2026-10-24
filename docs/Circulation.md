@@ -1,156 +1,114 @@
 # Circulation
 
-`Circulation` is **not a physical compartment** — it is a high-level coordinator that groups the
-circulatory models by anatomical class and applies whole-tree adjustments to them. It does two jobs:
-it propagates **autonomic vascular tone** and **resistance-factor targets** onto the vessels, and it
-tallies the **blood-volume distribution** across the systemic, pulmonary and cardiac compartments for
-reporting. It holds no volume, pressure or flow of its own — it only reads from and writes onto the
-vessels and chambers named in its lists.
+`Circulation` is the coordinator of the blood vessels. It holds no blood itself. It groups the vessels by anatomical class, passes the autonomic vascular tone and the system-wide resistance settings (SVR, PVR) on to them, and reports how the blood volume is distributed. It also owns the circulation's vessels and connectors as sub-models.
+
+## Physiology
+
+Blood pressure and organ flow are set largely by the tone of the small arteries and arterioles, and venous return by the tone of the veins. Several things change that tone at once:
+- **Sympathetic nervous system:** the baroreflex constricts the vessels when pressure falls.
+- **Hormones:** angiotensin II and vasopressin constrict them.
+- **Drugs:** e.g. noradrenaline through α1 receptors.
+- **The clinician:** a vasodilator or vasopressor, or pulmonary vasodilators such as inhaled NO.
+
+Circulation applies each of these to the right vessel class: the systemic or pulmonary arterioles for resistance (SVR, PVR), and the venules for venous resistance. It also reports where the blood is (systemic, pulmonary, heart), the way a clinician thinks of blood volume distribution.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Circulation   (group coordinator — no physics of its own)
+  └── Circulation
 ```
-
-Unlike `Capacitance`/`Resistor` descendants, `Circulation` extends `BaseModelClass` directly. It has
-no `el_base`/`r_for`/`vol`; `calc_model()` instead iterates over named members and writes onto their
-factor layers. It is the systemic/pulmonary counterpart to `Respiration` (which coordinates the
-respiratory tree the same way).
-
-## What it models
-
-It groups every blood-carrying model and exposes a small set of system-wide levers:
-
-- **Autonomic tone** — `ans_activity` is copied onto every vessel's own `ans_activity`, which drives
-  the α-coupled vasoreactivity computed inside each `BloodVessel`.
-- **Resistance tone** — `svr_factor_art`/`svr_factor_ven` and `pvr_factor_art`/`pvr_factor_ven` set
-  the systemic and pulmonary arteriolar/venular resistance; `svr_factor_drug` is an independent
-  channel owned by the Drugs PK/PD model that composes additively with `svr_factor_art`.
-- **Volume bookkeeping** — `calc_blood_volumes()` sums compartment volumes into systemic / pulmonary /
-  heart totals and percentages.
-
-Group membership is **name-based**: a vessel only receives tone or is counted if its name appears in
-the appropriate list, so the lists must be kept in sync with the circulation topology.
 
 ## Properties
 
-### Configuration (set in the model definition)
+### Config: groups (names of models)
 
 | Property | Default | Description |
 |---|---|---|
-| `heart_chambers` | `[]` | names of all heart chambers (LA/RA/LV/RV streams) |
-| `coronaries` | `[]` | names of coronary compartments (counted into the systemic total) |
-| `systemic_arteries` | `[]` | systemic artery names |
-| `systemic_arterioles` | `[]` | systemic arteriole names (the SVR tone site) |
-| `systemic_capillaries` | `[]` | systemic capillary names |
-| `systemic_venules` | `[]` | systemic venule names (the venous tone site) |
-| `systemic_veins` | `[]` | systemic vein names |
-| `pulmonary_arteries` | `[]` | pulmonary artery names |
-| `pulmonary_arterioles` | `[]` | pulmonary arteriole names (the PVR tone site) |
-| `pulmonary_capillaries` | `[]` | pulmonary capillary names |
-| `pulmonary_venules` | `[]` | pulmonary venule names |
-| `pulmonary_veins` | `[]` | pulmonary vein names |
-| `ans_activity` | `1.0` | autonomic tone propagated to all vessels (1.0 = no effect) |
-| `svr_factor_art` | `1.0` | systemic **arteriolar** resistance target |
-| `svr_factor_ven` | `1.0` | systemic **venular** resistance target |
-| `svr_factor_drug` | `1.0` | independent systemic-arteriolar channel owned by the Drugs model |
-| `pvr_factor_art` | `1.0` | pulmonary **arteriolar** resistance target |
-| `pvr_factor_ven` | `1.0` | pulmonary **venular** resistance target |
+| `heart_chambers` | `[]` | Heart chambers, for the volume report. |
+| `coronaries` | `[]` | Coronary bed, counted in the systemic volume. |
+| `systemic_arteries`, `systemic_arterioles`, `systemic_capillaries`, `systemic_venules`, `systemic_veins` | `[]` | Systemic vessels by class. The arterioles are the SVR site, the venules the venous resistance site. |
+| `pulmonary_arteries`, `pulmonary_arterioles`, `pulmonary_capillaries`, `pulmonary_venules`, `pulmonary_veins` | `[]` | Pulmonary vessels by class. The arterioles are the PVR site. |
 
-### Computed / reported (outputs)
+### Config: resistance channels
+
+Each channel is a multiplier around 1, applied to its vessel group. A change is added as a delta to the vessels' `r_factor_ps` (see [Calculation](#calculation)).
+
+| Property | Default | Vessels | Owner |
+|---|---|---|---|
+| `svr_factor_art` | 1.0 | systemic arterioles | the user / scenario |
+| `svr_factor_ven` | 1.0 | systemic venules | the user / scenario |
+| `pvr_factor_art` | 1.0 | pulmonary arterioles | the user / scenario |
+| `pvr_factor_ven` | 1.0 | pulmonary venules | the user / scenario |
+| `svr_factor_drug` | 1.0 | systemic arterioles | `Drugs` (α1 vasoconstriction) |
+| `svr_factor_hormones_art` | 1.0 | systemic arterioles | `Hormones` (angiotensin II, ADH) |
+| `svr_factor_hormones_ven` | 1.0 | systemic venules | `Hormones` (angiotensin II) |
+
+### Set by other models
+
+| Property | Default | Written by |
+|---|---|---|
+| `ans_activity` | 1.0 | The `EF_SVR` efferent (baroreflex/chemoreflex vascular tone); passed to every vessel in the groups. |
+
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `total_blood_volume` | L | systemic + pulmonary + heart volume |
-| `syst_blood_volume` | L | systemic vessels + coronaries |
-| `pulm_blood_volume` | L | pulmonary vessels |
-| `heart_blood_volume` | L | heart chambers |
-| `syst_blood_volume_perc` | % | systemic share of total (0 when total = 0) |
-| `pulm_blood_volume_perc` | % | pulmonary share of total |
-| `heart_blood_volume_perc` | % | heart share of total |
+| `total_blood_volume` | L | Systemic + pulmonary + heart volume (every 1 s). |
+| `syst_blood_volume`, `pulm_blood_volume`, `heart_blood_volume` | L | Volumes per part; systemic includes the coronaries. Disabled vessels (placenta, ECLS) are not counted. |
+| `syst_blood_volume_perc`, `pulm_blood_volume_perc`, `heart_blood_volume_perc` | % | Shares of the total (0 while the total is 0). |
 
-### Local (internal)
+### Internal state (public names, saved with the state)
 
-`_bloodvessel_list`, `_systemic_bloodvessel_list`, `_pulmonary_bloodvessel_list` are flattened name
-lists built in `init_model`. `prev_*` shadow each target so a change can be detected and applied as a
-delta. `_update_interval` (0.015 s) / `_update_interval_slow` (1.0 s) throttle the two loops.
+| Property | Description |
+|---|---|
+| `prev_ans_activity`, `prev_svr_factor_art`, `prev_svr_factor_ven`, `prev_svr_factor_drug`, `prev_svr_factor_hormones_art`, `prev_svr_factor_hormones_ven`, `prev_pvr_factor_art`, `prev_pvr_factor_ven` | The values last applied; a difference triggers the update. `prev_ans_activity` starts at 0, so the first update always pushes `ans_activity`. |
 
-> Definition files may also carry stale `svr_factor`/`pvr_factor`/`prev_svr_factor`/`prev_pvr_factor`
-> fields left over from an earlier single-factor scheme. The **current** source reads only the
-> `*_art`/`*_ven` (and `*_drug`) factors above; the bare `svr_factor`/`pvr_factor` keys are ignored.
+## Calculation
 
-## Calculation cycle (`calc_model`)
+`calc_model()` runs two throttled loops.
 
-Two throttled loops:
+**Every 15 ms**, only for inputs that changed since the last tick:
+- `ans_activity` → written onto every vessel in the groups (each `BloodVessel` applies it through its `ans_sens`, see [BloodVessel](./BloodVessel.md)).
+- Each resistance channel → its change is added to the persistent factor of every vessel in its group:
+  ```
+  delta = new_value − prev_value
+  r_factor_ps += delta        (each vessel of the group, clamped at 0)
+  ```
+  The user, Drugs and Hormones channels all add into the same `r_factor_ps`, together with anything else that writes it (scenario tuning, the `Calibrator`). Because they add, simultaneous channels combine additively: SVR ×2 plus a drug ×2 gives ×3, not ×4. The vessel's other layers (scaling, ANS, viscosity) then multiply on top.
 
-- **Fast (every 0.015 s)** — apply tone changes *only when an input changed* (each guarded by a
-  `prev_*` comparison so the work is skipped when nothing moved):
-  - `ans_activity` → written onto every vessel's `ans_activity`.
-  - `svr_factor_art` / `svr_factor_ven` → `set_svr_factor_art` / `set_svr_factor_ven`.
-  - `svr_factor_drug` → `set_svr_factor_drug`.
-  - `pvr_factor_art` / `pvr_factor_ven` → `set_pvr_factor_art` / `set_pvr_factor_ven`.
-- **Slow (every 1.0 s)** — `calc_blood_volumes()` tallies the volume distribution (throttled for
-  performance, so `*_blood_volume*` lag fast transients by up to a second).
+**Every 1 s:** `calc_blood_volumes()` sums the enabled vessels and chambers into the volume outputs.
 
-## Vascular tone: the `set_*_factor` methods
+## Factor system
 
-Resistance tone is applied through each vessel's **persistent** resistance factor `r_factor_ps` — the
-layer that survives steps and accumulates contributions from several models (Circulation, ANS, Drugs,
-Hormones). Because it is cumulative, Circulation applies the **delta** since the last call, not the
-absolute value:
+None of its own; it writes `BloodVessel.r_factor_ps` (see [BloodVessel → Factor system](./BloodVessel.md#factor-system)). Through the α-coupling, every resistance channel also stiffens the vessels it acts on.
 
-```
-delta = new_factor − prev_factor
-for each vessel in the group:  r_factor_ps += delta   (clamped at 0)
-this.<factor> := new_factor
-```
+## Inputs and outputs
 
-The delta is computed **once** so every vessel in the group receives the same change, and
-`r_factor_ps` is clamped at 0 (a negative resistance factor is non-physical). The clamp makes the
-setters non-reversible past it: a delta that hits 0 is partly lost, so stepping a factor down past
-the floor and back does not restore the vessel. The lists must hold **vessel** names only (a
-resistor name is skipped silently), and every arteriole-type bed belongs in `systemic_arterioles`:
-`RUB`/`RLB` (the lumped upper/lower-body beds) carry 36 % of systemic organ flow in `term_neonate`.
-The five methods differ
-only in which list they drive:
+- **Reads:** the vessels' and chambers' volumes (volume report).
+- **Writes:** `ans_activity` and `r_factor_ps` of the vessels in its groups.
+- **Written by:**
+  - `EF_SVR` (`ans_activity`);
+  - `Drugs` (`svr_factor_drug`), `Hormones` (`svr_factor_hormones_*`);
+  - the user and scenarios (`svr_factor_art/_ven`, `pvr_factor_art/_ven`).
 
-| Method | Vessel list | Role |
-|---|---|---|
-| `set_svr_factor_art` | `systemic_arterioles` | systemic arteriolar resistance |
-| `set_svr_factor_drug` | `systemic_arterioles` | independent drug channel (composes additively with art) |
-| `set_svr_factor_ven` | `systemic_venules` | systemic venular resistance |
-| `set_pvr_factor_art` | `pulmonary_arterioles` | pulmonary arteriolar resistance |
-| `set_pvr_factor_ven` | `pulmonary_venules` | pulmonary venular resistance |
+  The UI's SVR and PVR common tasks use `ModelScaler`'s resistance groups instead (the scaling layer).
+- **Read by:** `Monitor` and `DataCollector` watchers (volume report).
 
-> Resistance tone is applied at the **arteriolar and venular** levels only — the dominant resistance
-> sites — not on the large arteries/veins or capillaries. `ans_activity`, by contrast, is broadcast to
-> *every* vessel in `_bloodvessel_list`.
+## Assumptions and limitations
 
-## Blood-volume tally (`calc_blood_volumes`)
-
-Sums `vol` over **enabled** members of each group:
-
-```
-syst_blood_volume  = Σ systemic vessels + Σ coronaries
-pulm_blood_volume  = Σ pulmonary vessels
-heart_blood_volume = Σ heart chambers
-total_blood_volume = syst + pulm + heart
-*_perc = 100 · part / total          (0 when total = 0)
-```
-
-Coronary volume is counted into the **systemic** total. Disabled models and missing names are skipped,
-and the percentages are guarded against a zero total (NaN avoidance before the circulation fills).
+- **One autonomic signal for all vessels.** Regional differences come only from each vessel's `ans_sens`.
+- **Channels add.** See [Calculation](#calculation). The clamp at 0 makes a channel irreversible past it: a delta that hits 0 is partly lost.
+- **Membership is by name.** Only vessel names belong in the groups (a resistor name is skipped). `RUB`/`RLB` (the lumped upper and lower body, 36 % of systemic organ flow at term) belong in `systemic_arterioles`.
+- **Renal autoregulation acts on the inflow connector.** `Kidneys` adjusts `AD_KID_ART` (the renal arteriole's inflow resistor), so KID_ART receives the systemic channels like the other arterioles and autoregulation counters them on top. Before this, an absolute write to KID_ART erased every SVR change there.
 
 ## Example definition (JSON)
 
-From `term_neonate.json` (lists trimmed for brevity):
+From `term_neonate.json`, `models.Circulation` (trimmed; `components` holds the vessels and connectors):
 
 ```json
 {
   "name": "Circulation",
-  "description": "high level circulation model",
   "model_type": "Circulation",
   "is_enabled": true,
   "heart_chambers": ["LA", "RAIVCI", "RASVC", "RV", "LV"],
@@ -165,26 +123,17 @@ From `term_neonate.json` (lists trimmed for brevity):
   "pulmonary_capillaries": ["LL_CAP", "RL_CAP"],
   "pulmonary_venules": ["LL_VEN", "RL_VEN"],
   "pulmonary_veins": ["PV"],
-  "ans_activity": 1.0,
-  "svr_factor_art": 1.0,
-  "svr_factor_ven": 1.0,
-  "svr_factor_drug": 1.0,
-  "pvr_factor_art": 1.0,
-  "pvr_factor_ven": 1.0
+  "svr_factor_art": 1,
+  "svr_factor_ven": 1,
+  "pvr_factor_art": 1,
+  "pvr_factor_ven": 1
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- The **ANS** effector writes `Circulation.ans_activity`; Circulation fans it out to every
-  `BloodVessel` so the per-vessel α-coupled vasoreactivity uses one shared activity level.
-- The **Hormones** (RAAS/ADH) and **Drugs** models adjust `svr_factor_art` / `svr_factor_drug` /
-  `pvr_factor_*` to raise or lower regional resistance; Circulation translates each target into a
-  shared delta on the relevant `r_factor_ps`.
-- `scaleModel`/`ModelScaler` does **not** go through Circulation — it writes the `*_scaling_ps` layer
-  on each vessel directly. Circulation only ever touches `r_factor_ps`.
-- The `*_blood_volume*` outputs feed monitoring/diagnostics (volume distribution between systemic,
-  pulmonary and cardiac compartments).
+One instance in every scenario. Its `components` are the 31 circulation vessels and 3 free resistors (`PV_LA`, `IVCI_RAIVCI`, `SVC_RASVC`); the vessels' own inflow connectors are created by the vessels. At rest the term blood volume is 286 mL: 81 % systemic, 11 % pulmonary, 8 % in the heart. The placenta (`Placenta`) and ECLS (`Ecls`) vessels belong to their own owners and are not in the groups.
 
-See also [Respiration](./Respiration.md) (the respiratory-tree counterpart) and
-[BloodVessel](./BloodVessel.md) (the per-vessel resistance/ANS coupling that Circulation drives).
+## References
+
+No literature-derived values: the groups and channels are model structure.

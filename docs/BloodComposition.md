@@ -1,157 +1,117 @@
 # BloodComposition
 
-`BloodComposition.js` is **not a model class** — it is a module that exports the function **`calc_blood_composition(bc)`**, the acid-base and blood-gas solver for the engine. Given a blood compartment's total dissolved-gas contents (`to2`, `tco2`), its solutes and temperature, it computes pH, pCO₂, pO₂, SO₂, HCO₃⁻ and base excess and writes them back onto the compartment. It is invoked by [`Blood`](./Blood.md), by [`BloodDiffusor`](./BloodDiffusor.md) and the gas exchangers, and by any read-out (Monitor, ANS chemoreceptors, ECLS) that needs partial pressures.
+`BloodComposition` is the blood-gas solver: the function `calc_blood_composition(bc)`. Given a blood compartment's **contents** (total O2, total CO2, strong ions, buffers, haemoglobin, temperature), it computes what a blood-gas analyser reports: **pH, pCO2, HCO3, base excess, pO2 and SO2**. The compartments carry only contents. The partial pressures and pH exist only where someone calls this solver.
 
-## Inheritance
+It is a module of functions, not a model class: no `model_type`, no instance.
 
+## Physiology
+
+The body transports amounts (mmol of O2 and CO2, mmol of ions), but gases diffuse and receptors sense along partial pressures and pH. Converting one to the other is what this solver does.
+
+- **Acid-base (physicochemical, Stewart / Figge).** A sample's pH is set by three independent things:
+  - the **strong ion difference** (Na + K + 2Ca + 2Mg − Cl − lactate);
+  - the **total CO2**;
+  - the **weak acids**: albumin, phosphate, haemoglobin.
+
+  pH is whatever makes the solution electrically neutral. So a high chloride (saline) or a high lactate lowers the SID and causes a metabolic acidosis; CO2 retention a respiratory one.
+- **Oxygen.** O2 is carried bound to haemoglobin (1.36 mL per g, Hüfner) and a little dissolved (0.0031 mL/dL per mmHg). Saturation follows the sigmoid dissociation curve. Its position (P50) shifts right with acidosis (Bohr effect), higher pCO2, higher temperature and more 2,3-DPG, and left in fetal haemoglobin.
+- **Haldane effect.** Deoxygenated blood binds more CO2 (carbamino), so at the same total CO2 desaturated blood has a lower pCO2.
+
+## API
+
+```js
+import { calc_blood_composition } from "./component_models/BloodComposition.js";
+calc_blood_composition(bc);   // solves in place on bc
 ```
-(module function — not a class)
 
-  calc_blood_composition(bc)                      ← exported entry point + result cache
-    └── _calc_blood_composition_js(bc)            ← the solve
-          ├── _brent_root_finding(_net_charge_plasma, …)   acid-base (H⁺)
-          │     └── _net_charge_plasma(hp)        Stewart charge balance + CO₂ partition
-          └── _brent_root_finding(_do2_content, …)         oxygenation (pO₂)
-                ├── _do2_content(po2)             O₂ content residual
-                └── _calc_so2(po2)                Hill saturation
-```
+### Read from `bc`
 
-These are plain module-scoped functions. The constants, independent variables and state variables (`ph`, `po2`, `so2`, `pco2`, `hco3`, `be`, `P50`, …) are **module-level `let`/`const` globals**, reused across every call — the solver is single-threaded and stateful per call, not re-entrant. Results are returned by mutating the passed-in compartment object `bc`.
-
-## What it models
-
-Two coupled physiological solves, each implemented as a Brent root-find:
-
-1. **Acid-base** — a Stewart strong-ion / charge-balance model. Total CO₂ is partitioned into dissolved CO₂, bicarbonate and carbonate via the carbonic-acid equilibria; albumin, phosphate and haemoglobin provide non-bicarbonate buffering. The solver finds the plasma H⁺ that makes net charge zero, yielding pH, pCO₂, HCO₃⁻ and base excess.
-2. **Oxygenation** — an O₂–haemoglobin dissociation model (Hill equation) with a P50 that is right/left-shifted by pH (Bohr), pCO₂ (carbamino CO₂-Bohr), temperature and 2,3-DPG. The solver finds the pO₂ whose total O₂ content (Hb-bound + dissolved) matches the compartment's `to2`; SO₂ falls out of the Hill equation.
-
-The two solves are coupled through the **Haldane effect** (O₂ saturation → CO₂ carrying capacity) and the **CO₂-Bohr effect** (pCO₂ → O₂ affinity).
-
-## Inputs and outputs
-
-Read from the compartment `bc`:
-
-| Input | Source | Description |
+| Field | Unit | Description |
 |---|---|---|
-| `bc.to2` | mmol/L | Total O₂ concentration (target for the O₂ solve) |
-| `bc.tco2` | mmol/L | Total CO₂ concentration (input to the acid-base solve) |
-| `bc.temp` | degC | Temperature (CO₂ solubility, P50 shift). A real per-compartment field: warmed toward core by [`Blood`](./Blood.md)'s relaxation and advected by flow, so it can carry genuine gradients (e.g. blood cooled by an [`Ecls`](./Ecls.md) heater-cooler) rather than a uniform stamp |
-| `bc.solutes.na/k/ca/mg/cl/lact` | mmol/L | Strong ions → SID |
-| `bc.solutes.albumin/phosphates/uma` | — | Non-bicarbonate buffers / unmeasured anions |
-| `bc.solutes.hemoglobin` | mmol/L | Haemoglobin (converted to g/dL via `/0.6206`) |
-| `bc.P50_0` | mmHg | O₂–Hb affinity baseline (falls back to 20.0) |
-| `bc.haldane_coeff` | unitless | Haldane strength (falls back to `DEFAULT_HALDANE_COEFF = 1.0`) |
-| `bc.so2` | % | **Previous-step** SO₂ used for the Haldane term (falls back to 0.98 fraction) |
-| `bc.prev_ph`, `bc.prev_po2` | — | Previous results used to set narrow root-find brackets |
+| `to2`, `tco2` | mmol/L | Total O2 and CO2 content. |
+| `solutes.na`, `k`, `ca`, `mg`, `cl`, `lact` | mmol/L | Strong ions (SID). |
+| `solutes.albumin` | g/L | Weak acid. |
+| `solutes.phosphates` | mmol/L | Weak acid. |
+| `solutes.uma` | mmol/L | Unmeasured anions, a fixed negative charge (the anion-gap calibration). |
+| `solutes.hemoglobin` | mmol/L | O2 capacity and non-bicarbonate buffer (1 g/dL = 0.6206 mmol/L). |
+| `temp` | °C | Shifts P50 only. |
+| `P50_0` | mmHg | Dissociation-curve position at standard conditions (default 20). |
+| `haldane_coeff` | – | Haldane strength (default 1; 2.2 in the scenarios). |
+| `hb_buffer_fraction` | – | Optional; share of Hb that buffers (default 1/3). No scenario sets it. |
+| `so2`, `prev_ph`, `prev_po2` | %, –, mmHg | Last solution: the Haldane input and the warm start of both root searches. |
 
-Written back to the compartment `bc`:
+### Written to `bc`
 
-| Output | Unit | Description |
+| Field | Unit | Description |
 |---|---|---|
-| `bc.ph` | — | Plasma pH |
-| `bc.pco2` | mmHg | Partial pressure of CO₂ |
-| `bc.hco3` | mmol/L | Bicarbonate |
-| `bc.be` | mmol/L | Base excess |
-| `bc.po2` | mmHg | Partial pressure of O₂ |
-| `bc.so2` | % | O₂ saturation |
-| `bc.prev_po2` | mmHg | Updated to the solved pO₂ (next-call bracket seed) |
+| `ph`, `pco2`, `hco3`, `be` | –, mmHg, mmol/L, mmol/L | Acid-base result; `be` is the **standard** base excess. |
+| `po2`, `so2` | mmHg, % | Oxygen result. |
+| `prev_ph`, `prev_po2` | | Warm start for the next call (persisted state, saved with the scenario). |
+| `_bc_prev_*`, `_bc_cache_initialized` | | Result cache (see below). |
 
-## Constants
+## Calculation
 
-| Constant | Value | Meaning |
+**1. Cache.** If the step time (`model_time_total`) and every input above equal the last call's, it returns at once. In practice it skips only repeated calls within one step (several models solving the same compartment).
+
+**2. Acid-base: charge balance.** Brent's method finds [H⁺] (mmol/L) that zeroes the net charge:
+```
+cCO2  = tco2 / (1 + Kc/H + Kc·Kd/H² + haldane_coeff·(1 − SO2_prev))     dissolved CO2
+HCO3  = Kc·cCO2 / H,   CO3 = Kd·HCO3 / H,   OH = Kw / H,   pCO2 = cCO2 / 0.03067
+A_alb+P = albumin·(0.123·pH − 0.631) + phosphates·(0.309·pH − 0.469)        (Figge)
+A_Hb    = 2.3 · Hb · hb_buffer_fraction · (pH − 7.4)                       (Van Slyke)
+0 = H + SID − HCO3 − 2·CO3 − OH − A_alb+P − A_Hb − uma
+```
+Constants: pK′ 6.1 (`Kc`), pK 10.22 (`Kd`), pKw 13.6, CO2 solubility 0.03067 mmol/L/mmHg; all at 37 °C. The search is bracketed at the last pH ± 0.1; if that fails, at pH 6.0–8.5.
+```
+BE = 0.93 · (HCO3 − 24.4 + 14.83·(pH − 7.4))       standard base excess (Siggaard-Andersen)
+```
+
+**3. P50.**
+```
+log10 P50 = log10 P50_0 − 0.48·(pH − 7.4) + 0.0015·(pCO2 − 40) + 0.024·(T − 37) + 0.051·(DPG − 5)
+```
+DPG is fixed at 5, so its term is always 0.
+
+**4. Oxygen.** Brent's method finds the pO2 for which
+```
+SO2 = pO2ⁿ / (pO2ⁿ + P50ⁿ),   n = 2.7                         (Hill)
+to2 = (0.0031·pO2 + 1.36·Hb[g/dL]·SO2) · 10 / 22.414          (mL/L at STPD → mmol/L)
+```
+equals the compartment's `to2`. It is bracketed at the last pO2 ± 10 mmHg; if that fails, at 0–1000 mmHg.
+
+**Order and lag.** The acid-base solve runs first with the previous SO2 (Haldane); then the O2 solve uses the new pH and pCO2 (Bohr). The O2↔CO2 coupling therefore lags by one call and converges at steady state.
+
+## Behaviour (bench test, term_neonate composition, Hb 10 mmol/L)
+
+| Change | Result |
+|---|---|
+| tCO2 24 → 28 mmol/L | pCO2 38 → 69 mmHg, pH 7.38 → 7.17, HCO3 22.1 → 24.5: **~0.8 mmol/L HCO3 per 10 mmHg** (in vivo acute ~1). SBE drifts −2.4 → −3.1. |
+| to2 7 mmol/L | SO2 71 %, pO2 32 mmHg at pH 7.30 |
+| temp 37 → 33.5 °C | pO2 32 → 27 mmHg at the same SO2; **pH and pCO2 unchanged** |
+
+## Assumptions and limitations
+
+- **No temperature correction of acid-base.** The dissociation constants and CO2 solubility are 37 °C values; temperature moves only P50. So pH and pCO2 are what an analyser reports at 37 °C (alpha-stat values), also during therapeutic hypothermia. pO2 does follow the patient's temperature (via P50).
+- **Plasma model with an ECF-equivalent Hb buffer.** The charge balance is a plasma model; Hb buffers at a third of its concentration to stand in for the extracellular fluid the blood equilibrates with. No red-cell compartment, no chloride shift.
+- **Fixed Hill curve** (n 2.7): less accurate at very low and very high saturations than the full Kelman / Severinghaus curves. 2,3-DPG is fixed; methaemoglobin and carboxyhaemoglobin are absent.
+- **Carbamino CO2** appears only in the Haldane term; it isn't reported separately, and `hco3` excludes it.
+- **Failed solves keep the last values.** Outside pH 6.0–8.5, or above the content reachable at 1000 mmHg, the solve fails, logs once per call, and the compartment keeps its previous pH, pCO2, pO2 and SO2. A compartment that has never solved keeps the `-1` sentinel; [GasExchanger](./GasExchanger.md) handles that case.
+- **Not re-entrant.** The solver keeps its working values in module-level variables; it must not run for two compartments at once (it never does in the single-threaded worker).
+- **Contents are whole blood, chemistry is plasma.** `to2`/`tco2` are per litre of blood, the acid-base constants are plasma ones; the calibration (`uma`, `haldane_coeff`) absorbs the difference.
+
+## Callers
+
+| Caller | Compartments | When |
 |---|---|---|
-| `kw` | 2.5119e-11 | Water dissociation constant |
-| `kc` | 7.94328235e-4 | Carbonic-acid dissociation constant |
-| `kd` | 6.0255959e-8 | Bicarbonate dissociation constant |
-| `alpha_co2p` | 0.03067 | CO₂ solubility coefficient |
-| `n` | 2.7 | Hill coefficient |
-| `alpha_o2` | 1.38e-5 | O₂ solubility coefficient (declared) |
-| `gas_constant` | 62.36367 | For the mmol/L → mL conversion factor |
-| `left_hp_wide` / `right_hp_wide` | 3.16e-6 / 1.0e-3 | Wide H⁺ brackets (mmol/L): pH 8.5–6.0. Outside them both solves fail and the gases keep their last value |
-| `left_o2_wide` / `right_o2_wide` | 0 / 800.0 | Wide pO₂ brackets (mmHg) |
-| `delta_ph_limits` | 0.1 | ± window for the narrow pH bracket |
-| `delta_o2_limits` | 10.0 | ± window for the narrow pO₂ bracket |
-| `brent_accuracy` | 1e-6 | Root-find tolerance |
-| `max_iterations` | 60 | Root-find iteration cap |
-| `DEFAULT_HALDANE_COEFF` | 1.0 | Haldane fallback when `bc.haldane_coeff` is undefined |
+| [Blood](./Blood.md) | `AA`, `AD`, `IVCI`, `SVC`, `RAIVCI`, `PA` | every 1 s |
+| [GasExchanger](./GasExchanger.md) | the lung capillaries | its own update interval |
+| [BloodDiffusor](./BloodDiffusor.md) | both sides (e.g. placenta) | every step it runs |
+| [Ans](./Ans.md) | its `blood_composition_models` (chemoreceptor sites) | its update interval, while `ans_active` |
+| [Ecls](./Ecls.md) | tubing and oxygenator | its update interval |
+| `ModelEngine` | any named compartment | on request (`GET "blood_composition"`) |
 
-## Result cache (`calc_blood_composition`)
+## References
 
-The exported wrapper memoises the last solve per compartment. It stores `_bc_prev_*` snapshots of `tco2`, `to2`, `temp`, `prev_ph`, `prev_po2`, the strong ions, buffers, haemoglobin and `model_time_total` on `bc`. If every cached input matches the current values (and the step stamp matches, when defined), it returns immediately without re-solving. Otherwise it calls `_calc_blood_composition_js(bc)` and refreshes the cache. This is what makes it cheap to call `calc_blood_composition` from many places each second.
-
-## Acid-base solve (Stewart / charge balance)
-
-`_calc_blood_composition_js` computes the **strong ion difference**:
-
-```
-SID = Na + K + 2·Ca + 2·Mg − Cl − lactate
-```
-
-then brackets H⁺. If `prev_ph > 0` the brackets are tightened to `10^−(prev_ph ± 0.1)·1000`; the narrow solve is retried with the wide brackets if it fails. `_brent_root_finding` solves `_net_charge_plasma(H⁺) = 0`:
-
-```
-cco2p = tco2 / (1 + kc/H + kc·kd/H² + haldane_coeff·(1 − SO₂_prev))
-hco3  = kc · cco2p / H
-co3p  = kd · hco3 / H
-ohp   = kw / H
-pco2  = cco2p / alpha_co2p
-a_base = albumin·(0.123·pH − 0.631) + phosphates·(0.309·pH − 0.469)
-a_hb   = 2.3 · Hb · hb_buffer_fraction · (pH − 7.4)
-
-net charge = H + SID − hco3 − 2·co3p − ohp − a_base − a_hb − uma
-```
-
-`a_hb` is **haemoglobin as a buffer**. Without it, albumin and phosphate were the only non-bicarbonate buffers (~3.5 mmol/L per pH), and HCO₃ rose only ~0.3 mmol/L per 10 mmHg pCO₂. Each compartment stands in for the extracellular fluid it exchanges with, so Hb buffers at its effective ECF concentration: `hb_buffer_fraction` (per compartment, default 1/3) of the blood Hb. That is the same basis as the standard base excess (Hb_eff ≈ 3 mmol/L at a blood Hb of ≈ 9). The coefficient 2.3 mmol/L per pH per mmol/L Hb is Van Slyke's. In `term_neonate` the acute response becomes ≈ +0.85 mmol/L HCO₃ and −0.074 pH per +10 mmHg pCO₂, close to the clinical rule of +1 per 10.
-
-The `haldane_coeff·(1 − SO₂_prev)` term in the CO₂ partition is the **Haldane effect**: as saturation falls it raises the effective CO₂-carrying capacity, lowering dissolved CO₂ (hence `pco2`/`hco3`) at a given `tco2`. It uses the *previous-step* SO₂ (`bc.so2/100`, default 0.98) to break the O₂↔CO₂ coupling; at steady state `SO₂_prev == SO₂` so the one-step lag vanishes. `haldane_coeff = 0` disables it.
-
-Once H⁺ is found, base excess is the **standard base excess** (cBase(Ecf), Siggaard-Andersen; what blood-gas analysers report as SBE):
-
-```
-be = 0.93 · (hco3 − 24.4 + 14.83·(pH − 7.4))
-```
-
-With the Hb buffer above it is nearly independent of pCO₂ (−0.5 mmol/L over +21 mmHg in `term_neonate`, against −4 with the earlier whole-blood formula on the unbuffered solve).
-
-and `ph`, `pco2`, `hco3`, `be` are written to `bc`.
-
-## P50 shift (Bohr / CO₂-Bohr / temperature / DPG)
-
-Before the O₂ solve, P50 is shifted from its baseline `P50_0`:
-
-```
-ΔpH   = ph − 7.40        (Bohr)
-ΔpCO2 = pco2 − 40.0       (carbamino CO₂-Bohr)
-ΔT    = temp − 37.0
-ΔDPG  = dpg − 5.0
-
-log10(P50) = log10(P50_0) − 0.48·ΔpH + 0.0015·ΔpCO2 + 0.024·ΔT + 0.051·ΔDPG
-P50   = 10^log10(P50)
-P50_n = P50^n
-```
-
-`dpg` is a module variable fixed at 5.0 (no DPG input is wired in, so `ΔDPG = 0` in practice). The `0.0015·ΔpCO2` term is the carbamino-specific CO₂-Bohr coefficient; the pH-mediated part of the CO₂ effect already runs through `−0.48·ΔpH`.
-
-## Oxygen solve (Hill + dissolved O₂)
-
-A second Brent solve finds the pO₂ whose O₂ content matches `to2`. Brackets are `prev_po2 ± 10` when available (retried wide on failure). `_do2_content(po2)` returns the residual `to2 − to2_estimate`, where:
-
-```
-SO₂        = po2^n / (po2^n + P50_n)                       (Hill, _calc_so2)
-to2_est    = (0.0031·po2 + 1.36·Hb_gdl·SO₂) · 10           (mL O₂ per L blood)
-to2_est    = to2_est · O2_MMOL_PER_ML                      (→ mmol/L)
-```
-
-with `Hb_gdl = hemoglobin / 0.6206` and `O2_MMOL_PER_ML = 1/22.414` (STPD molar volume, [`helpers/Units.js`](../helpers/Units.js); Hüfner's 1.36 and the 0.0031 solubility are STPD volumes, so the conversion does not depend on blood temperature). On success `bc.po2`, `bc.so2 = so2·100`, and `bc.prev_po2` are written. The Hill SO₂ uses the shifted `P50_n`, so the Bohr/CO₂-Bohr/temperature shifts feed directly into saturation.
-
-## Root finder (`_brent_root_finding`)
-
-A standard Brent solver combining inverse quadratic interpolation, the secant method and bisection fallback, capped at `max_iterations` with `brent_accuracy` tolerance. It returns `-1` if the bracket does not straddle a root (`f(x0)·f(x1) > 0`) or if it fails to converge — which is why both the acid-base and O₂ solves fall back from narrow to wide brackets and log a failure if even the wide bracket fails.
-
-## Notes & caveats
-
-- **Two distinct CO₂↔O₂ couplings.** The CO₂→O₂-affinity term (`ΔpCO2`, "CO₂-Bohr") shifts P50; the **Haldane effect** (SO₂→CO₂ capacity) is the separate term in the CO₂ partition. Don't conflate them.
-- **One-step lag.** Because the Haldane term reads the previous SO₂, and the acid-base solve runs before the O₂ solve within a call, the coupling is explicit (lagged), not simultaneous. It converges at steady state.
-- The module-level state variables make the solver **non-re-entrant** — it must not be called concurrently for two compartments.
-- See [Blood.md](./Blood.md) for how the inputs are seeded and the outputs published, and [BloodCapacitance.md](./BloodCapacitance.md) for the compartment that carries the values.
-</content>
+- Figge J, Mydosh T, Fencl V. Serum proteins and acid-base equilibria: a follow-up. *J Lab Clin Med* 1992 (albumin and phosphate charge).
+- Stewart PA. Modern quantitative acid-base chemistry. *Can J Physiol Pharmacol* 1983.
+- Siggaard-Andersen O. The Van Slyke equation. *Scand J Clin Lab Invest Suppl* 1977 (standard base excess).

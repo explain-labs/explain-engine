@@ -12,7 +12,7 @@ export class BloodTimeVaryingElastance extends TimeVaryingElastance {
 
     // initialize independent properties unique to a BloodTimeVaryingElastance
     this.temp = 37.0; // blood temperature (dgs C)
-    this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
+    this.viscosity = 6.0; // blood viscosity (centipoise, cP = mPa·s)
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
 
@@ -34,7 +34,7 @@ export class BloodTimeVaryingElastance extends TimeVaryingElastance {
     // call the parent method from the TimeVaryingElastance class to update the volume
     super.volume_in(dvol, comp_from);
 
-    // mix to2, tco2, solutes, drugs, temperature and viscosity by the incoming volume fraction
+    // mix to2, tco2, solutes, drugs and temperature by the incoming volume fraction (viscosity follows Hb, see Blood)
     mix_blood_in(this, dvol, comp_from);
   }
 }

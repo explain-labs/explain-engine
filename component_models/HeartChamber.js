@@ -12,7 +12,7 @@ export class HeartChamber extends TimeVaryingElastance {
 
     // initialize independent properties unique to a HeartChamber
     this.temp = 37.0; // blood temperature (dgs C)
-    this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
+    this.viscosity = 6.0; // blood viscosity (centipoise, cP = mPa·s)
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
     this.ans_sens = 1.0; // sensitivity of this blood time varying elastance for autonomic control. 0.0 is no effect, 1.0 is full effect
@@ -36,23 +36,22 @@ export class HeartChamber extends TimeVaryingElastance {
     this.so2 = -1.0; // o2 saturation
     this.hco3 = -1.0; // bicarbonate concentration (mmol/l)
     this.be = -1.0; // base excess (mmol/l)
-    this.el = 0.0;
-
-    this.elmin_calc = 0.0
-    this.elmax_calc = 0.9
   }
   // this method overrides the calc_elastances method of the 
   calc_elastances() {    
     // calculate the elastances and non-linear elastance incorporating the factors
     //  β-adrenergic receptors dominate in the myocardium
     
-    // ans influences ANS diastolic function B1 receptor activation -> lusitropic effect
-    this.el_min_eff = this.el_min
-        + (this.el_min_factor - 1) * this.el_min
-        + (this.el_min_factor_ps - 1) * this.el_min
-        + (this.el_min_factor_scaling_ps - 1) * this.el_min
-        + (this.el_min_drug_factor - 1) * this.el_min   // drug lusitropy (Drugs PK/PD): <1 lowers el_min = better relaxation
-        - (this.ans_activity - 1) * this.el_min * this.ans_sens
+    // diastolic modulation: relaxation factors, drug lusitropy and the ANS (B1 receptor activation ->
+    // lusitropic effect). It scales the whole diastolic curve, the linear el_min and the non-linear el_k,
+    // so it keeps working when a chamber's diastolic stiffness is (partly) quadratic
+    const el_min_mod =
+          (this.el_min_factor - 1)
+        + (this.el_min_factor_ps - 1)
+        + (this.el_min_factor_scaling_ps - 1)
+        + (this.el_min_drug_factor - 1)   // drug lusitropy (Drugs PK/PD): <1 lowers the stiffness = better relaxation
+        - (this.ans_activity - 1) * this.ans_sens
+    this.el_min_eff = this.el_min * (1 + el_min_mod)
 
     // ans influences ANS systolic function B1 receptor activation -> positive intropic effect
     this.el_max_eff = this.el_max
@@ -70,6 +69,12 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.el_k_factor_ps - 1) * this.el_k
         + (this.el_k_factor_scaling_ps - 1) * this.el_k
         + (this.el_k_remodel_factor - 1) * this.el_k     // chronic remodeling diastolic stiffening (HeartFunction)
+        + el_min_mod * this.el_k                         // the diastolic modulation above
+
+    // the ANS and drug lusitropy terms subtract, so the sum could fall below zero: an elastance can't be
+    // negative (it would give a negative diastolic pressure)
+    if (this.el_min_eff < 0.0) this.el_min_eff = 0.0;
+    if (this.el_k_eff < 0.0) this.el_k_eff = 0.0;
 
     // make sure that el_max is not smaller than el_min
     if (this.el_max_eff < this.el_min_eff) {
@@ -102,7 +107,7 @@ export class HeartChamber extends TimeVaryingElastance {
     // call the parent method from the TimeVaryingElastance class to update the volume
     super.volume_in(dvol, comp_from);
 
-    // mix to2, tco2, solutes, drugs, temperature and viscosity by the incoming volume fraction
+    // mix to2, tco2, solutes, drugs and temperature by the incoming volume fraction (viscosity follows Hb, see Blood)
     mix_blood_in(this, dvol, comp_from);
   }
 }

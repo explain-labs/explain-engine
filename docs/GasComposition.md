@@ -1,117 +1,57 @@
 # GasComposition
 
-`GasComposition.js` exports the standalone function
-**`calc_gas_composition(gc, fio2 = 0.205, temp = 37, humidity = 1.0, fico2 = 0.000392)`** — an
-**initializer** that sets a gas compartment's full composition from a target dry-gas mix and the
-local temperature and humidity. It is the counterpart to the
-[`GasCapacitance.calc_gas_composition`](./GasCapacitance.md) *method* (which instead derives partial
-pressures from the compartment's already-present concentrations).
+`GasComposition` holds one function, `calc_gas_composition(gc, fio2, temp, humidity, fico2)`. It **overwrites** a gas compartment's whole composition with fresh gas of a given dry O2 (and CO2) fraction, at the compartment's current pressure, the given temperature and humidity. It initialises gas compartments and sets gas sources (room air, ventilator and oxygenator supply). It is a module of functions, not a model class.
 
-> ⚠️ **The `humidity` argument here is not the same thing as `GasCapacitance.humidity`,** despite the
-> shared name. This one is a *one-shot initial condition*: the relative humidity to build the
-> composition at, right now. `GasCapacitance.humidity` is a *live target* — the wall wetness the
-> compartment relaxes toward on every step. They usually hold the same value (callers pass
-> `model.humidity` through), but they answer different questions, and this is the most likely place
-> to get confused. See [`GasCapacitance`](./GasCapacitance.md#config-unique-to-gascapacitance).
+The per-step partial pressures of a compartment are computed by its own method [`GasCapacitance.calc_gas_composition()`](./GasCapacitance.md#calculation), not by this function.
 
-## Inheritance
+## Physiology
 
-This is **not a class** — it is a module-level function, so it has no inheritance chain. It takes a
-gas-compartment instance `gc` (typically a [`GasCapacitance`](./GasCapacitance.md)) by reference and
-writes its composition fields in place. It does not extend `BaseModelClass` and is not registered in
-`ModelIndex.js`.
+"FiO2 0.21" means 21 % of the **dry** gas is O2. Once the gas is humidified, water vapour takes its share of the total pressure, and the other gases share what's left:
 
-## What it models
+```
+pO2 = FiO2 · (P − pH2O)        in room air at 37 °C, 100 % RH: 0.21 · (760 − 47) ≈ 150 mmHg
+```
 
-The wet (humidified) gas composition of a compartment at its current pressure. Given a **dry**
-inspired fraction of O₂ and CO₂, with N₂ (and "other") taking the remainder, it computes the
-saturated water-vapour pressure at the compartment's temperature, removes that vapour pressure from
-the available dry-gas pressure, and partitions the rest among O₂, CO₂, N₂ and "other" — yielding a
-mutually consistent set of partial pressures, fractions and concentrations that sum to `ctotal`.
+## API
 
-## Parameters
+```js
+import { calc_gas_composition } from "./component_models/GasComposition.js";
+calc_gas_composition(gc, fio2 = 0.205, temp = 37, humidity = 1.0, fico2 = 0.000392);
+```
 
-| Parameter | Default | Description |
-|---|---|---|
-| `gc` | — | The gas compartment to write (mutated in place) |
-| `fio2` | 0.205 | Target **dry** O₂ fraction |
-| `temp` | 37 | Temperature (°C) used for the gas law and vapour pressure |
-| `humidity` | 1.0 | Relative humidity 0–1 |
-| `fico2` | 0.000392 | Target **dry** CO₂ fraction |
+| Argument | Unit | Default | Description |
+|---|---|---|---|
+| `gc` | – | – | A GasCapacitance. |
+| `fio2` | – | 0.205 | Dry O2 fraction, clamped 0–1. Callers always pass it (Gas uses 0.21 at room air). |
+| `temp` | °C | 37 | Temperature; written to `gc.temp`. |
+| `humidity` | – | 1.0 | Relative humidity 0–1; written to `gc.humidity`. |
+| `fico2` | – | 0.000392 | Dry CO2 fraction (ambient ~0.04 %), clamped to `1 − fio2`. Only the ECLS sweep gas passes its own. |
 
-Reference dry-air constants (module-local): `_fo2_dry = 0.205`, `_fco2_dry = 0.000392`,
-`_fn2_dry = 0.794608`, `_fother_dry = 0.0`, `_gas_constant = 62.36367` (L·mmHg/(mol·K)).
+**Writes on `gc`:** `temp`, `humidity`, `ctotal`, and for each species (O2, CO2, N2, H2O, other) the concentration, partial pressure and fraction. It also refreshes `gc.pres` by running the compartment's elastance, volume and pressure calculations, without stepping it (no heat or water exchange).
 
 ## Calculation
 
-### 1. Dry-gas fractions (re-normalize N₂ / other to the supplied O₂/CO₂)
+1. **Dry mix.** O2 = `fio2`, CO2 = `fico2`; N2 takes the rest (the reference N2 share is rescaled to `1 − fio2 − fico2`; "other" is 0).
+2. **Pressure:** `gc.pres` from the current volume. If it isn't positive, it returns after setting `temp` and `humidity`, leaving the composition unchanged.
+3. **Total concentration** from the ideal gas law: `ctotal = P / (R·(273.15 + temp)) · 1000` (mmol/L).
+4. **Water vapour:** `pH2O = svp_h2o(temp) · humidity` (see [Units](./Units.md)); `fH2O = pH2O/P`.
+5. **Each dry species:** `p = f_dry · (P − pH2O)`, fraction `p/P`, concentration `fraction · ctotal`.
 
-```
-new_fo2_dry    = fio2
-new_fco2_dry   = fico2
-new_fn2_dry    = _fn2_dry    · (1 − (fio2 + fico2)) / (1 − (_fo2_dry + _fco2_dry))
-new_fother_dry = _fother_dry · (1 − (fio2 + fico2)) / (1 − (_fo2_dry + _fco2_dry))
-```
+## Assumptions and limitations
 
-### 2. Get a current pressure
+- **`fo2` reads below the FiO2 you set.** It is the fraction of the *wet* gas: `fio2 · (1 − fH2O)`. At 20 °C and 50 % RH (MOUTH), 0.21 becomes 0.208. Divide by `1 − fh2o` for the dry fraction.
+- **It discards the compartment's history,** including its CO2. That is why [Gas](./Gas.md) only rebuilds fixed sources at runtime, never airway compartments.
+- **Dry air is O2 + N2 + CO2.** Argon (0.93 %) is counted as N2; "other" (e.g. an anaesthetic or helium) is always 0 here.
+- **Uses the compartment's current pressure.** A source rebuilt at an elevated pressure (the 1160 mmHg ventilator supply) gets the matching molar density.
 
-It calls `gc.calc_model()` to ensure `gc.pres` is up to date, reads `pressure = gc.pres`, then
-**persists** the supplied `temp` and `humidity` onto `gc` (so the compartment's own per-step
-calculations stay consistent with the concentrations set below). If `pressure <= 0` it **returns
-early** (a non-physical pressure would otherwise produce Infinity/NaN fractions).
+## Callers
 
-### 3. Total concentration (ideal gas law)
+| Caller | Compartments | When |
+|---|---|---|
+| [Gas](./Gas.md) | every gas compartment without gas; supersaturated ones; MOUTH | build; `set_fio2`, `set_temperature`, `set_humidity` |
+| [Ventilator](./Ventilator.md) | `VENT_GASIN`, `VENT_GASCIRCUIT`, `VENT_GASOUT` | build, FiO2 / temperature / humidity changes |
+| [Ecls](./Ecls.md) | `ECLS_GAS_SOURCE` | sweep-gas FiO2, CO2, temperature or humidity changes |
 
-```
-ctotal = (pressure / (R · (273.15 + temp))) · 1000        (mmol/L)
-```
+## References
 
-### 4. Water vapour (saturated × humidity)
-
-```
-ph2o = exp(20.386 − 5132 / (temp + 273.15)) · humidity
-fh2o = ph2o / pressure
-ch2o = fh2o · ctotal
-```
-
-### 5. Partition the remaining (dry) pressure among each species
-
-For each species `s ∈ {o2, co2, n2, other}`, the dry fraction is applied to the **non-vapour**
-pressure `(pressure − ph2o)`, and the fraction/concentration follow:
-
-```
-p_s = new_f{s}_dry · (pressure − ph2o)
-f_s = p_s / pressure
-c_s = f_s · ctotal
-```
-
-(Recall `gc.co2` is the **oxygen** concentration — see [`GasCapacitance`](./GasCapacitance.md).)
-All partial pressures, fractions and concentrations are thus mutually consistent and the
-concentrations sum to `ctotal`.
-
-> **`fo2` is a wet fraction and will read below the `fio2` you set.** The dry fraction is applied to
-> `(pressure − ph2o)`, but `f_s` divides by the full `pressure` — so setting `fio2 = 0.21` on a
-> saturated 37 °C compartment at 760 mmHg yields `fo2 ≈ 0.197`. That is correct, not a rounding
-> error: it is the same water-vapour dilution the alveolar gas equation accounts for. The runtime
-> `GasCapacitance.calc_gas_composition` method uses the same wet convention, so the two agree. If
-> you need the dry fraction back, divide by `(1 − fh2o)`.
-
-## When it is used
-
-To **seed or reset** a compartment to a known gas mix, never as the per-step update:
-
-- at build, by [`Gas.init_model`](./Gas.md) for freshly-constructed compartments;
-- when FiO₂ / temperature / humidity changes, via `Gas.set_fio2` (and the `Ventilator` / `Ecls`
-  setters);
-- on the ventilator / ECLS gas sources.
-
-The per-step composition update is done by the [`GasCapacitance.calc_gas_composition`](./GasCapacitance.md)
-*method*, which derives partials from existing concentrations and does **not** overwrite the mix.
-
-## Notes
-
-- The Kelvin conversions use `273.15` consistently (matching the per-step water-vapour formula in
-  `GasCapacitance.calc_watervapour_pressure`).
-- ⚠️ It **overwrites** the composition. Calling it on a diffusing compartment every step would reset
-  it to the fixed inspired mix — which is exactly why [`GasDiffusor`](./GasDiffusor.md) and
-  [`GasExchanger`](./GasExchanger.md) use the *method*, not this function.
+None; ideal gas law and Dalton's law.

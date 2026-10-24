@@ -23,7 +23,8 @@ export class Placenta extends BaseModelClass {
     // Mean volume of umbilical artery                : 55 * 0.147 = 8.1 cm3 = 8.1 ml per artery => 16.2 ml for two arteries
     // Mean luminal CSA umbilical vein at 37-39 weeks : - 0.58 cm2
     // Mean volume of umbilical vein                  : 55 * 0.58 = 31.9 cm3 = 31.9 ml  Spurway J, Logan P, Pak S. The development, structure and blood flow within the umbilical cord with particular reference to the venous system. Australas J Ultrasound Med. 2012 Aug;15(3):97-102. doi: 10.1002/j.2205-0140.2012.tb00013.x. Epub 2015 Dec 31. PMID: 28191152; PMCID: PMC5025097.
-    // Mean volume of fetal part of placenta          : 427 ml DOI: 10.7863/jum.2008.27.11.1583
+    // Mean volume of fetal part of placenta          : 427 ml DOI: 10.7863/jum.2008.27.11.1583 (placental TISSUE
+    //                                                  volume, not blood: the model's fetoplacental blood is ~83 mL at term)
 
     super(model_ref, name);
     // -----------------------------------------------

@@ -1,140 +1,102 @@
-# Autonomic Nervous System (Ans, AnsAfferent, AnsEfferent)
+# Ans
 
-The autonomic nervous system (ANS) subsystem is a closed-loop reflex controller. It senses
-physiological quantities (pressures, blood gases), converts them to normalized **receptor firing
-rates**, and feeds those back as **effect factors** onto target models (heart rate, contractility,
-vascular tone, minute volume, …). It is the model's baroreflex and chemoreflex.
+`Ans` is the autonomic nervous system: the reflex network that keeps blood pressure and blood gases near their set-points. It is a small manager. It owns the reflex arcs as sub-models, switches them all on or off together, and solves the blood gases the chemoreceptors read. The reflexes themselves are [AnsAfferent](./AnsAfferent.md) receptors feeding [AnsEfferent](./AnsEfferent.md) effector pathways.
 
-Three classes work together:
+## Physiology
 
-| Class | Role | Analogy |
-|---|---|---|
-| `Ans` | Manager — enables/disables the loop and refreshes the blood gases its receptors read | central control |
-| `AnsAfferent` | Receptor — maps one input quantity to a firing rate (0–1) | baro-/chemoreceptor |
-| `AnsEfferent` | Effector — sums the weighted firing-rate deviations of its afferents and writes an effect factor to a target | efferent nerve |
+The autonomic nervous system adjusts the body continuously, without conscious control:
+- **Baroreflex.** Stretch receptors in the aortic arch and carotid sinus sense blood pressure. A fall in pressure raises heart rate, contractility and vascular tone (sympathetic) within seconds; a rise does the opposite (vagal).
+- **Chemoreflex.**
+  - Central chemoreceptors (mainly pCO2/pH) and peripheral ones in the carotid body (mainly pO2) raise ventilation when CO2 rises or O2 falls.
+  - In the newborn, hypoxaemia also slows the heart: the diving-reflex-like bradycardia that follows an apnoea.
 
-## Data flow
+Each reflex is an arc: a receptor that fires faster or slower as its input moves from its set-point, a central integration, and efferent nerves that change an organ's behaviour.
+
+## Inheritance
 
 ```
-            input_prop (e.g. AAR.pres, AA.po2)
-                   │
-                   ▼
-            ┌───────────────┐   firing_rate (0–1)      ┌───────────────┐   effector (factor)
-   sensor → │  AnsAfferent  │ ───────────────────────► │  AnsEfferent  │ ──────────────────────► target_model.target_prop
-            │  (receptor)   │   update_effector(fr, w)  │  (effector)   │   (e.g. Heart.ans_activity_hr)
-            └───────────────┘                           └───────────────┘
-                   ▲                                                                    │
-                   └──────────────────── physiological response ────────────────────────┘
+BaseModelClass
+  └── Ans
 ```
 
-An afferent can drive **several** efferents (its `efferents` list); an efferent can be driven by
-**several** afferents (they accumulate via `update_effector`). All three run on their own throttled
-interval, decoupled from the model step size.
+## Properties
 
-## `Ans` — the manager
+### Config (set in the definition JSON)
 
-`calc_model()` runs every `_update_interval` (0.05 s) and does two things:
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `ans_active` | boolean | `true` | Master switch, copied onto every sub-model; an inactive efferent outputs 1 (no effect). |
+| `blood_composition_models` | list | `[]` | Compartments whose blood gases are solved for the chemoreceptors (`["AA"]` in every scenario). |
+| `components` | object | `{}` | The afferents and efferents (built by the base class). |
 
-1. Propagates its `ans_active` flag to every sub-model listed in `components` (the afferents and
-   efferents), so the whole loop can be switched on/off at once.
-2. Recomputes the blood composition (`calc_blood_composition`) for every compartment named in
-   `blood_composition_models`, so chemoreceptor afferents reading `po2`/`pco2`/`ph` see fresh values.
+## Calculation
 
-`Ans` holds no control logic itself — it is wiring and gating.
+Every 50 ms:
+1. `ans_active` is written onto every component.
+2. While active, [`calc_blood_composition`](./BloodComposition.md) runs on each `blood_composition_models` entry, so the chemoreceptors read current pO2, pCO2 and pH.
 
-## `AnsAfferent` — receptor curve
+The reflexes run in the components: each afferent turns its input into a firing rate (0–1, 0.5 at the set-point) and passes it to its efferents. Each efferent adds the deviations of its afferents, maps the result to an effect factor (1 at rest) and writes it onto its target.
 
-Each afferent maps its input to a normalized firing rate in **[0, 1]**, with **0.5 as the setpoint**
-(no effect). Updated every `_update_interval` (0.015 s):
+## The reflex network in the scenarios
 
-1. **Read input:** `input_value = models[input_model][input_prop]`.
-2. **Activation** (deviation from setpoint, clamped to the configured window):
-   - `input_value > max_value` → `activation = max_value − set_value`
-   - `input_value < min_value` → `activation = min_value − set_value`
-   - otherwise → `activation = input_value − set_value`
-3. **Gain** — the slope that maps activation onto the firing-rate range, separately above and below
-   the setpoint so an asymmetric input window still spans 0→1:
-   - activation > 0: `gain = (1.0 − 0.5) / (max_value − set_value)`
-   - activation ≤ 0: `gain = (0.5 − 0.0) / (set_value − min_value)`
-   - (each guarded against a zero-width range → gain 0)
-4. **Target firing rate:** `new_firing_rate = 0.5 + gain · activation`.
-5. **First-order lag** with time constant `tc` (forward Euler), so the receptor responds gradually:
-   `firing_rate += (Δt / tc) · (new_firing_rate − firing_rate)`  (with `Δt = _update_interval`; if
-   `tc == 0` the new rate is applied instantly).
-6. **Broadcast:** call `update_effector(firing_rate, effect_weight, name)` on each connected efferent.
+Every scenario (term_neonate values; the set-points are re-anchored per scenario to its calibrated rest):
 
-So a rising input (e.g. arterial pressure) above setpoint drives the firing rate toward 1; below
-setpoint toward 0; at setpoint it sits at 0.5.
+| Afferent | Input | min / set / max | → Efferent(s) |
+|---|---|---|---|
+| `BR_MAP` (baroreceptor) | `AAR.pres` | 25 / 57.8 / 100 mmHg | `EF_HR`, `EF_SVR`, `EF_HEART` |
+| `CR_PCO2` (central chemoreceptor) | `AA.pco2` | 15 / 39.7 / 75 mmHg | `EF_MV` |
+| `CR_PO2` (peripheral chemoreceptor, weight −0.15) | `AA.po2` | 30 / 75.5 / 150 mmHg | `EF_MV` |
+| `CR_PH` | `AA.ph` | 6.9 / 7.36 / 7.7 | none |
 
-## `AnsEfferent` — effect translation
+| Efferent | Target | Effect at firing 0 / 1 | Time constant |
+|---|---|---|---|
+| `EF_HR` | `Heart.ans_activity_hr` | 1.5 / 0.43 | 2 s |
+| `EF_SVR` | `Circulation.ans_activity` (vascular tone) | 2.0 / 0.5 | 10 s |
+| `EF_HEART` | `Heart.ans_activity` (contractility) | 1.15 / 0.85 | 10 s |
+| `EF_MV` | `Breathing.mv_ans_factor` | 0.1 / 10 | 5 s |
 
-Each efferent collects firing rates from its afferents during the interval and, every
-`_update_interval` (0.015 s), turns them into an effect factor written to its target.
+So a fall in pressure (low baroreceptor firing) raises heart rate, vascular tone and contractility, and a rise in pCO2 raises minute ventilation. A fall in pO2 raises it too, through the negative weight on `CR_PO2`.
 
-**Accumulation** (`update_effector`, called by each afferent with its own name):
+**Hypoxic bradycardia** (the six preterm and Bischoff scenarios, added by `scripts/_add_apnea.mjs`): `CR_PO2_HR` (`AA.po2`, set-point a few mmHg below the resting pO2) → `EF_HR_CHEMO` → `Heart.hr_chemo_factor`, with effect 0.5 at firing 0 and 1 at 1, so it only slows the heart. See [Apnea](./Apnea.md).
+
+## Factor system
+
+None of its own; the efferents write the targets' ANS inputs (`ans_activity`, `ans_activity_hr`, `mv_ans_factor`, `hr_chemo_factor`), which the targets apply in their own way (e.g. [BloodVessel](./BloodVessel.md) through `ans_sens`).
+
+## Inputs and outputs
+
+- **Reads:** the `blood_composition_models` compartments (solved).
+- **Writes:** `ans_active` of its components; the solved blood gases of `AA`.
+- **Written by:** the user (`ans_active`); the scenario generators (set-points, wiring).
+- **Read by:** its components.
+
+## Assumptions and limitations
+
+- **One receptor per reflex, set-points fixed.** No baroreceptor resetting over hours, no adaptation of the chemoreceptors to chronic hypercapnia.
+- **Afferent deviations add in the efferent**, so two afferents on one efferent can drive its firing rate outside 0–1 (see [AnsEfferent](./AnsEfferent.md)).
+- **`CR_PH` is computed but drives nothing** in every scenario.
+- **Switching off is abrupt:** an inactive efferent jumps to 1 without its time constant.
+- **A component name that does not resolve throws** in the `ans_active` copy (the components are built from the definition, so this only happens with hand-edited state).
+- **Lag of up to one interval:** the afferents and efferents update every 15 ms and Ans every 50 ms, so the loop carries up to one interval of delay. This is intended and stable.
+
+## Example definition (JSON)
+
+From `term_neonate.json`, `models.Ans` (trimmed; `components` holds the eight sub-models above):
+
+```json
+{
+  "name": "Ans",
+  "model_type": "Ans",
+  "is_enabled": true,
+  "ans_active": true,
+  "blood_composition_models": ["AA"]
+}
 ```
-_inputs[source].sum += (firing_rate − 0.5) · weight
-_inputs[source].n   += 1
-```
 
-**Summation** (`calc_model`): each afferent's reports in the window are averaged, and the afferents
-**add**, so a second receptor adds its drive instead of diluting the first (the old version averaged
-across afferents, which halved the CO2 drive as soon as an O2 input was added):
-```
-firing_rate = 0.5 + Σ_source  _inputs[source].sum / _inputs[source].n     (0.5 if nothing reported)
-```
-The weight sets sign and strength: a receptor whose firing falls with the stimulus (O2, pH) needs a
-negative weight to stimulate.
+## Usage in the scenarios
 
-**Translation** to an effect factor — piecewise linear, pinned to `1.0` (no effect) at firing rate
-0.5 and continuous at the breakpoint:
-```
-firing_rate ≥ 0.5 :  effector = 1.0 + (effect_at_max_firing_rate − 1.0) / 0.5 · (firing_rate − 0.5)
-firing_rate < 0.5 :  effector = effect_at_min_firing_rate + (1.0 − effect_at_min_firing_rate) / 0.5 · firing_rate
-```
-At firing rate 1.0 the effector equals `effect_at_max_firing_rate`; at 0.0 it equals
-`effect_at_min_firing_rate`; at 0.5 it equals 1.0. If `ans_active` is false the effector is forced to
-1.0 (no effect).
+One instance in every scenario, with the network above. The six preterm and Bischoff scenarios add the hypoxic-bradycardia arc.
 
-A first-order lag with time constant `tc` smooths the effector, then it is written straight onto the
-target: `models[target_model][target_prop] = effector`. The accumulator is reset for the next window.
+## References
 
-## Configuration (model-definition fields)
-
-**AnsAfferent**: `input_model`, `input_prop`, `min_value` / `set_value` / `max_value` (the receptor
-window, in the input's own units), `tc`, `efferents` (list of efferent names), `effect_weight`.
-
-**AnsEfferent**: `target_model`, `target_prop` (the factor it drives, e.g. `Heart.ans_activity_hr`),
-`effect_at_min_firing_rate`, `effect_at_max_firing_rate`, `tc`.
-
-**Ans**: `ans_active`, `components` (its afferents/efferents), `blood_composition_models`.
-
-Example wiring (term neonate): afferent `BR_MAP` reads `AAR.pres` and drives `EF_HR`, `EF_SVR`,
-`EF_HEART`; efferent `EF_HR` writes `Heart.ans_activity_hr` with
-`effect_at_max_firing_rate = 0.428`, `effect_at_min_firing_rate = 1.5` (high pressure → faster
-firing → factor < 1 → lower heart rate; the baroreflex).
-
-### Hypoxic-bradycardia chemoreflex (apnea of prematurity)
-
-The base ANS senses arterial pO₂ (`CR_PO2`) but drives **only breathing** (`CR_PCO2 → EF_MV →
-Breathing.mv_ans_factor`); there is no pO₂→heart-rate path, so hypoxia alone does not slow the heart.
-Scenarios patched by `scripts/_add_apnea.mjs` add one: a dedicated afferent `CR_PO2_HR` (input `AA.po2`)
-drives a new efferent `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` with `effect_at_min_firing_rate ≈ 0.5`
-(low pO₂ → low firing → factor < 1 → **bradycardia**) and `effect_at_max_firing_rate = 1.0` (one-sided:
-hyperoxia gives no tachycardia). Its `set_value` is placed a few mmHg **below** the scenario's calibrated
-baseline `AA.po2`, so the reflex is neutral at rest and only fires when an apnea pulls pO₂ below baseline.
-See [Apnea](./Apnea.md).
-
-## Notes & caveats
-
-- **Timing / lag.** Afferents, efferents and the manager each run on their own interval and the
-  afferent→efferent hand-off depends on step order, so the loop carries up to one interval of lag.
-  This is intended (receptors and effectors are not instantaneous) and stable at the default
-  intervals.
-- **Reference guarding.** `AnsAfferent` skips its update when `input_model` is missing and only calls
-  `update_effector` on efferents that resolve to a model with that hook; `AnsEfferent` skips the write
-  when `target_model` is missing. So broken afferent/efferent wiring degrades gracefully. The `Ans`
-  manager itself (`components`, `blood_composition_models`) still dereferences its names directly — a
-  name that does not resolve to a built model there will throw.
-- **Setpoint = 0.5** everywhere — both the receptor output and the effector's neutral point. Keep new
-  afferents/efferents on that convention so resting tone composes to "no effect".
+No literature values; set-points are each scenario's calibrated rest, ranges and gains are model choices.

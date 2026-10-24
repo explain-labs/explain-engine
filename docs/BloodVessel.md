@@ -1,233 +1,195 @@
 # BloodVessel
 
-A BloodVessel represents a blood vessel segment in the circulatory model. It combines a volume compartment (capacitance) with flow resistance and supports autonomic nervous system (ANS) regulation.
+A `BloodVessel` is a segment of the circulation: an elastic blood compartment ([`BloodCapacitance`](./BloodCapacitance.md)) with its own inflow resistance and autonomic (ANS) control. When the ANS constricts a vessel, its resistance **and** its stiffness change together. That coupling is a defining feature of Explain. Almost the whole circulation is built from BloodVessels.
+
+## Physiology
+
+Each vessel segment does two things at once:
+
+- **It holds blood** at a pressure set by its wall stiffness, like any elastic compartment.
+- **It resists flow** into it. Most of the circulation's resistance sits in the small arteries and arterioles, so those segments set systemic and pulmonary vascular resistance.
+
+The autonomic nervous system adjusts vessel tone through three effects:
+
+- **Resistance.** Sympathetic activity constricts arterioles and raises resistance (and blood pressure); withdrawal dilates them.
+- **Stiffness follows resistance.** A constricted vessel has a narrower, thicker-walled lumen, so it is also stiffer. Explain couples the two with one exponent per vessel type (*α*), so vasoconstriction raises resistance and elastance together.
+- **Venous reservoir.** Sympathetic venoconstriction mainly shrinks the *unstressed volume* of the large capacitance veins, not their stiffness. That shifts blood from the venous reservoir into the circulating (stressed) volume and raises venous return. It is the body's quick "autotransfusion".
+
+Blood viscosity also sets resistance (Poiseuille). Polycythaemia raises resistance in every vessel, and haemodilution lowers it.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Capacitance          (volume, elastance, pressure)
-        └── BloodCapacitance   (blood composition: O2, CO2, solutes, drugs, temperature)
-              └── BloodVessel  (resistance, flow, ANS coupling)
+  └── Capacitance
+        └── BloodCapacitance      (blood composition mixing)
+              └── BloodVessel     (inflow resistors, ANS, α-coupling, viscosity)
 ```
 
-## What it models
-
-A BloodVessel is both a **capacitance** (it holds a volume of blood at a certain pressure) and a **resistance** (blood flows through it with a pressure drop). Each BloodVessel creates one or more internal `Resistor` objects based on its `inputs` list. These resistors handle the actual flow calculations between upstream components and this vessel.
-
-When the ANS changes vascular tone, the vessel's resistance **and** elastance change simultaneously. This coupling is governed by the `alpha` parameter and is a distinguishing feature of the Explain model.
-
-## Initialization
-
-During `init_model()`, the BloodVessel creates a `Resistor` instance for each entry in its `inputs` array. Each resistor is named `{inputName}_{vesselName}` (e.g., `AA_AD1`) and is registered in the model engine. Each step the BloodVessel overwrites their `r_for`/`r_back`/`r_k` with its own effective values (see [Owned input resistors](#owned-input-resistors)).
-
-If a resistor already exists in the model engine (e.g., when loading from a saved state), the existing instance is reused.
-
-## Calculation cycle (`calc_model`)
-
-Each model step executes in this order:
-
-1. **`calc_resistances()`** -- compute effective forward, backward, and non-linear resistances
-2. **`calc_elastances()`** -- compute effective elastance with ANS and resistance-elastance coupling
-3. **Update resistors** -- push the calculated values to all internal `Resistor` objects
-4. **`calc_volumes()`** -- compute effective unstressed volume (inherited from Capacitance)
-5. **`calc_pressure()`** -- compute recoil (`pres_in`) and total pressure (inherited from Capacitance)
-7. **`get_flows()`** -- sum forward and backward flows from all internal resistors
+`BloodVessel` overrides `calc_resistances` and `calc_elastances`, and composes its factor layers **multiplicatively** (unlike the additive base classes). It extends `calc_volumes` with the ANS unstressed-volume effect. Pressure and composition mixing are inherited.
 
 ## Properties
 
-### Base properties (from definition JSON)
+Inherited props: [Capacitance](./Capacitance.md#properties) (`vol`, `u_vol`, `el_base`, `el_k`, their factor layers, `pres`, …) and [BloodCapacitance](./BloodCapacitance.md#properties) (`temp`, `viscosity`, `solutes`, `drugs`, blood gases, `blood_pool`, and the props `Blood` writes, including `viscosity_ref`).
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume -- the volume at which transmural pressure is zero |
-| `el_base` | mmHg/L | Baseline elastance (stiffness). Higher = stiffer vessel |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient. Adds quadratic pressure term at high volumes |
-| `r_for` | mmHg·s/L | Forward flow resistance |
-| `r_back` | mmHg·s/L | Backward flow resistance |
-| `r_k` | mmHg·s²/L² | Non-linear resistance coefficient. Adds flow-dependent resistance |
-| `inputs` | string[] | Names of upstream components (a Resistor is created for each) |
-| `alpha` | 0-1 | Resistance-elastance coupling factor (see ANS section) |
-| `ans_sens` | 0-1 | Sensitivity to ANS activity. 0 = no effect, 1 = full effect |
-| `no_flow` | boolean | If true, all flow is blocked |
-| `no_back_flow` | boolean | If true, backward flow is blocked (valve-like behavior) |
+### Config (set in the definition JSON)
 
-### Dependent properties (calculated each step)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `inputs` | – | `[]` | Upstream compartments. One inflow `Resistor` is created per input, named `<input>_<vessel>`. |
+| `r_for` | mmHg·s/L | 1.0 | Forward resistance of each inflow connector. |
+| `r_back` | mmHg·s/L | 1.0 | Backward resistance. |
+| `r_k` | mmHg·s²/L² | 0.0 | Turbulent coefficient (0 in every shipped vessel). |
+| `no_flow` | boolean | `false` | Closes all inflow connectors. |
+| `no_back_flow` | boolean | `false` | Makes the inflow connectors one-way. |
+| `alpha` | – | 0.0 | Resistance→elastance coupling exponent: `el ∝ (R multiplier)^α`. 0 = no coupling. |
+| `ans_sens` | – | 0.0 | Sensitivity of the resistance to `ans_activity`, 0 (none) to 1 (full). |
+| `u_vol_ans_sens` | – | 0.0 | Sensitivity of the unstressed volume to `ans_activity` (venoconstriction). |
+| `r_factor`, `r_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. |
+| `r_factor_ps`, `r_k_factor_ps` | – | 1.0 | Persistent factors. |
+| `r_factor_scaling_ps`, `r_k_factor_scaling_ps` | – | 1.0 | Persistent scaling factors. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `vol` | L | Current blood volume in the vessel |
-| `pres` | mmHg | Total pressure (recoil + external) |
-| `pres_in` | mmHg | Recoil pressure from elastance |
-| `flow` | L/s | Net flow (forward - backward) |
-| `flow_forward` | L/s | Total forward flow across all input resistors |
-| `flow_backward` | L/s | Total backward flow across all input resistors |
+### Outputs
 
-### Calculated intermediates (available for monitoring)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `flow` | L/s | 0.0 | Net **inflow** through the input connectors (forward − backward). Not the outflow. |
+| `flow_forward` | L/s | 0.0 | Sum of the forward flows of the enabled input connectors. |
+| `flow_backward` | L/s | 0.0 | Sum of the backward flows (positive number). |
+| `r_for_eff`, `r_back_eff` | mmHg·s/L | 1000 | Effective resistances, written into the input connectors. |
+| `r_k_eff` | mmHg·s²/L² | 0 | Effective turbulent coefficient. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `r_for_eff` | mmHg·s/L | Effective forward resistance this step (after all factors) |
-| `r_back_eff` | mmHg·s/L | Effective backward resistance this step |
-| `r_k_eff` | mmHg·s²/L² | Effective non-linear resistance coefficient |
-| `el_eff` | mmHg/L | Effective elastance (from Capacitance) |
-| `u_vol_eff` | L | Effective unstressed volume (from Capacitance) |
+### Set by other models
 
-## Three-tier factor system
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `ans_activity` | – | 1.0 | Autonomic tone, > 1 constriction, < 1 dilation. `Circulation` writes its own `ans_activity` (from the `EF_SVR` efferent) into **every** circulation vessel. Placenta and ECLS vessels keep 1. |
+| `viscosity_ref` | cP | 0.0 | Viscosity at which `r_for`/`r_back` are calibrated, written by `Blood` at build; 0 switches the viscosity effect off. |
+| `p1_ext`, `p2_ext` | mmHg | 0.0 | Extra pressure on the inlet/outlet of the input connectors. Copied to them every step and **not** reset on the vessel, so a value written here acts until the writer sets it back to 0 (e.g. `Ecls` on `ECLS_PUMP`/`ECLS_OXY`). |
 
-Each physical property can be modulated by three independent factor tiers. All factors default to 1.0 (no change).
+## Calculation
 
-**Composition differs by property.** `BloodVessel` **overrides** `calc_resistances()` and `calc_elastances()`, so its resistance (`r_for`/`r_back`/`r_k`) and elastance (`el_base`/`el_k`) tiers compose **multiplicatively** (the product of the three factors, plus the ANS multiplier for `r`/`el`):
+Each step `step_model()` first copies the vessel's `is_enabled` onto its input connectors, so a disabled vessel's connectors stop conducting. Then, when enabled and initialized, `calc_model()` runs:
+
+1. **`calc_resistances()`**
+   ```
+   ans_mult       = 1 + (ans_activity − 1) · ans_sens
+   r_total_factor = r_factor · r_factor_ps · r_factor_scaling_ps · ans_mult
+   visc_mult      = viscosity / viscosity_ref          (1 if viscosity_ref = 0)
+   r_for_eff  = r_for  · r_total_factor · visc_mult
+   r_back_eff = r_back · r_total_factor · visc_mult
+   r_k_eff    = r_k · r_k_factor · r_k_factor_ps · r_k_factor_scaling_ps · ans_mult
+   ```
+   `r_total_factor` is cached for the elastance step; viscosity is deliberately left out of it (thicker blood isn't vasoconstriction, so it doesn't stiffen the wall). The non-persistent factors are reset.
+2. **`calc_elastances()`**
+   ```
+   el_eff   = el_base · el_base_factor · el_base_factor_ps · el_base_factor_scaling_ps · r_total_factor^α
+   el_k_eff = el_k · el_k_factor · el_k_factor_ps · el_k_factor_scaling_ps        (not α-coupled)
+   ```
+   The power is recomputed only when `r_total_factor` or `α` change.
+3. **Update the input connectors**: `r_for`/`r_back`/`r_k` ← the effective values; `no_flow`, `no_back_flow`, `p1_ext`, `p2_ext`, `is_enabled` ← the vessel's.
+4. **`calc_volumes()`**: the inherited additive `u_vol` layers (floored at 0), then the ANS venoconstriction:
+   ```
+   u_vol_eff = u_vol_eff · max(0, 1 − (ans_activity − 1) · u_vol_ans_sens)
+   ```
+5. **`calc_pressure()`** (inherited from [Capacitance](./Capacitance.md#calculation)): with `S = vol − u_vol_eff`, `pres = (S > 0 ? el_k_eff·S² : 0) + el_eff·S + pres_ext`.
+6. **`get_flows()`**: sums the flows of the enabled input connectors into `flow_forward`, `flow_backward` and `flow`.
+
+**Inflow connectors.** `init_model` creates one `Resistor` per name in `inputs`, unless a model with that name already exists (a saved state lists them as top-level entries, so they are reused). The flow itself, the volume transfer and the composition mixing all happen in those connectors; see [Resistor](./Resistor.md#inheritance) for which props the vessel overwrites and which stay the connector's own.
+
+**Step lag.** In a loaded scenario the connectors are top-level entries and step **before** their vessel (the vessels are sub-models of `Circulation`, `Placenta` or `Ecls`). So a connector uses the resistance the vessel wrote one step earlier (0.5 ms).
+
+### Where α comes from
+
+For a thin-walled tube, Poiseuille gives `R ∝ r⁻⁴`, and the volume elastance of the tube scales as `E ∝ r⁻³`. A pure change of radius therefore moves them as `E ∝ R^(3/4)`, so α = 0.75. That is the value used for veins and venules. The scenarios use 0.63 for arterioles and 0.5 for large arteries and central veins, where the thicker or more structural wall stiffens less than the pure-geometry estimate. The lumped "rest of upper/lower body" beds (`RUB`, `RLB`) use 1.
+
+## Factor system
+
+The resistance and elastance layers compose **multiplicatively**:
 
 ```
-value_eff = base * factor * factor_ps * factor_scaling_ps   # r_for, r_back, r_k, el_base, el_k
+value_eff = base · factor · factor_ps · factor_scaling_ps        (r_for, r_back, r_k, el_base, el_k)
 ```
 
-Multiplicative composition lets simultaneous factors compound correctly: `r_factor = 2` with `r_factor_ps = 2` gives a true 4× rise, not the linearised 3× the additive form produces.
+So `r_factor = 2` with `r_factor_ps = 2` gives a true ×4, not the ×3 of the additive rule. `u_vol` keeps the inherited **additive** layers (then the ANS multiplier). See [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
 
-The unstressed volume `u_vol` is **not** overridden — it is computed by the inherited `Capacitance.calc_volumes()`, which is still **additive** (matching the base-class convention):
+**α applies to every resistance layer, not only the ANS.** `r_total_factor` includes `r_factor_ps` and `r_factor_scaling_ps`, so these also stiffen the vessel by `factor^α`:
+- the user's or a drug's SVR change (`Circulation.set_svr_factor_*` on the systemic arterioles);
+- renal autoregulation (`Kidneys` on `KID_ART`);
+- the Calibrator;
+- ModelScaler resistance scaling.
 
-```
-u_vol_eff = u_vol
-  + (u_vol_factor - 1) * u_vol             # tier 1: non-persistent
-  + (u_vol_factor_ps - 1) * u_vol          # tier 2: persistent
-  + (u_vol_factor_scaling_ps - 1) * u_vol  # tier 3: scaling
-```
+Writers in the current code:
 
-### Tier 1: Non-persistent factors (reset every step)
-
-| Factor | Affects |
+| Layer | Writers |
 |---|---|
-| `el_base_factor` | `el_base` |
-| `el_k_factor` | `el_k` |
-| `u_vol_factor` | `u_vol` |
-| `r_factor` | `r_for`, `r_back` |
-| `r_k_factor` | `r_k` |
+| `r_factor_ps` | `Circulation` (`set_svr_factor_art`/`_drug`/`_ven`, `set_pvr_factor_art`/`_ven`: deltas added to the shared accumulator), `Kidneys` (`KID_ART`, afferent autoregulation), the `Calibrator`, the user |
+| `r_factor_scaling_ps`, `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps` | `ModelScaler`; `Uterus`, `MaternalPlacenta` (their own vessels) |
+| `u_vol_factor_ps`, `el_base_factor_ps` | the user and scenarios |
 
-These are set by other models during a step (e.g., the breathing model applying intrathoracic pressure effects) and automatically reset to 1.0 after use (`r_factor`/`r_k_factor` in `calc_resistances`, `el_base_factor`/`el_k_factor` in `calc_elastances`, `u_vol_factor` in `calc_volumes`).
+Models that need to change **one** inflow without touching the vessel write the input connector's own factors instead, which multiply on top of the vessel's value:
+- `Hormones`: `KID_CAP_KID_VEN.r_factor_ps`, the efferent arteriole;
+- `Brain`: `AA_BR_ART.r_factor_ps` (cerebral autoregulation) and `BR_VEN_VUB.r_factor_ps` (ICP on the outflow).
 
-### Tier 2: Persistent factors (`_ps`)
+The vessel's `r_for_eff` doesn't show these.
 
-| Factor | Affects |
-|---|---|
-| `el_base_factor_ps` | `el_base` |
-| `el_k_factor_ps` | `el_k` |
-| `u_vol_factor_ps` | `u_vol` |
-| `r_factor_ps` | `r_for`, `r_back` |
-| `r_k_factor_ps` | `r_k` |
+## Inputs and outputs
 
-These persist across steps and are used by controllers like the ANS or Heart model to apply ongoing physiological modulation.
+- **Reads:** its own props; `viscosity` and `viscosity_ref` (written by `Blood`); `ans_activity` (written by `Circulation`); the flows of its input connectors.
+- **Writes:** the resistance and gates of its input connectors, every step.
+- **Written by:** `Circulation` (`ans_activity`, SVR/PVR factors), `Blood` (viscosity, temperature, seed composition), `Kidneys`, the `Calibrator`, `ModelScaler`, `Uterus`/`MaternalPlacenta`, `Ecls` (`p1_ext`/`p2_ext`, volumes), `Placenta` (`no_flow` at cord clamping), `THORAX` (`pres_ext` on the intrathoracic vessels), the connected resistors (volume).
+- **Read by:** `Monitor` (pressures, flows), `Brain` and `Kidneys` (their bed's pressures and flows), `Blood` (blood-gas sites `AA`, `AD`, `IVCI`, `SVC`, `PA`), `DataCollector` watchers.
 
-### Tier 3: Scaling factors (`_scaling_ps`)
+## Assumptions and limitations
 
-| Factor | Affects |
-|---|---|
-| `el_base_factor_scaling_ps` | `el_base` |
-| `el_k_factor_scaling_ps` | `el_k` |
-| `u_vol_factor_scaling_ps` | `u_vol` |
-| `r_factor_scaling_ps` | `r_for`, `r_back` |
-| `r_k_factor_scaling_ps` | `r_k` |
-
-These are used exclusively by the `ModelScaler` for weight-based or manual scaling. Having a dedicated tier means scaling does not interfere with physiological factors in tier 2. (Note the `_scaling_ps` suffix — capacitance/resistor/elastance scaling factors all carry it; this differs from the diffusor/exchanger models, whose scaling factors are bare `*_factor_scaling`.)
-
-## ANS and resistance-elastance coupling
-
-The ANS influences both resistance and elastance, but through different pathways:
-
-### Resistance
-
-ANS modulates resistance directly, scaled by sensitivity. The ANS contribution is a sensitivity-weighted multiplier `ans_mult = 1 + (ans_activity - 1) * ans_sens`, composed multiplicatively with the three resistance-factor tiers:
-
-```
-ans_mult       = 1 + (ans_activity - 1) * ans_sens
-r_total_factor = r_factor * r_factor_ps * r_factor_scaling_ps * ans_mult
-
-r_for_eff = r_for * r_total_factor * visc_mult      (visc_mult = viscosity / viscosity_ref)
-r_back_eff = r_back * r_total_factor
-```
-
-`visc_mult` is the blood viscosity relative to the viscosity the scenario was built at (`viscosity_ref`, set by [`Blood`](./Blood.md); 0 = off). It follows the haematocrit (Poiseuille), is not part of `r_total_factor` (viscosity is not vasoconstriction, so it does not drive the α-coupling) and is not applied to `r_k`.
-
-`r_k` carries its own factor stack with the same ANS coupling: `r_k_eff = r_k · r_k_factor · r_k_factor_ps · r_k_factor_scaling_ps · ans_mult`. The combined `r_total_factor` is cached and reused by the elastance step (single source of truth for the α-coupling).
-
-### Elastance (alpha coupling)
-
-When a vessel constricts (resistance increases), its wall also becomes stiffer (elastance increases). The `alpha` parameter controls how strongly resistance changes translate into elastance changes via a power law applied **once** to the *combined* resistance multiplier `r_total_factor` (which already folds in the ANS contribution):
-
-```
-el_passive_mult = el_base_factor * el_base_factor_ps * el_base_factor_scaling_ps
-el_geom_mult    = r_total_factor ^ alpha            # α-coupling to resistance
-
-el_eff = el_base * el_passive_mult * el_geom_mult
-```
-
-`el_k` is **not** α-coupled — the non-linear stiffening term is treated as a structural property of the wall, so it carries only its own passive multipliers:
-
-```
-el_k_eff = el_k * el_k_factor * el_k_factor_ps * el_k_factor_scaling_ps
-```
-
-Typical alpha values:
-- **Large arteries**: 0.5 (moderate coupling)
-- **Arterioles**: 0.63 (stronger coupling)
-- **Veins/venules**: 0.75 (strongest coupling)
-
-An alpha of 0.0 means resistance changes have no effect on elastance.
-
-### Unstressed volume (venous capacitance)
-
-Sympathetic venoconstriction acts mainly on the unstressed volume of the capacitance veins, not on their compliance. It shifts blood from the venous reservoir into the stressed volume, which raises mean filling pressure and venous return (Shoukas & Sagawa, *Circ Res* 1973: carotid-sinus hypotension mobilises unstressed volume with little change in compliance). `u_vol_ans_sens` (default `0.0`, no effect) sets how strongly `ans_activity` moves it:
-
-```
-u_vol_ans_mult = max(0, 1 − (ans_activity − 1) · u_vol_ans_sens)
-u_vol_eff      = (additive u_vol layers, clamped at 0) · u_vol_ans_mult
-```
-
-`ans_activity` comes from `EF_SVR` through `Circulation` (range 0.5–2; > 1 is constriction). For example, `u_vol_ans_sens = 0.3` gives `u_vol ×0.7` at full sympathetic drive and `×1.15` at full withdrawal. It is independent of `ans_sens`, which acts on R (and on E through α). Set it on the systemic capacitance veins; brain and pulmonary veins have little sympathetic venomotor control.
-
-## Owned input resistors
-
-Each step `calc_model` writes the vessel's `r_for_eff`/`r_back_eff`/`r_k_eff` into the **base** `r_for`/`r_back`/`r_k` of every input resistor (plus `no_flow`, `no_back_flow`, `p1_ext`, `p2_ext`, `is_enabled`). Two consequences:
-
-- **The resistor's own factor stack still applies on top.** `Resistor.calc_resistance` multiplies that base by its own `r_factor`/`r_factor_ps`/`r_factor_scaling_ps` (additively). Models that need to change one input without touching the vessel use this layer, and the vessel's `r_for_eff` does **not** show it. In `term_neonate`: `Hormones` writes `KID_CAP_KID_VEN.r_factor_ps` (angiotensin on the efferent arteriole), `Brain` writes `AA_BR_ART.r_factor_ps` (cerebral autoregulation) and `BR_VEN_VUB.r_factor_ps` (ICP on the outflow). `Kidneys` autoregulation acts on the afferent *vessel* instead (`KID_ART.r_factor_ps`). `ModelScaler` never scales an owned resistor (the scaler groups list the vessels), so nothing is scaled twice.
-- **`p1_ext`/`p2_ext` are effectively persistent on a vessel.** The Resistor clears its own `p1_ext`/`p2_ext` after use, but the vessel keeps its copy (nothing resets it) and re-copies it to every input resistor each step. A drive written on the vessel therefore stays applied until the writer zeroes it — e.g. `Ecls` zeroes `ECLS_PUMP`/`ECLS_OXY` `p1_ext`/`p2_ext` on stop and on a pump-mode switch. Writing the resistor's `p1_ext` directly is overwritten by the vessel's value on its next step.
-- **One lag step.** In a loaded scenario the owned resistors are top-level entries, so they step before their vessel and use the values the vessel wrote in the previous step.
-
-`flow`/`flow_forward`/`flow_backward` are summed over the vessel's **input** resistors: `flow` is the net inflow into this vessel, not its outflow.
-
-## Pressure calculation
-
-Pressure is calculated by the inherited `Capacitance.calc_pressure()`:
-
-```
-pres_in = el_k_eff * (vol - u_vol_eff)^2 + el_eff * (vol - u_vol_eff)
-pres    = pres_in + pres_ext
-```
-
-Where `pres_ext` is a non-persistent external pressure (e.g., intrathoracic pressure) that resets to 0 each step.
+- **Inflow resistance only.** A vessel's resistance sits on its inflow connectors; its outflow is the next vessel's inflow. A bed with several outlets has no resistance of its own on each outlet.
+- **One ANS signal for the whole circulation.** Every circulation vessel gets the same `ans_activity`. Regional differences come only from `ans_sens` (e.g. 1 on the systemic and pulmonary arterioles, 0.5 on the aorta and central veins, 0.05 on the pulmonary trunk and veins, 0 on capillaries). There is no separate cerebral, renal or splanchnic sympathetic output.
+- **α-coupling is geometric and instantaneous.** Any resistance change stiffens the vessel by `factor^α`. That fits vasoconstriction, but it also applies to scaling and calibration changes of resistance.
+- **`ans_mult` must stay positive.** `r_total_factor^α` is `NaN` for a negative base. Today's efferent ranges keep `ans_activity` in 0.5–2, but `AnsEfferent` doesn't clamp its firing rate (to be checked with the control loops).
+- **No vessel collapse, inertance or wave propagation** (see [Capacitance](./Capacitance.md#assumptions-and-limitations) and [Resistor](./Resistor.md#assumptions-and-limitations)).
 
 ## Example definition (JSON)
 
+From `term_neonate.json`, `models.Circulation.components.KID_ART` (trimmed to the config props):
+
 ```json
 {
-  "name": "AD1",
-  "description": "descending aorta segment 1",
+  "name": "KID_ART",
   "model_type": "BloodVessel",
   "is_enabled": true,
-  "vol": 0.02725,
-  "u_vol": 0.02625,
-  "el_base": 625,
+  "inputs": ["AD"],
+  "vol": 0.00056,
+  "u_vol": 0.00011,
+  "el_base": 94524.9,
   "el_k": 0,
-  "r_for": 6.2,
-  "r_back": 6.2,
+  "r_for": 10777.7,
+  "r_back": 10539.3,
   "r_k": 0,
-  "inputs": ["AA"],
-  "alpha": 0.5,
-  "ans_sens": 0.0
+  "alpha": 0.63,
+  "ans_sens": 1,
+  "u_vol_ans_sens": 0
 }
 ```
 
-## Usage in the model hierarchy
+## Usage in the scenarios
 
-- **Standalone**: Used for large arteries (AA, AD1, AD2) and veins (IVCI, SVCI) that are directly defined in the model.
-- **Inside Heart (indirectly)**: Heart valves use standalone `Resistor` objects that connect HeartChamber components, not BloodVessels.
+Term_neonate has 39 vessels (the same layout in all 10 scenarios):
+
+| Bed | Vessels | α | `ans_sens` | `u_vol_ans_sens` |
+|---|---|---|---|---|
+| Pulmonary trunk, branches, veins | `PA`, `PAAL`, `PAAR`, `PV` | 0.5 | 0.05 | 0 |
+| Lung arterioles / capillaries / venules | `LL_ART`, `RL_ART` / `LL_CAP`, `RL_CAP` / `LL_VEN`, `RL_VEN` | 0.63 / 0 / 0.75 | 1 / 0 / 0.75 | 0 |
+| Aorta | `AA`, `AAR`, `AD` | 0.5 | 0.5 | 0 |
+| Systemic beds: liver/spleen, kidney, intestine, brain (arteriole / capillary / venule) | `LS_*`, `KID_*`, `INT_*`, `BR_*` | 0.63 / 0 / 0.75 | 1 / 0 / 0.75 | 0.2 on `LS_VEN`, `KID_VEN`, `INT_VEN` |
+| Rest of lower / upper body | `RLB`, `RUB` | 1 | 1 | 0 |
+| Capacitance veins | `VLB`, `VUB`, `IVCI`, `SVC` | 0.5 | 0.5 | 0.2 |
+| Placenta (fetal side) | `PL_UMB_ART`, `PL_FETAL_ART`/`_CAP`/`_VEN`, `PL_UMB_VEN` | 1, 0.63, 0, 0.75, 1 | 0, 1, 0, 0.75, 0 | 0 |
+| ECLS circuit | `ECLS_PUMP`, `ECLS_OXY`, `ECLS_TUBING_OUT` | 0 | 0 | 0 |
+
+The circulation vessels are owned by `Circulation`, the placental ones by `Placenta` (disabled after birth), and the ECLS ones by `Ecls` (disabled unless ECLS runs).
+
+## References
+
+- Shoukas AA, Sagawa K. Control of total systemic vascular capacity by the carotid sinus baroreceptor reflex. *Circ Res* 1973;33(1):22–33. [doi:10.1161/01.res.33.1.22](https://doi.org/10.1161/01.res.33.1.22) (sympathetic control acts mainly on unstressed volume, with little change in compliance).
+
+The resistance, elastance and α values are scenario calibrations (see the `*Reference.md` pages). The α = 0.75 value follows from tube geometry (above).

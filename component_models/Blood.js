@@ -29,13 +29,11 @@ export class Blood extends BaseModelClass {
       "HeartChamber",
       "BloodCapacitance",
       "BloodTimeVaryingElastance",
-      "BloodPump",
     ];
 
     // initialize dependent properties
     this.preductal_art_bloodgas = {}; // dictionary containing the preductal arterial bloodgas
     this.art_bloodgas = {}; // dictionary containing the (postductal) arterial bloodgas
-    this.ven_bloodgas = {}; // dictionary containing the venous bloodgas
     this.art_solutes = {}; // dictionary containing the arterial solute concentrations
     
     // initialize local properties (preceded with _)
@@ -169,6 +167,10 @@ export class Blood extends BaseModelClass {
     }
   }
 
+  // Stamp a temperature on every blood compartment (or one site): a cold/warm blood BOLUS, not a
+  // setting. Each compartment relaxes back to its perfusion target (body_temp, written by
+  // Thermoregulation) over blood_temp_tc, so the change fades within ~30 s; lasting temperature
+  // changes go through Thermoregulation. this.temp only seeds freshly built compartments.
   set_temperature(new_temp, bc_site = "") {
     this.temp = new_temp;
     if (bc_site) {

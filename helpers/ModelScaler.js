@@ -287,6 +287,13 @@ export default class ModelScaler {
 
     this._bake(all, "u_vol", "u_vol_factor_scaling_ps");
     this._bake(all, "el_base", "el_base_factor_scaling_ps");
+    // a HeartChamber's el_k is scaled by its diastolic modulation, which contains the el_min scaling:
+    // carry that factor into el_k before baking el_min, or the diastolic curve would soften
+    for (const name of all) {
+      const comp = this._model.models[name];
+      const f = comp?.el_min_factor_scaling_ps;
+      if (comp && comp.model_type === "HeartChamber" && f !== undefined && f !== 1.0 && comp.el_k !== undefined) comp.el_k *= f;
+    }
     this._bake(all, "el_min", "el_min_factor_scaling_ps");
     this._bake(all, "el_max", "el_max_factor_scaling_ps");
     this._bake_resistance(all);
@@ -305,6 +312,10 @@ export default class ModelScaler {
       if (f !== undefined && f !== 1.0) {
         comp[base_prop] *= f;
         comp[factor_prop] = 1.0;
+        // models that ADD their layers (all but BloodVessel) apply a persistent change as a fraction of
+        // the base: rescale it so its absolute effect survives the larger base
+        const ps = base_prop + "_factor_ps";
+        if (comp.model_type !== "BloodVessel" && comp[ps] !== undefined && comp[ps] !== 1.0) comp[ps] = 1.0 + (comp[ps] - 1.0) / f;
       }
     }
   }
@@ -317,6 +328,11 @@ export default class ModelScaler {
       if (f !== undefined && f !== 1.0) {
         if (comp.r_for !== undefined) comp.r_for *= f;
         if (comp.r_back !== undefined) comp.r_back *= f;
+        if (comp.model_type !== "BloodVessel" && comp.r_factor_ps !== undefined && comp.r_factor_ps !== 1.0) comp.r_factor_ps = 1.0 + (comp.r_factor_ps - 1.0) / f;
+        // a BloodVessel stiffens with its resistance multiplier (el_eff includes r_total_factor^alpha);
+        // once the factor is in r_for it no longer reaches that coupling, so carry f^alpha into
+        // el_base to keep the vessel exactly as it was
+        if (comp.alpha > 0.0 && comp.el_base !== undefined) comp.el_base *= Math.pow(f, comp.alpha);
         comp.r_factor_scaling_ps = 1.0;
       }
     }

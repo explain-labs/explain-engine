@@ -1,211 +1,185 @@
 # HeartChamber
 
-A HeartChamber represents a cardiac chamber (atrium or ventricle) with time-varying elastance, ANS-mediated contractility and relaxation, and blood composition tracking. It is the model used for LA, LV, RAIVCI, RASVC, and RV.
+A `HeartChamber` is a heart chamber: a [`TimeVaryingElastance`](./TimeVaryingElastance.md) that holds blood (composition mixed like a [`BloodCapacitance`](./BloodCapacitance.md)). Its contractility and relaxation respond to the autonomic nervous system, drugs, myocardial oxygen balance, load and remodelling. The atria and ventricles (`LA`, `LV`, `RV` and the two halves of the right atrium) are HeartChambers.
+
+## Physiology
+
+Each chamber stiffens when activated and relaxes in between (see [TimeVaryingElastance](./TimeVaryingElastance.md#physiology)). Two numbers describe it:
+- **`el_max`, contractility:** how stiff it gets at peak contraction.
+- **`el_min`, diastolic stiffness:** how easily it fills.
+
+Several influences change those two numbers, and HeartChamber adds them up:
+
+- **Sympathetic (β1) stimulation** raises contractility (*inotropy*) and speeds relaxation, lowering diastolic stiffness (*lusitropy*).
+- **Inotropes and lusitropes** (adrenaline, milrinone, …) do the same through the `Drugs` model.
+- **Myocardial hypoxia** (oxygen supply below demand) depresses contractility through `Mob`.
+- **Load and remodelling.** An acutely overloaded ventricle loses contractility (afterload mismatch). A chronically overloaded one remodels: it dilates (larger unstressed volume), stiffens and loses contractility. `HeartFunction` models both.
+- **The clinician or scenario** sets contractility and relaxation per side of the heart through `Heart` (`cont_factor_*`, `relax_factor_*`).
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── TimeVaryingElastance         (volume, time-varying elastance, pressure)
-        └── HeartChamber           (ANS coupling, blood composition)
+  └── TimeVaryingElastance
+        └── HeartChamber      (own factor composition with ANS/drug/Mob/load/remodel terms; blood mixing)
 ```
 
-## Relationship to BloodTimeVaryingElastance
-
-Both `HeartChamber` and `BloodTimeVaryingElastance` extend `TimeVaryingElastance` and add blood composition tracking. The key difference is that HeartChamber overrides `calc_elastances()` to incorporate autonomic nervous system effects on contractility and relaxation via beta-1 adrenergic receptor modeling.
-
-## What it models
-
-A cardiac chamber whose elastance cycles between `el_min` (diastole) and `el_max` (systole), driven by the `act_factor` provided by the `Heart` model. The ANS modulates both values:
-
-- **Diastolic function (el_min)**: Beta-1 receptor activation produces a lusitropic effect -- it *decreases* el_min, improving relaxation. A lower el_min means better diastolic filling.
-- **Systolic function (el_max)**: Beta-1 receptor activation produces a positive inotropic effect -- it *increases* el_max, strengthening contraction.
-
-The `Heart` model also applies contractility (`cont_factor_left/right`) and relaxation (`relax_factor_left/right`) factors via the `el_max_factor_ps` and `el_min_factor_ps` persistent factors.
+HeartChamber overrides `calc_elastances` and `calc_volumes` (extra terms, floors) and `volume_in` (blood mixing). `calc_pressure` is inherited unchanged. Its sibling [`BloodTimeVaryingElastance`](./BloodTimeVaryingElastance.md) (the coronary bed) has the mixing but none of the extra terms.
 
 ## Properties
 
-### Inherited from TimeVaryingElastance
+Elastance, volume, activation and factor props are inherited: see [TimeVaryingElastance → Properties](./TimeVaryingElastance.md#properties).
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume |
-| `el_min` | mmHg/L | Minimum elastance (diastolic stiffness) |
-| `el_max` | mmHg/L | Maximum elastance (systolic stiffness / contractility) |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient |
-| `act_factor` | 0-1 | Activation factor (set by Heart model: `aaf` for atria, `vaf` for ventricles) |
-| `vol` | L | Current blood volume |
-| `pres` | mmHg | Total pressure |
-| `pres_in` | mmHg | Recoil pressure |
-| `pres_ext` | mmHg | External pressure (non-persistent, e.g., pericardial pressure) |
+### Config (set in the definition JSON)
 
-### ANS properties (unique to HeartChamber)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `temp` | °C | 37.0 | Blood temperature; mixed on inflow, relaxed toward `body_temp` by `Blood`. |
+| `viscosity` | cP | 6.0 | Overwritten by `Blood` from the chamber's haemoglobin every step; not mixed. |
+| `solutes` | object | `{}` | Solute concentrations, seeded from `Blood` when empty. |
+| `drugs` | object | `{}` | Drug concentrations (`Drugs`). |
 
-| Property | Unit | Description |
-|---|---|---|
-| `ans_sens` | 0-1 | Sensitivity to ANS activity. Set by the Heart model. |
-| `ans_activity` | unitless | ANS activity level. 1.0 = baseline, >1 = sympathetic stimulation. Set by Heart model. |
+### Set by other models
 
-### Blood composition
+| Property | Unit | Default | Written by | Effect |
+|---|---|---|---|---|
+| `ans_sens` | – | 1.0 | `Heart` (its own `ans_sens`), every step | Sensitivity to `ans_activity`. |
+| `ans_activity` | – | 1.0 | `Heart`: `ans_activity · ans_activity_factor` (`EF_HEART` drive scaled by `Mob`), every step | > 1 raises `el_max` and lowers `el_min`. |
+| `el_max_mob_factor` | – | 1.0 | `Mob` (all chambers) | Hypoxic contractility depression. |
+| `el_max_drug_factor` | – | 1.0 | `Drugs` (all chambers) | Inotropy. |
+| `el_min_drug_factor` | – | 1.0 | `Drugs` (all chambers) | Lusitropy; < 1 = better relaxation. |
+| `el_max_load_factor` | – | 1.0 | `HeartFunction` (LV, RV) | Acute load-induced contractility depression. |
+| `el_max_remodel_factor` | – | 1.0 | `HeartFunction` (LV, RV) | Chronic remodelling: contractility. |
+| `el_k_remodel_factor` | – | 1.0 | `HeartFunction` (LV, RV) | Chronic remodelling: diastolic stiffening. |
+| `u_vol_remodel_factor` | – | 1.0 | `HeartFunction` (LV, RV) | Chronic remodelling: dilation. |
+| `act_factor` | – | 0.0 | `Heart` | Activation (inherited; see [TimeVaryingElastance](./TimeVaryingElastance.md#set-by-other-models)). |
 
-| Property | Unit | Description |
-|---|---|---|
-| `temp` | degC | Blood temperature |
-| `viscosity` | cP | Blood viscosity |
-| `to2` | mmol/L | Total oxygen concentration |
-| `tco2` | mmol/L | Total carbon dioxide concentration |
-| `ph` | unitless | Blood pH (-1 = not calculated) |
-| `pco2` | mmHg | Partial pressure of CO2 (-1 = not calculated) |
-| `po2` | mmHg | Partial pressure of O2 (-1 = not calculated) |
-| `so2` | unitless | Oxygen saturation (-1 = not calculated) |
-| `hco3` | mmol/L | Bicarbonate concentration (-1 = not calculated) |
-| `be` | mmol/L | Base excess (-1 = not calculated) |
-| `solutes` | object | Dictionary of solute concentrations |
-| `drugs` | object | Dictionary of drug concentrations |
+These factors are not reset each step; their writers hold them. The props `Blood` and `BloodComposition` write onto every blood compartment (`haldane_coeff`, `P50_0`, `viscosity_ref`, `body_temp`, `blood_temp_tc`, `temp_ext_override`, `prev_ph`, `prev_po2`) are described on [BloodCapacitance](./BloodCapacitance.md#set-by-other-models).
 
-### Calculated intermediates
+### Outputs
 
-| Property | Unit | Description |
-|---|---|---|
-| `el_min_eff` | mmHg/L | Effective minimum elastance this step |
-| `el_max_eff` | mmHg/L | Effective maximum elastance this step |
-| `el_k_eff` | mmHg/L² | Effective non-linear elastance coefficient |
-| `u_vol_eff` | L | Effective unstressed volume |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `to2`, `tco2` | mmol/L | 0.0 | Total O2 and CO2 content; mixed on inflow. |
+| `ph`, `pco2`, `po2`, `so2`, `hco3`, `be` | as in [BloodCapacitance](./BloodCapacitance.md#outputs) | -1 | Blood gases, `-1` = not calculated. `Blood` solves them for `RAIVCI` (once per second). |
 
-## ANS elastance modulation
+## Calculation
 
-HeartChamber overrides `calc_elastances()` to add ANS effects. The key difference from the parent class:
+`calc_model()` (inherited) runs `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
 
-### Diastolic function (lusitropic effect)
+1. **`calc_elastances`** composes every term **additively** against the base value:
+   ```
+   el_min_eff = el_min · (1 + (el_min_factor − 1) + (el_min_factor_ps − 1) + (el_min_factor_scaling_ps − 1)
+                            + (el_min_drug_factor − 1)
+                            − (ans_activity − 1)·ans_sens)                      ← subtracted: lusitropy
+   el_max_eff = el_max · (1 + (el_max_factor − 1) + (el_max_factor_ps − 1) + (el_max_factor_scaling_ps − 1)
+                            + (el_max_mob_factor − 1) + (el_max_drug_factor − 1)
+                            + (el_max_load_factor − 1) + (el_max_remodel_factor − 1)
+                            + (ans_activity − 1)·ans_sens)                      ← added: inotropy
+   el_k_eff   = el_k · (1 + (el_k_factor − 1) + (el_k_factor_ps − 1) + (el_k_factor_scaling_ps − 1)
+                          + (el_k_remodel_factor − 1)
+                          + (the el_min modulation above: relaxation, drug lusitropy, ANS))
+   ```
+   The diastolic modulation scales the **whole** diastolic curve, `el_min` and `el_k` alike, so relaxation, lusitropy and the ANS still act on a chamber whose diastolic stiffness is quadratic.
+   Then:
+   - `el_min_eff` and `el_k_eff` are floored at 0 (the subtracted terms could take them below);
+   - `el_max_eff` is raised to `el_min_eff` if it falls below it;
+   - the non-persistent factors are reset.
+2. **`calc_volumes`**: `u_vol_eff = u_vol · (1 + the three layers + (u_vol_remodel_factor − 1))`, floored at 0. `u_vol_factor` is reset.
+3. **`calc_pressure`** (inherited): `pres_in = p_ed + (p_es − p_ed)·act_factor` (see [TimeVaryingElastance → Calculation](./TimeVaryingElastance.md#calculation)), plus the pericardial `pres_ext`.
 
-ANS activation *decreases* el_min (better relaxation):
+**`volume_in(dvol, comp_from)`** adds the volume and mixes the incoming blood with [`mix_blood_in`](./BloodMixing.md): `to2`, `tco2`, solutes, drugs and temperature.
 
-```
-el_min_eff = el_min
-  + (el_min_factor - 1) * el_min
-  + (el_min_factor_ps - 1) * el_min
-  + (el_min_factor_scaling_ps - 1) * el_min
-  - (ans_activity - 1) * el_min * ans_sens    // note: SUBTRACTED
-```
+## Factor system
 
-### Systolic function (inotropic effect)
+All layers and terms are **additive**, unlike `BloodVessel`'s multiplicative composition (see [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern)). Two consequences:
 
-ANS activation *increases* el_max (stronger contraction):
+- **Effects add, they don't compound.** For example, `Heart` contractility +20 % and an inotrope +20 % give +40 %, not +44 %.
+- **One sign is reversed.** The ANS term is *subtracted* for `el_min`: more sympathetic drive means a lower diastolic stiffness.
 
-```
-el_max_eff = el_max
-  + (el_max_factor - 1) * el_max
-  + (el_max_factor_ps - 1) * el_max
-  + (el_max_factor_scaling_ps - 1) * el_max
-  + (el_max_mob_factor - 1) * el_max          // myocardial-oxygen-balance (Mob)
-  + (el_max_drug_factor - 1) * el_max         // inotropy (Drugs PK/PD)
-  + (el_max_load_factor - 1) * el_max         // acute load-induced depression (HeartFunction)
-  + (el_max_remodel_factor - 1) * el_max      // chronic remodeling (HeartFunction)
-  + (ans_activity - 1) * el_max * ans_sens    // note: ADDED
-```
+The persistent layers are written by `Heart`:
+- `set_contractility` → `el_max_factor_ps`;
+- `set_relaxation` → `el_min_factor_ps`, left and right separately.
 
-A safety check ensures `el_max_eff` never falls below `el_min_eff`.
+The scaling layers are written by `ModelScaler`, and the `Calibrator` also writes `el_max_factor_ps`.
 
-`el_k_eff` likewise adds a chronic remodeling term (`el_k_remodel_factor`, diastolic stiffening from
-HeartFunction) alongside its three factor tiers, and `calc_volumes()` is overridden to add the
-eccentric-dilation term (`u_vol_remodel_factor`, HeartFunction) to `u_vol_eff`. All four of these
-extra factors default to `1.0` (no effect) and are *not* reset each step — see
-[HeartFunction.md](./HeartFunction.md) and the Mob/Drugs models.
+## Inputs and outputs
 
-## Three-tier factor system
+- **Reads:** the upstream compartment on inflow (composition).
+- **Written by:**
+  - `Heart` (activation, ANS, contractility and relaxation factors);
+  - `Mob`, `Drugs`, `HeartFunction` (the terms above);
+  - `Blood` (temperature, viscosity, seed composition);
+  - `PERICARDIUM` (`pres_ext`);
+  - the valves and connectors (volume).
+- **Read by:**
+  - the valves and connectors (`pres`);
+  - `Heart` (volumes and `pres_in` for the per-beat analysis);
+  - `Mob` (LV/RV pressure and volume for stroke work);
+  - `Monitor`, `Blood` (`RAIVCI` blood gas);
+  - `DataCollector` watchers (PV loops).
 
-| Tier | Factors | Purpose |
-|---|---|---|
-| Non-persistent | `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | Transient effects, reset each step |
-| Persistent (`_ps`) | `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | Heart model contractility/relaxation factors |
-| Scaling (`_scaling_ps`) | `u_vol_factor_scaling_ps`, `el_min_factor_scaling_ps`, `el_max_factor_scaling_ps`, `el_k_factor_scaling_ps` | ModelScaler weight/manual scaling |
+## Assumptions and limitations
 
-The persistent factors are the primary mechanism by which the `Heart` model controls chamber function:
-- `el_max_factor_ps` is adjusted by `Heart.set_contractillity()` via `cont_factor_left/right`
-- `el_min_factor_ps` is adjusted by `Heart.set_relaxation()` via `relax_factor_left/right`
-
-## Pressure calculation
-
-Inherited from `TimeVaryingElastance`:
-
-```
-p_ms = (vol - u_vol_eff) * el_max_eff
-p_ed = el_k_eff * (vol - u_vol_eff)^2 + el_min_eff * (vol - u_vol_eff)
-pres_in = (p_ms - p_ed) * act_factor + p_ed
-```
-
-During diastole (`act_factor = 0`), pressure is determined by `el_min_eff` (and `el_k_eff` for non-linear behavior). During systole (`act_factor` approaches peak), pressure is dominated by `el_max_eff`.
-
-## Mixing logic (`volume_in`)
-
-Overrides `volume_in` to perform composition mixing when blood flows in, through the shared `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), the same as `BloodCapacitance`:
-
-```
-concentration += ((concentration_from - concentration) * dvol) / vol
-```
-
-Applied to: `to2`, `tco2`, all `solutes`, all `drugs`, `temp`, `viscosity`.
-
-## Calculation cycle
-
-1. `calc_elastances()` -- compute el_min_eff, el_max_eff, el_k_eff with ANS modulation (overridden)
-2. `calc_volumes()` -- compute u_vol_eff including the `u_vol_remodel_factor` term (overridden)
-3. `calc_pressure()` -- compute time-varying pressure (inherited from TimeVaryingElastance)
-
-## Interaction with the Heart model
-
-The `Heart` model orchestrates all HeartChamber instances:
-
-1. Sets `act_factor` each step: `aaf` (atrial activation function) for LA, RAIVCI, RASVC; `vaf` (ventricular activation function) for LV, RV
-2. Sets `ans_activity` and `ans_sens` for ANS coupling
-3. Adjusts `el_max_factor_ps` via `set_contractillity()` (systolic function control)
-4. Adjusts `el_min_factor_ps` via `set_relaxation()` (diastolic function control)
-
-Flow between chambers is handled by separate `Resistor` models (e.g., `LA_LV` for the mitral valve, `LV_AA` for the aortic valve).
+- **Additive composition.** Large simultaneous effects add linearly. Several large negative terms together can only be stopped by the floor at 0.
+- **One ANS signal, all chambers.** The atria and both ventricles get the same `ans_activity` and `ans_sens`.
+- **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law. Two scenarios still use linear chambers.
+- **One unstressed volume** for the diastolic and systolic relations (inherited).
+- **Right-ventricle unstressed volume.** The postnatal scenarios give the RV a `u_vol` 5.5× the LV's (term 4.0 vs 0.73 mL, since the first commit). `u_vol` is also the volume intercept of the end-systolic relation, so the RV's end-systolic elastance comes out at 28 mmHg/mL, about the LV's 30, where real RVs are typically ~⅓–½ of the LV. Term RV volumes and EF (52 %) match CMR, but the RV is too insensitive to afterload. With the fetal ratio (1.64×, already used by the fetal scenarios) and `el_max` rescaled, pulmonary arterioles ×2 lower RV stroke volume 6.1 % instead of 3.5 %. To be re-parameterised in the scenario re-validation session (it shifts the PDA patients' `cont_factor_right` calibrations).
 
 ## Example definition (JSON)
+
+From `term_neonate.json`, `models.Heart.components.LV` (trimmed to the config props):
 
 ```json
 {
   "name": "LV",
-  "description": "left ventricle",
   "model_type": "HeartChamber",
   "is_enabled": true,
-  "vol": 0.0267,
-  "u_vol": 0.003,
-  "el_min": 133,
-  "el_max": 5800,
-  "el_k": 0
+  "vol": 0.00606,
+  "u_vol": 0.000733,
+  "el_min": 0,
+  "el_max": 30477.7,
+  "el_k": 156107,
+  "ans_sens": 1
 }
 ```
 
-## Instances in the model
+## The diastolic relation
 
-| Name | Chamber | Activation |
-|---|---|---|
-| `LA` | Left atrium | Atrial (aaf) |
-| `LV` | Left ventricle | Ventricular (vaf) |
-| `RAIVCI` | Right atrium (IVC portion) | Atrial (aaf) |
-| `RASVC` | Right atrium (SVC portion) | Atrial (aaf) |
-| `RV` | Right ventricle | Ventricular (vaf) |
+Normal hearts stiffen steeply as they fill. Volume-normalised end-diastolic pressure–volume curves share one shape across human, dog and rat hearts, `EDP ∝ V^2.79` (Klotz 2006). The engine's diastolic term is `el_min·S + el_k·S²` (`S = vol − u_vol`). The closest it gets is a **pure quadratic**, `el_min` 0 with all the stiffness in `el_k`: local stiffness at rest is then 2× the average, against 2.8× for the power law.
+
+In 8 scenarios all five chambers use the pure quadratic, with `el_k` fitted by `scripts/_fix_chamber_edpvr.mjs`:
+- **Fit:** the resting end-diastolic (ventricles) and mean (atria) volumes are unchanged, and so are the resting vitals.
+- **Right atrium:** the two halves share one `el_k`, and their connector `RAIVCI_RASVC` is `implicit`. With stiffening atria the explicit scheme of that low-resistance connector oscillated.
+- **Effect:** in term_neonate with the reflexes off, +30 mL of blood raises stroke volume +17 % (linear: +34 %) and LV EDP +5.6 mmHg (linear: +3.6). That is the limited preload reserve of the newborn heart.
+
+`preterm_25wk` and `bischoff_ltr_pda` still use linear chambers. These small left-to-right-duct patients respond to the curve shape itself (HR +4/+9 bpm, SvO2 −1.3 %), so they are converted only when they are re-validated against their reference values.
+
+## Usage in the scenarios
+
+Five chambers in every scenario, all owned by `Heart` and inside `PERICARDIUM`. Their elastances and activations are listed on [TimeVaryingElastance → Usage](./TimeVaryingElastance.md#usage-in-the-scenarios).
 
 ### The split right atrium
 
-The RA is two chambers, `RAIVCI` (IVC return, coronary sinus) and `RASVC` (SVC return). Each has its own
-tricuspid half (`RAIVCI_RV`, `RASVC_RV`) and foramen-ovale half (`LA_RAIVCI`, `LA_RASVC`). They are joined
-by the `RAIVCI_RASVC` resistor (in `Heart.components`):
+The right atrium is two chambers:
+- `RAIVCI` receives the IVC and the coronary sinus (`COR_RAIVCI`);
+- `RASVC` receives the SVC.
 
-- **Fetal scenarios** (`fetus_30wk`, `fetus_term`) keep the halves **separate** (`no_flow: true`). The
-  split is what produces preferential streaming: ductus venosus / IVC blood → FO → LA, SVC blood → RV.
-- **All postnatal scenarios** (since 2026-10-01) **merge** them into one atrium. The link is open in both
-  directions (`no_flow: false`, `no_back_flow: false`) with a small resistance
-  `R = max(1, ⌈2·dt·(E₁max + E₂max)⌉)`: 13 mmHg·s/L for the neonatal/CHD set (el_max 6104 each), 1 for
-  the adults. The two halves then sit within ≈ 0.01 mmHg of each other and mix fully.
-  - R must stay above `dt·(E₁+E₂)` (≈ 6 at dt 0.0005) or the explicit integration oscillates
-    (R = 2 runs away at ±350 L/min). The 2× margin covers ANS-raised elastance.
-  - `RAIVCI_RASVC` is not in `scaler_config.heart.resistance`, so weight scaling leaves it alone.
-- Before the merge, every scenario had the halves sealed. That made the SvO₂ readout IVC-only blood
-  (see [Monitor](./Monitor.md)), confined TAPVC's pulmonary venous return to `RASVC`, and kept a `RASVC`
-  ECMO cannula from reaching IVC return (see [Ecls](./Ecls.md)).
-- `scripts/_make_term_fetus.mjs` closes the link explicitly, because it starts from `term_neonate`; the
-  postnatal generators inherit the merged link from `term_neonate`.
+Each has its own tricuspid half (`RAIVCI_RV`, `RASVC_RV`, both `HeartValve`s) and foramen-ovale half (`LA_RAIVCI`, `LA_RASVC`, owned by `Shunts`). The two halves are joined by the `RAIVCI_RASVC` resistor (in `Heart.components`):
+
+| Scenarios | `RAIVCI_RASVC` | Effect |
+|---|---|---|
+| Fetal (`fetus_term`, `fetus_30wk`, `fetus_25wk`) | `no_flow: true` (sealed; `mix_flow` inactive) | Preferential streaming: ductus venosus/IVC blood → foramen ovale → LA; SVC blood → RV. |
+| Postnatal (term, preterm, Bischoff) | open both ways, `r_for`/`r_back` 13 mmHg·s/L, `mix_flow` 0.01 L/s | One atrium in pressure (the halves within ≈ 0.01 mmHg) but only **partly mixed**, as IVC/SVC streaming is in a real atrium. `mix_flow` was chosen in the engine review to bring the RA SO2 gap between the halves from 6.1 to 1.5 %. |
+
+Constraints on the resistance and mixing:
+- **Stable resistance.** The postnatal resistance follows `R = max(1, ⌈2·dt·(E₁max + E₂max)⌉)`. R must stay above `dt·(E₁ + E₂)`, about 6 at dt 0.0005, or the explicit integration oscillates; the factor 2 covers ANS-raised elastance.
+- **Not weight-scaled.** `RAIVCI_RASVC` isn't in the scaler config.
+- **Mixed venous saturation.** `Blood` solves both `RAIVCI` and `PA`, the true mixed venous blood; the Monitor reads SvO2 from `PA` (see [Monitor](./Monitor.md)).
+
+## References
+
+- Klotz S, Hay I, Dickstein ML, et al. Single-beat estimation of end-diastolic pressure-volume relationship: a novel method with potential for noninvasive application. *Am J Physiol Heart Circ Physiol* 2006;291(1):H403–H412. [doi:10.1152/ajpheart.01240.2005](https://doi.org/10.1152/ajpheart.01240.2005)
+
+Otherwise this class introduces no literature-derived values. For the time-varying elastance concept see [TimeVaryingElastance](./TimeVaryingElastance.md#references). Chamber elastances are scenario calibrations (see [TermNeonateReference](./TermNeonateReference.md)).

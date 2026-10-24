@@ -1,125 +1,151 @@
 # BloodCapacitance
 
-A BloodCapacitance is a volume compartment that holds blood with tracked composition: dissolved gases, solutes, drugs, temperature, and viscosity. It extends the base `Capacitance` class with blood-specific mixing logic.
+A BloodCapacitance is an elastic compartment that holds blood and tracks what is in it: oxygen and carbon dioxide content, solutes, drugs and temperature. It is a [`Capacitance`](./Capacitance.md) plus composition mixing. It is the parent class of every blood vessel in the model.
+
+## Physiology
+
+Think of a BloodCapacitance as a balloon filled with blood. The more blood is in it, the higher the pressure inside. How quickly the pressure rises with volume depends on how stiff the wall is, the *elastance*. Below a certain volume, the *unstressed volume*, the wall is slack and the pressure is zero.
+
+When blood flows in from a neighbouring compartment, it mixes completely with the blood already there. If oxygen-rich blood enters a compartment that holds venous blood, the oxygen content inside rises in proportion to how much new blood came in. Solutes, drugs and temperature mix the same way. This is how oxygen, CO2, drugs and warmth travel around the simulated circulation: they ride along with the flow, one compartment at a time.
+
+A BloodCapacitance has no resistance of its own. Blood enters and leaves through separate connectors (`Resistor` models), or the compartment is a [`BloodVessel`](./BloodVessel.md), which adds its own resistance.
+
+In the shipped scenarios a plain BloodCapacitance is used only for compartments outside the main circulation: the urine in the bladder, the maternal blood pool of the placenta, and the inlet tubing of the ECLS circuit (see [Usage](#usage-in-the-scenarios)). Every vessel of the circulation is a `BloodVessel`, which inherits everything on this page.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Capacitance            (volume, elastance, pressure)
-        └── BloodCapacitance (blood composition tracking)
+  └── Capacitance              (volume, elastance, pressure)
+        └── BloodCapacitance   (blood composition mixing)
+              └── BloodVessel  (adds resistance, flow, ANS coupling)
 ```
 
-BloodCapacitance is itself the parent of `BloodVessel` (adds resistance and flow) and is used standalone for compartments that hold blood but have no built-in resistance (e.g., a pure compliance chamber). Flow into and out of a standalone BloodCapacitance is handled by separate `Resistor` models that reference it.
-
-## What it models
-
-A passive blood-containing compartment. It holds a volume of blood at a pressure determined by its elastance, and tracks the composition of that blood as fluid flows in and out. It does not have its own resistance or flow -- those are provided by connected `Resistor` or `BloodVessel` models.
+`BloodTimeVaryingElastance` and `HeartChamber` carry the same blood properties but descend from `TimeVaryingElastance`. All three classes (and `BloodVessel` through this one) share the mixing code in [`BloodMixing`](./BloodMixing.md).
 
 ## Properties
 
-### Inherited from Capacitance
+Volume, elastance and pressure props (`vol`, `u_vol`, `el_base`, `el_k`, `pres`, `pres_in`, `pres_ext`, `fixed_composition` and the factor layers) are inherited. See [Capacitance → Properties](./Capacitance.md#properties).
 
-All capacitance properties are available. See the Capacitance base model for the full list. Key ones:
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume |
-| `el_base` | mmHg/L | Baseline elastance |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient |
-| `vol` | L | Current volume |
-| `pres` | mmHg | Total pressure |
-| `pres_in` | mmHg | Recoil pressure |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `temp` | °C | 37.0 | Blood temperature. Mixed on inflow, and relaxed toward `body_temp` by `Blood` every step. |
+| `viscosity` | cP | 6.0 | Blood viscosity. Not mixed: `Blood` derives it from this compartment's haemoglobin every step, so a definition value is overwritten. |
+| `solutes` | object | `{}` | Solute concentrations keyed by name (e.g. `hemoglobin`, `na`, `glucose`, `lact`), in each solute's own unit. Seeded from `Blood.solutes` at build when empty. |
+| `drugs` | object | `{}` | Drug concentrations keyed by drug name. Filled by `Drugs`. |
+| `blood_pool` | boolean | `true` | `false` marks a non-circulating sink (URINE). `Blood`, `Lactate`, `Glucose` and `Drugs` then skip the compartment. |
 
-### Blood composition (unique to BloodCapacitance)
+### Outputs
 
-| Property | Unit | Description |
-|---|---|---|
-| `temp` | degC | Blood temperature |
-| `viscosity` | cP | Blood viscosity |
-| `to2` | mmol/L | Total oxygen concentration |
-| `tco2` | mmol/L | Total carbon dioxide concentration |
-| `ph` | unitless | Blood pH (-1 = not calculated) |
-| `pco2` | mmHg | Partial pressure of CO2 (-1 = not calculated) |
-| `po2` | mmHg | Partial pressure of O2 (-1 = not calculated) |
-| `so2` | unitless | Oxygen saturation (-1 = not calculated) |
-| `hco3` | mmol/L | Bicarbonate concentration (-1 = not calculated) |
-| `be` | mmol/L | Base excess (-1 = not calculated) |
-| `solutes` | object | Dictionary of solute concentrations (keyed by name) |
-| `drugs` | object | Dictionary of drug concentrations (keyed by name) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `to2` | mmol/L | 0.0 | Total oxygen content (bound + dissolved). Mixed on inflow; seeded from `Blood.to2` at build. |
+| `tco2` | mmol/L | 0.0 | Total CO2 content. Mixed on inflow; seeded from `Blood.tco2` at build. |
+| `ph` | – | -1 | pH. `-1` = not calculated. |
+| `pco2` | mmHg | -1 | CO2 partial pressure. `-1` = not calculated. |
+| `po2` | mmHg | -1 | O2 partial pressure. `-1` = not calculated. |
+| `so2` | fraction | -1 | O2 saturation (0–1). `-1` = not calculated. |
+| `hco3` | mmol/L | -1 | Bicarbonate. `-1` = not calculated. |
+| `be` | mmol/L | -1 | Base excess. `-1` = not calculated. |
 
-Note: `ph`, `pco2`, `po2`, `so2`, `hco3`, and `be` are initialized to -1 and are calculated by external gas exchange models (e.g., `AcidBase`). They are not computed by the BloodCapacitance itself.
+The blood-gas outputs (`ph` … `be`) are **not** computed by this class. They are solved from `to2`, `tco2` and the solutes by [`BloodComposition.calc_blood_composition`](./BloodComposition.md), and only for the compartments that some model asks for:
 
-### Haldane effect
+- `Blood`, once per second: `AA`, `AD`, `IVCI`, `SVC`, `RAIVCI`, `PA`;
+- `Ans`, at its update interval: its chemoreceptor sites;
+- `Ecls`: `ECLS_TUBING_IN` and the oxygenator.
 
-`calc_blood_composition` (in `BloodComposition.js`) couples oxygen saturation back into the CO2
-dissociation. The plasma CO2 partition gains an SO₂-dependent term:
+Everywhere else these fields stay at `-1`, or hold the last solved value.
 
-```
-cco2p = tco2 / (1 + kc/hp + kc*kd/hp² + haldane_coeff * (1 - so2))
-pco2  = cco2p / alpha_co2p
-```
+### Set by other models
 
-Lower SO₂ raises the effective CO2-carrying capacity, so at a given `tco2` deoxygenated blood shows a
-lower `pco2`/`hco3` — the Haldane effect. `so2` is taken from the previous calculation step (the
-acid-base and oxygen solvers run sequentially); at steady state the one-step lag vanishes. The
-strength is set by `haldane_coeff` on the `Blood` model (propagated to every blood component and
-adjustable at runtime via `Blood.set_haldane_coeff`); `haldane_coeff = 0` disables the effect and
-reproduces the previous behaviour. Note this is distinct from the **CO₂-Bohr effect** (high pCO₂
-right-shifts P50, reducing O₂ affinity), which is modelled separately via the `dpCO2` term.
+These props are not declared in the constructor. Other models write them onto the blood compartments at build or when solving:
 
-## Mixing logic (`volume_in`)
+| Property | Unit | Written by | Description |
+|---|---|---|---|
+| `haldane_coeff` | – | `Blood.init_model` | Haldane-effect strength, used by `BloodComposition`. |
+| `P50_0` | mmHg | `Blood.init_model` (only if absent) | O2–Hb affinity baseline. A per-compartment value is kept, e.g. adult 26.7 on `PL_MAT`. |
+| `viscosity_ref` | cP | `Blood.init_model` | Viscosity at which the vessel resistances were calibrated. |
+| `body_temp` | °C | `Blood.init_model`, then `Thermoregulation` via `Blood.set_perfusion_target` | Perfusion target that `temp` relaxes toward. |
+| `blood_temp_tc` | s | `Blood.init_model` | Time constant of that relaxation. |
+| `temp_ext_override` | boolean | `Blood.init_model`, devices | `true` when a device (e.g. the ECLS heater) owns `body_temp`. |
+| `prev_ph`, `prev_po2` | –, mmHg | `BloodComposition` (on each solve) | Solver warm start: the last solved pH and pO2, which bound the next solve. Only on compartments that have been solved; saved with the state. |
 
-BloodCapacitance overrides the `volume_in` method to perform composition mixing when blood flows in from another compartment. The mixing itself lives in [`helpers/BloodMixing.js`](../helpers/BloodMixing.js) (`mix_blood_in`), shared with `BloodTimeVaryingElastance` and `HeartChamber`. Because it runs after the volume is added, the formula is exact mass balance. For each tracked substance, the mixing uses a linear dilution formula:
+## Calculation
 
-```
-concentration += ((concentration_from - concentration) * dvol) / vol
-```
+BloodCapacitance does not override `calc_model()`. Each step runs the inherited [Capacitance cycle](./Capacitance.md#calculation): `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
 
-This is applied to:
-- `to2` and `tco2` (dissolved gases)
-- All entries in `solutes`
-- All entries in `drugs`
-- `temp` (temperature treated as a solute for mixing)
-- `viscosity` (treated as a solute for mixing)
+The class adds one thing, an override of **`volume_in(dvol, comp_from)`**. A `Resistor` (or the compartment's own outflow) calls it when blood arrives:
 
-The `comp_from` parameter (the upstream compartment) must have matching properties (`to2`, `tco2`, `solutes`, `drugs`, `temp`, `viscosity`).
+1. `Capacitance.volume_in` adds `dvol` to `vol` (skipped when `fixed_composition`).
+2. `mix_blood_in(this, dvol, comp_from)` mixes the composition. With `V` the volume *after* the inflow:
 
-## Three-tier factor system
+   ```
+   c += (c_from − c) · dvol / V
+   ```
 
-BloodCapacitance inherits the full three-tier factor system from Capacitance:
+   This is exact mass balance: `c_new·V = c_old·(V − dvol) + c_from·dvol`. It is applied to `to2`, `tco2`, every key in `solutes` and `drugs` that the receiving compartment carries (a key missing on the source counts as 0), and `temp`.
 
-| Tier | Factors | Purpose |
-|---|---|---|
-| Non-persistent | `u_vol_factor`, `el_base_factor`, `el_k_factor` | Transient effects, reset each step |
-| Persistent (`_ps`) | `u_vol_factor_ps`, `el_base_factor_ps`, `el_k_factor_ps` | Ongoing physiological modulation |
-| Scaling (`_scaling_ps`) | `u_vol_factor_scaling_ps`, `el_base_factor_scaling_ps`, `el_k_factor_scaling_ps` | ModelScaler weight/manual scaling |
+The mixing is skipped when:
+- `fixed_composition` is `true`, so the compartment acts as an infinite reservoir whose composition never changes;
+- `vol ≤ 0`, which guards against NaN on an empty compartment.
 
-## Calculation cycle
+Outflow (`volume_out`) changes only the volume; concentrations don't change when blood leaves.
 
-BloodCapacitance does not override `calc_model()` -- it inherits the Capacitance cycle:
+## Factor system
 
-1. `calc_elastances()` -- compute effective elastance from base + all factor tiers
-2. `calc_volumes()` -- compute effective unstressed volume from base + all factor tiers
-3. `calc_pressure()` -- compute recoil (`pres_in`) and total pressure
+Inherited unchanged from `Capacitance`: `u_vol`, `el_base` and `el_k` each carry the three layers (`_factor`, `_factor_ps`, `_factor_scaling_ps`), composed **additively**. See [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern). (`BloodVessel` overrides this and composes multiplicatively.)
+
+## Inputs and outputs
+
+- **Reads:** the upstream compartment (`comp_from`) on inflow: its `to2`, `tco2`, `solutes`, `drugs`, `temp`.
+- **Written by:**
+  - `Resistor`: volume moves;
+  - `Blood`: seed composition, temperature relaxation, viscosity, the props in [Set by other models](#set-by-other-models);
+  - `BloodComposition`: the blood-gas outputs;
+  - `Drugs`, `Lactate`, `Glucose`: their `drugs`/`solutes` entries;
+  - owner models of specific instances (`Kidneys` on URINE, `Placenta`/`Uterus` on PL_MAT, `Ecls` on ECLS_TUBING_IN).
+- **Read by:** `Resistor` (`pres`), `Monitor` and `DataCollector` watchers, `Blood` (Hb-weighted viscosity reference, thermal state).
+
+## Assumptions and limitations
+
+- **Instant, complete mixing.** Every compartment is well stirred. Streaming inside a compartment isn't modelled. Where it matters (the two halves of the right atrium), it is approximated by splitting the compartment and joining the halves with a `Resistor` with `mix_flow` (see [`Resistor`](./Resistor.md)).
+- **No concentration change on outflow.** Concentration changes only on inflow, and through the models that add or remove substances.
+- **Composition is carried, not computed.** Blood gases are solved on demand for a handful of sites only, so `po2`/`so2` on an arbitrary compartment can be stale or `-1`.
+- **Fixed-composition reservoirs** freeze both volume and composition: `volume_in`/`volume_out` leave `vol` unchanged and nothing is mixed. Blood flowing in or out is created or destroyed at the boundary, which is the intent for an infinite reservoir. `Blood` also skips them for temperature relaxation, viscosity and the thermal balance.
 
 ## Example definition (JSON)
 
+From `term_neonate.json`, `models.Kidneys.components.URINE` (trimmed to the config props). The `Kidneys` model builds it through the `components` mechanism:
+
 ```json
 {
-  "name": "PV",
-  "description": "pulmonary veins",
+  "name": "URINE",
+  "description": "bladder / urine sink",
   "model_type": "BloodCapacitance",
   "is_enabled": true,
-  "vol": 0.04,
-  "u_vol": 0.038,
-  "el_base": 3100,
+  "u_vol": 0,
+  "el_base": 1000,
   "el_k": 0,
-  "fixed_composition": false
+  "fixed_composition": false,
+  "blood_pool": false,
+  "vol": 0.0046
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- Used for compartments that are pure compliances (no built-in resistance), such as specific pooling volumes
-- Serves as the parent class for `BloodVessel`, which adds resistance, flow, and ANS coupling
+All shipped scenarios have the same three instances, each owned by a composite model:
+
+| Instance | Owner | Role |
+|---|---|---|
+| `URINE` | `Kidneys` | Bladder / urine sink, `blood_pool: false`. `Kidneys._transfer` moves water and each solute into it by its own mass balance, **not** through `volume_in` (which would carry albumin and Hb into the urine). |
+| `PL_MAT` | `Placenta` | Maternal blood pool of the placenta: `fixed_composition: true`, adult `P50_0` 26.7. Its gases are written by `Placenta`, or by `Uterus` when coupled. Disabled after birth. |
+| `ECLS_TUBING_IN` | `Ecls` | Inlet tubing of the ECLS circuit. `Ecls` sets its volume and solves its blood gas. Disabled unless ECLS runs. |
+
+Through inheritance, the class also carries every `BloodVessel` instance (all of the circulation).
+
+## References
+
+This class introduces no literature-derived values: the mixing rule is exact mass balance. For the pressure–volume relation see [Capacitance](./Capacitance.md). For viscosity, temperature and the blood-gas chemistry see [Blood](./Blood.md) and [BloodComposition](./BloodComposition.md).

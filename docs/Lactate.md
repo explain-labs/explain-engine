@@ -1,153 +1,94 @@
 # Lactate
 
-The `Lactate` model turns the previously-**static** `lact` blood solute into a **hypoxia-driven
-product** — a slow process/controller in the same family as [`Hormones`](./Hormones.md) and
-[`Glucose`](./Glucose.md). It holds no compartment of its own, resolves references to other models
-lazily, runs on an `_update_interval`, and is **NEUTRAL at rest**: with tissues adequately oxygenated
-there is no O₂ debt (no production), and lactate already sitting at its baseline produces no net
-clearance flux. A scenario shipping a `Lactate` model therefore keeps its baseline ABG and only
-diverges when tissue oxygenation falls (shock, asphyxia, severe hypoxia).
+`Lactate` makes blood lactate a product of tissue hypoxia. When a tissue bed's O2 content falls below an anaerobic threshold, the bed produces lactate in proportion to its unmet O2 demand. Lactate is cleared back toward its baseline everywhere. Lactate is a strong anion in the [BloodComposition](./BloodComposition.md) acid-base solver, so a rise lowers pH, bicarbonate and base excess, a lactic acidosis, with no change to the solver. It holds no compartment and is neutral at rest.
+
+## Physiology
+
+When tissue oxygen delivery falls below need (shock, asphyxia, severe hypoxaemia, anaemia), cells switch to anaerobic glycolysis. Each glucose then yields 2 lactate instead of being oxidised with 6 O2, so roughly 0.33 mmol lactate is made per mmol O2 not delivered. Lactate and its hydrogen ion acidify the blood. The liver (and kidney) clear it, with a half-life of minutes once perfusion is restored. A rising lactate is a key marker of perinatal asphyxia and shock; a falling one marks successful resuscitation.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Lactate   (hypoxia-driven lactate → Stewart SID → metabolic acidosis)
+  └── Lactate
 ```
-
-Lactate extends `BaseModelClass` directly. Like [`Metabolism`](./Metabolism.md) and the other process
-models it owns no compartment; it only writes `solutes.lact` onto existing blood compartments.
-
-## What it models
-
-Anaerobic lactate production under tissue O₂ debt, plus first-order whole-body clearance toward a
-resting baseline. It reuses [`Metabolism`](./Metabolism.md)'s tissue consumption map and whole-body
-VO₂ to locate the sites and size the O₂ demand, captures each site's resting tissue `to2` over a
-warm-up window, and produces lactate in proportion to the unmet O₂ demand when `to2` falls below a
-fraction of that resting level.
-
-## Why it changes pH with no solver change
-
-`Lactate` writes **only** `solutes.lact` on the blood compartments. The existing Stewart acid-base
-solver in [`BloodComposition`](./BloodComposition.md) already consumes `lact` as a strong anion when
-it forms the strong-ion difference:
-
-```js
-sid = sol["na"] + sol["k"] + 2 * sol["ca"] + 2 * sol["mg"] - sol["cl"] - sol["lact"];
-```
-
-Raising `lact` lowers the SID → lower pH / HCO3 / BE — i.e. a **lactic metabolic acidosis** — with no
-change whatsoever to the solver. The coupling is one-directional (the O₂ sensors in `Mob`/`Ans` read
-`to2`, not pH), so there is no oscillation risk.
-
-**Insertion order matters.** Lactate must run **after** [`Metabolism`](./Metabolism.md) (which sets
-each tissue's `to2` for the step) and **before** `Blood` (which solves composition). This is handled
-by the model's position in the scenario JSON `models` map — insert it just after `Metabolism`.
-
-**Changing the resting lactate without changing pH.** `uma` (unmeasured anions) enters the same
-charge balance with the same sign as `lact`. A different resting lactate can therefore be swapped in
-against `uma` (lact +x, uma −x in every blood compartment), which leaves pH, HCO₃ and BE untouched.
-
-**term_neonate (calibrated assumption, 2026-10):**
-- `lact_baseline` 1.5 mmol/L, which lies inside both day-3 references:
-  - GLOW 2021: plasma after 48 h, 1.4 (0.8–3.3)
-  - Cousineau 2005: capillary whole blood at 48 ± 12 h, 2.6 ± 0.7 (1.4–4.1)
-- applied as lact +0.5 / uma −0.5 (uma 6.09 → 5.59)
-- see `scripts/_fix_term_lactate.mjs` and [TermNeonateReference](./TermNeonateReference.md)
 
 ## Properties
 
-### Configuration (independent)
+### Config (set in the definition JSON)
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `lactate_running` | bool | `true` | Master gate — `false` stops production (clearance still settles once toward baseline) |
-| `metabolism_name` | string | `"Metabolism"` | Name of the model supplying the tissue map + VO₂ |
-| `lact_baseline` | mmol/L | `1.0` | Resting blood lactate; the clearance target |
-| `threshold_frac` | unitless | `0.5` | Anaerobic threshold as a fraction of each site's resting-MINIMUM `to2` |
-| `lact_per_o2_deficit` | mmol/mmol | `0.33` | Lactate produced per mmol of unmet O₂ demand (~2 lactate per glucose / 6 O₂ per glucose) |
-| `lact_clearance` | 1/s | `0.002` | First-order clearance rate toward baseline (t½ ≈ 6 min) |
-| `prod_gain` | unitless | `1.0` | Overall scaler on production (clinical-tuning convenience) |
+| `lactate_running` | boolean | `true` | Production switch (clearance always runs). |
+| `metabolism_name` | – | `"Metabolism"` | Supplies the beds, their shares and VO2. |
+| `lact_baseline` | mmol/L | 1.0 | Resting lactate, the clearance target. 1.5 in every scenario. |
+| `threshold_frac` | – | 0.5 | Anaerobic threshold as a fraction of each bed's resting O2 content. |
+| `lact_per_o2_deficit` | mmol/mmol | 0.33 | Lactate per mmol of unmet O2 demand. |
+| `lact_clearance` | 1/s | 0.002 | First-order clearance toward baseline (half-life ~6 min). |
+| `prod_gain` | – | 1.0 | Overall production scaler. |
 
-### Computed / read-out (dependent)
-
-| Property | Unit | Description |
-|---|---|---|
-| `arterial_lactate` | mmol/L | `AA.solutes.lact` arterial read-out |
-| `total_production_step` | mmol | Total lactate produced in the last update |
-| `anaerobic_fraction_max` | 0..1 | Worst-site anaerobic fraction this update |
-
-### Local / internal (`_`-prefixed)
+### Baseline (captured, saved with the state)
 
 | Property | Unit | Description |
 |---|---|---|
-| `_update_interval` | s | Controller cadence (`1.0`) |
-| `_warmup_delay` | s | Window over which the resting-MINIMUM site `to2` is captured (`90.0`) |
-| `_seeded` | bool | Set once warm-up completes; production stays gated off until then |
-| `_baseline_to2` | object | Per-site resting (minimum) `to2` captured at warm-up |
-| `_blood_components` | array | Cached list of compartments carrying a `lact` solute |
-| `_metabolism` | ref | Cached reference to the Metabolism model |
+| `baseline_captured` | boolean | The thresholds have been captured. |
+| `baseline_to2` | {bed: mmol/L} | Each bed's resting O2 content: the minimum over the first 90 s after a fresh build. |
 
-## Per-tissue-site mechanism (`_update_lactate`)
+### Outputs
 
-`Lactate` reuses `Metabolism.metabolic_active_models` (the tissue consumption map, per-site VO₂
-fraction `fvo2`) plus the whole-body `vo2`, `vo2_factor` and `vo2_temp_factor`. For each active site:
+| Property | Unit | Description |
+|---|---|---|
+| `arterial_lactate` | mmol/L | `AA` lactate. |
+| `total_production_step` | mmol | Lactate produced in the last update. |
+| `anaerobic_fraction_max` | 0–1 | Worst bed's anaerobic fraction in the last update. |
 
-```
-threshold = threshold_frac * resting_to2          (resting captured at warm-up, see below)
-anaerobic = clamp((threshold − to2) / threshold, 0, 1)        (the Mob activation idiom)
+## Calculation
 
-local_o2_demand = (O2_MMOL_PER_ML · vo2 · vo2_factor · vo2_temp_factor · weight / 60) · u · fvo2   [mmol O₂]
-lactate_produced (mmol) = anaerobic · local_o2_demand · lact_per_o2_deficit · prod_gain
-   → comp.solutes.lact += lactate_produced / comp.vol
-```
+Every 1 s:
 
-(`u` is the elapsed time since the last update, normally `_update_interval`.) `lact_per_o2_deficit
-≈ 0.33` reflects ~2 lactate per glucose / 6 O₂ per glucose ⇒ ~0.33 mmol lactate per mmol of unmet O₂
-demand.
+1. **Baseline** (fresh build only): for 90 s each bed's lowest O2 content is recorded; then production is armed. The minimum puts the threshold below the operating trough, so even chronically hypoxic scenarios (cyanotic heart disease) stay neutral at rest.
+2. **Production**, per bed with share f:
+   ```
+   threshold  = threshold_frac · baseline_to2
+   anaerobic  = clamp((threshold − to2) / threshold, 0, 1)
+   O2 demand  = vo2 · factors · weight / 60 / 22.414 · Δt · f                (mmol, as Metabolism)
+   lactate   += anaerobic · O2 demand · lact_per_o2_deficit · prod_gain      (mmol, into that bed)
+   ```
+3. **Clearance:** every blood compartment's `lact` relaxes toward `lact_baseline` by `lact_clearance · Δt`.
 
-**Clearance** runs every update on every blood compartment carrying a `lact` solute, relaxing
-first-order toward `lact_baseline` (Cori cycle / hepatic + renal handling):
+**Example** (term_neonate, FiO2 0.08): after 3 min SaO2 is 48 %, the worst bed is 42 % anaerobic and lactate 1.6 mmol/L; 3 min later it is 3.2 mmol/L with the worst bed fully anaerobic.
 
-```
-comp.solutes.lact += (lact_baseline − comp.solutes.lact) · lact_clearance · u
-```
+## Factor system
 
-## The hypoxia threshold: minimum-over-warm-up capture
+None.
 
-The per-site anaerobic `threshold` auto-seeds from the running **MINIMUM** tissue `to2` captured
-across the warm-up window (`_warmup_delay`, 90 s) — **not** a single instant. Each warm-up step,
-`_baseline_to2[site]` is set to `min(previous, comp.to2)`. Using the trough makes the threshold
-(`threshold_frac · resting`, i.e. 50 % of the resting minimum at the default `threshold_frac`) sit
-below the operating low point, so the model stays neutral at rest even in **chronically hypoxic**
-scenarios (cyanotic CHD, fetus) whose steady-state tissue `to2` is low and swings cyclically near the
-threshold.
+## Inputs and outputs
 
-Production is gated off entirely until `_seeded` becomes true (`_warmup_counter >= _warmup_delay`);
-before that the model only settles compartments toward baseline via clearance. This is what makes a
-freshly built scenario neutral at rest: no spurious lactate surge during the startup transient.
+- **Reads:** Metabolism (`metabolic_active_models`, `vo2` and its factors); each bed's `to2`, `vol`; `model.weight`.
+- **Writes:** `solutes.lact` of the beds (production) and of every blood compartment (clearance).
+- **Written by:** the user (rates, switch).
+- **Read by:** BloodComposition (as a strong anion, through `solutes.lact`); `DataCollector` watchers, the Monitor.
 
-## Calculation cadence (`calc_model`)
+## Assumptions and limitations
 
-`calc_model` accumulates `_t` into `_update_counter` and, once it reaches `_update_interval` (1 s),
-calls `_update_lactate(u)` with the elapsed interval `u` and resets the counter. References are
-resolved lazily in `_resolve_refs` (the Metabolism model and the list of `lact`-carrying
-compartments) on first use.
+- **Threshold on content, not on delivery or the deficit.** Production starts when a bed's O2 content falls below half its resting value. It is separate from [Metabolism](./Metabolism.md)'s `o2_deficit` (O2 demand that found no O2 at all), so lactate rises well before the deficit appears.
+- **Lactate lives only in the blood,** as glucose does (see [Glucose](./Glucose.md)): real lactate distributes through total body water, so concentration changes here run faster than in vivo.
+- **Clearance is first-order and constant:** it doesn't fall with liver hypoperfusion or hypothermia, and it also raises a value below baseline (e.g. after dilution) back to baseline.
+- **No glucose coupling:** producing lactate consumes no glucose, and clearing it makes none (no Cori cycle).
+- **Order:** it must follow Metabolism in the scenario's `models` map, so it reads the O2 contents Metabolism just set.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`:
+From `term_neonate.json`, `models.Lactate` (trimmed to the config props):
 
 ```json
 {
   "name": "Lactate",
-  "description": "hypoxia-driven lactate production",
-  "is_enabled": true,
   "model_type": "Lactate",
-  "components": {},
+  "is_enabled": true,
   "lactate_running": true,
   "metabolism_name": "Metabolism",
-  "lact_baseline": 1,
+  "lact_baseline": 1.5,
   "threshold_frac": 0.5,
   "lact_per_o2_deficit": 0.33,
   "lact_clearance": 0.002,
@@ -155,15 +96,10 @@ From `term_neonate.json`:
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- Insert immediately after [`Metabolism`](./Metabolism.md) in the scenario `models` map (after the
-  tissue `to2` is set for the step, before `Blood` solves composition).
-- Neutral at rest in every shipping scenario; it diverges only under tissue O₂ debt, where it produces
-  a lactic metabolic acidosis through the Stewart SID with no solver change.
+One instance in every scenario, with the values above (baseline 1.5 mmol/L, matching `Blood.solutes.lact`).
 
-## See also
-- [`Metabolism`](./Metabolism.md) — supplies the tissue consumption map and VO₂; sets `to2` each step.
-- [`BloodComposition`](./BloodComposition.md) — the Stewart solver that turns `lact` into a pH shift.
-- [`Mob`](./Mob.md) — the myocardial O₂ balance model whose `clamp` activation idiom is reused here.
-- [`Glucose`](./Glucose.md) — sibling slow-process solute model.
+## References
+
+No literature values; 0.33 mmol lactate per mmol O2 is the glycolysis stoichiometry (2 lactate per glucose, 6 O2 per glucose), the clearance half-life is a model choice.

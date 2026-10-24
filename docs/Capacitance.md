@@ -1,149 +1,139 @@
 # Capacitance
 
-A `Capacitance` is the base **volume compartment** of the engine: it holds a volume and produces a
-pressure from its elastance. It is the canonical implementation of the factor / effective-value
-pattern for elastance-based elements. `BloodCapacitance`, `GasCapacitance` and (indirectly)
-`BloodVessel` build on it.
+A `Capacitance` is the basic elastic compartment of the engine: it holds a volume and turns the volume above its unstressed volume into a pressure. Every blood and gas compartment is built on it. It is also the reference implementation of the additive [factor pattern](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
+
+## Physiology
+
+A blood vessel, a heart chamber at rest, or an air space in the lung each behave like an elastic bag:
+
+- **Unstressed volume.** Up to a certain volume the wall is slack, and filling it costs no pressure. In veins this is most of the blood they hold; it is the reserve the body mobilises by venoconstriction.
+- **Elastance.** Above the unstressed volume, every extra millilitre raises the pressure. The stiffer the wall, the higher the *elastance* (mmHg per litre). Elastance is the inverse of *compliance*.
+- **Stiffening.** Many walls get stiffer as they are stretched further (arteries at high pressure, a full pericardium). An optional non-linear term models this.
+
+Blood or gas moves between compartments only through separate connectors (`Resistor`s). A Capacitance on its own just stores volume and reports a pressure.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Capacitance              (volume → elastance → pressure)
-        ├── BloodCapacitance       (+ blood composition mixing)
-        │     └── BloodVessel          (+ resistance, flow, ANS coupling)
-        └── GasCapacitance         (+ gas composition, atmospheric/external pressures)
+  └── Capacitance
+        ├── BloodCapacitance      (+ blood composition mixing)
+        │     └── BloodVessel     (+ own resistance, ANS; composes its factors multiplicatively)
+        └── GasCapacitance        (+ gas composition, atmospheric pressure, humidity, heat)
 ```
 
-See [BaseModelClass.md](./BaseModelClass.md) for the lifecycle contract and shared fields, and
-[BloodCapacitance.md](./BloodCapacitance.md) for the blood-tracking subclass.
-
-## What it models
-
-A passive elastic compartment. Volume flows in and out (driven by external [`Resistor`](./Resistor.md)
-models that reference it via `comp_from`/`comp_to`), and the compartment converts the volume above its
-unstressed volume into a recoil pressure through its elastance. It has no built-in resistance or flow
-of its own.
+`Container` and `TimeVaryingElastance` repeat the same elastance code but extend `BaseModelClass` directly.
 
 ## Properties
 
-### Config / independent (set in the definition JSON)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume (volume at which recoil pressure is zero) |
-| `el_base` | mmHg/L | Baseline (linear) elastance |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient (quadratic stiffening term) |
-| `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
-| `fixed_composition` | bool | When true, `volume_in`/`volume_out` do not change `vol` (infinite reservoir) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `u_vol` | L | 0.0 | Unstressed volume: the pressure from the wall is zero at this volume. |
+| `el_base` | mmHg/L | 0.0 | Linear elastance (1 / compliance). |
+| `el_k` | mmHg/L² | 0.0 | Non-linear elastance; adds `el_k·(vol − u_vol)²` above the unstressed volume only. 0 in most compartments. |
+| `fixed_composition` | boolean | `false` | `true` makes the compartment an infinite reservoir: `volume_in`/`volume_out` don't change `vol` (and the subclasses don't mix its composition). |
+| `vol` | L | 0.0 | Volume. Set in the definition as the starting volume, then changed by the connected resistors. |
+| `u_vol_factor`, `el_base_factor`, `el_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. |
+| `u_vol_factor_ps`, `el_base_factor_ps`, `el_k_factor_ps` | – | 1.0 | Persistent factors. |
+| `u_vol_factor_scaling_ps`, `el_base_factor_scaling_ps`, `el_k_factor_scaling_ps` | – | 1.0 | Persistent scaling factors. |
 
-Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
-`u_vol_factor`, `el_base_factor`, `el_k_factor` (non-persistent);
-`u_vol_factor_ps`, `el_base_factor_ps`, `el_k_factor_ps` (persistent);
-`u_vol_factor_scaling_ps`, `el_base_factor_scaling_ps`, `el_k_factor_scaling_ps` (scaling).
+### Outputs
 
-### Computed / dependent (engine outputs)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `pres_in` | mmHg | 0.0 | Recoil pressure of the wall. |
+| `pres` | mmHg | 0.0 | Total pressure: `pres_in + pres_ext`. This is what the resistors read. |
+| `el_eff`, `el_k_eff` | mmHg/L, mmHg/L² | 0.0 | Effective elastances after the factor layers. |
+| `u_vol_eff` | L | 0.0 | Effective unstressed volume after the factor layers, floored at 0. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `vol` | L | Current volume |
-| `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
-| `pres_in` | mmHg | Internal recoil pressure of the elastance |
-| `el_eff` | mmHg/L | Effective elastance after the factor layers |
-| `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
+### Set by other models
 
-## Calculation cycle (`calc_model`)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `pres_ext` | mmHg | 0.0 | External pressure for this step, reset to 0 after use. Written by a [`Container`](./Container.md) (thorax, pericardium) on its members, and by `Resuscitation` on its targets. A saved state carries the last step's value, which acts once on the first step. |
 
-Each step runs, in order: `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
+## Calculation
 
-### `calc_elastances`
+`calc_model()` runs `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
 
-```
-el_eff   = el_base + (el_base_factor − 1)·el_base + (el_base_factor_ps − 1)·el_base + (el_base_factor_scaling_ps − 1)·el_base
-el_k_eff = el_k    + (el_k_factor − 1)·el_k       + (el_k_factor_ps − 1)·el_k       + (el_k_factor_scaling_ps − 1)·el_k
-```
+1. **`calc_elastances`**
+   ```
+   el_eff   = el_base · (1 + (el_base_factor − 1) + (el_base_factor_ps − 1) + (el_base_factor_scaling_ps − 1))
+   el_k_eff = el_k    · (1 + (el_k_factor − 1)    + (el_k_factor_ps − 1)    + (el_k_factor_scaling_ps − 1))
+   ```
+   then `el_base_factor` and `el_k_factor` are reset to 1.
+2. **`calc_volumes`**
+   ```
+   u_vol_eff = max(0, u_vol · (1 + (u_vol_factor − 1) + (u_vol_factor_ps − 1) + (u_vol_factor_scaling_ps − 1)))
+   ```
+   then `u_vol_factor` is reset to 1. The floor exists because the layers add: two writers lowering them at once (Surfactant derecruitment and atelectasis on the same lung) could otherwise give a negative unstressed volume.
+3. **`calc_pressure`**, with `S = vol − u_vol_eff`:
+   ```
+   pres_in = (S > 0 ? el_k_eff · S² : 0) + el_eff · S
+   pres    = pres_in + pres_ext
+   pres_ext = 0
+   ```
+   The non-linear term acts only above the unstressed volume. `S²` is also positive below it, where it would push against the linear term and bend the curve back up. For example, the term_neonate aorta (`el_k` 1.5·10⁶) emptied 6 mL below `u_vol` would read about +13 mmHg instead of −41 mmHg. Both terms are 0 and flat at `S = 0`, so the curve is smooth there.
 
-Then resets the non-persistent factors `el_base_factor` and `el_k_factor` to `1.0`.
+**Volume transfer.** The connected resistors call these after computing a flow:
 
-### `calc_volumes`
-
-```
-u_vol_eff = u_vol + (u_vol_factor − 1)·u_vol + (u_vol_factor_ps − 1)·u_vol + (u_vol_factor_scaling_ps − 1)·u_vol
-```
-
-It is floored at 0. The layers add, so several writers lowering them at once (Surfactant derecruitment
-plus atelectasis) could otherwise produce a negative unstressed volume. Then resets the non-persistent factor `u_vol_factor` to `1.0`.
-
-### `calc_pressure`
-
-```
-s       = vol − u_vol_eff
-pres_in = el_k_eff · s² · [s > 0] + el_eff · s
-pres    = pres_in + pres_ext                 (total)
-pres_ext := 0                                (external pressure is non-persistent)
-```
-
-The `el_k_eff` term adds non-linear stiffening and acts **only above the unstressed volume** (`s > 0`).
-`s²` is positive on both sides of `u_vol`, so without the guard it would raise pressure *below* the
-unstressed volume, against the linear term, and far enough below it bends the P-V curve back up (an
-emptied aorta with the term_neonate `el_k` would read +17 mmHg at 6 mL below `u_vol`). Below `u_vol`
-the relation is linear. `el_k` is in mmHg/L² and is `0` for most compartments. `pres_ext` is an external pressure (e.g. from a [`Container`](./Container.md)
-or chest compression) applied this step and then cleared.
-
-## Volume flow
-
-- **`volume_in(dvol)`** — adds `dvol` to `vol` (skipped when `fixed_composition`). Subclasses extend
-  this to mix in the incoming composition.
-- **`volume_out(dvol)`** — removes `dvol` from `vol` (skipped when `fixed_composition`); if the volume
-  would go negative it is clamped to `0` and the **un-removed** amount is returned, so a `Resistor`
-  never pulls volume that isn't there. A `fixed_composition` compartment therefore supplies volume
-  without depleting (an infinite reservoir).
+- **`volume_in(dvol)`** adds `dvol` to `vol`, unless `fixed_composition`. Blood and gas subclasses extend it to mix the incoming composition.
+- **`volume_out(dvol)`** removes `dvol` from `vol`, unless `fixed_composition`. If that would make `vol` negative, `vol` is set to 0 and the amount that could not be removed is returned. The resistor then delivers only what was really available, so volume is conserved and never created from an empty compartment.
 
 ## Factor system
 
-Core physics parameters (`el_base`, `u_vol`, `el_k`) are **never used raw**. Each has three multiplier
-layers that combine **additively against the base** into an `*_eff` value:
+`u_vol`, `el_base` and `el_k` each carry three layers, composed **additively** against the base (see [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern)). Who writes them in the current code:
 
-| Layer | Persistence | Set by |
-|---|---|---|
-| `<p>_factor` | reset to `1.0` every step | transient interventions |
-| `<p>_factor_ps` | persistent | user / scenario / regulator models (ANS, MOB, Circulation…) |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling) |
+| Layer | Writers |
+|---|---|
+| `_factor` (reset every step) | `Surfactant` (lung `u_vol`/`el_base`); `BloodVessel` and `HeartChamber` internally |
+| `_factor_ps` | `Respiration` (`set_el_lung_factor`, thorax elastance, lung `u_vol`); `Heart` (pericardium); the `Calibrator`; the user and scenarios via `setPropValue` |
+| `_factor_scaling_ps` | `ModelScaler`; `Uterus` (uterine vessel `u_vol`, pregnancy) |
 
-```
-p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)·p
-```
+`BloodVessel` overrides this composition and multiplies its layers (plus the ANS terms); `HeartChamber` adds drug, load and ANS terms. Check those pages before relying on the additive rule for them.
 
-A factor of `1.0` means "no effect"; simultaneous factors add their deltas. `calc_elastances` /
-`calc_volumes` reset only the non-persistent `*_factor` layer each step. When you add a tunable
-parameter, follow this convention so it composes with interventions and scaling.
+## Inputs and outputs
+
+- **Reads:** nothing from other models; only its own props and `pres_ext`.
+- **Written by:**
+  - the connected `Resistor`s (`volume_in`/`volume_out`);
+  - `Container`s and `Resuscitation` (`pres_ext`);
+  - the factor writers above.
+- **Read by:** every `Resistor` connected to it (`pres`), `Container`s (`vol`), `Breathing`, `Monitor`, `DataCollector` watchers, and the subclasses.
+
+## Assumptions and limitations
+
+- **Linear below the unstressed volume.** Below `u_vol` the pressure goes negative along the same linear elastance. Real veins collapse there instead, with a small negative pressure and a rising resistance. The model has no collapse behaviour.
+- **Lumped compartment.** One pressure per compartment: no wave propagation, no spatial gradients.
+- **Explicit volume update.** Pressure is computed from the volume at the start of the step. Very stiff compartments joined by very low resistances can make the explicit step unstable; `Resistor.implicit` handles this for the aorta (see [Resistor](./Resistor.md)).
+- **No visco-elasticity.** The wall responds instantly; there is no stress relaxation or hysteresis.
 
 ## Example definition (JSON)
 
-Plain `Capacitance` is rarely instantiated directly in scenarios (the blood/gas subclasses are used);
-a definition block carries the config fields below (factor fields default to `1.0` and are usually
-omitted):
+No scenario uses a plain `Capacitance`; every compartment is a subclass. These are the props this class contributes, from `term_neonate.json`, `models.PV` (a `BloodVessel`, trimmed to the Capacitance props):
 
 ```json
 {
-  "name": "EXAMPLE_COMP",
-  "description": "passive elastic compartment",
-  "model_type": "Capacitance",
-  "is_enabled": true,
-  "vol": 0.04,
-  "u_vol": 0.038,
-  "el_base": 3100,
+  "name": "PV",
+  "model_type": "BloodVessel",
+  "vol": 0.01035,
+  "u_vol": 0.00815,
+  "el_base": 4507.3,
   "el_k": 0,
   "fixed_composition": false
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- The foundational elastance element; almost every volume-holding compartment is a `Capacitance`
-  subclass.
-- Use it (or a subclass) for any compartment that is a pure compliance with no built-in flow —
-  flow is provided by separate [`Resistor`](./Resistor.md) models that reference it.
-- `fixed_composition` turns it into an infinite reservoir (outside air, maternal blood,
-  ventilator/ECLS gas sources).
+Through its subclasses it is every compartment that holds blood or gas: in term_neonate 39 `BloodVessel`s, 10 `GasCapacitance`s and 3 `BloodCapacitance`s. Six of these are `fixed_composition` reservoirs:
+- `MOUTH` (room air);
+- `VENT_GASIN` and `VENT_GASOUT` (ventilator supply and exhaust);
+- `ECLS_GAS_SOURCE` and `ECLS_GAS_OUT` (sweep gas);
+- `PL_MAT` (maternal blood).
+
+## References
+
+No literature-derived values in this class: it is the standard lumped-compliance (Windkessel) element. The elastance and unstressed-volume values are scenario parameters, documented with the scenarios ([`TermNeonateReference`](./TermNeonateReference.md) and the other `*Reference.md` pages).

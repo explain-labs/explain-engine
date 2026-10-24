@@ -1,121 +1,109 @@
 # Apnea
 
-The Apnea model reproduces **apnea of prematurity (AOP)** — the intermittent breathing pauses of the
-preterm neonate that cause **oxygen desaturation** and, seconds later, **bradycardia**. It is a small
-**episodic controller**: it owns an eupnea ↔ apnea state machine and, during a pause, suppresses
-ventilation by driving the existing [Breathing](./Breathing.md) and upper-airway levers. It computes no
-physiology of its own — the desaturation and the bradycardia both **emerge** through the unchanged
-gas-exchange and ANS machinery downstream.
+`Apnea` generates the recurring breathing pauses of apnoea of prematurity. It runs a breathing ↔ apnoea cycle with irregular but reproducible timing. During a pause it uses existing levers: it switches spontaneous breathing off (central), closes the upper airway (obstructive), or both (mixed). It computes no physiology itself: the desaturation and, through the chemoreflex, the bradycardia follow from the gas exchange and the ANS.
+
+## Physiology
+
+Preterm infants have an immature respiratory control: breathing stops for 10–20 s or longer, several times an hour, more often the more preterm the infant.
+- **Central** apnoea (no respiratory effort) is the most common type.
+- **Obstructive** apnoea is effort against a closed upper airway, no flow.
+- **Mixed** apnoea starts obstructive and continues central.
+
+During the pause alveolar O2 falls and the blood desaturates. The low pO2 triggers a reflex bradycardia within seconds. Longer pauses desaturate deeper and are more often followed by bradycardia. Heart rate usually recovers before saturation, because the vagal reflex is faster than reoxygenation.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Apnea   (episodic ventilation-suppression controller — owns no compartment)
+  └── Apnea
 ```
-
-Extends [`BaseModelClass`](./BaseModelClass.md) directly. Like [Mob](./Mob.md) (which drives the Heart)
-it is a controller that writes to other models rather than a physical element.
-
-## What it models
-
-```
-episode timer ──► onset ──► suppress ventilation ──►  falling alveolar/arterial pO2
-                                │                              │
-                    central: Breathing.switch_breathing(false) │ (GasExchanger stops loading O2)
-                    obstructive: MOUTH_DS.no_flow = true        ▼
-                    mixed: obstruct, then also cut drive    AA.to2 ↓ → AA.so2 ↓  (DESATURATION)
-                                                                │
-                                             CR_PO2_HR (pO2 chemoreceptor) fires low
-                                                                ▼
-                                        EF_HR_CHEMO → Heart.hr_chemo_factor < 1  (BRADYCARDIA)
-```
-
-The three mechanisms of a clinical apnea:
-
-- **central** — respiratory drive ceases: `Breathing.switch_breathing(false)` zeroes the muscle effort.
-- **obstructive** — the upper airway collapses: the `MOUTH_DS` resistor is set `no_flow = true`, so
-  effort continues but no air moves. Breathing's tidal-volume feedback ramps `rmp_gain` against the
-  obstruction, producing a realistic recovery breath on release.
-- **mixed** — obstruction first, then central drive loss for the remainder of the pause.
-
-Central is the dominant type in AOP and is the default. The desat→brady coupling (the
-`CR_PO2_HR` afferent and `EF_HR_CHEMO` efferent) lives in the ANS wiring, not in this class — see
-[Ans](./Ans.md) and [Usage](#usage-in-the-model).
 
 ## Properties
 
-### Configuration (set in the model definition)
+### Config (set in the definition JSON)
 
-| Property | Default | Unit | Description |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| `apnea_enabled` | `false` | — | master switch; episodes only occur when `true` (`switch_apnea`) |
-| `apnea_frequency` | `0.5` | episodes/min | mean episode onset rate |
-| `apnea_duration` | `12.0` | s | mean pause duration |
-| `apnea_variability` | `0.3` | — | coefficient of variation on interval and duration (0–1) |
-| `apnea_type` | `"central"` | — | `"central"` \| `"obstructive"` \| `"mixed"` |
-| `mixed_obstructive_fraction` | `0.5` | — | for mixed: leading obstructed fraction of the pause |
-| `seed` | `42` | — | PRNG seed (deterministic episode timing) |
-| `breathing_model` | `"Breathing"` | — | name of the spontaneous-breathing model to suppress |
-| `airway_model` | `"MOUTH_DS"` | — | name of the upper-airway resistor to occlude |
+| `apnea_enabled` | boolean | `false` | Switch (`switch_apnea`). Off in every scenario. |
+| `apnea_frequency` | /min | 0.5 | Mean number of episodes per minute. Scenarios: 25 wk 1.2, 28 wk 0.7, 30 wk 0.5, Bischoff 0.9. |
+| `apnea_duration` | s | 12 | Mean episode duration. Scenarios 14–20. |
+| `apnea_variability` | 0–1 | 0.3 | Uniform jitter of interval and duration (± fraction of the mean). |
+| `apnea_type` | – | `"central"` | `"central"`, `"obstructive"` or `"mixed"`. |
+| `mixed_obstructive_fraction` | 0–1 | 0.5 | In a mixed episode, the leading obstructive share of the pause. |
+| `seed` | – | 42 | Seed of the deterministic random generator. |
+| `breathing_model` | – | `"Breathing"` | Model whose breathing is switched off. |
+| `airway_model` | – | `"MOUTH_DS"` | Upper-airway resistor that is closed. |
 
-### Computed / reported (outputs)
+### Episode state (saved with the state)
 
 | Property | Unit | Description |
 |---|---|---|
-| `in_apnea` | — | whether an episode is currently running |
-| `active_type` | — | type of the running episode (`""` when eupneic) |
-| `apnea_count` | — | number of completed episodes |
-| `last_apnea_duration` | s | duration of the most recent completed episode |
-| `longest_apnea_duration` | s | longest episode so far |
-| `time_since_last_apnea` | s | time since the last episode ended |
+| `baseline_breathing` | boolean or null | Breathing state at the first build. A non-breathing patient (fetus) is never started; null until captured. |
+| `drive_off` | boolean | Apnea has switched breathing off. |
+| `airway_obstructed` | boolean | Apnea has closed the airway. |
+| `episode_timer` | s | Time in the current phase. |
+| `episode_duration` | s | Drawn duration of the running episode. |
+| `next_interval` | s | Drawn gap until the next onset. |
 
-### Local (internal)
+### Outputs
 
-`_breathing` / `_airway` (resolved target refs), `_baseline_breathing` (spontaneous-breathing state at
-init — respected, so a non-breathing scenario is never force-started), `_timer` (phase timer, reset each
-transition), `_next_interval` / `_current_duration` (drawn timings), `_obstructed` / `_drive_off`
-(which levers this model currently holds), `_rng_state` (LCG state).
+| Property | Unit | Description |
+|---|---|---|
+| `in_apnea` | boolean | An episode is running. |
+| `active_type` | – | Type of the running episode (`""` when breathing). |
+| `apnea_count` | – | Completed episodes. |
+| `last_apnea_duration`, `longest_apnea_duration` | s | Duration of the last and the longest episode. |
+| `time_since_last_apnea` | s | Time since the last episode ended. |
 
-## Calculation (`calc_model`)
+## Calculation
 
-Each step, if `apnea_enabled` is false or the patient is not a baseline spontaneous breather, the model
-guarantees eupnea (restores both levers) and returns. Otherwise it advances the phase timer and runs the
-state machine:
+Each step:
+- **Not active** (`apnea_enabled` false, or a non-breathing patient): ventilation is restored if Apnea had suppressed it; nothing else.
+- **Breathing:** count toward `next_interval`, then start an episode. Its duration is drawn, and
+  - **central:** `Breathing.switch_breathing(false)`;
+  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`.
+- **In an episode:**
+  - a mixed episode also switches breathing off after `mixed_obstructive_fraction` of its duration;
+  - at the end, ventilation is restored, the counters are updated and the next interval is drawn.
 
-- **Eupnea:** when `_timer ≥ _next_interval` → **onset**. Draw a duration; apply the mechanism
-  (`_set_central(true)`, `_set_obstruction(true)`, or obstruction-then-handover for mixed).
-- **Apnea:** for a mixed episode, at `_current_duration · mixed_obstructive_fraction` add central drive
-  loss. When `_timer ≥ _current_duration` → **terminate**: restore both levers, update the episode
-  counters, and draw the next inter-onset interval.
+**Timing.** The gap is drawn so the *episode rate* matches `apnea_frequency`: mean gap = 60/frequency − mean duration (at least 1 s). Gap and duration each get a uniform jitter of ± `apnea_variability`. A linear congruential generator seeded by `seed` keeps headless runs reproducible.
 
-### Deterministic timing
+**After a pause.** In an obstructive pause Breathing keeps its effort against the closed airway. Its load compensation raises the effort over the missed breaths (up to about ×2 at the default `load_compensation`), so the first breath after release is a large one.
 
-Episodes are stochastic but **reproducible**: a seeded linear-congruential generator (`_rand`, no
-`Math.random`) keeps headless probe runs deterministic while the episodes stay irregular. `_jitter`
-applies a symmetric multiplicative spread of `±apnea_variability` around a mean. The inter-onset gap is
-derived from `apnea_frequency` **minus** the mean duration, so the *rate of episodes* matches
-`apnea_frequency` rather than the rate of eupneic gaps.
+**Desaturation and bradycardia** are emergent:
+- the lungs stop refreshing alveolar gas, so [GasExchanger](./GasExchanger.md) loads less O2 and the arterial saturation falls;
+- in the scenarios patched by `scripts/_add_apnea.mjs`, a pO2 heart-rate chemoreceptor (`CR_PO2_HR`, reading `AA.po2`) drives `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` (see [Ans](./Ans.md));
+- its set-point is a few mmHg below the baseline pO2, so the reflex is neutral at rest.
+
+**Current behaviour** (`node scripts/probe_apnea.mjs preterm_28wk`, 2026-10-24, FiO2 0.25, no device in the model definition): 3 central episodes of 11.5–13.3 s in 5 min. SpO2 falls only from 93.3 to ~91.6 % and the heart rate from 153 to ~152 /min: no bradycardia. That is milder than clinical apnoeas of that length, which often desaturate below 85 %. It is listed for the scenario re-validation.
 
 ## Factor system
 
-This model has **no factor/`_eff` tunables of its own** — it is a controller, not a physical element.
-It drives targets through their existing hooks: the boolean `Breathing.breathing_enabled` (via
-`switch_breathing`) and `MOUTH_DS.no_flow`. The heart-rate side is the additive
-`Heart.hr_chemo_factor` written by the `EF_HR_CHEMO` efferent (see [Heart](./Heart.md) §heart rate and
-[Ans](./Ans.md)).
+None. It switches `Breathing.breathing_enabled` and the airway resistor's `no_flow`.
+
+## Inputs and outputs
+
+- **Reads:** `Breathing.breathing_enabled` (baseline, once).
+- **Writes:** `Breathing.breathing_enabled` (via `switch_breathing`), `MOUTH_DS.no_flow`.
+- **Written by:** the user and bot (`apnea_enabled`, the settings); `scripts/_add_apnea.mjs`.
+- **Read by:** `scripts/probe_apnea.mjs`; `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **Episodes are scheduled, not caused.** They don't follow sleep state, hypoxia, temperature, feeds or caffeine, and they don't end early on hypoxaemia: a pause runs its drawn duration.
+- **Obstruction closes `MOUTH_DS`.** With an endotracheal tube the airway is the tube, so an obstructive episode in an intubated patient closes the wrong path.
+- **Shared levers.** [Resuscitation](./Resuscitation.md) also switches breathing; Apnea only reopens what it closed itself (`drive_off`, `airway_obstructed`).
+- **Saved states keep the episode.** A state saved mid-pause finishes that pause after reload and restores ventilation.
 
 ## Example definition (JSON)
 
-Inserted by `scripts/_add_apnea.mjs` (GA-graded defaults); a preterm 28 wk block:
+From `preterm_28wk.json`, `models.Apnea` (trimmed to the config props):
 
 ```json
 {
   "name": "Apnea",
-  "description": "apnea of prematurity — episodic ventilation suppression",
-  "is_enabled": true,
   "model_type": "Apnea",
-  "components": {},
+  "is_enabled": true,
   "apnea_enabled": false,
   "apnea_frequency": 0.7,
   "apnea_duration": 16,
@@ -128,35 +116,10 @@ Inserted by `scripts/_add_apnea.mjs` (GA-graded defaults); a preterm 28 wk block
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- **Desaturation is emergent.** With drive off (or the airway occluded) the lungs stop refreshing
-  alveolar gas; [GasExchanger](./GasExchanger.md) stops replenishing `AA.to2`; and
-  [`calc_blood_composition`](./BloodComposition.md) recomputes a falling `so2`. [Monitor](./Monitor.md)
-  surfaces it as `sao2_pre`.
-- **Bradycardia is emergent, via the chemoreflex.** `scripts/_add_apnea.mjs` also closes the
-  hypoxia→bradycardia loop the base ANS lacks: a dedicated pO₂ heart-rate chemoreceptor afferent
-  `CR_PO2_HR` (reading `AA.po2`) drives a new efferent `EF_HR_CHEMO` onto `Heart.hr_chemo_factor`. The
-  afferent's setpoint is placed a few mmHg **below** the scenario's calibrated baseline `AA.po2`, so the
-  reflex is neutral at rest and engages only when an apnea pulls pO₂ below baseline; its dynamic range is
-  centred on the pO₂ band an apnea actually reaches (~35–50 mmHg). The **desat→brady lag** (a few
-  seconds) is not hard-coded — it emerges from O₂ washout plus the afferent/efferent time constants, and
-  heart rate recovers before saturation because the vagal reflex (tc ≈ 1 s) is faster than re-oxygenation.
-- **Ships dormant.** Patched scenarios keep `apnea_enabled = false` so their calibrated baseline vitals
-  are unchanged; enable it per run (probe / UI) or patch with `<scenario>=on`. `Heart.hr_chemo_factor`
-  defaults to `1.0`, so the chemoreflex efferent is neutral wherever it is not wired.
-- **Verification:** `node scripts/probe_apnea.mjs preterm_28wk` reports per-episode duration, SpO₂ nadir,
-  HR nadir, and the desat→brady lag; `--no-chemoreflex` disables `EF_HR_CHEMO` to show the episodes still
-  desaturate identically but the heart rate no longer falls. See [TESTING](./TESTING.md).
-- **Interaction:** [Resuscitation](./Resuscitation.md) also toggles `Breathing.breathing_enabled`; the
-  two are mutually exclusive clinical states. Apnea records and restores the baseline breathing state, so
-  a non-breathing scenario (e.g. a fetus) is never force-started.
+In the six preterm and Bischoff scenarios, dormant (`apnea_enabled` false), so their baseline vitals are unchanged. Not in term_neonate or the fetal scenarios. Verification: `node scripts/probe_apnea.mjs <scenario>` reports per-episode duration, SpO2 and HR nadirs and the desaturation → bradycardia lag; `--no-chemoreflex` disables `EF_HR_CHEMO` for comparison. See [TESTING](./TESTING.md).
 
-## Notes & caveats
+## References
 
-- **Duration-dependent bradycardia is intended.** Short pauses (~10 s) desaturate but rarely bradycard;
-  longer pauses (>15–20 s) reach a lower pO₂ and drive a clear bradycardia — matching the clinical
-  observation that bradycardia probability rises with apnea length.
-- **Obstructive episodes ramp `rmp_gain`.** During an occlusion Breathing keeps trying and its
-  tidal-volume feedback climbs toward `rmp_gain_max`; on release this yields an exaggerated recovery
-  breath (physiologically apt).
+No literature values; frequencies and durations are set per scenario for teaching.

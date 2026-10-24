@@ -26,7 +26,7 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
     adh         ← plasma osmolality + low volume       (osmotic + baroregulated)
 
   EFFECTORS (owned channels; all default-neutral, all independent of Ans `ans_activity`):
-    Circulation.svr_factor_art / svr_factor_ven  → systemic arteriolar / venular constriction
+    Circulation.svr_factor_hormones_art / _ven    → systemic arteriolar / venular constriction (its own channels)
     KID_CAP_KID_VEN.r_factor_ps                  → renal EFFERENT constriction (AngII defends GFR)
     Kidneys.reabsorption_factors.na / .k         → aldosterone Na retention / K wasting
     Kidneys.reabs_factor_adh                     → ADH water retention (antidiuresis)
@@ -118,8 +118,8 @@ export class Hormones extends BaseModelClass {
     this.adh = 1.0; // ADH / vasopressin activity
 
     // applied effector factors (diagnostic read-outs)
-    this.svr_factor = 1.0; // → Circulation.svr_factor_art
-    this.svr_ven_factor = 1.0; // → Circulation.svr_factor_ven
+    this.svr_factor = 1.0; // → Circulation.svr_factor_hormones_art
+    this.svr_ven_factor = 1.0; // → Circulation.svr_factor_hormones_ven
     this.efferent_factor = 1.0; // → KID_CAP_KID_VEN.r_factor_ps
     this.na_reabs_factor = 1.0; // → Kidneys.reabsorption_factors.na
     this.k_reabs_factor = 1.0; // → Kidneys.reabsorption_factors.k
@@ -242,8 +242,8 @@ export class Hormones extends BaseModelClass {
     this.svr_factor = this._clamp(1.0 + this.ang_svr_gain * (this.angiotensin - 1.0) + this.adh_svr_gain * (this.adh - 1.0), this.svr_factor_min, this.svr_factor_max);
     this.svr_ven_factor = this._clamp(1.0 + this.ang_svr_ven_gain * (this.angiotensin - 1.0), this.svr_factor_min, this.svr_factor_max);
     if (this._circ) {
-      this._circ.svr_factor_art = this.svr_factor;
-      this._circ.svr_factor_ven = this.svr_ven_factor;
+      this._circ.svr_factor_hormones_art = this.svr_factor;
+      this._circ.svr_factor_hormones_ven = this.svr_ven_factor;
     }
 
     // renal efferent constriction (AngII defends glomerular pressure / GFR)
@@ -268,8 +268,8 @@ export class Hormones extends BaseModelClass {
   _release_channels() {
     this._resolve_refs();
     if (this._circ) {
-      this._circ.svr_factor_art = 1.0;
-      this._circ.svr_factor_ven = 1.0;
+      this._circ.svr_factor_hormones_art = 1.0;
+      this._circ.svr_factor_hormones_ven = 1.0;
     }
     if (this._efferent) this._efferent.r_factor_ps = 1.0;
     if (this._kidneys) {
@@ -293,7 +293,8 @@ export class Hormones extends BaseModelClass {
 
   // first-order lag of x toward target over elapsed time u with time constant tc (s)
   _lag(x, target, u, tc) {
-    if (tc > 0) return x + u * ((1.0 / tc) * (-x + target));
+    // the step fraction is clamped so a time constant shorter than the 1 s update cannot overshoot
+    if (tc > 0) return x + Math.min(1.0, u / tc) * (target - x);
     return target;
   }
 

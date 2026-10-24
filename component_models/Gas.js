@@ -145,7 +145,7 @@ export class Gas extends BaseModelClass {
   }
 
   // Push the body core temperature onto the body-warmed airway compartments, the gas counterpart to
-  // Blood.set_temperature. Each compartment rides core with its build-time offset, so at rest
+  // Blood.set_perfusion_target. Each compartment rides core with its build-time offset, so at rest
   // (core == set-point) the targets equal their build values and nothing changes; under
   // fever/hypothermia the alveoli track core and the dead space holds its ~5 degC deficit below it.
   // Thermoregulation drives this from its effector pass.
@@ -214,7 +214,7 @@ export class Gas extends BaseModelClass {
       // temperature it was built at. same scoping as set_humidity: only fixed-composition sources,
       // since calc_gas_composition rebuilds from fio2 and would discard an airway's accumulated CO2
       if (m.fixed_composition) {
-        calc_gas_composition(m, this.fio2, m.temp, m.humidity);
+        calc_gas_composition(m, this._dry_fio2(m), m.temp, m.humidity);
       }
     });
   }
@@ -240,9 +240,16 @@ export class Gas extends BaseModelClass {
       // recompute. only do it there: calc_gas_composition rebuilds the whole composition from
       // fio2, which on an airway compartment would discard its accumulated CO2
       if (m.fixed_composition) {
-        calc_gas_composition(m, this.fio2, m.temp, m.humidity);
+        calc_gas_composition(m, this._dry_fio2(m), m.temp, m.humidity);
       }
     });
+  }
+
+  // dry O2 fraction a compartment currently holds. set_temperature/set_humidity rebuild a source with
+  // it, not with this.fio2: that is only the last value set_fio2 was given, possibly for another site
+  _dry_fio2(m) {
+    const dry = m.co2 + m.cco2 + m.cn2 + m.cother;
+    return dry > 0.0 ? m.co2 / dry : this.fio2;
   }
 
   set_fio2(new_fio2, sites = ["OUT", "MOUTH"]) {

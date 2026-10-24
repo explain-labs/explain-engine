@@ -33,7 +33,8 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   Concentration unit convention: mcg/L ≡ ng/mL throughout (dose in mcg, blood volumes in L).
 
   Adding a drug = a new `drug_defs` entry (it is seeded, transported, cleared and aggregated
-  automatically). Next milestone (M4): surface params + dosing methods to the UI registry.
+  automatically). Lusitropy (el_min_drug_factor) and ductal patency (Pda.diameter_drug_factor) are
+  effects too; set_drug_param edits a drug's constants from the UI.
 */
 
 export class Drugs extends BaseModelClass {
@@ -140,7 +141,6 @@ export class Drugs extends BaseModelClass {
       "HeartChamber",
       "BloodCapacitance",
       "BloodTimeVaryingElastance",
-      "BloodPump",
     ];
   }
 
@@ -229,7 +229,7 @@ export class Drugs extends BaseModelClass {
       // effect-compartment (biophase) lag toward the site concentration
       let c_drive = c_site;
       if (def.ke0 > 0.0) {
-        const ce = this._ce[drug] ?? 0.0;
+        const ce = this._ce[drug] ?? this.biophase[drug] ?? 0.0; // a reloaded state resumes from its saved biophase
         this._ce[drug] = ce + def.ke0 * (c_site - ce) * this._t;
         c_drive = this._ce[drug];
       }

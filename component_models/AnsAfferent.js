@@ -16,7 +16,7 @@ export class AnsAfferent extends BaseModelClass {
     this.set_value = 0.0; // setpoint of the input (firing rate is 0.5)
     this.max_value = 0.0; // maximum of the input (firing rate is 1.0)
     this.tc = 1.0; // time constant of the firing rate change (s)
-    this.ans_active = true; // whether the afferent is active and can influence the efferents
+    this.ans_active = true; // copied from Ans; the afferent keeps firing, the efferents apply the gate
     
     // Initialize dependent properties
     this.input_value = 0.0; // input value
@@ -40,7 +40,10 @@ export class AnsAfferent extends BaseModelClass {
       // Get the input value (skip this update if the input model is not present)
       const _input = this._model_engine.models[this.input_model];
       if (!_input) return;
-      this.input_value = _input[this.input_prop];
+      // a missing or non-numeric prop would turn the firing rate (and the efferent's target) into NaN
+      const _value = _input[this.input_prop];
+      if (typeof _value !== "number" || !Number.isFinite(_value)) return;
+      this.input_value = _value;
 
       // Calculate the activation value
       let _activation = 0;
