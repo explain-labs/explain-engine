@@ -125,7 +125,7 @@ The scaling layers are written by `ModelScaler`, and the `Calibrator` also write
 - **One ANS signal, all chambers.** The atria and both ventricles get the same `ans_activity` and `ans_sens`.
 - **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law. Two scenarios still use linear chambers.
 - **One unstressed volume** for the diastolic and systolic relations (inherited).
-- **Right-ventricle unstressed volume.** term_neonate has RV `u_vol` 4.0 mL against LV 0.73 mL.
+- **Right-ventricle unstressed volume.** The postnatal scenarios give the RV a `u_vol` 5.5× the LV's (term 4.0 vs 0.73 mL, since the first commit). `u_vol` is also the volume intercept of the end-systolic relation, so the RV's end-systolic elastance comes out at 28 mmHg/mL, about the LV's 30, where real RVs are typically ~⅓–½ of the LV. Term RV volumes and EF (52 %) match CMR, but the RV is too insensitive to afterload. With the fetal ratio (1.64×, already used by the fetal scenarios) and `el_max` rescaled, pulmonary arterioles ×2 lower RV stroke volume 6.1 % instead of 3.5 %. To be re-parameterised in the scenario re-validation session (it shifts the PDA patients' `cont_factor_right` calibrations).
 
 ## Example definition (JSON)
 
