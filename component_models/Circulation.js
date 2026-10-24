@@ -40,6 +40,8 @@ export class Circulation extends BaseModelClass {
     this.svr_factor_art = 1.0;          // factor influencing the systemic arteriolar vascular resistance
     this.svr_factor_ven = 1.0;          // factor influencing the systemic venular vascular resistance
     this.svr_factor_drug = 1.0;         // independent systemic arteriolar factor owned by the Drugs PK/PD model (composes with svr_factor_art)
+    this.svr_factor_hormones_art = 1.0; // independent systemic arteriolar factor owned by the Hormones model (angiotensin, ADH)
+    this.svr_factor_hormones_ven = 1.0; // independent systemic venular factor owned by the Hormones model (angiotensin)
     this.pvr_factor_art = 1.0;          // factor influencing the pulmonary arteriolar vascular resistance
     this.pvr_factor_ven = 1.0;          // factor influencing the pulmonary venular vascular resistance
 
@@ -64,6 +66,8 @@ export class Circulation extends BaseModelClass {
     this.prev_svr_factor_art = 1.0;
     this.prev_svr_factor_ven = 1.0;
     this.prev_svr_factor_drug = 1.0;
+    this.prev_svr_factor_hormones_art = 1.0;
+    this.prev_svr_factor_hormones_ven = 1.0;
     this.prev_pvr_factor_art = 1.0;
     this.prev_pvr_factor_ven = 1.0;
     this._update_interval = 0.015;      // update interval (s)
@@ -141,6 +145,18 @@ export class Circulation extends BaseModelClass {
         this.prev_svr_factor_drug = this.svr_factor_drug
       }
 
+      // the Hormones channels: same vessels as svr_factor_art/ven, but owned by Hormones so the user's
+      // svr_factor_art/ven are not overwritten by it
+      if (this.prev_svr_factor_hormones_art !== this.svr_factor_hormones_art) {
+        this._apply_delta(this.systemic_arterioles, this.svr_factor_hormones_art - this.prev_svr_factor_hormones_art);
+        this.prev_svr_factor_hormones_art = this.svr_factor_hormones_art;
+      }
+
+      if (this.prev_svr_factor_hormones_ven !== this.svr_factor_hormones_ven) {
+        this._apply_delta(this.systemic_venules, this.svr_factor_hormones_ven - this.prev_svr_factor_hormones_ven);
+        this.prev_svr_factor_hormones_ven = this.svr_factor_hormones_ven;
+      }
+
       if (this.prev_pvr_factor_art !== this.pvr_factor_art) {
         this.set_pvr_factor_art(this.pvr_factor_art)
         this.prev_pvr_factor_art = this.pvr_factor_art
@@ -176,6 +192,18 @@ export class Circulation extends BaseModelClass {
     });
     // store the requested target once, after the loop
     this.svr_factor_art = new_svr_factor;
+  }
+
+  // add a change of a resistance channel to the persistent factor of each vessel in a group (shared
+  // accumulator: several channels add their deltas), clamped at 0 (a negative resistance factor is
+  // non-physical)
+  _apply_delta(group, delta) {
+    group.forEach((name) => {
+      const m = this._model_engine.models[name];
+      if (!m) return;
+      const f_ps = m.r_factor_ps + delta;
+      m.r_factor_ps = f_ps < 0 ? 0 : f_ps;
+    });
   }
 
   set_svr_factor_drug(new_svr_factor) {
