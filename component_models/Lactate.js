@@ -65,8 +65,10 @@ export class Lactate extends BaseModelClass {
     this._warmup_delay = 90.0; // s window over which the resting-MINIMUM site to2 is captured (covers the
                                // slow tissue-to2 oscillations seen in abnormal-circulation/cyanotic scenarios)
     this._warmup_counter = 0.0;
-    this._seeded = false;
-    this._baseline_to2 = {}; // per-site resting to2 captured at warm-up
+    // captured baseline: public so a saved state keeps it (re-capturing after a reload would treat the
+    // current, possibly hypoxic, state as rest and pause production for the warm-up)
+    this.baseline_captured = false;
+    this.baseline_to2 = {}; // per-site resting (minimum) to2 captured over the warm-up (mmol/L)
     this._blood_components = null; // cached list of compartments carrying a lact solute
     this._metabolism = null;
   }
@@ -106,26 +108,26 @@ export class Lactate extends BaseModelClass {
     // Capture each site's resting to2 as the running MINIMUM across the warm-up window, then arm. Using
     // the minimum (not a single instant) makes the threshold sit below the operating trough, so the model
     // stays neutral at rest even in chronically hypoxic scenarios (cyanotic CHD) whose steady-state tissue
-    // to2 is low and swings cyclically near the threshold. Production stays gated off until _seeded.
-    if (!this._seeded) {
+    // to2 is low and swings cyclically near the threshold. Production stays gated off until the baseline is captured.
+    if (!this.baseline_captured) {
       this._warmup_counter += u;
       for (const site of Object.keys(sites)) {
         let comp = this._model_engine.models[site];
         if (!comp) continue;
-        const prev = this._baseline_to2[site];
-        this._baseline_to2[site] = prev === undefined ? comp.to2 : Math.min(prev, comp.to2);
+        const prev = this.baseline_to2[site];
+        this.baseline_to2[site] = prev === undefined ? comp.to2 : Math.min(prev, comp.to2);
       }
-      if (this._warmup_counter >= this._warmup_delay) this._seeded = true;
+      if (this._warmup_counter >= this._warmup_delay) this.baseline_captured = true;
     }
 
     // --- production under O2 debt (skip until seeded; before that it is neutral) ---
     let total_prod = 0.0;
     let max_anaerobic = 0.0;
-    if (this._seeded && this.lactate_running) {
+    if (this.baseline_captured && this.lactate_running) {
       for (const [site, fvo2] of Object.entries(sites)) {
         let comp = this._model_engine.models[site];
         if (!comp || !comp.solutes || comp.vol <= 0.0) continue;
-        const resting = this._baseline_to2[site];
+        const resting = this.baseline_to2[site];
         if (resting === undefined || resting <= 0.0) continue;
         const threshold = this.threshold_frac * resting;
         const anaerobic = this._clamp((threshold - comp.to2) / threshold, 0.0, 1.0);
