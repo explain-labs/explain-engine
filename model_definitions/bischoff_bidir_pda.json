@@ -6424,7 +6424,6 @@
     "cont_factor_max": 1,
     "cont_factor_min": 0.01,
     "cont_tc": 5,
-    "ans_factor": 1,
     "ans_factor_max": 1,
     "ans_factor_min": 0.01,
     "ans_tc": 5,

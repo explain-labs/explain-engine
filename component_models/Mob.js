@@ -59,7 +59,6 @@ export class Mob extends BaseModelClass {
     this.cont_factor_max = 1;
     this.cont_factor_min = 0.01;
     this.cont_tc = 5;
-    this.ans_factor = 1;
     this.ans_factor_max = 1;
     this.ans_factor_min = 0.01;
     this.ans_tc = 5;
