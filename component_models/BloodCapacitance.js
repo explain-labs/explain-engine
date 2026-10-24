@@ -35,7 +35,7 @@ export class BloodCapacitance extends Capacitance {
     // call the parent method from the Capacitance class to update the volume
     super.volume_in(dvol, comp_from);
 
-    // mix to2, tco2, solutes, drugs, temperature and viscosity by the incoming volume fraction
+    // mix to2, tco2, solutes, drugs and temperature by the incoming volume fraction (viscosity follows Hb, see Blood)
     mix_blood_in(this, dvol, comp_from);
   }
 }
