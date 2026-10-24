@@ -1,124 +1,111 @@
 # BloodDiffusor
 
-A `BloodDiffusor` exchanges gases and solutes between **two blood compartments**. It is used wherever blood equilibrates with blood across a membrane rather than with a gas phase — most notably the placenta (fetal capillary ↔ maternal pool). O₂ and CO₂ move down their **partial-pressure** gradients; each configured solute moves down its **concentration** gradient.
+`BloodDiffusor` exchanges gases (and optionally solutes) by diffusion between **two blood compartments** that don't share flow: O2 and CO2 move down their partial-pressure gradient, solutes down their concentration gradient. In the scenarios it is `PL_GASEX`, the placental barrier between the fetal villous capillaries and the mother's blood.
+
+For blood ↔ alveolar gas exchange (the lungs, the ECLS oxygenator) see [GasExchanger](./GasExchanger.md); for gas ↔ gas, [GasDiffusor](./GasDiffusor.md).
+
+## Physiology
+
+In the placenta, fetal and maternal blood never mix: they are separated by the villous membrane. Gases cross it passively, driven by the difference in partial pressure (Fick's law: flux = diffusing capacity × gradient). Maternal intervillous pO2 is higher than fetal, so O2 moves to the fetus; fetal pCO2 is higher, so CO2 moves to the mother. Fetal haemoglobin's higher affinity lets the fetus load a lot of oxygen at a low pO2. Small solutes (glucose, urea, ions) cross by their concentration gradients.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── BloodDiffusor   (blood↔blood gas/solute exchange)
+  └── BloodDiffusor
 ```
-
-`BloodDiffusor` extends `BaseModelClass` directly (note: the source lives in `base_models/`, not `component_models/`). It is not a capacitance — it holds no volume and computes no pressure; it only mutates the composition of the two compartments it references.
-
-## What it models
-
-```
-blood1 (po2, pco2, solutes)  ⇌[BloodDiffusor]⇌  blood2 (po2, pco2, solutes)
-   gases:   flux = (p1 − p2) · dif_step · Δt        (partial-pressure driven)
-   solutes: flux = (c1 − c2) · dif · solutes_step · Δt   (concentration driven)
-```
-
-Each step it refreshes both compartments' blood composition (so the partial pressures are current), composes the effective diffusion constants from the factor tiers, then transfers O₂, CO₂ and each configured solute from the higher to the lower side, conserving mass.
 
 ## Properties
 
-### Configuration
+### Config (set in the definition JSON)
+
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `comp_blood1`, `comp_blood2` | – | `"PLF"`, `"PLM"` | Names of the two blood compartments (legacy defaults; every scenario sets `PL_FETAL_CAP` and `PL_MAT`). Positive flux runs 1 → 2. |
+| `dif_o2` | mmol/(mmHg·s) | 0.01 | O2 diffusing capacity. |
+| `dif_co2` | mmol/(mmHg·s) | 0.01 | CO2 diffusing capacity. |
+| `dif_solutes` | L/s per solute | `{}` | Solute diffusing capacities, e.g. `{"glucose": 0.0001}` (mmol/s per mmol/L of gradient). Empty in every scenario. |
+
+In the placenta, `dif_o2` and `dif_co2` are **overwritten every 15 ms by [Placenta](./Placenta.md)** from its own `dif_o2`/`dif_co2`: set them there, or use the factors below.
+
+### Factors
+
+| Property | Default | Layer |
+|---|---|---|
+| `dif_o2_factor`, `dif_co2_factor`, `dif_solutes_factor` | 1.0 | Non-persistent (reset to 1 after each step). |
+| `dif_o2_factor_ps`, `dif_co2_factor_ps`, `dif_solutes_factor_ps` | 1.0 | Persistent. |
+| `dif_o2_factor_scaling`, `dif_co2_factor_scaling`, `dif_solutes_factor_scaling` | 1.0 | Scaling layer. Named without `_ps`, like the other diffusors; nothing writes it (`ModelScaler` doesn't scale diffusors). |
+
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `comp_blood1` | name | First blood compartment (default `"PLF"` — a legacy name no scenario defines; scenarios set it, e.g. `PL_FETAL_CAP`) |
-| `comp_blood2` | name | Second blood compartment (default `"PLM"` — likewise legacy; e.g. `PL_MAT`) |
-| `dif_o2` | mmol/(mmHg·s) | O₂ diffusion constant |
-| `dif_co2` | mmol/(mmHg·s) | CO₂ diffusion constant |
-| `dif_solutes` | object | Per-solute diffusion constants, keyed by solute name (L/s: the flux in mmol/s per mmol/L of gradient) |
+| `dif_o2_step`, `dif_co2_step` | mmol/(mmHg·s) | Effective O2 and CO2 diffusing capacity with the factors. |
 
-### Factor tiers (see below)
+## Calculation
 
-`dif_o2_factor`, `dif_o2_factor_ps`, `dif_o2_factor_scaling`; `dif_co2_factor`, `dif_co2_factor_ps`, `dif_co2_factor_scaling`; `dif_solutes_factor`, `dif_solutes_factor_ps`, `dif_solutes_factor_scaling` — all default `1.0`.
+Each step (skipped if either compartment is missing):
 
-### Computed / dependent
-
-| Property | Unit | Description |
-|---|---|---|
-| `dif_o2_step` | mmol/(mmHg·s) | Effective O₂ diffusion constant for the current step |
-| `dif_co2_step` | mmol/(mmHg·s) | Effective CO₂ diffusion constant for the current step |
-
-### Local references (`_`-prefixed)
-
-`_comp_blood1`, `_comp_blood2` — resolved each step from `model.models[comp_blood1/2]`.
+1. **Partial pressures.** [`calc_blood_composition`](./BloodComposition.md) on both compartments (a full solve on each, every step).
+2. **Factors**, additive:
+   ```
+   dif_o2_step = dif_o2 · (1 + (factor − 1) + (factor_ps − 1) + (factor_scaling − 1))      likewise CO2 and solutes
+   ```
+3. **Gases** (Fick), in mmol per step:
+   ```
+   ΔO2  = (pO2₁ − pO2₂)   · dif_o2_step  · dt      moved from to2 of 1 to to2 of 2
+   ΔCO2 = (pCO2₁ − pCO2₂) · dif_co2_step · dt      moved between the tco2s
+   ```
+   A gas is skipped this step if either side has the `-1` sentinel (failed solve).
+4. **Solutes:** `Δ = (c₁ − c₂) · dif_solutes[s] · solutes_factor · dt`, for every solute present on both sides.
+5. **Transfer** (`_transfer`). Amounts become concentrations through each compartment's volume. The flux is capped at what the donor holds. A `fixed_composition` compartment (an infinite reservoir such as `PL_MAT`) or an empty one keeps its concentration, while the other side still changes.
 
 ## Factor system
 
-`dif_o2`, `dif_co2` and the per-solute `dif_solutes` follow the engine's three-tier factor / effective-value pattern (same convention as [Capacitance](./Capacitance.md)). For O₂ and CO₂ the effective constant is built additively against the base:
+Additive layers (as Capacitance and Resistor), on `dif_o2`, `dif_co2` and one shared multiplier for all solutes. See [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
 
-```
-dif_o2_step = dif_o2
-            + (dif_o2_factor       − 1)·dif_o2
-            + (dif_o2_factor_ps    − 1)·dif_o2
-            + (dif_o2_factor_scaling − 1)·dif_o2
-```
+## Inputs and outputs
 
-(identically for `dif_co2_step`). Solutes share one dimensionless multiplier applied to every per-solute constant:
+- **Reads:** both compartments' `po2`, `pco2`, `to2`, `tco2`, `solutes`, `vol`, `fixed_composition`.
+- **Writes:** `to2`, `tco2`, `solutes` of the non-fixed compartment(s); their solved `ph`, `pco2`, `po2`, `so2`, … through `calc_blood_composition`.
+- **Written by:** [Placenta](./Placenta.md) (`dif_o2`, `dif_co2`, `is_enabled` every 15 ms); the fetal generators set the Placenta values.
+- **Read by:** `DataCollector` watchers.
 
-```
-solutes_step = 1 + (dif_solutes_factor − 1) + (dif_solutes_factor_ps − 1) + (dif_solutes_factor_scaling − 1)
-```
+## Assumptions and limitations
 
-| Tier | Factors | Purpose |
-|---|---|---|
-| Non-persistent | `dif_o2_factor`, `dif_co2_factor`, `dif_solutes_factor` | Transient interventions; **reset to 1.0 at the end of every `calc_model`** |
-| Persistent (`_ps`) | `dif_o2_factor_ps`, `dif_co2_factor_ps`, `dif_solutes_factor_ps` | Ongoing scenario/user modulation; persist across steps |
-| Scaling | `dif_o2_factor_scaling`, `dif_co2_factor_scaling`, `dif_solutes_factor_scaling` | ModelScaler weight/manual scaling |
-
-## Calculation cycle (`calc_model`)
-
-1. Resolve `_comp_blood1` / `_comp_blood2` from the engine map; return (no exchange) if either is missing.
-2. Call [`calc_blood_composition`](./BloodComposition.md) on both compartments so `po2`/`pco2`/solute concentrations are current.
-3. Compose `dif_o2_step`, `dif_co2_step` and `solutes_step` from the factors.
-4. **O₂:** `do2 = (blood1.po2 − blood2.po2) · dif_o2_step · _t`, then update each side's `to2` by `(to2·vol ∓ do2)/vol`. Skipped this step if either `po2` is negative — the `−1` sentinel a failed acid-base / O₂ solve leaves behind, which would otherwise drive a spurious flux.
-5. **CO₂:** same with `pco2` / `dif_co2_step` → `tco2` (same `−1` sentinel guard).
-6. **Solutes:** for each key in `dif_solutes`, `dsol = (c1 − c2) · dif_solutes[sol] · solutes_step · _t`, update each side's concentration. A solute that is not a number on either side is skipped.
-7. Reset the non-persistent factors (`dif_o2_factor`, `dif_co2_factor`, `dif_solutes_factor`) to `1.0`.
-
-`_t` is the modeling stepsize. All transfers go through `_transfer()`:
-
-- **Donor limit** — the flux is capped at what the (non-fixed) donor holds (`conc · vol`), so no concentration goes below zero.
-- Every write is **guarded by `!fixed_composition && vol > 0`**, so a fixed reservoir (e.g. the maternal pool) supplies/absorbs gas and solute without changing its own composition (and without a donor cap), and an empty compartment never divides by zero.
+- **Fick diffusion on partial pressures, no geometry.** A diffusing capacity lumps membrane area, thickness and permeability. No counter-current or concurrent flow pattern; each compartment is well mixed.
+- **Full equilibration at the shipped settings.** Fetal capillary blood leaves the exchanger at the maternal pCO2, so the diffusing capacities have little authority over fetal gases; the maternal contents set them (see [Placenta](./Placenta.md#assumptions-and-limitations)).
+- **Explicit, one step.** A very large capacity with a small compartment could overshoot the equilibrium in one step; the cap only stops a negative concentration.
+- **Two blood solves every step** while it runs (fetal scenarios only), including on the fixed `PL_MAT`.
 
 ## Example definition (JSON)
 
-From `archive/term_fetus.json` — `PL_GASEX`, a component of the `Placenta` model, connecting the fetal capillary to the fixed maternal pool:
+From `fetus_term.json`, `models.Placenta.components.PL_GASEX` (trimmed to the config props):
 
 ```json
 {
   "name": "PL_GASEX",
-  "description": "blood diffusor model of the diffusion across the placenta",
-  "is_enabled": true,
   "model_type": "BloodDiffusor",
+  "is_enabled": true,
   "comp_blood1": "PL_FETAL_CAP",
   "comp_blood2": "PL_MAT",
-  "dif_o2": 0.03,
+  "dif_o2": 0.003,
   "dif_co2": 0.04,
-  "dif_solutes": {},
-  "dif_o2_factor": 1,
-  "dif_co2_factor": 1,
-  "dif_solutes_factor": 1,
-  "dif_o2_factor_ps": 1,
-  "dif_co2_factor_ps": 1,
-  "dif_solutes_factor_ps": 1,
-  "dif_o2_factor_scaling": 1,
-  "dif_co2_factor_scaling": 1,
-  "dif_solutes_factor_scaling": 1
+  "dif_solutes": {}
 }
 ```
 
-Here `PL_MAT` carries `fixed_composition: true`, so the diffusor drives fetal gases toward the maternal set-point while the maternal pool stays constant.
+## Usage in the scenarios
 
-## Usage in the model
+One instance, `PL_GASEX`, owned by `Placenta`, in every scenario: enabled in the three fetal scenarios, disabled after birth.
 
-- The placenta's `PL_GASEX` is the canonical instance: it connects the fetal capillary to the fixed maternal pool, equilibrating fetal blood gases toward maternal values.
-- This is the reference implementation the other exchangers follow — it already guards `fixed_composition` on every write, which is why the maternal pool stays constant.
-- Gases use **partial pressures** (so they respect the dissociation curves computed by [BloodComposition](./BloodComposition.md)), while solutes use **raw concentrations**.
-- The compartments referenced must be [BloodCapacitance](./BloodCapacitance.md)-family models carrying `to2`/`tco2`/`solutes`/`vol`/`fixed_composition`.
-</content>
+| Scenario | `dif_o2` | `dif_co2` |
+|---|---|---|
+| fetus_term | 0.003 | 0.04 |
+| fetus_30wk | 0.02 | 0.027 |
+| fetus_25wk | 0.012 | 0.016 |
+| postnatal (disabled) | 0.01 | 0.01 |
+
+## References
+
+No literature values; the diffusing capacities are calibrated per fetal scenario (see [fetal_circulation](./fetal_circulation.md)).
