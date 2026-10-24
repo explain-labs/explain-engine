@@ -1,255 +1,140 @@
 # Shunts
 
-The `Shunts` model is a thin coordinator (like [Pda](./Pda.md)) that drives the resistances of the
-**non-ductal shunts** from a small set of geometric inputs. It does not hold volume or pressure
-itself — it owns no sub-models of its own but writes each step onto five pre-existing `Resistor`s.
+`Shunts` sets the resistances of the cardiac and pulmonary shunt pathways other than the duct:
+- the **foramen ovale** (FO), from its diameter: viscous Poiseuille loss plus a Bernoulli orifice loss, with an optional flap-valve asymmetry;
+- the **ventricular septal defect** (VSD), the same way;
+- the base resistance of the **intrapulmonary shunts** (IPSL, IPSR).
 
-It covers three shunt families:
+It also reports the shunt flows and velocities. The ductus arteriosus is [Pda](./Pda.md).
 
-| Shunt | Resistors driven | Path |
-|---|---|---|
-| **Foramen ovale (FO)** | `LA_RAIVCI`, `LA_RASVC` | LA ↔ the two right-atrial streams (RAIVCI, RASVC) |
-| **Ventricular septal defect (VSD)** | `VSD` | LV ↔ RV |
-| **Intrapulmonary shunts (IPS)** | `IPSL`, `IPSR` | arterial → venous within each lung (LL_ART→LL_VEN, RL_ART→RL_VEN) |
+## Physiology
 
-(The ductus arteriosus is handled separately by the [Pda](./Pda.md) model.)
+- **Foramen ovale.** In the fetus it carries oxygenated IVC blood from the right atrium into the left heart. After birth left-atrial pressure rises, and the flap closes against the septum, functionally at first. Most term newborns still have a small, mostly left-to-right patent foramen ovale (PFO) in the first days. When right-sided pressures rise (pulmonary hypertension), it can shunt right-to-left and cause desaturation.
+- **VSD.** A hole in the ventricular septum. Flow through it is set by its size and by the pressure difference between the ventricles. A restrictive VSD keeps a high-velocity jet; a large one lets the ventricles equalise.
+- **Intrapulmonary shunt.** Blood that crosses the lungs without meeting ventilated alveoli. Mostly it is venous admixture from perfused but unventilated lung (atelectasis, RDS, meconium, pneumonia); true anatomical channels are small in a normal lung, but can open in BPD, alveolar capillary dysplasia, CDH or meconium aspiration (Galambos). It is a major cause of hypoxaemia in lung disease.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Shunts   (group coordinator — no compartment of its own)
+  └── Shunts
 ```
-
-Extends `BaseModelClass` directly. `calc_model()` computes Hagen-Poiseuille resistances and writes
-them onto the referenced `Resistor`s; it has no `el_base`/`vol`/`r_for` of its own.
-
-## What it models
-
-The FO and VSD are openings whose resistance follows the **Hagen-Poiseuille** law from their diameter,
-the septal thickness (length), and blood viscosity. Closure is expressed directly via `diameter_fo` /
-`diameter_vsd` (0 mm = closed → `no_flow`). The intrapulmonary shunts are a resistance, not
-diameter-driven, carrying pulmonary arterial blood to the pulmonary veins without passing ventilated
-alveoli (see "What the intrapulmonary shunt stands for" below).
 
 ## Properties
 
-### Configuration (set in the model definition)
+### Config (set in the definition JSON)
 
-| Property | Default | Unit | Description |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| `diameter_fo` | `2.0` | mm | foramen ovale diameter (0 = closed) |
-| `diameter_fo_max` | `10.0` | mm | FO diameter ceiling (clamp) |
-| `diameter_vsd` | `2.0` | mm | ventricular septal defect diameter (0 = closed) |
-| `diameter_vsd_max` | `10.0` | mm | VSD diameter ceiling (clamp) |
-| `atrial_septal_width` | `3.0` | mm | FO channel length |
-| `ventricular_septal_width` | `5.0` | mm | VSD channel length |
-| `fo_lr_factor` | `10.0` | — | left-to-right resistance multiplier on the FO (flap valve) |
-| `fo_svc_fraction` | `0.5` | 0–1 | share of the FO's area that opens onto the SVC part of the right atrium (`LA_RASVC`); the rest opens onto the IVC part (`LA_RAIVCI`). 0.5 = two equal halves; 0 = only IVC blood crosses the foramen (fetal crista dividens) |
-| `discharge_coeff_fo` | `0.7` | — | FO discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (flap valve, between funnel and sharp edge) |
-| `discharge_coeff_vsd` | `0.64` | — | VSD discharge coefficient for the Bernoulli term, `A_eff = Cd · A` (sharp-edged hole) |
-| `ips_res` | `5000` | mmHg·s/L | intrapulmonary shunt resistance (before the resistors' own factor layers) |
-| `viscosity` | `6.0` | cP | blood viscosity used in the resistance formula; read each step from `LA.viscosity` (fallback 6.0), so it follows the blood like `Pda` |
+| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate 1.5, term fetus 6.0, 25 wk 0.75, Bischoff 0.5. |
+| `diameter_fo_max` | mm | 10.0 | Upper clamp. |
+| `atrial_septal_width` | mm | 3.0 | Length of the FO channel in the Poiseuille law. |
+| `fo_lr_factor` | – | 10.0 | Left-to-right resistance multiplier (flap valve). **1 in every shipped scenario.** |
+| `fo_svc_fraction` | – | 0.5 | Share of the FO area opening onto the SVC half of the right atrium (`RASVC`); the rest opens onto `RAIVCI`. 0 in the fetal scenarios (crista dividens). |
+| `discharge_coeff_fo` | – | 0.7 | Discharge coefficient of the FO orifice (between funnel and sharp edge). |
+| `diameter_vsd` | mm | 2.0 | VSD diameter; 0 = closed (0 in every shipped scenario). |
+| `diameter_vsd_max` | mm | 10.0 | Upper clamp. |
+| `ventricular_septal_width` | mm | 5.0 | Length of the VSD channel. |
+| `discharge_coeff_vsd` | – | 0.64 | Discharge coefficient of the VSD (sharp-edged hole). |
+| `ips_res` | mmHg·s/L | 5000 | Base resistance of each intrapulmonary shunt resistor. term_neonate 20 400, 25 wk 10 500, fetal 10⁸ (closed). |
 
-### Computed / reported (outputs)
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `res_fo` | mmHg·s/L | computed FO resistance (the whole orifice, before `fo_lr_factor`; a resistor with area share `a` gets `res_fo / a`, i.e. `2·res_fo` each at the default `fo_svc_fraction` 0.5) |
-| `res_vsd` | mmHg·s/L | computed VSD resistance |
-| `flow_fo` | L/s | combined FO flow (`LA_RAIVCI.flow + LA_RASVC.flow`) |
-| `bernoulli_b_fo`, `bernoulli_b_vsd` | mmHg·s²/L² | orifice coefficient B of the whole FO / the VSD |
-| `velocity_fo_doppler`, `velocity_vsd_doppler` | m/s | modified-Bernoulli jet velocity (signed with the flow) |
-| `flow_vsd` | L/s | VSD flow |
-| `velocity_fo` | m/s | FO orifice velocity from combined flow |
-| `velocity_vsd` | m/s | VSD orifice velocity |
+| `flow_fo` | L/s | FO flow, both paths together; positive = left-to-right. |
+| `flow_vsd` | L/s | VSD flow; positive = LV to RV. |
+| `res_fo`, `res_vsd` | mmHg·s/L | Viscous (Poiseuille) resistance of the whole orifice. |
+| `bernoulli_b_fo`, `bernoulli_b_vsd` | mmHg·s²/L² | Orifice coefficient `B` (see [Orifice](./Orifice.md)). |
+| `velocity_fo`, `velocity_vsd` | m/s | Mean velocity through the anatomic area (continuity). |
+| `velocity_fo_doppler`, `velocity_vsd_doppler` | m/s | Jet velocity through the vena contracta, what Doppler measures. |
 
-### Local (internal)
+### Set by other models
 
-`_fo_ivci`, `_fo_svc`, `_vsd`, `_ipsl`, `_ipsr` cache the five resistor references;
-`_refs_resolved`/`_refs_warned` gate the one-time resolution and the single missing-wiring warning.
+| Property | Unit | Description |
+|---|---|---|
+| `viscosity` | cP | Read from the left atrium every step (it follows the haematocrit); 6.0 if no LA. |
 
-## Calculation cycle (`calc_model`)
+## Calculation
 
-1. **Resolve references once.** `_resolve_refs()` caches `LA_RAIVCI`, `LA_RASVC`, `VSD`, `IPSL`,
-   `IPSR`. If any is missing it logs a single warning and `calc_model` returns early every step (so a
-   partial wiring degrades gracefully instead of throwing).
-2. **Clamp diameters** to their `*_max`.
-3. **Flow gating** — set `no_flow = (diameter === 0)` on the FO (`LA_RAIVCI`, `LA_RASVC`) and VSD
-   resistors; an FO path whose area share is 0 (`fo_svc_fraction` 0 or 1) is closed as well.
-4. **Resistances** — `res_fo`, `res_vsd` from `calc_resistance(diameter, septal_width, viscosity)`.
-5. **Push resistances** to the resistors (see FO asymmetry below); IPS resistors get the constant
-   `ips_res`.
-6. **Read back flows** and compute orifice velocities (`Q/A`).
+Each step, after resolving its five resistors once (`LA_RAIVCI`, `LA_RASVC`, `VSD`, `IPSL`, `IPSR`; a missing one gives a single warning and the model skips):
 
-## Foramen ovale: flap-valve asymmetry and the split path
+1. **Gates.** A diameter of 0 sets the resistor's `no_flow`. An FO path whose area share is 0 is closed too.
+2. **Resistances.** For each orifice of diameter `d` and length `L`:
+   ```
+   res = 8·η·L / (π·r⁴)                      Poiseuille, converted to mmHg·s/L
+   B   = K_BERNOULLI / (Cd·π·r²)²            orifice loss, see Orifice
+   ```
+3. **Foramen ovale, split over two resistors.** The FO opens onto both halves of the right atrium, with area shares `a` (`fo_svc_fraction` and its complement). Each path gets
+   ```
+   r_back = res_fo / a + (B_fo / a²) · |Q_path,prev|        right → left
+   r_for  = r_back · fo_lr_factor                           left → right
+   ```
+   so the two paths together behave exactly as one orifice of `diameter_fo`.
+4. **VSD:** `r = res_vsd + B_vsd·|Q_prev|`, both directions.
+5. **Intrapulmonary shunts:** `r_for = r_back = ips_res` on `IPSL` and `IPSR`.
+6. **Outputs:** flows from the resistors, `velocity = Q / area`, `velocity_doppler = jet_velocity(B, Q)`.
 
-The FO is driven through **two** resistors (`LA_RAIVCI`, `LA_RASVC`) because the model splits the
-right atrium into an IVC-stream and an SVC-stream. The two resistors share the orifice's area:
-`a_svc = fo_svc_fraction` for `LA_RASVC` and `a_ivci = 1 − fo_svc_fraction` for `LA_RAIVCI`. A share `a`
-carries the viscous resistance `res_fo / a` and the Bernoulli coefficient `B / a²` (B scales with
-1/area²), so the pair together always equals one FO of `diameter_fo`:
+**The Bernoulli term is linearised with the previous step's flow** (`B·|Q_prev|` added to the resistance), as in Pda. This is semi-implicit and stable for restrictive defects. It differs from the exact quadratic only by the flow's change in one 0.5 ms step (~1 % of the Bernoulli term in a pulsatile shunt). `Resistor.r_k` could solve the quadratic exactly, but it has a single coefficient for both directions, so it couldn't carry the flap's left-to-right factor.
 
-```
-r_back = res_fo / a + (B / a²) · |Q|    (RA → LA, easy)
-r_for  = r_back · fo_lr_factor          (LA → RA, restricted)
-```
+## Factor system
 
-At the default 0.5 each resistor gets `2·res_fo` and `4·B`, the original two equal halves (bit-identical).
+None of its own. It writes the **base** `r_for`/`r_back` of its resistors every step. Other models modulate them through the resistors' layers:
+- `Surfactant`: `IPSL`/`IPSR.r_factor_ps` (derecruitment);
+- `Respiration`: `IPSL`/`IPSR.r_factor` (atelectasis and hypoxic vasoconstriction, non-persistent);
+- the `Calibrator`: `IPSL`/`IPSR.r_factor_scaling_ps` and `ips_res`.
 
-**Preferential streaming (`fo_svc_fraction` 0).** With the split atrium closed (`RAIVCI_RASVC`
-`no_flow`), the two right-atrial streams can still mix *in the left atrium*: SVC blood crossing
-`LA_RASVC` meets IVC blood from `LA_RAIVCI` there. In the first `fetus_30wk` build a third of the foramen
-flow came from the SVC part and the ascending aorta was only 0.9 saturation points above the pulmonary
-artery (54.3 vs 53.4 %). In the fetus the crista dividens lets almost no SVC blood cross the foramen.
-`fo_svc_fraction` 0 opens the whole foramen onto the IVC part: the AA − PA gap rose to 6.0 points
-(57.6 vs 51.6 %; reference ~8, 67 vs 59) with the pressures, the output and its distribution unchanged.
+## Inputs and outputs
 
-`fo_lr_factor` (default 10, often higher in scenarios — e.g. 25) makes left-to-right flow much harder
-than right-to-left, reproducing the **flap-valve** behaviour: in fetal/transitional physiology the FO
-shunts right-to-left, and reverses only under raised left-atrial pressure.
+- **Reads:** `LA.viscosity`; the flows of its five resistors.
+- **Writes:** `r_for`, `r_back`, `no_flow` of `LA_RAIVCI`, `LA_RASVC`, `VSD`; `r_for`, `r_back` of `IPSL`, `IPSR`.
+- **Written by:** the user and scenario generators (diameters, `ips_res`); the `Calibrator` (`ips_res`).
+- **Read by:** `Monitor` (`fo_flow`), `DataCollector` watchers, `scripts/probe_*` (Qp:Qs, Doppler).
 
-**Echo-measured diameters.** When `diameter_fo` comes from an echo, it is the colour-jet diameter of
-the opening that actually conducts. The flap's restriction is then already in the measured diameter,
-so the postnatal `term_neonate` (and patients built from it) use `fo_lr_factor` 1. With 25 an FO was
-almost a one-way valve: 5 mm gave Qp:Qs 0.99 and a Doppler peak of 0.2 m/s. Neonatal echo shows a
-predominantly left-to-right shunt in most term newborns (Hiraishi 1991, doi 10.1136/hrt.65.1.41) and a
-measurable Qp:Qs above ~3 mm (Evans & Iyer 1994, doi 10.1016/s0022-3476(94)70079-6). With 1, a 3 mm FO
-carries ~18 mL/kg/min (Qp:Qs 1.04, Doppler peak 0.66 m/s) and 5 mm ~32 mL/kg/min (Qp:Qs 1.14). Fetal
-and transitional scenarios keep a high factor.
+## Assumptions and limitations
 
-**term_neonate (calibrated assumption, 2026-10):**
-- `diameter_fo` 1.5 mm (was 0, closed): a small left-to-right PFO carrying ~6 mL/kg/min (Qp:Qs ~1.03)
-- the basis:
-  - a PFO is the rule in the first days (none closed by day 3 in He 2011)
-  - neonatal CMR measures RV output a few mL/kg/min above LV output with the duct closed (Jhaveri
-    2023, Groves 2011)
-- the open PFO lets the scenario shunt right-to-left at atrial level when right pressures rise
-- see `scripts/_fix_term_fo.mjs` and [TermNeonateReference](./TermNeonateReference.md)
-
-> **Modelling note.** Until the engine review, each of the two parallel resistors carried the full
-> `res_fo`, so the FO's effective resistance was `res_fo / 2`: twice the conductance its diameter
-> implies. Scenarios fitted before the fix were compensated by scaling `diameter_fo` by 2^(1/4) ≈ 1.19
-> (Poiseuille R ∝ d⁻⁴). `velocity_fo` is computed from the **combined** flow
-> (`LA_RAIVCI.flow + LA_RASVC.flow`) over the single-orifice area from `diameter_fo`.
-
-## Velocity outputs
-
-```
-area     = π · (diameter_mm · 1e-3 / 2)²          [m²]
-velocity = (flow_L/s · 1e-3) / area               [m/s]   (0 when area = 0)
-```
-
-`velocity_fo` uses the summed FO flow; `velocity_vsd` uses the VSD flow.
-
-## Resistance formula — `calc_resistance(diameter, length, viscosity)`
-
-Standard Hagen-Poiseuille for a uniform cylinder:
-
-```
-R = (8 · μ · L) / (π · r⁴)        in Pa·s/m³   →  × 0.00000750062  →  mmHg·s/L
-```
-
-with diameter/length in mm and viscosity in cP. Returns the sentinel `1e8` (no flow) when
-`diameter ≤ 0` or `length ≤ 0`. (This is a private copy of the same formula [Pda](./Pda.md) uses.)
-
-## Orifice (Bernoulli) loss
-
-A restrictive FO or VSD is limited by its orifice, not only by viscous friction: Doppler measures the
-gradient as ΔP = 4v². On top of the Poiseuille resistance each defect carries the same quadratic
-orifice term as [Pda](./Pda.md), from the shared [`helpers/Orifice.js`](../helpers/Orifice.js):
-
-```
-ΔP = R·Q + B·Q²,    B = K_BERNOULLI / A_eff²,   A_eff = Cd · π(d/2)²  (Cd: FO 0.7, VSD 0.64)
-```
-
-The quadratic term is linearised semi-implicitly as a flow-dependent resistance `B·|Q_prev|`
-(unconditionally stable). For the FO each of the two parallel resistors carries half the area, so
-it gets `2·res_fo + 4·B_fo·|q_i|`; the VSD gets `res_vsd + B_vsd·|q|`. `velocity_fo_doppler` /
-`velocity_vsd_doppler` give the jet velocity `√(B·Q²/4)` with the sign of the flow.
-
-Effect on `term_neonate` with a VSD opened (60 s):
-
-| VSD | Qp:Qs | peak LV−RV | peak jet (4v²) | before the orifice term |
-|---|---|---|---|---|
-| 3 mm | 1.34 | 26 mmHg | 2.5 m/s (25 mmHg) | Qp:Qs 1.98, peak gradient 14 mmHg |
-| 5 mm | 1.59 | 31 mmHg | 2.8 m/s (32 mmHg) | Qp:Qs 1.97, peak gradient 2 mmHg |
-
-Before, every VSD from 3 mm up behaved as unrestrictive; now the shunt depends on the defect size.
+- **Echo-measured diameter, no flap.** All scenarios use `fo_lr_factor` 1: a diameter from an echo colour jet already reflects the flap's restriction. With 25, an FO was almost one-way (5 mm: Qp:Qs 0.99, Doppler 0.2 m/s). With 1, a 3 mm FO carries ~18 mL/kg/min (Qp:Qs 1.04, Doppler 0.66 m/s) and 5 mm ~32 mL/kg/min (Qp:Qs 1.14). Hiraishi 1991 finds a predominantly left-to-right PFO in most term newborns; Evans & Iyer 1994 a measurable Qp:Qs above ~3 mm.
+- **The foramen is not the lever for the fetal ventricular split.** At fetal sizes `res_fo` is ~13× below the tricuspid valve's resistance, so the two ventricles draw on a common atrial pressure. 6 → 3 mm moves RV:LV by 0 points; only below 2 mm does it bite, and then violently (1 mm: 73:27). See [fetal_circulation](./fetal_circulation.md).
+- **Absolute millimetres, not scaled.** `diameter_*` and the septal widths are set per scenario; no scaler touches them. Leaving `atrial_septal_width` at term thickness in a small body makes the foramen restrictive.
+- **Intrapulmonary shunt behaviour.**
+  - Pulmonary hypertension on its own shouldn't raise it: the hypoxaemia of PPHN comes from right-to-left flow across the duct and foramen, and in pulmonary vascular disease inert-gas studies find little shunt (Dantzker & Bower 1979).
+  - Its vessels belong to the same bed, so a general change in pulmonary tone should move IPSL/IPSR with it; the builder's PVR lever does this.
+  - The blunting of hypoxic vasoconstriction at very high pulmonary pressure (Benumof & Wahrenbrock 1975) isn't modelled.
+- **References resolve once.** A resistor added or removed at runtime is not picked up.
 
 ## Example definition (JSON)
 
-From `term_neonate.json` (a healthy term neonate: small PFO, VSD closed):
+From `term_neonate.json`, `models.Shunts` (trimmed to the config props; `components` holds the five resistors):
 
 ```json
 {
   "name": "Shunts",
-  "description": "shunts (FO, ASD, VSD) model",
   "model_type": "Shunts",
   "is_enabled": true,
   "diameter_fo": 1.5,
-  "diameter_fo_max": 10,
-  "diameter_vsd": 0,
-  "diameter_vsd_max": 10,
   "atrial_septal_width": 3,
-  "ventricular_septal_width": 5,
   "fo_lr_factor": 1,
-  "viscosity": 6,
-  "ips_res": 25000
+  "fo_svc_fraction": 0.5,
+  "discharge_coeff_fo": 0.7,
+  "diameter_vsd": 0,
+  "ventricular_septal_width": 5,
+  "discharge_coeff_vsd": 0.64,
+  "ips_res": 20402.6
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- A healthy term neonate runs with `diameter_fo = 0` and `diameter_vsd = 0` (closed); transitional and
-  congenital scenarios open them (e.g. patent foramen ovale, muscular/perimembranous VSD).
-- The fetal scenario keeps the FO open with a high `fo_lr_factor` so it shunts right-to-left, matching
-  fetal circulation (see [Placenta](./Placenta.md) and the term-fetus scenario).
-- `IPSL`/`IPSR` carry the intrapulmonary shunt independent of the septal defects; raising/lowering
-  `ips_res` tunes the shunt fraction. The gestational-age seed and RDS bundles of the patient builder
-  set it (lower in sicker lungs), [Surfactant](./Surfactant.md) modulates it through the resistors'
-  `r_factor_ps`, and the builder's oxygen and pulmonary-resistance levers move it (see
-  [Calibrator](./Calibrator.md)).
+One instance in every scenario. It owns `LA_RAIVCI`, `LA_RASVC` (LA → right-atrial halves), `VSD` (LV → RV), `IPSL` (`LL_ART` → `LL_VEN`) and `IPSR` (`RL_ART` → `RL_VEN`).
 
-## What the intrapulmonary shunt stands for
+**term_neonate calibration (2026-10):**
+- **Foramen:** `diameter_fo` 1.5 mm, a small left-to-right PFO of ~6 mL/kg/min (Qp:Qs ~1.03). Basis: no PFO has closed by day 3 (He 2011), and neonatal CMR finds RV output a few mL/kg/min above LV output with the duct closed (Jhaveri 2023, Groves 2011). It also lets the scenario shunt right-to-left at atrial level when right-sided pressures rise. See `scripts/_fix_term_fo.mjs` and [TermNeonateReference](./TermNeonateReference.md).
+- **Fetal scenarios:** `fo_svc_fraction` 0, the crista dividens. Before that, a third of the foramen flow came from the SVC half, and the aorta was only 0.9 saturation points above the pulmonary artery; with it the gap is 6.0 points (reference ~8). They also close the intrapulmonary shunts (`ips_res` 10⁸).
 
-Mostly **venous admixture from perfused but unventilated lung**: atelectatic, fluid- or
-meconium-filled units in RDS, meconium aspiration or pneumonia. Truly anatomic channels are small
-in a normal lung, but intrapulmonary arteriovenous anastomoses bypassing the capillaries can be
-open in BPD, alveolar capillary dysplasia, CDH and meconium aspiration
-([Galambos et al.](https://pmc.ncbi.nlm.nih.gov/articles/PMC3960909)).
+## References
 
-Consequences for how it should behave:
-
-- **Pulmonary hypertension on its own does not raise it.** The hypoxaemia of PPHN comes from
-  right-to-left flow across the duct and foramen ovale. In pulmonary vascular disease, inert-gas
-  measurements find little shunt despite very high resistance; hypoxaemia there comes mainly from low
-  mixed-venous oxygen ([Dantzker & Bower, JCI 1979](https://www.jci.org/articles/view/109542)).
-- **Its vessels belong to the same vascular bed and are, if anything, more constricted** (hypoxic
-  vasoconstriction, narrowed extra-alveolar vessels at low lung volume). That is why intravenous
-  vasodilators increase intrapulmonary shunt, while inhaled NO, which reaches only ventilated
-  units, lowers it. So a general change in pulmonary vascular tone should move `IPSL`/`IPSR` along
-  with the bed. The builder's pulmonary-resistance lever does this.
-- **A modest rise at very high pressure is plausible:** raised pulmonary vascular pressure blunts
-  hypoxic vasoconstriction (Benumof & Wahrenbrock, J Appl Physiol 1975). The model does not
-  represent that.
-
-## Notes & caveats
-
-- **`diameter_fo` is NOT the lever for the atrial split.** At fetal sizes `res_fo` is ~13x lower
-  than the tricuspid valve's resistance, so the foramen is a hole rather than a restriction and the
-  two ventricles draw from a common atrial pressure. Measured on the fetal scenarios, 6.0 -> 3.0 mm
-  moves RV:LV by 0 points; it only bites below 2 mm, where it swings violently (1 mm -> 73:27).
-  `fo_lr_factor` likewise has no effect on the split. What sets it is which ventricle ejects better
-  — see [fetal_circulation.md](./fetal_circulation.md).
-- **`diameter_fo` and `atrial_septal_width` are absolute millimetres that no scaler touches.**
-  `atrial_septal_width` is the length term in the foramen's resistance law, so leaving it at term
-  thickness in a scaled-down body makes the foramen artificially restrictive; see
-  [fetal_circulation.md](./fetal_circulation.md).
-- **References resolve only once.** After the five resistors are cached, they are never re-resolved; a
-  model added/removed at runtime would not be picked up. Missing wiring at first call is reported with
-  a single console warning.
-- **`viscosity` is a static input here** — unlike [Pda](./Pda.md) (which pulls it from its capacitance
-  each step), `Shunts.viscosity` is whatever the definition sets and does not track hematocrit.
-- **IPS resistance is fixed.** `IPSL`/`IPSR` always receive `ips_res`; there is no diameter or
-  flow-gating on them.
+- Hiraishi S, et al. *Heart* 1991. doi:10.1136/hrt.65.1.41 (PFO flow in term newborns).
+- Evans N, Iyer P. *J Pediatr* 1994. doi:10.1016/s0022-3476(94)70079-6 (atrial shunting and Qp:Qs).
+- Dantzker DR, Bower JS. *J Clin Invest* 1979, [jci.org/articles/view/109542](https://www.jci.org/articles/view/109542) (gas exchange in pulmonary vascular disease).
+- Benumof JL, Wahrenbrock EA. *J Appl Physiol* 1975 (pulmonary vascular pressure and hypoxic vasoconstriction).
+- Galambos C, et al. [PMC3960909](https://pmc.ncbi.nlm.nih.gov/articles/PMC3960909) (intrapulmonary arteriovenous anastomoses).
