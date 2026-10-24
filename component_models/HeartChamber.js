@@ -36,10 +36,6 @@ export class HeartChamber extends TimeVaryingElastance {
     this.so2 = -1.0; // o2 saturation
     this.hco3 = -1.0; // bicarbonate concentration (mmol/l)
     this.be = -1.0; // base excess (mmol/l)
-    this.el = 0.0;
-
-    this.elmin_calc = 0.0
-    this.elmax_calc = 0.9
   }
   // this method overrides the calc_elastances method of the 
   calc_elastances() {    
@@ -70,6 +66,11 @@ export class HeartChamber extends TimeVaryingElastance {
         + (this.el_k_factor_ps - 1) * this.el_k
         + (this.el_k_factor_scaling_ps - 1) * this.el_k
         + (this.el_k_remodel_factor - 1) * this.el_k     // chronic remodeling diastolic stiffening (HeartFunction)
+
+    // the ANS and drug lusitropy terms subtract, so the sum could fall below zero: an elastance can't be
+    // negative (it would give a negative diastolic pressure)
+    if (this.el_min_eff < 0.0) this.el_min_eff = 0.0;
+    if (this.el_k_eff < 0.0) this.el_k_eff = 0.0;
 
     // make sure that el_max is not smaller than el_min
     if (this.el_max_eff < this.el_min_eff) {
