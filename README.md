@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 A framework-agnostic, dependency-free physiological simulation engine (whole-body neonatal
-and adult cardiorespiratory model). It runs in a dedicated Web Worker (`ModelEngine.js`) and
+and fetal cardiorespiratory model; the adult scenarios are archived). It runs in a dedicated Web Worker (`ModelEngine.js`) and
 is controlled from the main thread through the `Model` wrapper (`Model.js`).
 
 This repository is self-contained: it has no runtime or build dependencies, and the tooling
@@ -190,25 +190,28 @@ A few things that bite newcomers: payloads crossing the worker boundary are JSON
 
 ### 4. Editing definitions
 
-1. Definitions live in `model_definitions/*.json`.
-2. Each entry contains `{ name, model_type, settings, inputs }`.
+1. Definitions live in `model_definitions/*.json`; the model list is `model_definition.models`.
+2. Each entry is flat: `name`, `model_type`, `is_enabled`, then the model's config props by name (another model is referenced by its name as a string). `init_model` copies every key onto the instance.
 3. Example block:
 
 ```json
 {
   "name": "MyDevice",
   "model_type": "MyDevice",
-  "settings": { "pressure": 18 },
-  "inputs": { "Lung": "Lung" }
+  "is_enabled": true,
+  "pressure": 18,
+  "lung_name": "LL"
 }
 ```
+
+See [`./docs/MODEL_DEFINITIONS.md`](./docs/MODEL_DEFINITIONS.md) for the full format.
 
 4. Reload via `explain.load("my_definition")` or rebuild in place with `explain.restart()`.
 
 ### 5. Debugging checklist
 
 - Watch worker traffic in DevTools (console logs prefixed with `Model:`).
-- Hook events: `document.addEventListener("status", (evt) => console.log(evt.detail))`.
+- Hook events: `explain.on("status", () => console.log(explain.statusMessage))`; `state` likewise fills `explain.modelState`, while `model_ready` and `error` pass a payload.
 - Snapshot: `explain.getModelState()`; inspect the payload emitted by the worker.
 - Missing models usually mean `model_type` typos or missing exports in `ModelIndex` (or, for your own models, in `CustomModelIndex`).
 
