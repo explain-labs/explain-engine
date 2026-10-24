@@ -19,11 +19,11 @@ export class Respiration extends BaseModelClass {
   static model_type = "Respiration";
 
   /*
-    The Respiration class is not a model but houses methods that influence groups of models. 
-    These groups contain models related to the respiratory tract. For example, the method 
-    `change_lower_airway_resistance` influences the resistance of the lower airways by 
-    setting the `r_factor` of the `DS_ALL` and `DS_ALR` gas resistors stored in a list 
-    called `lower_airways`.
+    The Respiration class is not a model but houses methods that influence groups of models.
+    These groups contain models related to the respiratory tract. For example,
+    `set_lower_airway_resistance` changes the resistance of the lower airways by adding its change
+    to the persistent `r_factor_ps` of the `DS_ALL` and `DS_ALR` gas resistors in `lower_airways`.
+    It also configures the series dead space and owns atelectasis (collapse, recruitment, resorption).
     */
   constructor(model_ref, name = "") {
     super(model_ref, name);
