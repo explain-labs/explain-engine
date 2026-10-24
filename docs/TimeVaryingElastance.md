@@ -32,7 +32,7 @@ BaseModelClass
 | `u_vol` | L | 0.0 | Unstressed volume (the end-systolic and end-diastolic relations share it). |
 | `el_min` | mmHg/L | 0.0 | Minimal (diastolic) elastance. |
 | `el_max` | mmHg/L | 0.0 | Maximal (end-systolic) elastance: contractility. |
-| `el_k` | mmHg/L² | 0.0 | Non-linear term of the diastolic relation, above `u_vol` only. 0 in every shipped chamber. |
+| `el_k` | mmHg/L² | 0.0 | Non-linear term of the diastolic relation, above `u_vol` only. The heart chambers of 8 scenarios use a pure quadratic diastolic relation (`el_min` 0, `el_k` > 0); see [HeartChamber](./HeartChamber.md#the-diastolic-relation). |
 | `vol` | L | 0.0 | Volume; the starting volume in a definition. |
 | `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. |
 | `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | – | 1.0 | Persistent factors. |
@@ -90,14 +90,14 @@ BaseModelClass
 - **Written by:** `Heart` (`act_factor`, contractility and relaxation factors); `PERICARDIUM` (`pres_ext`); the connected resistors and valves (volume); `ModelScaler`.
 - **Read by:**
   - the valves and connectors (`pres`), and `Heart` (volumes and pressures for the per-beat analysis: EDV, ESV, SV, EF);
-  - `Resistor`s with `implicit`, which read the instantaneous elastance `el_min_eff + (el_max_eff − el_min_eff)·act_factor` (without `el_k`);
+  - `Resistor`s with `implicit`, which read the instantaneous local elastance: the diastolic `el_min_eff + 2·el_k_eff·S` blended toward `el_max_eff` by `act_factor`;
   - `DataCollector` watchers (PV loops).
 
 ## Assumptions and limitations
 
 - **One unstressed volume for both relations.** The end-systolic relation passes through `u_vol` (`V0` = `u_vol`); a separate `V0` for the ESPVR isn't modelled.
 - **Linear systolic relation.** `el_max` is a constant slope; the curvature of the real ESPVR at high loads is ignored.
-- **Diastolic relation linear in practice.** `el_k` is supported but 0 in every shipped chamber, so the diastolic relation is linear. The only diastolic non-linearity left is the pericardium (see [Container](./Container.md)).
+- **Quadratic, not exponential, diastolic relation.** The diastolic term is `el_min·S + el_k·S²`; real EDPVRs are steeper (power law with exponent ~2.8, Klotz 2006). A pure quadratic (used for the heart chambers) is the closest this form gets. Apart from it, the pericardium is the only diastolic non-linearity.
 - **No force–velocity or length-dependent activation.** Contraction depends on volume and activation only. Shortening deactivation and the Frank–Starling length effect on activation aren't modelled; preload acts through the pressure–volume relation alone.
 - **Below the unstressed volume** the systolic term goes strongly negative (`el_max · S`), which acts as early-diastolic suction.
 
@@ -122,13 +122,15 @@ No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this clas
 
 Six instances in every shipped scenario:
 
-| Instance | Class | Activation | term_neonate `el_min` / `el_max` (mmHg/L) | `u_vol` (mL) |
+| Instance | Class | Activation | term_neonate `el_min` / `el_k` / `el_max` | `u_vol` (mL) |
 |---|---|---|---|---|
-| `LV` | HeartChamber | `vaf` | 1166 / 30478 | 0.73 |
-| `RV` | HeartChamber | `rvaf` | 1167 / 28120 | 4.0 |
-| `LA` | HeartChamber | `aaf` | 1203 / 2975 | 0 |
-| `RAIVCI`, `RASVC` | HeartChamber | `aaf` | 2406 / 5947 each | 0 |
-| `COR` | BloodTimeVaryingElastance | `vaf` | 30000 / 90000 | 0.28 |
+| `LV` | HeartChamber | `vaf` | 0 / 1.56·10⁵ / 30478 | 0.73 |
+| `RV` | HeartChamber | `rvaf` | 0 / 1.79·10⁵ / 28120 | 4.0 |
+| `LA` | HeartChamber | `aaf` | 0 / 2.11·10⁵ / 2975 | 0 |
+| `RAIVCI`, `RASVC` | HeartChamber | `aaf` | 0 / 9.20·10⁵ / 5947 each | 0 |
+| `COR` | BloodTimeVaryingElastance | `vaf` | 30000 / 0 / 90000 | 0.28 |
+
+(`el_min`, `el_max` in mmHg/L, `el_k` in mmHg/L². preterm_25wk and bischoff_ltr_pda still have linear chambers, `el_k` 0.)
 
 The heart chambers are owned by `Heart`, the coronary bed by `Mob`.
 

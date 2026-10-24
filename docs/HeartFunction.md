@@ -134,7 +134,7 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
   - +50 mL blood volume → LV factor 0.84 (LA 17.6);
   - PVR ×4 → RV 0.81;
   - arterioles ×3 → LV 0.96.
-- **Concentric remodelling does not thicken the wall.** The wall volume is fixed by heart weight, so there is no compensating fall in stress. Its diastolic stiffening acts on `el_k`, which is 0 in every shipped chamber, so in practice it only lowers contractility. To be revisited.
+- **Concentric remodelling does not thicken the wall.** The wall volume is fixed by heart weight, so there is no compensating fall in stress. Its diastolic stiffening acts on `el_k`, which is the whole diastolic stiffness of the chambers in 8 scenarios but 0 in the two still-linear ones (`preterm_25wk`, `bischoff_ltr_pda`), where concentric remodelling only lowers contractility. To be revisited.
 - **Spherical geometry for both ventricles.** The crescent-shaped RV is treated as a sphere with 15 % of the heart mass.
 - **The heart-weight relation has a large intercept** (7.8 g), so small infants get relatively thick walls and low wall stress. The stress values compare within a scenario, not between sizes.
 - **One-beat start-up transient.** Right after a scenario loads, the first latched beat can exceed the dead-band briefly (bischoff_ltr_pda: LV end-diastolic 1.54 ×). The effect on the load factor is about 10⁻⁵.

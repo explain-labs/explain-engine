@@ -77,8 +77,10 @@ These factors are not reset each step; their writers hold them. The props `Blood
                             + (el_max_load_factor − 1) + (el_max_remodel_factor − 1)
                             + (ans_activity − 1)·ans_sens)                      ← added: inotropy
    el_k_eff   = el_k · (1 + (el_k_factor − 1) + (el_k_factor_ps − 1) + (el_k_factor_scaling_ps − 1)
-                          + (el_k_remodel_factor − 1))
+                          + (el_k_remodel_factor − 1)
+                          + (the el_min modulation above: relaxation, drug lusitropy, ANS))
    ```
+   The diastolic modulation scales the **whole** diastolic curve, `el_min` and `el_k` alike, so relaxation, lusitropy and the ANS still act on a chamber whose diastolic stiffness is quadratic.
    Then:
    - `el_min_eff` and `el_k_eff` are floored at 0 (the subtracted terms could take them below);
    - `el_max_eff` is raised to `el_min_eff` if it falls below it;
@@ -121,7 +123,7 @@ The scaling layers are written by `ModelScaler`, and the `Calibrator` also write
 
 - **Additive composition.** Large simultaneous effects add linearly. Several large negative terms together can only be stopped by the floor at 0.
 - **One ANS signal, all chambers.** The atria and both ventricles get the same `ans_activity` and `ans_sens`.
-- **Linear diastolic relation.** `el_k` is 0 in every shipped chamber; `el_k_remodel_factor` therefore has no effect until `el_k` is set.
+- **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law. Two scenarios still use linear chambers.
 - **One unstressed volume** for the diastolic and systolic relations (inherited).
 - **Right-ventricle unstressed volume.** term_neonate has RV `u_vol` 4.0 mL against LV 0.73 mL.
 
@@ -136,12 +138,23 @@ From `term_neonate.json`, `models.Heart.components.LV` (trimmed to the config pr
   "is_enabled": true,
   "vol": 0.00606,
   "u_vol": 0.000733,
-  "el_min": 1166.2,
+  "el_min": 0,
   "el_max": 30477.7,
-  "el_k": 0,
+  "el_k": 156107,
   "ans_sens": 1
 }
 ```
+
+## The diastolic relation
+
+Normal hearts stiffen steeply as they fill. Volume-normalised end-diastolic pressure–volume curves share one shape across human, dog and rat hearts, `EDP ∝ V^2.79` (Klotz 2006). The engine's diastolic term is `el_min·S + el_k·S²` (`S = vol − u_vol`). The closest it gets is a **pure quadratic**, `el_min` 0 with all the stiffness in `el_k`: local stiffness at rest is then 2× the average, against 2.8× for the power law.
+
+In 8 scenarios all five chambers use the pure quadratic, with `el_k` fitted by `scripts/_fix_chamber_edpvr.mjs`:
+- **Fit:** the resting end-diastolic (ventricles) and mean (atria) volumes are unchanged, and so are the resting vitals.
+- **Right atrium:** the two halves share one `el_k`, and their connector `RAIVCI_RASVC` is `implicit`. With stiffening atria the explicit scheme of that low-resistance connector oscillated.
+- **Effect:** in term_neonate with the reflexes off, +30 mL of blood raises stroke volume +17 % (linear: +34 %) and LV EDP +5.6 mmHg (linear: +3.6). That is the limited preload reserve of the newborn heart.
+
+`preterm_25wk` and `bischoff_ltr_pda` still use linear chambers. These small left-to-right-duct patients respond to the curve shape itself (HR +4/+9 bpm, SvO2 −1.3 %), so they are converted only when they are re-validated against their reference values.
 
 ## Usage in the scenarios
 
@@ -167,4 +180,6 @@ Constraints on the resistance and mixing:
 
 ## References
 
-This class introduces no literature-derived values. For the time-varying elastance concept see [TimeVaryingElastance](./TimeVaryingElastance.md#references). Chamber elastances are scenario calibrations (see [TermNeonateReference](./TermNeonateReference.md)).
+- Klotz S, Hay I, Dickstein ML, et al. Single-beat estimation of end-diastolic pressure-volume relationship: a novel method with potential for noninvasive application. *Am J Physiol Heart Circ Physiol* 2006;291(1):H403–H412. [doi:10.1152/ajpheart.01240.2005](https://doi.org/10.1152/ajpheart.01240.2005)
+
+Otherwise this class introduces no literature-derived values. For the time-varying elastance concept see [TimeVaryingElastance](./TimeVaryingElastance.md#references). Chamber elastances are scenario calibrations (see [TermNeonateReference](./TermNeonateReference.md)).
