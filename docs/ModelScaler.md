@@ -2,7 +2,7 @@
 
 `ModelScaler` (`helpers/ModelScaler.js`) is engine infrastructure, not a physiological model. It scales whole groups of components at once: blood volumes, systemic or pulmonary resistances and elastances, heart contractility and stiffness, lungs and airways, the thorax and pericardium, and the patient's weight. A factor of 1.0 means no change. Each group targets an explicit list of components from the scenario's `scaler_config`.
 
-It is created once per build (`model.ModelScaler = new ModelScaler(model, model.scaler_config)`) and driven by `scaleModel(group, factor)` (main thread) → `PUT "scale"` → `ModelEngine.scale_model`, which dispatches on the group name.
+It is created once per build (`model.ModelScaler = new ModelScaler(model, model.scaler_config)`) and driven by `scaleModel(group, factor)` (main thread) → `POST "scale"` → `ModelEngine.scale_model`, which dispatches on the group name.
 
 ## Who uses it
 
