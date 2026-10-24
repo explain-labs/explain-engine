@@ -12065,9 +12065,7 @@
       "pres_in": -2.9779572297057704,
       "el_eff": 50,
       "u_vol_eff": 0.267,
-      "el_k_eff": 0,
-      "pres_cc": 0,
-      "pres_mus": 0
+      "el_k_eff": 0
      },
      "GASEX_LL": {
       "name": "GASEX_LL",
