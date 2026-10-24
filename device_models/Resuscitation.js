@@ -47,6 +47,9 @@ export class Resuscitation extends BaseModelClass {
     // -----------------------------------------------
     // initialize dependent properties
     this.chest_comp_pres = 0.0; // compression pressure (mmHg)
+    // the ventilator settings CPR replaced, restored when CPR stops. Public so a state saved during
+    // CPR still restores them after a reload (otherwise the ventilator stays at the 1/min backup)
+    this.vent_settings_saved = null;
 
     // -----------------------------------------------
     // local variables
@@ -60,7 +63,6 @@ export class Resuscitation extends BaseModelClass {
     this._vent_interval = 0.0; // interval between ventilations within a pause (s)
     this._vent_counter = 0.0; // ventilation interval counter (s)
     this._vent_breath_count = 0; // breaths already delivered in the current pause
-    this._vent_settings = null; // the ventilator settings CPR replaced, restored when CPR stops
   }
 
   init_model(args = {}) {
@@ -151,10 +153,9 @@ export class Resuscitation extends BaseModelClass {
       this._ventilator?.trigger_breath();
     }
 
-    // apply the compression force to the targets as an external pressure. Every compartment reads
-    // pres_ext (Capacitance / TimeVaryingElastance / Container / GasCapacitance) — unlike pres_cc,
-    // which only GasCapacitance reads. Use += so it composes with other external
-    // pressures (e.g. the thorax container) and is reset by each compartment's calc_pressure per step.
+    // apply the compression force to the targets as an external pressure, which every compartment
+    // reads (Capacitance / TimeVaryingElastance / Container / GasCapacitance). Use += so it composes
+    // with other external pressures (e.g. the thorax container); each compartment resets it per step.
     for (const [key, value] of Object.entries(this.chest_comp_targets)) {
       const m = this._model_engine.models[key];
       if (m) m.pres_ext += this.chest_comp_pres * value;
@@ -170,8 +171,8 @@ export class Resuscitation extends BaseModelClass {
       if (this.cpr_enabled) return; // already running: keep the settings saved at the first switch
       // remember what CPR replaces, so switching CPR off hands back the ventilator as it was set
       if (v) {
-        this._vent_settings = {};
-        VENT_SETTINGS.forEach((key) => { if (key in v) this._vent_settings[key] = v[key]; });
+        this.vent_settings_saved = {};
+        VENT_SETTINGS.forEach((key) => { if (key in v) this.vent_settings_saved[key] = v[key]; });
       }
       v?.switch_ventilator(true);
       v?.set_fio2(this.vent_fio2);
@@ -193,13 +194,13 @@ export class Resuscitation extends BaseModelClass {
     } else {
       // the ventilator keeps running and spontaneous breathing stays off — the post-arrest,
       // still-ventilated patient — but with the settings it had before CPR (not the 1/min backup)
-      if (v && this._vent_settings) {
-        const { fio2, ...settings } = this._vent_settings;
+      if (v && this.vent_settings_saved) {
+        const { fio2, ...settings } = this.vent_settings_saved;
         Object.assign(v, settings);
         if (fio2 !== undefined) v.set_fio2(fio2); // rebuilds the fresh gas
         v._sync_from_generic?.();
       }
-      this._vent_settings = null;
+      this.vent_settings_saved = null;
       this.cpr_enabled = false;
     }
   }

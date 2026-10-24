@@ -12333,10 +12333,7 @@
     "vent_pres_peep": 5,
     "vent_insp_time": 1,
     "vent_fio2": 0.21,
-    "chest_comp_pres": 0,
-    "breathing_model": [
-     "Breathing"
-    ]
+    "chest_comp_pres": 0
    },
    "Monitor": {
     "name": "Monitor",
