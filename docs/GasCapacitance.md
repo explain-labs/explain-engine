@@ -1,368 +1,171 @@
 # GasCapacitance
 
-A `GasCapacitance` is a volume compartment that holds **gas** instead of blood. It extends the base
-[`Capacitance`](./Capacitance.md) with gas-specific state: a five-species composition
-(O₂, CO₂, N₂, water vapour, "other") tracked as concentrations, partial pressures and fractions,
-plus temperature/humidity dynamics and the atmospheric/external pressures relevant to a gas space.
-It models airways, alveoli and the gas side of devices (ventilator circuit, ECLS sweep gas).
+A `GasCapacitance` is a compliant gas compartment: the mouth, the airway dead space, the alveoli, and the gas lines of the ventilator and the ECLS oxygenator. On top of [Capacitance](./Capacitance.md)'s pressure–volume behaviour it carries a gas composition (O2, CO2, N2, water vapour, other), absolute pressure, temperature and humidity. Gas mixes in with every inflow, is warmed and humidified by the wall, and expands and contracts with temperature (ideal gas law). The airway dead space can carry its gas as a plug through a chain of sub-tanks instead of one well-mixed volume.
+
+## Physiology
+
+Air moves into the lungs because the alveolar pressure falls below the pressure at the mouth. On the way it is warmed and saturated with water by the airway lining; the heat and water come from the body. The first gas to reach the alveoli is the gas left in the **dead space** (the conducting airways) from the last expiration, rich in CO2. Only the part of each breath beyond the dead-space volume brings fresh gas, so alveolar ventilation = (tidal volume − dead space) × rate. With very small breaths, as in high-frequency oscillation, gas transport depends on dispersion along the airways rather than bulk flow.
+
+Partial pressures follow Dalton's law: each gas's share of the molecules times the total pressure. The capnograph at the airway opening sees the gas at the mouth end of the dead space.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Capacitance          (volume, elastance, pressure)
-        └── GasCapacitance (gas composition, heat, water vapour, atmospheric/external pressures)
+  └── Capacitance
+        └── GasCapacitance
 ```
-
-Gas flow into and out of a `GasCapacitance` is handled by separate `Resistor` models that reference
-it (e.g. `MOUTH_DS` connecting `MOUTH` → `DS`). Diffusion of individual species is handled by
-[`GasExchanger`](./GasExchanger.md) (gas ↔ blood) and [`GasDiffusor`](./GasDiffusor.md) (gas ↔ gas).
-
-## What it models
-
-A passive gas-containing compartment. It holds a volume of gas at a pressure determined by its
-elastance plus the surrounding pressures (atmospheric, chest-compression, muscle), and tracks the
-composition of that gas. Each step it relaxes its temperature toward a target, exchanges water
-vapour with its wall (evaporating toward `humidity · P_sat(T)`, condensing out anything above
-saturation), recomputes pressure, and re-derives the partial pressures and fractions from the
-current concentrations. Like its parent it has no built-in resistance or flow.
 
 ## Properties
 
-### Inherited from Capacitance
+Volume, unstressed volume, elastances and their factor layers, `pres_ext` and `fixed_composition` come from [Capacitance](./Capacitance.md#properties). `fixed_composition: true` makes an **infinite reservoir**: volume, composition, temperature and water all stay constant (MOUTH, `VENT_GASIN`, `ECLS_GAS_SOURCE`).
 
-See [`Capacitance`](./Capacitance.md) for the full list and the factor system. Key ones:
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume (config) |
-| `el_base` | mmHg/L | Baseline elastance (config) |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient (config) |
-| `pres_ext` | mmHg | External pressure, non-persistent — cleared each step (config) |
-| `fixed_composition` | bool | Freeze volume and composition (infinite reservoir) (config) |
-| `vol` | L | Current volume (computed) |
-| `pres` | mmHg | Total pressure (computed) |
-| `pres_in` | mmHg | Recoil pressure (computed) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `pres_atm` | mmHg | 760 | Atmospheric pressure; set by [Gas](./Gas.md). |
+| `target_temp` | °C | 0 | Temperature the wall warms the gas toward; set by Gas (and, for the body-warmed compartments, from core temperature). |
+| `humidity` | fraction | 1.0 | How wet the wall is: the relative humidity evaporation can reach (airway mucosa 1, dry gas line 0, MOUTH 0.5). |
+| `temp_tc` | s | 1.0 | Thermal equilibration time constant. |
+| `h2o_tc` | s | 0.2 | Water vapour equilibration time constant. |
 
-`GasCapacitance` also re-initializes `fixed_composition` to `false` in its own constructor.
+### Config: series dead space (set by Respiration and the Ventilator)
 
-### Config (unique to GasCapacitance)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `series_segments` | – | 1 | Number of composition sub-tanks; 1 = well mixed. DS: 32 in every scenario. |
+| `distal_models` | list | `[]` | Neighbours at the distal end (DS: `ALL`, `ALR`). |
+| `dispersion_coeff` | – | 0 | Flow-driven (Taylor-type) axial dispersion strength. DS: 0.015. |
+| `dispersion_tau_max` | s | 0.1 | Cap on the one-way flow time in the dispersion term. |
+| `diffusion_rate` | L/s per interface | 0 | Flow-independent (molecular) exchange. DS: 1e-5. |
+| `tube_port_model` | – | `""` | Neighbour reached through the ET-tube lumen (the ventilator circuit); set by the Ventilator. |
+| `tube_volume` | L | 0 | Rigid ET-tube lumen ahead of the tube port: π r² L while intubated, 0 otherwise (4 mm × 110 mm = 1.4 mL). |
+| `tube_segments` | – | 3 | Sub-tanks of the tube lumen. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `pres_atm` | mmHg | Atmospheric pressure (default 760); set by the [`Gas`](./Gas.md) manager at build |
-| `pres_cc` | mmHg | Chest-compression external pressure, non-persistent — cleared each step |
-| `pres_mus` | mmHg | Muscle external pressure, non-persistent — cleared each step |
-| `target_temp` | °C | Temperature the gas relaxes toward. Seeded per-site by `Gas`; for the body-warmed airway compartments (`DS`/`ALL`/`ALR`) it then **rides body core temperature** each thermoregulation update — see below |
-| `temp` | °C | Current gas temperature (also runtime state; seeded by `Gas`) |
-| `humidity` | fraction | **Wall wetness**: the relative humidity this compartment can sustain by evaporation, 0–1. Read every step by `add_watervapour` — it is a target, not a state variable. Airway mucosa is `1.0`; a dry medical gas line is `0.0`. Default `1.0` |
-| `temp_tc` | s | Thermal equilibration time constant (default `1.0`) |
-| `h2o_tc` | s | Water-vapour equilibration time constant (default `0.2`) |
-
-### Computed (gas state)
-
-Concentrations are in mmol/L; partial pressures in mmHg; fractions are unitless 0–1.
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `ctotal` | mmol/L | Total gas molecule concentration (`ch2o + co2 + cco2 + cn2 + cother`) |
-| `co2` | mmol/L | Oxygen concentration (note: the name is "concentration of O₂", not CO₂) |
-| `cco2` | mmol/L | Carbon dioxide concentration |
-| `cn2` | mmol/L | Nitrogen concentration |
-| `ch2o` | mmol/L | Water vapour concentration |
-| `cother` | mmol/L | Other-gases concentration |
-| `po2` | mmHg | Partial pressure of O₂ |
-| `pco2` | mmHg | Partial pressure of CO₂ |
-| `pn2` | mmHg | Partial pressure of N₂ |
-| `ph2o` | mmHg | Partial pressure of water vapour |
-| `pother` | mmHg | Partial pressure of other gases |
-| `pres_rel` | mmHg | Pressure relative to atmospheric (`pres − pres_atm`) |
-| `fo2` | fraction | Fraction of O₂ |
-| `fco2` | fraction | Fraction of CO₂ |
-| `fn2` | fraction | Fraction of N₂ |
-| `fh2o` | fraction | Fraction of water vapour |
-| `fother` | fraction | Fraction of other gases |
+| `pres` | mmHg | Absolute pressure: recoil + `pres_ext` + `pres_atm`. |
+| `pres_rel` | mmHg | Pressure relative to atmospheric (airway / alveolar pressure as a clinician reads it). |
+| `temp` | °C | Gas temperature. |
+| `ctotal` | mmol/L | Total gas concentration. |
+| `co2`, `cco2`, `cn2`, `ch2o`, `cother` | mmol/L | Concentrations per species. |
+| `po2`, `pco2`, `pn2`, `ph2o`, `pother` | mmHg | Partial pressures. |
+| `fo2`, `fco2`, `fn2`, `fh2o`, `fother` | – | Fractions of the (wet) gas. |
 
-`_gas_constant = 62.36367` (L·mmHg/(mol·K)) is a local constant used by `add_heat` / `add_watervapour`.
+With series dead space on, the partial pressures and fractions are those of the **airway-opening** sub-tank (what a capnograph samples); the concentrations are the bulk mean.
 
-## Factor system
+## Calculation
 
-`GasCapacitance` inherits the full three-tier factor system from [`Capacitance`](./Capacitance.md)
-acting on `el_base`, `u_vol` and `el_k`:
+Each step (`calc_model`):
 
-| Tier | Factors | Purpose |
-|---|---|---|
-| Non-persistent | `el_base_factor`, `u_vol_factor`, `el_k_factor` | Transient effects, reset to 1.0 each step |
-| Persistent (`_ps`) | `el_base_factor_ps`, `u_vol_factor_ps`, `el_k_factor_ps` | Ongoing modulation (e.g. lung recruitment) |
-| Scaling (`_scaling_ps`) | `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `el_k_factor_scaling_ps` | `ModelScaler` weight/manual scaling |
+1. **`add_heat`** (not for fixed compartments). Relax `temp` toward `target_temp`: `dT = (target − temp) · min(1, dt/temp_tc)`. The gas expands by `dV = n·R·dT / p` and every concentration dilutes by `V₀/V₁` (heating moves no molecules). The sensible heat drawn from the wall, `n · 29.1 J/(mol·K) · dT`, is metered.
+2. **`add_watervapour`** (not for fixed compartments). Asymmetric target:
+   - **evaporate** up to `humidity × SVP(temp)` (see [Units](./Units.md));
+   - **condense** only out of supersaturation, down to `SVP(temp)`;
+   - in between, the wall is neither source nor sink (a dry gas line doesn't dehumidify wet gas).
 
-The gas composition itself is **not** factor-driven (no `*_factor` on the concentrations).
+   The water concentration for the target is solved directly and approached with `min(1, dt/h2o_tc)`. Dry species dilute (or concentrate) by `V₀/V₁`. The latent heat, 43.4 kJ/mol, is metered; condensing returns it.
+3. With series dead space: the same change is replayed on every sub-tank, then dispersion and diffusion between sub-tanks.
+4. **Elastances, volumes, pressure** (Capacitance): `pres = recoil + pres_ext + pres_atm`; `pres_ext` is reset.
+5. **`calc_gas_composition`:** `ctotal` = sum of the species; partial pressure = (c / ctotal) × `pres`; fractions likewise.
 
-`temp_tc` and `h2o_tc` are deliberately plain scalars rather than factor triplets. The factor
-convention is for core physics parameters that interventions and `ModelScaler` modulate; these are
-equilibration kinetics that nothing currently sweeps, so they sit in the same category as
-`target_temp`, `pres_atm` and `fixed_composition` — configuration, not modulated physics. The
-additive-factor form composes onto a scalar cleanly if a consumer ever needs it.
+**Mixing (`volume_in`).** An inflow of `dvol` from a neighbour mixes in by volume: `c = (c·V + (c_in − c)·dvol) / V`, and the same for temperature. Before that:
+- A **fixed-composition receiver** stays unchanged.
+- **Gas from a pressurised fixed source** (e.g. the 1160 mmHg ventilator supply) is rescaled by `P_here / P_source`, so it arrives at the receiver's molar density; fractions are unchanged.
+- **Between two ordinary compartments there is no rescaling,** so every molecule the donor loses arrives (rescaling there lost ~1 % of VO2 per transfer).
 
-## Calculation cycle (`calc_model`)
+The incoming parcel keeps its temperature; `add_heat` handles the thermal expansion.
 
-`GasCapacitance` overrides `calc_model` (it does not simply inherit the Capacitance cycle):
-
-1. **`add_heat`** — relax `temp` toward `target_temp` with a first-order lag whose time constant is
-   in **seconds**: `dT = (target_temp − temp) · min(1, Δt / temp_tc)`, then `temp += dT`. Adjust
-   volume for the temperature change via the ideal gas law `dV = (ctotal · vol · R · dT) / pres`
-   (added as `dV / 1000`). Skipped entirely when `fixed_composition` — an infinite reservoir holds
-   its temperature, just as `volume_in` holds its composition. Volume is floored at 0.
-2. **`add_watervapour`** — exchange water with the compartment wall. Two distinct mechanisms give
-   an **asymmetric** target:
-   - *Evaporation* raises `ph2o` up to `humidity · pH2Ot`.
-   - *Condensation* lowers `ph2o`, but only out of genuine supersaturation (`ph2o > pH2Ot`), and
-     only down to `pH2Ot`.
-
-   Between the two the wall is neither source nor sink and nothing happens. That dead band is what
-   stops a dry gas line (`humidity = 0`) from acting as a dehumidifier on wet gas flowing into it;
-   for a saturated wall (`humidity = 1`) it has zero width and the rule reduces to "track
-   saturation". Having picked a target pressure `p_target`, the water concentration that achieves it
-   against the current **dry** gas load is solved directly rather than iterated:
-
-   ```
-   c_dry       = co2 + cco2 + cn2 + cother
-   ch2o_target = c_dry · p_target / (pres − p_target)
-   ch2o       += (ch2o_target − ch2o) · min(1, Δt / h2o_tc)
-   ```
-
-   The volume the added (or removed) water occupies follows from the ideal gas law. Skipped when
-   `fixed_composition`.
-
-   Because the step is a *fraction of the remaining gap* toward a concentration — rather than an
-   absolute mmol amount — the time constant is independent of compartment size. Because that
-   fraction is `Δt / tc`, it is also independent of `modeling_stepsize`. Both `min(1, …)` clamps
-   mean a step longer than the time constant lands exactly on target instead of overshooting into
-   oscillation.
-3. **`calc_elastances` / `calc_volumes`** (inherited) compute `el_eff`, `u_vol_eff`, `el_k_eff`.
-4. **`calc_pressure`** — calls `super.calc_pressure()` (recoil + `pres_ext`, then clears `pres_ext`),
-   then adds the gas-space external pressures:
-   ```
-   pres     = pres_in + pres_ext + pres_cc + pres_mus + pres_atm
-   pres_rel = pres − pres_atm
-   pres_cc := 0;  pres_mus := 0          (both non-persistent, cleared each step)
-   ```
-5. **`calc_gas_composition`** (the method, see below) — recompute `ctotal` and derive partial
-   pressures and fractions from the current concentrations.
-
-### `calc_watervapour_pressure`
-
-Saturated water-vapour pressure as a function of temperature (Kelvin via `+273.15`):
-
-```
-pH2Ot = exp(20.386 − 5132 / (temp + 273.15))
-```
-
-An Antoine-type form returning mmHg: 46.49 at 37 °C, 35.45 at 32 °C, 17.81 at 20 °C.
-
-### Modelling assumptions for heat and water
-
-- **The water source is unlimited, but its heat cost is now metered.** There is no liquid reservoir
-  behind the wall, so a compartment with `humidity > 0` can evaporate indefinitely, and respiratory
-  *water* loss is still not conserved anywhere. The *energy* is: `add_heat` accumulates
-  `n_gas · _cp_molar · dT` into `_q_wall_sensible` and `add_watervapour` accumulates
-  `n_h2o · _latent_h2o` into `_q_wall_latent`, both **signed**, so gas cooling and condensing credit
-  heat back to the wall. [`Gas.drain_respiratory_heat()`](./Gas.md) sums and clears these across the
-  body-warmed compartments and [`Thermoregulation`](./Thermoregulation.md) charges the total to the
-  body's heat balance as `Q_resp`. The accumulators are `_`-prefixed deliberately: `ModelEngine`
-  strips `_` keys from state dumps, keeping them out of scenario JSON and out of `reseed_*.mjs`.
-  Note `Thermoregulation.rel_humidity` remains a separate *skin* term and is still not coupled here.
-- **Condensate is discarded.** Water that condenses out of supersaturated gas simply leaves the
-  system; it does not pool, drain, or re-evaporate.
-- **Brief supersaturation during expiration is expected, not a defect.** Condensation is a
-  first-order lag, so a compartment can sit a little above 100 % RH while advection supplies water
-  faster than `h2o_tc` removes it. In `term_neonate` the dead space swings between roughly 68 % and
-  102 % RH over a breath as its temperature moves between about 22 °C and 35 °C — expiration pushes
-  saturated 36 °C alveolar gas (≈44.7 mmHg) into a cooler space that can only hold ≈42 mmHg. That
-  is exhaled breath condensate. Sample a full cycle before concluding a compartment is wrong; an
-  instantaneous reading lands at an arbitrary breath phase.
-- **`fixed_composition` compartments are inert to both heat and water.** They are infinite
-  reservoirs, so `add_heat` and `add_watervapour` both skip them, matching how `volume_in` already
-  holds their composition and temperature against advective mixing. Their `humidity` is therefore
-  *not* self-correcting: it is applied once, by [`Gas`](./Gas.md) at build time (from
-  `humidity_settings`/`temp_settings`) or by `set_humidity`/`set_temperature` at runtime, both of
-  which rebuild the composition explicitly. Changing `humidity` on such a compartment by any other
-  route leaves `ph2o` stale.
-- **Humidifying the inspired gas barely moves the alveolar gas — this is correct.** Raising `MOUTH`
-  from 50 % to 100 % RH at 20 °C changes alveolar `ph2o` by ≈0.2 mmHg and `po2` not at all, because
-  the airway wall already saturates the gas before it arrives. A heated humidifier (37 °C, 100 % RH)
-  raises alveolar `ph2o` from ≈44 to ≈46 mmHg, essentially by removing the inspiratory cooling. What
-  a humidifier really changes clinically is *where the water comes from* — the device instead of the
-  mucosa — and since the wall is an unlimited source with no water or heat debt (first bullet),
-  that benefit has nothing to attach to here.
-- **No water or heat crosses the blood–gas barrier.** [`GasExchanger`](./GasExchanger.md) and
-  [`GasDiffusor`](./GasDiffusor.md) transfer only O₂ and CO₂. An alveolus is humidified from its own
-  `target_temp`, not from pulmonary capillary blood.
-- **`target_temp` tracks body core temperature (for the body-warmed compartments).**
-  [`Thermoregulation`](./Thermoregulation.md) pushes `core_temp` onto the perfused airway
-  compartments each update via `Gas.set_body_temperature` — the alveoli (`ALL`/`ALR`) target core
-  directly, the dead space (`DS`) holds its build-time offset (≈5 °C) below it. So a febrile or
-  hypothermic patient conditions inspired gas toward the *actual* core, not a hard 37 °C, and the
-  alveolar gas moves with the blood it exchanges with. The coupling is **neutral at rest** (at
-  core == set-point the targets equal their build values) and inactive when thermoregulation is
-  absent or disabled (targets stay at their seeded values). `MOUTH` is excluded — it is the
-  inspired-air source, warmed by the environment, not the body. A residual ~1–2 °C alveolar-below-
-  core deficit remains from tidal mixing with cooler dead-space gas.
-- **Both routines conserve molar mass.** Heating and humidification change the volume, so each
-  rescales every concentration by `V₀/V₁` afterwards. Heating moves no molecules at all;
-  humidification moves only water. Without that rescale the compartment would keep its
-  concentrations while growing, inventing gas out of nothing — measured at +5.8 % dry moles for a
-  20 → 37 °C warm-up and +6.7 % for a dry → saturated humidification. The error was invisible in
-  every clinical output, because those are all ratios (`fo2 = co2/ctotal`, `po2 = fo2 · pres`) in
-  which a uniform inflation cancels exactly.
-
-- **Gas expands across a pressure gradient on transfer.** `volume_in` scales the incoming molar
-  density by `P_here / P_there` (see below). With that and the mass conservation above, `ctotal`
-  agrees with the ideal gas law to within ~2 % everywhere, including under mechanical ventilation.
-
-### `calc_gas_composition` (method)
-
-Recomputes the total concentration and derives partials/fractions from the **current** species
-concentrations (returns early if `ctotal === 0` to avoid division by zero):
-
-```
-ctotal = ch2o + co2 + cco2 + cn2 + cother
-p_s    = (c_s / ctotal) · pres        for s ∈ {h2o, o2, co2, n2, other}
-f_s    =  c_s / ctotal
-```
-
-This is distinct from the standalone [`calc_gas_composition`](./GasComposition.md) *initializer*,
-which instead sets the concentrations from a target FiO₂/temperature/humidity mix.
-
-## Composition mixing (`volume_in`)
-
-`GasCapacitance` overrides `volume_in(dvol, comp_from)`. It calls `super.volume_in` to update the
-volume, then mixes the incoming concentrations and temperature by volume fraction (the same
-algebraically-correct dilution as [`BloodCapacitance`](./BloodCapacitance.md)) — but first corrects
-the incoming molar density for the pressure difference between the two compartments:
-
-```
-k    = pres / comp_from.pres                                (1.0 at equal pressure)
-co2  = (co2·vol  + (comp_from.co2·k − co2)·dvol) / vol      (and cco2, cn2, ch2o, cother)
-temp = (temp·vol + (comp_from.temp  − temp)·dvol) / vol
-```
-
-**Why `k` is needed.** Gas is compressible, so a parcel crossing a pressure gradient expands or is
-compressed — the same molecules occupy a different volume here than they did in `comp_from`. Mixing
-raw concentrations is only valid between compartments at equal pressure. Without the correction a
-pressurised supply injects its own molar density downstream: `VENT_GASIN` sits at 1160 mmHg with
-`ctotal ≈ 63.5` (correct *for its own pressure*), and gas leaving it for a 770 mmHg circuit used to
-arrive still at 63.5, driving the alveoli to ~65 mmol/L where 760 mmHg at 37 °C allows only ~40.
-
-Every species scales by the same `k`, so the **gas fractions delivered are unchanged** — this
-corrects molar density only, never composition. `k` is 1.0 between compartments at equal pressure,
-which in practice is every pairing in the model (measured 0.999–1.009) except the pressurised
-supplies: `VENT_GASIN` (k ≈ 1.51) and `ECLS_GAS_SOURCE` (k ≈ 1.26). Those are all
-`fixed_composition` reservoirs whose `volume_out` is a no-op, so nothing is actually drawn down on
-the donor side for the rescale to contradict.
-
-Temperature is deliberately **not** folded into `k`. The parcel arrives at `comp_from`'s temperature
-and `add_heat` performs the thermal expansion, and its matching dilution, as the compartment relaxes
-toward `target_temp`. Including temperature here would double-count it.
-
-Mixing is **skipped for `fixed_composition`** compartments (an infinite reservoir holds its
-composition and temperature constant) and **guarded against an empty compartment** (`vol <= 0`
-returns early — no division by zero).
+**Respiratory heat.** The metered heat (`_q_wall_sensible`, `_q_wall_latent`, signed: cooling and condensation credit the wall) is collected by `Gas.drain_respiratory_heat()` for Thermoregulation.
 
 ## Series dead space
 
-A single well-mixed compartment is a poor dead space. Mixing makes part of it "ventilated", so its
-*effective* dead space saturates near its own volume and barely grows when it gets bigger. It also
-turns oscillatory flow (HFOV) into perfect mixing every cycle. With `series_segments > 1` the
-compartment keeps **one pressure/volume node**, so the network is unchanged, but carries its gas
-**composition** through a chain of sub-tanks, ordered proximal → distal:
+A single well-mixed compartment is a poor dead space: mixing makes part of it "ventilated", so its effective dead space barely grows with its volume, and oscillatory flow (HFOV) is perfectly mixed every cycle. With `series_segments > 1` the compartment keeps **one pressure/volume node** (the network is unchanged) but carries its composition through a chain of sub-tanks, proximal → distal:
 
 ```
 [ tube lumen sub-tanks (rigid, only while intubated) ] [ DS sub-tanks (share vol equally) ]
   ^ tube port (VENT_GASCIRCUIT)                        ^ airway port (MOUTH, leak)   distal port ^ (ALL, ALR)
 ```
 
-- **Ports.** A neighbour in `distal_models` connects at the distal end. The `tube_port_model` (the
-  ventilator circuit) connects through the rigid tube-lumen sub-tanks (`tube_volume`, πr²L, set by
-  the Ventilator while intubated). Everything else (mouth, tube leak) connects at the proximal DS
-  end.
-- **Advection.** An inflow of dvol enters its end; every DS sub-tank grows by dvol/n, so the parcel
-  pushes gas along the chain. Outflow leaves from the receiver's end, and the chain shifts towards it.
-  The donor side is handled by `_seg_take(receiver, dvol)`, called at the top of the receiver's
-  `volume_in`, so a resistor needs no changes.
-- **Dispersion.** Neighbouring sub-tanks exchange `e = dispersion_coeff · q² · τ · dt / V_seg` per
-  step. That's the `u²·τ` Taylor-type dispersion written per segment (A·dx = V_seg, so no airway
-  geometry is needed). τ is the time the flow has run one way, capped at `dispersion_tau_max`
-  (0.1 s), so fast oscillation disperses in proportion to f·Vt². The exchange is mass-conserving
-  between unequal sub-tanks.
-- **Molecular diffusion.** `diffusion_rate` (L/s per interface, default 0; set by Respiration from
-  `dead_space_diffusion`) adds `e = diffusion_rate · dt` to every interface, also when no gas flows,
-  so the dead space keeps mixing during apnoea.
-- **Ends.** `_end_conc(neighbour)` / `_end_add(neighbour, dn)` read and change the sub-tank that faces
-  a neighbour (the bulk for a well-mixed compartment). The gas `mix_flow` of a
-  [`Resistor`](./Resistor.md) uses them.
-- **Bulk consistency.** The bulk concentrations (`co2`, `cco2`, …) are kept equal to the mean of the
-  DS sub-tanks. Heat and water vapour act on the bulk, and the same affine change is replayed on
-  every sub-tank. The partial pressures and fractions report the **airway-opening** sub-tank (what a
-  capnograph samples); the bulk `ctotal` still drives the gas law.
+- **Ports.** A neighbour in `distal_models` connects at the distal end; `tube_port_model` through the rigid tube sub-tanks; anything else (mouth, tube leak) at the proximal DS end.
+- **Advection.** An inflow enters its end and every DS sub-tank grows by dvol/n, pushing gas along. An outflow leaves from the receiver's end. The donor side runs through `_seg_take`, called by the receiver's `volume_in`, so resistors need no changes.
+- **Dispersion.** Neighbouring sub-tanks exchange `e = dispersion_coeff · q² · τ · dt / V_seg`: Taylor-type `u²·τ` dispersion written per segment (no airway geometry needed). τ is the time flow has run one way, capped at `dispersion_tau_max`, so fast oscillation disperses in proportion to f·Vt². Mass-conserving between unequal sub-tanks.
+- **Molecular diffusion** (`diffusion_rate`) acts also without flow, so the dead space keeps mixing during apnoea.
+- **Ends.** `_end_conc(neighbour)` / `_end_add(neighbour, dn)` read and change the sub-tank facing a neighbour; the gas `mix_flow` of a [Resistor](./Resistor.md#mixing-without-net-flow-mix_flow) uses them.
+- **Bulk.** The bulk concentrations equal the mean of the DS sub-tanks, so heat, water and the gas law work unchanged.
 
-**Calibration** (`scripts/probe_dead_space.mjs`, preterm_28wk, PRVC 5 mL/kg; HFOV with 2.5 mm ETT):
+Calibration when it was introduced (`scripts/probe_dead_space.mjs`, preterm_28wk, PRVC 5 mL/kg; HFOV with a 2.5 mm tube):
 
-| check | well-mixed (1) | series (32, dispersion 0.015) |
+| Check | Well-mixed (1) | Series (32, dispersion 0.015) |
 |---|---|---|
-| PaCO₂, DS +0 / +50 / +100 % | 67 / 70 / 72 | 81 / 98 / 122, as (Vt − VD)·rate predicts |
-| HFOV PaCO₂ 6 / 10 / 15 Hz | 10 / 11 / 11 (no f effect) | f·Vt² law: PaCO₂·DCO₂ = 1955–2290 (±8 %) over 8–15 Hz × amplitude 15–30 |
-| sub-tank count | — | 8 → 16 → 32 still changes HFOV (numerical dispersion), so the count is fixed at 32 and the dispersion term carries the transport |
-| spontaneous baselines, all 39 scenarios | — | PaCO₂ −0.6 … +1.1 mmHg, PaO₂ ±1 (the breathing controller compensates) |
-| runtime | — | +7–9 % |
+| PaCO2 with DS +0 / +50 / +100 % | 67 / 70 / 72 | 81 / 98 / 122, as (Vt − VD)·rate predicts |
+| HFOV PaCO2 at 6 / 10 / 15 Hz | 10 / 11 / 11 (no frequency effect) | f·Vt² law: PaCO2·DCO2 constant within ±8 % over 8–15 Hz × amplitude 15–30 |
+| Sub-tank count | – | 8 → 16 → 32 still changes HFOV (numerical dispersion), so the count is fixed at 32 and the dispersion term carries the transport |
+| Runtime | – | +7–9 % |
 
-Turned on for the airway `DS` by [Respiration](./Respiration.md) (`dead_space_segments`,
-`dead_space_dispersion`). The internal `_seg*` state is `_`-prefixed and stays out of state dumps.
+## Factor system
+
+[Capacitance](./Capacitance.md#factor-system)'s additive layers on `el_base`, `el_k` and `u_vol`. Surfactant, atelectasis and the Calibrator act on the alveoli through them.
+
+## Inputs and outputs
+
+- **Reads:** neighbours' composition and temperature (through `volume_in`); `pres_ext` written by others.
+- **Written by:**
+  - [Gas](./Gas.md) (`pres_atm`, `temp`, `target_temp`, `humidity`, composition);
+  - [Respiration](./Respiration.md) (series dead space on DS);
+  - the Ventilator (`tube_volume`, `tube_port_model`);
+  - Breathing and the thorax coupling (`pres_ext`);
+  - GasExchanger and GasDiffusor (`co2`, `cco2`);
+  - the devices (their own gas lines).
+- **Read by:** GasExchanger (alveolar pO2/pCO2), Monitor (etCO2, airway pressure), the Ventilator, `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **The airway wall is an unlimited water source.** Water loss isn't tracked; the heat is (metered for Thermoregulation). Condensate leaves the system.
+- **Brief supersaturation on expiration is real.** Condensation lags (`h2o_tc`), so the dead space can sit slightly above 100 % RH while warm alveolar gas flows into it. In term_neonate it swings between ~68 % and 102 % RH over a breath (22–35 °C). Sample a full cycle.
+- **Humidifying inspired gas barely changes alveolar gas,** correctly: MOUTH 50 → 100 % RH moves alveolar pH2O ~0.2 mmHg, because the airway saturates the gas anyway. The clinical benefit of a humidifier (sparing the mucosa) has nothing to attach to, since the wall has no water debt.
+- **Fixed-composition compartments don't self-correct.** Their temperature and humidity change only through `Gas.set_temperature` / `set_humidity`, which rebuild the composition.
+- **No water or heat crosses the blood–gas barrier.**
+- **Ideal gas, single heat capacity** (air's 29.1 J/(mol·K), also for water vapour).
+- **Pressures are absolute.** Compare against `pres_atm`, or use `pres_rel`.
 
 ## Example definition (JSON)
 
-A lung alveolar compartment (left lung) — non-fixed composition, warmed and humidified by the
-[`Gas`](./Gas.md) manager:
+From `term_neonate.json`, `models.Respiration.components.ALL` (trimmed to the config props; `target_temp` rounded):
 
 ```json
 {
   "name": "ALL",
-  "description": "gas capacitance model of the alveolar space of the left lung",
   "model_type": "GasCapacitance",
   "is_enabled": true,
+  "fixed_composition": false,
   "u_vol": 0.04,
-  "el_base": 186,
+  "el_base": 331.94,
   "el_k": 0,
-  "pres_ext": 0,
-  "fixed_composition": false
+  "pres_atm": 760,
+  "target_temp": 36.99,
+  "humidity": 1,
+  "temp_tc": 1,
+  "h2o_tc": 0.2,
+  "series_segments": 1
 }
 ```
 
-A fixed-composition reservoir (ventilator gas source) keeps its composition and volume constant:
+## Usage in the scenarios
 
-```json
-{
-  "name": "VENT_GASIN",
-  "description": "gas reservoir of the mechanical ventilator",
-  "model_type": "GasCapacitance",
-  "is_enabled": false,
-  "u_vol": 5,
-  "el_base": 1000,
-  "el_k": 0,
-  "fixed_composition": true
-}
-```
+Ten instances in every scenario:
 
-(`temp`, `humidity`, `target_temp` and `pres_atm` are normally seeded by the [`Gas`](./Gas.md)
-manager from its `temp_settings` / `humidity_settings` / `pres_atm`, rather than per-compartment.)
+| Compartment | Role | Notes |
+|---|---|---|
+| `MOUTH` | Room air | fixed, 20 °C, 50 % RH |
+| `DS` | Airway dead space | 32 series sub-tanks, 32 °C, 100 % RH |
+| `ALL`, `ALR` | Left and right alveoli | 37 °C, 100 % RH |
+| `VENT_GASIN`, `VENT_GASCIRCUIT`, `VENT_GASOUT` | Ventilator supply, circuit, exhaust | `VENT_GASIN` fixed (pressurised source) |
+| `ECLS_GAS_SOURCE`, `ECLS_GAS_OXY`, `ECLS_GAS_OUT` | Oxygenator sweep gas | source fixed |
 
-## Usage in the model
+## References
 
-- Airway/alveolar chain: `MOUTH` (fixed-composition outside air) → `DS` (dead space) → `ALL`/`ALR`
-  (left/right alveoli), wired by `Resistor`s; `GASEX_LL`/`GASEX_RL` exchange O₂/CO₂ between the
-  alveoli and the lung-capillary blood.
-- Device gas spaces: ventilator (`VENT_GASIN`/`VENT_GASCIRCUIT`/`VENT_GASOUT`) and ECLS
-  (`ECLS_GAS_SOURCE`/`ECLS_GAS_OXY`/`ECLS_GAS_OUT`); the gas sources are `fixed_composition: true`.
-- The [`Gas`](./Gas.md) manager discovers every `GasCapacitance` at build, seeds its pressure,
-  temperature and humidity, and bootstraps the initial composition via the standalone
-  [`calc_gas_composition`](./GasComposition.md).
+- Taylor GI. Dispersion of soluble matter in solvent flowing slowly through a tube. *Proc R Soc Lond A* 1953;219:186–203 (the `u²·τ` dispersion form).
