@@ -79,7 +79,7 @@ Each step (skipped if `AAR_DA` is missing):
 - a **long, narrow duct** is viscous-limited: low flow and low velocity even across a large gradient;
 - the jet can't exceed `√(gradient / 3.975)`: a faster jet needs a larger aorta–pulmonary pressure difference, not a different duct geometry.
 
-[Pda-velocity](./Pda-velocity.md) holds the historical analysis that led to this formulation.
+Earlier versions reported other velocity outputs (from a separate `DA` compartment and the old 4·v² rule); they were replaced by this single orifice velocity, consistent with [Shunts](./Shunts.md) and [Orifice](./Orifice.md).
 
 ## Factor system
 
