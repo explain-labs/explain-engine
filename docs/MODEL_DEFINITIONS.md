@@ -101,7 +101,7 @@ Core physics params (`el_base`, `u_vol`, `el_k`, `r_for`, `r_back`, `r_k`, …) 
 |---|---|---|
 | `<p>_factor` | non-persistent — reset to `1.0` every step | transient interventions |
 | `<p>_factor_ps` | persistent across steps | user / scenario / event adjustments |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling); also the Calibrator's PAP lever on `IPSL`/`IPSR` `r_factor_scaling_ps` |
+| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (weight/manual scaling); also the Calibrator's PAP lever on `IPSL`/`IPSR` `r_factor_scaling_ps`. 1.0 in every shipped scenario (baked into the base values since v1.0) |
 
 `p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling_ps-1)*p`.
 
@@ -202,7 +202,7 @@ lung, airway, left_lung, right_lung,
 thorax, pericardium
 ```
 
-Each group lists the component names that a given `scale_*` method touches, and the param sub-keys name which property gets scaled — e.g. `blood.volume`, `blood.el_base`, `blood.resistance`; `heart.el_min` / `heart.el_max`. `ModelScaler` writes **only** the `*_factor_scaling_ps` layer (`el_base_factor_scaling_ps`, `r_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `el_min_/el_max_factor_scaling_ps`), except the volume groups which scale `vol`/`u_vol` directly. `scaleModel(group, factor)` in the API routes to these methods. See [ModelScaler](./ModelScaler.md).
+Each group lists the component names that a given `scale_*` method touches, and the param sub-keys name which property gets scaled — e.g. `blood.volume`, `blood.el_base`, `blood.resistance`; `heart.el_min` / `heart.el_max`. `ModelScaler`'s factor groups set the `*_factor_scaling_ps` layer (`el_base_factor_scaling_ps`, `r_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `el_min_/el_max_factor_scaling_ps`) **absolutely**; the volume groups scale `vol`/`u_vol` directly, and `incorporate` bakes the layer into the base values. A scenario that stores a calibration in the layer loses it on the first `scale` command, so the shipped scenarios are baked (layer at 1.0). `scaleModel(group, factor)` in the API routes to these methods. See [ModelScaler](./ModelScaler.md).
 
 ## `configuration` and events
 
@@ -238,7 +238,7 @@ Both are `{ settings, components }` objects. `settings` holds canvas-level optio
 A flat JSON array of scenario filename stems, e.g.:
 
 ```json
-["adult_female", "term_neonate", "fetus_term", "preterm_28wk", "..."]
+["fetus_25wk", "preterm_25wk", "preterm_28wk", "term_neonate", "..."]
 ```
 
 Each entry `X` maps to `model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in consuming apps. (In explain-ui, `sync-scenarios.mjs` rebuilds its served `index.json` as the union of the canonical set and any local snapshots.)

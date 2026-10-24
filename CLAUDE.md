@@ -47,7 +47,7 @@ No install step. Everything runs with `node` directly from the repo root.
 ```bash
 node scripts/probe_vitals.mjs term_neonate            # canonical probe: vitals + ABG vs normal ranges
 node scripts/probe_vitals.mjs preterm_28wk --profile preterm_28
-node scripts/probe_vitals.mjs adult_female --no-ans --seconds 90
+node scripts/probe_vitals.mjs term_neonate --no-ans --seconds 90
 node scripts/probe_pda.mjs preterm_28wk --beats 6
 npm run probe                                          # the one wired script — just probe_fetus.mjs
 node scripts/probe_fetus.mjs fetus_30wk                 # probe_fetus takes an optional scenario stem
@@ -132,15 +132,17 @@ spread; both fail at module-evaluation time, not at build time.
 
 **The factor / effective-value pattern.** Core physics params are never used raw. Each tunable
 combines three multiplier layers additively against the base:
-`p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling-1)*p`, where `_factor` is
+`p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling_ps-1)*p`, where `_factor` is
 non-persistent (reset to 1.0 each step), `_factor_ps` is the persistent user/scenario layer, and the
-scaling layer belongs to `ModelScaler` alone. Follow this for any new tunable. **Exceptions:**
-`BloodVessel` composes its R and E layers *multiplicatively* (with the ANS multiplier and the α R→E
-coupling), and `HeartChamber` adds drug/Mob/load/remodel/ANS terms. See `ARCHITECTURE.md` §7a.
+scaling layer is `ModelScaler`'s (plus the Calibrator's IPSL/IPSR lever and the experimental Uterus/
+MaternalPlacenta). Follow this for any new tunable. **Exceptions:** `BloodVessel` composes its R and
+E layers *multiplicatively* (with the ANS multiplier and the α R→E coupling); `HeartChamber` stays
+additive but adds drug/Mob/load/remodel/ANS terms. See `docs/ARCHITECTURE.md` §7a. The scaling layer
+is named `*_factor_scaling_ps` in every family (the diffusors dropped their `_ps`-less name in v1.0).
 
-> ⚠️ **The scaling suffix is not uniform.** The capacitance/resistor/time-varying-elastance family
-> uses `*_factor_scaling_ps`; the diffusor/exchanger family uses `*_factor_scaling` (**no `_ps`**).
-> Scaling a diffusor through the `_ps` name silently does nothing. Verify before copying.
+> ⚠️ **ModelScaler's factor groups are absolute** (1.0 = no scaling), so a calibration stored in the
+> scaling layer is wiped by the first `scale` command. Every shipped scenario is therefore baked
+> (`scale("incorporate", 1)` before serializing); the generators and `build_patient.mjs` do this.
 
 **`ncc_*` cycle counters live on the components**: `Heart.ncc_atrial`/`ncc_ventricular`,
 `Breathing`/`Ventilator` `ncc_insp`/`ncc_exp`. The engine `model` object holds none.

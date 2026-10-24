@@ -213,7 +213,7 @@ Core physics params are never used raw. Each tunable has a base value plus three
 The formula (see `Capacitance.calc_elastances` / `Resistor.calc_resistance`):
 
 ```
-p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling-1)*p
+p_eff = p + (factor-1)*p + (factor_ps-1)*p + (factor_scaling_ps-1)*p
 ```
 
 When adding a tunable param, follow this convention so it composes with interventions and scaling.
@@ -243,7 +243,7 @@ Gas compartments do the same for their gas composition in `GasCapacitance.volume
 
 ### 7d. Who writes the scaling layer
 
-[`ModelScaler`](./ModelScaler.md) writes the `*_factor_scaling_ps` layer for elastances, resistances and unstressed volumes, never the `_ps` user layer, so its scaling composes with user and scenario adjustments. Its **volume** scaling is the exception: it multiplies the raw `vol` and `u_vol` of the compartments in the scaler config. `incorporate()` bakes the scaling layers of every component named in the scaler config into the base values (`u_vol`, `el_base`, `el_min`, `el_max`, `r_for`/`r_back`) and resets those factors to `1.0`.
+[`ModelScaler`](./ModelScaler.md) writes the `*_factor_scaling_ps` layer for elastances, resistances and unstressed volumes, never the `_ps` user layer, so its scaling composes with user and scenario adjustments. Its **volume** scaling is the exception: it multiplies the raw `vol` and `u_vol` of the compartments in the scaler config. The factor groups set the layer **absolutely** (1.0 = no scaling), so anything left in it is replaced by the next `scale` command. `incorporate()` bakes the scaling layers of every component named in the scaler config into the base values (`u_vol`, `el_base`, `el_min`, `el_max`, `r_for`/`r_back`) and resets those factors to `1.0`, keeping the model's behaviour (BloodVessel's R→E coupling, HeartChamber's `el_k` and the additive models' `_ps` layers are carried along; only the heart chambers' additive ANS term changes, see [ModelScaler](./ModelScaler.md#incorporate-baking-the-layer)). **Since v1.0 every shipped scenario is baked**, and the generators and `build_patient.mjs` end with `incorporate`, so a scenario as loaded has all scaling layers at 1.0.
 
 ModelScaler is not the layer's only writer: the [Calibrator](./Calibrator.md)'s PAP lever writes `r_factor_scaling_ps` on `IPSL`/`IPSR`, and `Uterus` and `MaternalPlacenta` write the scaling layer of their own vessels (pregnancy adaptation). A `ModelScaler.reset()` or `incorporate()` on those components would interact with them. Weight scaling (`scale_to_weight`) is linear and volume-only — the inverse elastance/resistance scaling is commented out, and nothing scales heart rate or VO₂. `scaleModel(group, factor)` routes through the big `switch` in `ModelEngine.scale_model` to the many `scale_*` methods (`scale_blood_volume`, `scale_systemic_resistances`, `scale_to_weight`, …). `reset` calls `ModelScaler.reset()` and restores `model.weight = model._baseline_weight`.
 
@@ -288,7 +288,10 @@ One line each; follow the link for detail.
 
 - **[DataCollector](./DataCollector.md)** — fast (`watch_list`, default `sample_interval` 0.005 s) and slow (`watch_list_slow`, 1.0 s) watchlists of dot-path props; `collect_data()` buffers, `get_model_data()` drains, `clean_up()` drops entries whose model no longer exists (a disabled model keeps its watch). Always watches `Heart.ncc_*`.
 - **[TaskScheduler](./TaskScheduler.md)** — deferred mutations every `_task_interval` (0.015 s): numeric tweens (type 0), instant boolean/string swaps (type 1), scheduled method calls (type 2). Writes directly to model props (usually a `*_factor_ps` or base param).
-- **[ModelScaler](./ModelScaler.md)** — linear (volume-only) weight scaling and manual subsystem scaling; writes the `*_factor_scaling_ps` layer and raw volumes; routed via `ModelEngine.scale_model`.
+- **[ModelScaler](./ModelScaler.md)** — group scaling (absolute, on the `*_factor_scaling_ps` layer), linear volume-only weight scaling, and `incorporate` (bake); routed via `POST "scale"` → `ModelEngine.scale_model`.
+- **[BloodMixing](./BloodMixing.md)**, **[GasMixing](./GasMixing.md)** — composition mixing on inflow and exchange without net flow (§7c).
+- **[Orifice](./Orifice.md)** — Bernoulli orifice term and jet velocity (Shunts, Pda).
+- **[Units](./Units.md)** — shared physical constants (STPD O2 conversion, gas constant, water vapour).
 - **[Calibrator](./Calibrator.md)** — shared closed-loop secant calibration (`buildLiveControllers`/`runCalibration`/`measureWindow`); backs both offline patient-building and the live `tune_model` path.
 - **[ChannelWriter](./ChannelWriter.md)** — typed realtime data-plane writer (chart ring + anim snapshot); flushed each realtime tick.
 - **[RealtimeChannels](./RealtimeChannels.md)** — the `RT_MSG` message constants and channel/transport descriptors for the typed data plane.
