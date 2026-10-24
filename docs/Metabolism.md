@@ -1,189 +1,123 @@
 # Metabolism
 
-The Metabolism model is the whole-body tissue **oxygen sink and CO₂ source**. Every model step it
-removes oxygen from, and adds carbon dioxide to, a configured set of blood compartments, driving the
-arterio-venous gas gradient that the rest of the circulation transports and the lungs/placenta clear.
-It is the counterpart to gas exchange ([`GasExchanger`](./GasExchanger.md), `BloodDiffusor`):
-exchange *loads* O₂ and *unloads* CO₂ at the lung/membrane; metabolism *unloads* O₂ and *loads* CO₂ at
-the tissues.
+`Metabolism` is the body's oxygen consumption and CO2 production. Each step it removes the whole-body O2 uptake (VO2, scaled to weight) from the blood of the tissue beds, split by a fixed fraction per bed, and adds CO2 at the respiratory quotient. That is what makes venous blood desaturated and CO2-rich, which the lungs then reverse. The myocardium has its own balance in [Mob](./Mob.md).
+
+## Physiology
+
+At rest a newborn consumes about 6–7 mL O2/kg/min, roughly twice an adult's per kg, mostly for the brain, heart, liver, kidneys and gut, and for growth and heat. The tissues extract O2 from the capillary blood and give off CO2. The ratio of CO2 produced to O2 used, the respiratory quotient (RQ), depends on the fuel: about 0.7 for fat, 1.0 for carbohydrate, and above 1 when carbohydrate is turned into fat during growth.
+
+Consumption rises with fever and cold (shivering and non-shivering thermogenesis) and falls with hypothermia (about 7 % per °C, Q10 ≈ 2). When a tissue's O2 supply fails, aerobic metabolism stops: no more O2 uptake or aerobic CO2 production, and the tissue switches to anaerobic glycolysis and lactate (see [Lactate](./Lactate.md)).
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Metabolism   (whole-body O₂ consumption / CO₂ production)
-```
-
-Metabolism extends `BaseModelClass` directly. It is a *process* model: it holds no compartment of its
-own and instead writes `to2`/`tco2` onto the blood compartments named in `metabolic_active_models`.
-
-## What it models
-
-A single whole-body oxygen consumption `vo2` (ml O₂ / kg / min) is distributed across several blood
-compartments according to a per-compartment **fractional oxygen use** `fvo2`. CO₂ production follows
-from the **respiratory quotient** `resp_q` (CO₂ produced / O₂ consumed). Temperature dependence is
-applied through a Q10 factor (`vo2_temp_factor`) owned by [`Thermoregulation`](./Thermoregulation.md).
-
-```
-vo2 (ml/kg/min) ──split by fvo2──► per-compartment O₂ draw ──×resp_q──► per-compartment CO₂ release
+  └── Metabolism
 ```
 
 ## Properties
 
-### Configuration (independent)
+### Config (set in the definition JSON)
+
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `met_active` | boolean | `true` | Switch. |
+| `vo2` | mL O2/kg/min | 8.1 | Whole-body O2 use excluding the myocardium (STPD). term 6.14, preterm 5.2–5.7, fetal 5.0–5.5. |
+| `vo2_factor` | – | 1.0 | Persistent user/scenario multiplier; no model writes it. |
+| `vo2_temp_factor` | – | 1.0 | Q10 temperature effect; written by [Thermoregulation](./Thermoregulation.md). |
+| `vo2_bat_factor` | – | 1.0 | O2 cost of brown-fat thermogenesis; written by Thermoregulation. |
+| `resp_q` | – | 0.8 | Respiratory quotient. term 0.8, preterm and fetal 0.92–0.95. |
+| `metabolic_active_models` | {name: fraction} | `{}` | The beds and their share of VO2 (summing to 1). |
+
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `met_active` | bool | Master on/off switch; when false `calc_model` returns immediately |
-| `vo2` | ml/kg/min | Body oxygen consumption distributed over `metabolic_active_models`. Scenarios that run `Mob` set it to the NON-cardiac VO₂: the heart's own consumption (basal + stroke work) is added by `Mob` (term_neonate: 7.288 + 0.81 = 8.1 mL/kg/min at rest) |
-| `vo2_factor` | unitless | External multiplier on VO₂ (set by other models / interventions); `1.0` = no effect |
-| `vo2_temp_factor` | unitless | Q10 temperature multiplier on VO₂, written by [`Thermoregulation`](./Thermoregulation.md); `1.0` at 37 °C / when that model is absent or disabled |
-| `vo2_bat_factor` | unitless | O₂ cost of brown-fat (non-shivering) thermogenesis, written by [`Thermoregulation`](./Thermoregulation.md): `1 + VO2_bat / (vo2 · vo2_factor · vo2_temp_factor)`, with `VO2_bat = brown_fat_heat / caloric_equiv_o2`; `1.0` when no brown fat is active |
-| `resp_q` | unitless | Respiratory quotient (CO₂ produced / O₂ consumed), typically ~0.8 |
-| `metabolic_active_models` | object | `{ compartmentName: fvo2 }` — where O₂ is consumed and CO₂ produced; `fvo2` are fractions of `vo2` and must sum to 1.0 (Glucose distributes its uptake over the same map, so a larger sum also unbalances glucose) |
+| `o2_deficit` | mmol/s | O2 demand that found no O2 in its bed this step (0 at rest; positive in ischaemia). |
 
-### Computed / internal
+## Calculation
 
-Metabolism publishes no dependent read-out properties; its only outputs are the mutations it writes
-to each target compartment's `to2` and `tco2`. The per-step O₂ draw `vo2_step` is a local variable
-recomputed each step (not stored on the instance).
+Each step (nothing while `met_active` is off):
 
-## Q10 temperature dependence
+```
+vo2_step = vo2 · vo2_factor · vo2_temp_factor · vo2_bat_factor · weight / 60 · dt / 22.414      (mmol)
+```
 
-`vo2_temp_factor` is a **persistent channel written by `Thermoregulation`** (it is not reset each
-step like a non-persistent factor). It encodes the Q10 rule — metabolic rate rises/falls with body
-temperature — and multiplies into `vo2_step` alongside `vo2_factor`. It defaults to `1.0`, which is
-its value at 37 °C and whenever the `Thermoregulation` model is absent or disabled, so a scenario
-without thermoregulation is unaffected.
+For each bed with fraction f (a missing or empty bed is skipped):
+```
+demand = vo2_step · f
+used   = min(demand, to2 · V)                 never more O2 than the bed holds
+to2   −= used / V
+tco2  += resp_q · used / V                    CO2 only from O2 actually used
+o2_deficit += (demand − used) / dt
+```
 
-## Step calculation (`calc_model`)
+STPD conversion as in [Units](./Units.md). Example: with the brain's inflow closed in term_neonate, `BR_CAP` empties of O2 within seconds and `o2_deficit` reads 0.005 mmol/s, the brain's 6.8 mL/min share; its tCO2 stays at ~31 mmol/L. Before v1.0 CO2 kept being added from the missing O2 and reached 225 mmol/L in 2 min.
 
-Runs every model step when `met_active` is true.
+`set_metabolic_active_model(site, fraction)` changes or adds one bed's share.
 
-1. **Whole-body O₂ use for this step**, converted ml → mmol and per-minute → per-step:
+## Factor system
 
-   ```
-   vo2_step = (O2_MMOL_PER_ML · vo2 · vo2_factor · vo2_temp_factor · vo2_bat_factor · weight) / 60 · Δt        [mmol]
-   ```
+Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_bat_factor` (Thermoregulation). They multiply.
 
-   - `O2_MMOL_PER_ML = 1/22.414` mmol/mL ([`helpers/Units.js`](../helpers/Units.js)): clinical VO₂ is STPD
-     (0 °C, 760 mmHg), as are the blood O₂ content constants, so the conversion does not depend on temperature.
-   - `weight` is the engine body weight (kg); `Δt` (`this._t`) is the model step size.
+## Inputs and outputs
 
-2. **For each entry in `metabolic_active_models` (`{ compartment: fvo2 }`):**
-   - Resolve the compartment.
-   - Skip silently (via `continue`) if the compartment is missing or its volume is ≤ 0, so the
-     remaining compartments are still processed.
-   - O₂ removed and CO₂ added this step (distributed by `fvo2`):
+- **Reads:** each bed's `vol`, `to2`, `tco2`; `model.weight`.
+- **Writes:** each bed's `to2`, `tco2`.
+- **Written by:** Thermoregulation (`vo2_temp_factor`, `vo2_bat_factor`); the user and scenario scripts (`vo2`, `resp_q`, the fractions).
+- **Read by:**
+  - [Lactate](./Lactate.md) and [Glucose](./Glucose.md), which reuse the bed map (Lactate must follow Metabolism in the `models` map);
+  - Thermoregulation (metabolic heat).
 
-     ```
-     dto2  = vo2_step · fvo2
-     dtco2 = vo2_step · fvo2 · resp_q
-     to2  := max(0, (to2·vol − dto2) / vol)
-     tco2 :=        (tco2·vol + dtco2) / vol
-     ```
+## Assumptions and limitations
 
-     A fixed amount of O₂/CO₂ is exchanged with the compartment's blood volume; the new concentration
-     follows from the compartment volume. `to2` is floored at 0 so a compartment cannot go O₂-negative.
+- **Fixed shares.** A bed's O2 use doesn't depend on its flow or on its own O2 (no supply dependence above the zero floor), and doesn't follow organ activity (seizures, feeding, work of breathing).
+- **The myocardium is separate** ([Mob](./Mob.md)), so lung uptake = Metabolism + Mob (term: 6.14 + ~0.8 = 7.0 mL/kg/min).
+- **The beds stand for whole organs and regions:** `RLB`/`RUB` the lumped lower and upper body, `AA`/`AD` the aortic wall.
 
-`set_metabolic_active_model(site, new_fvo2)` adds or updates one site's fraction at runtime.
+### term_neonate calibration (2026-10)
 
-## Notes & caveats
+- **Whole-body uptake.** `vo2` 6.1396 gives a lung uptake of 7.0 mL/kg/min, slightly above quiet rest. First-week references are 6.26 ± 1.51 at thermoneutral rest and 45–50 kcal/kg/d, ~6.5–7.2 mL/kg/min. Knock-on changes:
+  - CO2 production fell, so `Breathing.minute_volume_ref` and the chemoreceptor set-points were re-anchored;
+  - by Fick, SvO2 is ~81–85 % (scenario 81.5 %);
+  - Thermoregulation re-seeds its heat-loss trim at load.
 
-- **`fvo2` should sum to ~1.0.** If the configured fractions sum to more (or less) than 1, the
-  effective whole-body VO₂ is correspondingly higher (or lower) than the `vo2` setting — a definition
-  concern, not enforced by the model.
-- **O₂ floor breaks strict conservation.** When `to2` would go negative it is clamped to 0, but the
-  matching CO₂ is still produced in full. At physiological gradients this never triggers; under
-  extreme O₂ debt it would slightly over-produce CO₂. Anaerobic metabolism is not modelled here — see
-  [`Lactate`](./Lactate.md), which captures the same O₂ debt as lactate production.
-- **Empty / missing compartments are skipped** (volume ≤ 0 or an unresolved name) so they neither
-  divide by zero nor halt processing of the remaining compartments.
+  See `scripts/_fix_term_vo2.mjs`.
+- **Brain share 0.313** (was 0.42–0.45, a Holliday-type estimate from adult CMRO2 per gram). Neonatal MRI finds a term CBF of 106 mL/min (Kooi 2019) and CMRO2 well below adult values (Liu 2014). Brain flow and O2 use were brought down together, keeping its extraction at ~35 %: CBF 144 → 106 mL/min, brain VO2 11.0 → 8.1 mL/min. The other beds took over the rest proportionally. See `scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md).
+- **The fetal scenarios** give the brain 0.65 (see [fetal_circulation](./fetal_circulation.md)).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`:
+From `term_neonate.json`, `models.Metabolism` (trimmed to the config props):
 
 ```json
 {
   "name": "Metabolism",
-  "description": "Metabolism model",
-  "is_enabled": true,
   "model_type": "Metabolism",
-  "components": {},
+  "is_enabled": true,
   "met_active": true,
-  "vo2": 8.1,
+  "vo2": 6.1396,
   "vo2_factor": 1,
-  "vo2_temp_factor": 1.0,
   "resp_q": 0.8,
   "metabolic_active_models": {
-    "RLB": 0.15,
-    "INT_CAP": 0.15,
-    "LS_CAP": 0.1,
-    "KID_CAP": 0.1,
-    "RUB": 0.1,
-    "AA": 0.005,
-    "AD": 0.01,
-    "BR_CAP": 0.453
+    "BR_CAP": 0.31311, "RLB": 0.16754, "INT_CAP": 0.16754,
+    "LS_CAP": 0.11169, "KID_CAP": 0.11169, "RUB": 0.11169,
+    "AA": 0.00558, "AD": 0.01117
   }
 }
 ```
 
-Here the whole-body VO₂ of 8.1 ml/kg/min is spread over the brain capillary `BR_CAP` (0.453, the
-largest sink), lower/upper body (`RLB`/`RUB`), gut/liver/kidney capillaries (`INT_CAP`/`LS_CAP`/
-`KID_CAP`), and small fractions on the aortic compartments `AA`/`AD`. (The adult `adult_female.json`
-scenario uses `vo2: 3.5` with a slightly different split.)
+## Usage in the scenarios
 
-### The brain's share in `term_neonate` (calibrated assumption)
+One instance in every scenario, with the same eight beds.
 
-The example above is the original split. The current `term_neonate` stores:
-- `vo2` 6.1396; `Mob` adds the myocardium's ~0.8 ml/kg/min on top, so lung uptake is 7.0
-  ml/kg/min (see below)
-- `BR_CAP` **0.31311**
-- `RLB`/`INT_CAP` 0.16754
-- `LS_CAP`/`KID_CAP`/`RUB` 0.11169
-- `AA` 0.00558, `AD` 0.01117
+| Scenario | `vo2` | `resp_q` | Brain share |
+|---|---|---|---|
+| term_neonate | 6.14 | 0.80 | 0.313 |
+| preterm_30wk | 5.69 | 0.92 | 0.313 |
+| preterm_25wk / 28wk, Bischoff ×3 | 5.19 | 0.95 | 0.313 |
+| fetus_term / 30wk / 25wk | 5.46 / 4.98 / 4.98 | 0.95 | 0.65 |
 
-The old brain share (0.42–0.45) was a Holliday-type estimate: adult CMRO₂ per gram × neonatal brain
-mass. Neonatal MRI finds lower values:
-- cerebral blood flow at a term median of 106 mL/min (Kooi 2019, PC-MRA, 172 term infants)
-- CMRO₂ well below adult values (Liu 2014)
+## References
 
-In 2026-10 the brain's flow and O₂ use were therefore brought down together, keeping its O₂
-extraction (~35 %, cerebral venous saturation ~62 %, as measured by Liu 2014):
-- CBF 144 → 106 mL/min
-- brain VO₂ 11.0 → 8.1 mL/min, 31 % of the Metabolism VO₂
-
-The other beds took over the remainder proportionally, so total VO₂ is unchanged. See
-`scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md). A scenario
-derived from term_neonate inherits this split.
-
-### Whole-body VO₂ in `term_neonate` (calibrated assumption)
-
-`vo2` is **not** the whole-body O₂ uptake when [`Mob`](./Mob.md) is present: Mob consumes the
-myocardium's O₂ (basal plus stroke work, ~0.8 ml/kg/min at rest) on top of it.
-
-The scenario used to take up 8.1 ml/kg/min (7.288 + Mob). The first-week references are lower:
-- 6.26 ± 1.51 at thermoneutral rest
-- resting energy expenditure of 45–50 kcal/kg/d, i.e. ~6.5–7.2 ml O₂/kg/min
-
-So in 2026-10 `vo2` was set to 6.1396, for a lung uptake of **7.0 ml/kg/min**. That sits slightly
-above quiet rest, matching the scenario's calm, mixed sleep/awake state. Knock-on changes:
-- CO₂ production falls with VO₂, so `Breathing.minute_volume_ref` and the chemoreceptor set-points
-  were re-anchored to keep the chemoreflex neutral
-- at the measured output and Hb, Fick puts SvO₂ at ~81–85 % (scenario 81.5 %)
-- Thermoregulation re-seeds its heat-loss trim at load, so the lower metabolic heat does not cool
-  the patient
-
-See `scripts/_fix_term_vo2.mjs`.
-
-## Usage in the model
-
-- One Metabolism instance per scenario; it is the sole driver of resting tissue O₂ extraction and CO₂
-  generation, and thus of the venous desaturation that gas exchange must reverse.
-- [`Lactate`](./Lactate.md) reuses Metabolism's `metabolic_active_models` map and `vo2`/`vo2_factor`/
-  `vo2_temp_factor` to compute hypoxia-driven lactate, and must be inserted in the scenario `models`
-  map immediately after Metabolism.
-- [`Thermoregulation`](./Thermoregulation.md) modulates consumption by writing `vo2_temp_factor`.
-- The myocardium has its own dedicated balance, [`Mob`](./Mob.md); the heart is therefore not listed
-  in `metabolic_active_models`.
+Kooi 2019 and Liu 2014 (cerebral flow and CMRO2) and the term VO2 references are cited with details in [TermNeonateReference](./TermNeonateReference.md).
