@@ -16,11 +16,13 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
        slowly lowering the circulating blood volume (diuresis).
     GFR autoregulation (myogenic + tubuloglomerular feedback) modulates the afferent
        arteriole (the KID_ART BloodVessel -> its AD_KID_ART input resistor) to hold GFR
-       and renal blood flow ~constant across renal perfusion pressure. Default off; the
-       term_neonate and adult_female scenarios ship with it enabled. See _run_autoregulation.
+       and renal blood flow ~constant across renal perfusion pressure. Default off; every shipped
+       scenario enables it. See _run_autoregulation.
 
-  NOT in this version: hormonal control of reabsorption (RAAS/ADH), clearance/acid-base,
-  tubular load / transport maxima. Albumin & hemoglobin are NOT filtered (retained in blood).
+  Hormonal hooks: reabs_factor_adh (ADH, water) and reabsorption_factors (aldosterone, per solute),
+  written by Hormones. NOT in this version: acid-base handling, tubular load / transport maxima.
+  Only filterable_solutes are filtered; everything else (albumin, Hb, glucose, drugs, O2/CO2) stays
+  in the blood and concentrates as urine water leaves.
 */
 
 export class Kidneys extends BaseModelClass {
@@ -375,13 +377,23 @@ export class Kidneys extends BaseModelClass {
     src.vol = vol_after < 0.0 ? 0.0 : vol_after;
     this._urine.vol = new_uvol;
 
-    // hemoconcentration: albumin & hemoglobin are NOT filtered (total amount conserved), so
-    // their concentration rises as the plasma volume shrank
+    // concentration: everything that is not filtered keeps its mass in the smaller volume, so its
+    // concentration rises by vol_before / vol_after: albumin and haemoglobin (hemoconcentration),
+    // the other unfiltered solutes (glucose: no glucosuria), the drugs, and the blood's O2 and CO2
     if (vol_after > 0.0) {
       const ratio = vol_before / vol_after;
-      for (const s of ["albumin", "hemoglobin"]) {
-        if (src.solutes?.[s] !== undefined) src.solutes[s] *= ratio;
+      if (src.solutes) {
+        for (const s in src.solutes) {
+          if (!this.filterable_solutes.includes(s) && typeof src.solutes[s] === "number") src.solutes[s] *= ratio;
+        }
       }
+      if (src.drugs) {
+        for (const d in src.drugs) {
+          if (typeof src.drugs[d] === "number") src.drugs[d] *= ratio;
+        }
+      }
+      src.to2 *= ratio;
+      src.tco2 *= ratio;
     }
   }
 
