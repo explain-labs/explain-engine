@@ -6,8 +6,9 @@ export class Shunts extends BaseModelClass {
   static model_type = "Shunts";
 
   /*
-    The Shunts class calculates the resistances of the shunts (ductus arteriosus, foramen ovale, and ventricular septal defect) from the diameter and length.
-    It sets the resistances on the correct models representing the shunts.
+    The Shunts class calculates the resistances of the foramen ovale and the ventricular septal defect from
+    their diameter and length (Poiseuille + Bernoulli orifice loss), and sets the base resistance of the
+    intrapulmonary shunts. The ductus arteriosus is the Pda model.
     */
   constructor(model_ref, name = "") {
     super(model_ref, name);
