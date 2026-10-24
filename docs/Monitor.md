@@ -18,16 +18,20 @@ and venous) — and exposes everything else through three uniform, **JSON-config
 > compartment (e.g. `AD` for post-ductal ABP) to `minmax_targets`; the values then publish as the flat
 > keys `Monitor.minmax.<name>_pres_min` / `_pres_max` / `_pres_mean`.
 
+## Physiology
+
+A bedside monitor shows the vital signs a neonatal team watches: heart rate (from the ECG), pre- and post-ductal oxygen saturation (right hand and a foot; a difference signals right-to-left ductal shunting), blood pressures, respiratory rate, end-tidal CO2 and temperature. Its numbers are averaged over beats and breaths, so they lag fast changes by several seconds.
+
 ## Built-in read-outs
 
-| Output | How |
+| Property | How |
 |---|---|
 | `heart_rate` | rolling average of the beat-to-beat rate over the last **`hr_avg_beats`** beats (bpm) |
 | `resp_rate` | rolling average of the breath-to-breath rate over the last **`rr_avg_time`** seconds (breaths/min) |
 | `etco2` | end-tidal CO₂; mirrored from `Ventilator.etco2` while the ventilator is enabled, otherwise derived from the spontaneous breath (see below) |
 | `temp` | blood temperature (°C), mirrored each step from `AA.temp` (last value kept if AA is absent) |
 | `sao2_pre`, `sao2_post` | pre-/post-ductal arterial O₂ saturation, from `AA.so2` / `AD.so2` |
-| `svo2` | mixed-venous O₂ saturation, from the pulmonary artery (`PA.so2`). Falls back to `RAIVCI.so2` when there is no PA. The two RA halves are pressure-coupled but barely exchange blood, so `RAIVCI` holds IVC-side blood and misses the brain's extraction (in `term_neonate` 79 % vs 76 % mixed). |
+| `svo2` | mixed-venous O₂ saturation, from the pulmonary artery (`PA.so2`). Falls back to `RAIVCI.so2` when there is no PA; `RAIVCI` holds IVC-side blood, which misses the brain's extraction where the right-atrial halves don't mix (the fetal scenarios). In `term_neonate` the two agree (81.9 %). |
 
 **Heart rate** — on each ventricular beat (`Heart.ncc_ventricular === 1`), the beat-to-beat rate is
 `60 / interval` (interval = time since the previous beat). A running window of the last `hr_avg_beats`
@@ -141,12 +145,31 @@ it does not follow redistribution between the kidneys and the rest of the lower 
 
 ## Configuration
 
-`hr_avg_beats` (12), `flow_avg_beats` (1), `rr_avg_time` (20 s), `asystole_time` (6 s), `etco2_source`
-(`"DS"`), plus the three `*_targets` arrays. (`sat_avg_time` was removed — scenario files
-still carry the key, but nothing reads it; the saturations are mirrored every step without averaging.) Model references are resolved by name: `Heart` (beats), `Breathing` + `Ventilator`
-(breaths). The `flow_targets`/`minmax_targets`/`signal_targets` entries name their own models.
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `hr_avg_beats` | beats | 12 | Heart-rate averaging window. |
+| `flow_avg_beats` | beats | 1 | Flow averaging window. |
+| `rr_avg_time` | s | 20 | Respiratory-rate averaging window. |
+| `asystole_time` | s | 6 | No beat for this long reads as asystole. |
+| `etco2_source` | – | `"DS"` | Airway gas compartment for the spontaneous end-tidal CO2. |
+| `flow_targets`, `minmax_targets`, `signal_targets` | lists | `[]` | The configurable read-outs (above). |
 
-## Notes & caveats
+| Property | Unit | Description |
+|---|---|---|
+| `flows`, `minmax`, `signals` | dicts | The configurable read-outs (above). |
+| `fo_flow`, `do2_br`, `do2_lb` | L/min, mL O2/min | Derived metrics (above). |
+
+The saturations are mirrored every step without averaging. Model references are resolved by name at build: `Heart` (beats), `Breathing` and `Ventilator` (breaths), `AA`, `AD`, `PA`, `RAIVCI`. The target entries name their own models; one that doesn't resolve is dropped.
+
+**term_neonate** configures `flow_targets` lvo, rvo, cor_flow, svc_flow, ivc_flow, da_flow, brain_flow, kid_flow, ua_flow, uv_flow, fo_ivci_flow and fo_svc_flow; `minmax_targets` lv, rv, abp_pre, abp, pap, cvp and la; `signal_targets` ecg, sat_pre, sat_post, abp, resp and co2.
+
+## Inputs and outputs
+
+- **Reads:** Heart (`ncc_ventricular`), Breathing and Ventilator (breath onsets, `etco2`), `AA`, `AD`, `PA`, `RAIVCI`, `DS`, and every configured target.
+- **Writes:** nothing outside itself.
+- **Read by:** the app's monitor panel, `DataCollector` watchers, the [Calibrator](./Calibrator.md) (calibration targets).
+
+## Assumptions and limitations
 
 - **Observer.** The Monitor never writes to the models it samples; no model's physics depends on it.
   The `DataCollector` reads its outputs through the watchlist like any other model, and the
@@ -161,3 +184,7 @@ still carry the key, but nothing reads it; the saturations are mirrored every st
 - **`do2_br` / `do2_lb` need `AA` / `AD`.** The oxygen-delivery metrics read the aortic O₂ content
   (`AA.to2` / `AD.to2`); both references are resolved with a `?? null` fallback, so they hold their
   last value if those compartments are absent (asystole still zeroes them).
+
+## References
+
+None; standard bedside monitoring definitions.
