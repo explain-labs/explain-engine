@@ -6,6 +6,12 @@ sinusoidal compression-pressure waveform and applies it to the circulation as an
 and it commands the [`Ventilator`](./Ventilator.md) and [`Breathing`](./Breathing.md) models to
 deliver (or suppress) breaths.
 
+> **Experimental in the app:** the Resuscitation panel is hidden as unfinished; the model and its probe work.
+
+## Physiology
+
+In neonatal cardiac arrest (or a heart rate below 60/min despite effective ventilation) chest compressions are given at a 3:1 ratio with ventilation (90 compressions and 30 breaths a minute), or continuously with asynchronous ventilation once the airway is secured. Compressions squeeze the heart and the great vessels between sternum and spine and raise the intrathoracic pressure, driving blood forward; the valves keep it from flowing back. Effective CPR produces a fraction of the normal cardiac output, enough to perfuse the heart and brain while the cause is treated.
+
 ## Inheritance
 
 ```
@@ -49,6 +55,7 @@ BaseModelClass
 | Property | Unit | Description |
 |---|---|---|
 | `chest_comp_pres` | mmHg | Current compression pressure (the waveform value) |
+| `vent_settings_saved` | object or null | The ventilator settings CPR replaced (mode, pressures, rate, Ti, flow, synchronisation, trigger, FiO2), restored when CPR stops. Saved with the state, so the restore also works after a reload. |
 
 ### Internal (`_`-prefixed)
 
@@ -181,6 +188,13 @@ From `term_neonate.json`:
 
 `cpr_enabled: false` is the resting state — CPR is started at runtime with `switch_cpr(true)`.
 
+## Inputs and outputs
+
+- **Reads:** the target compartments (names), `Ventilator.insp_flow`.
+- **Writes:** `pres_ext` of the `chest_comp_targets`; the Ventilator (`switch_ventilator`, `set_pc`, `set_fio2`, `vent_rate`, `synchronized`, `trigger_breath`); `Breathing.switch_breathing(false)`.
+- **Written by:** the user and bot (`switch_cpr`, the CPR settings).
+- **Read by:** `DataCollector` watchers.
+
 ## Usage in the model
 
 - One `Resuscitation` per scenario, enabled but with `cpr_enabled: false` at rest. Start CPR with
@@ -189,7 +203,10 @@ From `term_neonate.json`:
 - Compression force reaches the circulation through `pres_ext` on the targeted compartments, driving
   forward flow during arrest.
 
-## Notes & caveats
+## Assumptions and limitations
+
+- **Compressions are a pressure waveform, not a force on a chest model:** each target compartment gets a fixed fraction of the compression pressure. No thoracic pump versus cardiac pump distinction, no chest recoil or compression depth.
+- **The default ratio is 15:2** (`chest_comp_no` 15, `vent_no` 2), the paediatric two-rescuer ratio; the neonatal 3:1 ratio is set with `chest_comp_no` 3 and `vent_no` 1.
 
 - **Requires `Ventilator` and `Breathing`.** Both are resolved at init; all calls are null-guarded, so
   a missing ventilator no longer crashes at build (`set_fio2`) or during CPR — compressions still run,
@@ -219,3 +236,7 @@ forward aortic-valve (`LV_AA`) flow under CPR rises well above the arrested base
 actually drive circulation through `pres_ext`); exactly `vent_no` breaths are delivered per pause;
 and a `switch_cpr` off→on re-toggle restarts a clean cycle. Like every probe here it is interactive
 and **always exits 0** — read the table.
+
+## References
+
+- Neonatal resuscitation guidelines (ILCOR / ERC / AHA): compressions at 3:1 with ventilation, 120 events a minute.
