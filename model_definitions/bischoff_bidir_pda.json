@@ -10550,7 +10550,7 @@
     "components": {
      "ECLS_TUBING_IN": {
       "name": "ECLS_TUBING_IN",
-      "description": "tuning in",
+      "description": "tubing in",
       "is_enabled": false,
       "model_type": "BloodCapacitance",
       "components": {},
@@ -10603,10 +10603,6 @@
       "so2": 80.58404511369847,
       "hco3": 22.95138837224519,
       "be": -7.9236381981810595,
-      "u_vol_factor_scaling": 1,
-      "no_flow": true,
-      "r_for": 50,
-      "r_back": 50,
       "prev_po2": 50.21796276062709,
       "haldane_coeff": 2.2,
       "P50_0": 18.5,
