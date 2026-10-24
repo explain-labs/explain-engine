@@ -5542,7 +5542,7 @@
       "components": {},
       "u_vol": 0.009943425107542042,
       "el_base": 0,
-      "el_k": 100000,
+      "el_k": 1256700,
       "pres_ext": -2.422281212064476,
       "vol_extra": 0,
       "contained_components": [
