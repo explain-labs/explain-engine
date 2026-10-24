@@ -867,6 +867,9 @@ trace(`  calibration ${allWithin ? "CONVERGED" : "INCOMPLETE"} after ${it} iter 
 
 // ---------------------------------------------------------------------------
 // 6. serialize and emit the runnable scenario JSON (stdout)
+// bake the scaling layer into the base values first, so 1.0 means this patient for the app's and the
+// bot's scale levers (they set that layer absolutely and would overwrite a calibration stored there)
+eng.scale("incorporate", 1);
 // ---------------------------------------------------------------------------
 const name = spec.name || `${baseline}_custom`;
 const description =
