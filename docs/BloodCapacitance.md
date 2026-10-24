@@ -75,7 +75,7 @@ These props are not declared in the constructor. Other models write them onto th
 
 ## Calculation
 
-BloodCapacitance does not override `calc_model()`. Each step runs the inherited [Capacitance cycle](./Capacitance.md#calculation-cycle-calc_model): `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
+BloodCapacitance does not override `calc_model()`. Each step runs the inherited [Capacitance cycle](./Capacitance.md#calculation): `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
 
 The class adds one thing, an override of **`volume_in(dvol, comp_from)`**. A `Resistor` (or the compartment's own outflow) calls it when blood arrives:
 
