@@ -6365,8 +6365,7 @@
       "flow": 0.00011287813566048403,
       "r_for_eff": 205622.73551818417,
       "r_back_eff": 205622.73551818417,
-      "r_k_eff": 0,
-      "ans_sensitivity": 0
+      "r_k_eff": 0
      },
      "COR_RAIVCI": {
       "name": "COR_RAIVCI",
@@ -6395,8 +6394,7 @@
       "flow": 0.00007800270971816564,
       "r_for_eff": 15000,
       "r_back_eff": 15000,
-      "r_k_eff": 0,
-      "ans_sensitivity": 0
+      "r_k_eff": 0
      },
      "COR_RASVC": {
       "name": "COR_RASVC",
@@ -6425,8 +6423,7 @@
       "flow": 0.00007812794781524619,
       "r_for_eff": 15000,
       "r_back_eff": 15000,
-      "r_k_eff": 0,
-      "ans_sensitivity": 0
+      "r_k_eff": 0
      }
     },
     "mob_active": true,
