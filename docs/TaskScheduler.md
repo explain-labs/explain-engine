@@ -51,6 +51,7 @@ Each task carries a numeric `type` that decides how it is applied:
 | `add_task(new_task)` | Resolves `new_task.model` (a name) to a live instance and checks that `prop1`(`.prop2`) exists, infers `type` (0 numeric tween with `it > 0` / 1 instant write) and enqueues under a unique `task_<n>` key. Returns an error string (sent to the UI as an `error` message by `set_property`) for an unknown model or property, or a non-number target for a numeric property; nothing is queued then and no property is created. |
 | `add_function_call(new_function_call)` | Splits `func` (`"Model.method"`), checks that the model exists and the method is a function (else returns an error string, sent as an `error` message by `call_function`), keeps the model and method **names** (the task list must stay structured-cloneable), marks the task `type = 2`, and enqueues it to fire after `at` seconds. |
 | `run_tasks()` | When `_task_interval_counter > _task_interval`: resets the counter, iterates `_tasks`, decrements each task's `at` delay; once `at` elapses it starts type-0 tweens, performs type-1 swaps and type-2 calls immediately, and steps running tweens toward `t`. Completed tasks are deleted. Advances the counter by `_t` only while `is_enabled`. |
+| `_new_id()` *(private)* | Returns the next `task_<n>` key (a running counter, so ids never collide). |
 | `_set_value(task)` *(private)* | Writes `current_value` into `task.model[prop1]` or `task.model[prop1][prop2]`. |
 
 ### `setPropValue(prop, value, it, at)` semantics
@@ -59,6 +60,8 @@ Each task carries a numeric `type` that decides how it is applied:
 - `value` (`t` on the task) — the destination value.
 - `it` — interpolation time in seconds. `it > 0` on a numeric target tweens over that span (one increment per `_task_interval`); `it <= 0` writes instantly (type 1). Booleans/strings always write instantly.
 - `at` — delay in seconds before the task begins; decremented by `_task_interval` each evaluation until it elapses.
+
+**Example** (term_neonate): `add_task({model: "Heart", prop1: "heart_rate_ref", t: 150, it: 10, at: 2})` holds 120.3 for 2 s, then rises ~3 bpm per second and reaches 150 at 12 s. `add_function_call({func: "Breathing.switch_breathing", args: [false], at: 5})` switches breathing off at 5 s. A misspelled property returns `TaskScheduler: property 'Heart.no_such' not found`.
 
 ## Interaction with models
 
