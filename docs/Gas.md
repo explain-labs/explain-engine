@@ -1,151 +1,100 @@
 # Gas
 
-The `Gas` model is a **manager** for the gas-containing compartments — the gas-phase analogue of
-[`Blood`](./Blood.md). It is not itself a compartment: it seeds atmospheric pressure, temperature,
-humidity and the initial gas composition onto every [`GasCapacitance`](./GasCapacitance.md) at build,
-and exposes setters to change those at runtime. Its `calc_model` is empty; the per-compartment
-chemistry is done by `GasCapacitance` and the gas-exchange/diffusion elements.
+`Gas` manages the gas side of the model, the counterpart of [Blood](./Blood.md); it is not a compartment. At build it gives every gas compartment the atmospheric pressure, temperature, humidity and starting composition. At runtime it provides the setters for FiO2, ambient temperature and humidity, and altitude, and it couples the airway's temperature to the body's.
+
+## Physiology
+
+The air a baby breathes is cool and dry: about 20 °C and 50 % humidity in a room, 21 % O2. On its way in, the nose and airways warm it to body temperature and saturate it with water vapour, so alveolar gas is 37 °C and 100 % humid, with a water vapour pressure of ~47 mmHg that dilutes the other gases. Conditioning the gas costs the body heat and water, a real loss in a small preterm infant (which is why gases are heated and humidified on a ventilator).
+
+The partial pressure of inspired O2 is FiO2 × (barometric pressure − water vapour pressure). At altitude, a lower barometric pressure lowers it at the same FiO2.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── Gas   (gas-system manager — atmospheric pressure, temperature, humidity, initial composition)
+  └── Gas
 ```
-
-## What it models
-
-Global gas-phase boundary conditions. At build it walks `model.models`, collects every model whose
-`model_type` is in `gas_containing_modeltypes` (default `["GasCapacitance"]`), and pushes the shared
-`pres_atm`/`temp`/`target_temp` onto each. It then overrides individual compartments with any
-per-site `temp_settings` / `humidity_settings`, and bootstraps each freshly-constructed compartment's
-gas composition from the global `fio2` via the standalone
-[`calc_gas_composition`](./GasComposition.md). At runtime its setters re-apply these boundary
-conditions (atmospheric pressure, temperature, humidity, FiO₂) to chosen sites.
 
 ## Properties
 
-### Config
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `pres_atm` | mmHg | Atmospheric pressure (default 760), propagated to every gas compartment |
-| `fio2` | fraction | Inspired O₂ fraction (default 0.21) used to bootstrap compositions |
-| `temp` | °C | Global gas temperature (default 20) applied as both `temp` and `target_temp` |
-| `humidity` | fraction | Global gas humidity 0–1 (default 0.5) |
-| `temp_settings` | object | Map `compartment_name → temperature (°C)` overriding the global temp per site |
-| `humidity_settings` | object | Map `compartment_name → humidity (fraction)` overriding the global humidity per site |
-| `gas_containing_modeltypes` | list | Model types treated as gas compartments (default `["GasCapacitance"]`) |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `pres_atm` | mmHg | 760 | Atmospheric pressure, given to every gas compartment. |
+| `fio2` | – | 0.21 | Dry O2 fraction applied to fresh compartments and the sources at build. Afterwards: the last value given to `set_fio2`. Scenarios 0.21–0.30. |
+| `temp` | °C | 20 | Temperature given to every gas compartment at build, before `temp_settings`. |
+| `humidity` | – | 0.5 | Default relative humidity. |
+| `temp_settings` | {name: °C} | `{}` | Per-compartment temperature. Scenarios: MOUTH 20, DS 32, ALL 37, ALR 37. |
+| `humidity_settings` | {name: fraction} | `{}` | Per-compartment humidity. Scenarios: MOUTH 0.5, DS/ALL/ALR 1. |
+| `thermoregulation_name` | – | `"Thermoregulation"` | Model whose `setpoint_temp` anchors the airway offsets. |
+| `gas_containing_modeltypes` | list | `["GasCapacitance"]` | Model types treated as gas compartments. |
 
-### Local / computed
+## Calculation
 
-| Property | Description |
+`calc_model` does nothing; the gas physics run in [GasCapacitance](./GasCapacitance.md) and [GasComposition](./GasComposition.md). All the work is at build and in the methods.
+
+**Build (`init_model`):**
+1. Every gas compartment gets `pres_atm`, and `temp` and `target_temp` from `temp`; then `temp_settings` and `humidity_settings` are applied by name.
+2. A compartment with no gas at all is filled by [`calc_gas_composition`](./GasComposition.md) from `fio2`, its temperature and humidity. A loaded state keeps its own composition.
+3. A compartment whose water vapour exceeds saturation at its final temperature is rebuilt (e.g. an idle ventilator circuit bootstrapped warmer by its device).
+4. The fixed-composition sources named in the settings (MOUTH) are rebuilt from `fio2`, temperature and humidity, so the scenario's settings reach them.
+5. For each body-warmed compartment (the non-fixed members of `temp_settings`: DS, ALL, ALR), its offset from the body set-point is stored: DS −5 °C, alveoli 0.
+
+## Methods
+
+| Method | Effect |
 |---|---|
-| `_gas_components` | Array of resolved gas-compartment instances, populated in `init_model` |
+| `set_fio2(fio2, sites = ["OUT", "MOUTH"])` | Rebuilds each named site's composition at `fio2`; stores `fio2`. Absent sites are skipped (no scenario has `OUT`). Room-air FiO2 is set on MOUTH. |
+| `set_temperature(t, sites = ["OUT", "MOUTH"])` | Adds the sites to `temp_settings` and re-applies all of them (`temp`, `target_temp`). Fixed sources are rebuilt with their **own** dry FiO2 (their water content follows the new temperature). |
+| `set_humidity(h, sites = ["OUT", "MOUTH"])` | Same for humidity. Airway compartments relax to the new humidity on their own; fixed sources are rebuilt with their own FiO2. |
+| `set_atmospheric_pressure(p)` | `pres_atm` on every gas compartment. In term_neonate, 760 → 600 mmHg lowers mouth pO2 from 158 to 125 mmHg, alveolar pO2 105 → 76 and post-ductal pO2 73 → 57 mmHg (SO2 96.7 → 94.7 %) within 2 min. |
+| `set_body_temperature(core)` | Called by Thermoregulation: `target_temp` of each body-warmed compartment = core + its stored offset, so fever and hypothermia reach the alveoli (and the dead space stays 5 °C below). Neutral at rest. |
+| `drain_respiratory_heat()` | Called by Thermoregulation: returns and clears the heat (J, sensible + latent) the body-warmed compartments gave to the gas since the last call. |
 
-`Gas` carries no factor parameters of its own.
+## Factor system
 
-## Bootstrap (`init_model`)
+None.
 
-1. Apply the `args` (config) onto the instance.
-2. Rebuild `_gas_components`: for every model whose `model_type` is in `gas_containing_modeltypes`,
-   push it and set `model.pres_atm = pres_atm`, `model.temp = temp`, `model.target_temp = temp`.
-3. For each entry in `temp_settings`, set that compartment's `temp` **and** `target_temp`.
-4. For each entry in `humidity_settings`, set that compartment's `humidity`.
-5. **Bootstrap composition only for freshly-constructed compartments** — those whose
-   `co2 + cco2 + cn2 + ch2o + cother === 0` — by calling
-   `calc_gas_composition(model, fio2, model.temp, model.humidity)`. Guarding on the raw
-   concentrations (rather than the derived `ctotal`) preserves a restored/loaded saved state even if
-   `ctotal` was not serialized.
-6. **Reconcile water vapour with the final temperature.** A device (`Ventilator`, `Ecls`) may have
-   bootstrapped its own gas lines in its `init_model`, which runs *before* this one, at a different
-   temperature than step 2/3 ends up applying — leaving a water content that is supersaturated for
-   the final temperature. Normally `add_watervapour` would condense that out, but a compartment
-   belonging to a switched-off device is never stepped (`step_model` gates on `is_enabled`), so it
-   would report a physically impossible relative humidity forever. Any compartment found
-   supersaturated here therefore has its composition rebuilt at its final temperature. In practice
-   this is only ever an idle ventilator circuit holding fresh gas.
-7. **Apply `temp_settings`/`humidity_settings` to the fixed-composition gas sources they name.**
-   Step 5 only fires on a compartment holding no gas at all, and every reseeded scenario bakes
-   concentrations into its JSON — so on those, steps 3 and 4 reach `temp` and `humidity` but never
-   the composition derived from them. A normal compartment self-heals (`add_watervapour` relaxes
-   `ph2o` toward `humidity · P_sat(temp)` on its own), but a `fixed_composition` one never does,
-   because `add_watervapour` returns immediately there. Without this pass `MOUTH` stays frozen at
-   its baked-in water content forever and **editing `humidity_settings` in a scenario JSON is a
-   silent no-op**; step 6 does not cover it either, since an under-humidified compartment is not
-   supersaturated. Scoped to members of `temp_settings`/`humidity_settings` so device gas lines are
-   left alone — `Ventilator`/`Ecls` circuits are `fixed_composition` too, but are not in those dicts
-   and are bootstrapped by their owning device. Rebuilding from `fio2` is safe on a source, which by
-   definition has no accumulated CO₂ worth preserving; that is why non-fixed members are skipped.
+## Inputs and outputs
 
-`calc_model` is intentionally empty.
+- **Reads:** `Thermoregulation.setpoint_temp` (build); the body-warmed compartments' heat accumulators.
+- **Writes:** every gas compartment's `pres_atm`, `temp`, `target_temp`, `humidity`, and composition through `calc_gas_composition`.
+- **Written by:** the user and bot (FiO2, temperature, humidity, altitude); Thermoregulation (`set_body_temperature`, `drain_respiratory_heat`).
+- **Read by:** Thermoregulation (respiratory heat loss).
 
-## Setters (runtime)
+## Assumptions and limitations
 
-- **`set_atmospheric_pressure(new_pres_atm)`** — set `pres_atm` and propagate it to every compartment
-  in `_gas_components`.
-- **`set_temperature(new_temp, sites = ["OUT", "MOUTH"])`** — record `temp_settings[site]` for each
-  site (`parseFloat`), then apply `temp` **and** `target_temp` to all recorded sites. Sites absent
-  from the scenario are skipped: the defaults name compartments not every scenario defines (a
-  neonatal airway has no `OUT`), and a site once recorded stays in `temp_settings` for every later
-  call. Saturation pressure is a function of temperature, so — as in `set_humidity` — a
-  `fixed_composition` site additionally gets its composition recomputed, or it would keep the `ph2o`
-  of the temperature it was built at.
-- **`set_humidity(new_humidity, sites = ["OUT", "MOUTH"])`** — record `humidity_settings[site]`
-  (`parseFloat`) and apply `humidity` to all recorded sites. Since `humidity` is a live evaporation
-  target that [`GasCapacitance`](./GasCapacitance.md) reads every step, a normal compartment relaxes
-  to the new value on its own. A `fixed_composition` compartment is never touched by
-  `add_watervapour`, so those — and *only* those — additionally get their composition recomputed.
-  Recomputing an airway compartment here would rebuild it from `fio2` and discard its accumulated
-  CO₂.
-- **`set_fio2(new_fio2, sites = ["OUT", "MOUTH"])`** — set `fio2` (`parseFloat`, to avoid string
-  concatenation corrupting the `1 − (fio2 + fico2)` fraction math), then re-derive each site's
-  composition via the standalone [`calc_gas_composition`](./GasComposition.md) at that site's current
-  `temp`/`humidity`. A site the scenario does not have is skipped (no current scenario has `OUT`, so
-  the default call updates `MOUTH` only).
-- **`set_body_temperature(core_temp)`** — push the body core temperature onto the body-warmed airway
-  compartments, the gas counterpart to `Blood.set_temperature`. Called each update by
-  [`Thermoregulation`](./Thermoregulation.md). Each such compartment's `target_temp` is set to
-  `core_temp + delta`, where `delta` is the compartment's build-time offset from the set-point
-  (captured in `init_model` for the **non-`fixed_composition`** members of `temp_settings` — `DS`,
-  `ALL`, `ALR`; `MOUTH` is excluded as the environment-warmed inspired-air source). At rest
-  (`core == set-point`) the targets equal their build values, so the coupling is neutral; a febrile
-  or hypothermic patient conditions inspired gas toward the actual core instead of a hard 37 °C.
+- **Membership by `model_type` string**, as in Blood: a custom gas compartment type must be added to `gas_containing_modeltypes`.
+- **Rebuilding a source discards its history.** `calc_gas_composition` writes a fresh composition (ambient CO2 0.04 %); this is why only fixed sources are rebuilt by the setters, never airway compartments.
+- **The setters' sites accumulate.** A site passed to `set_temperature` or `set_humidity` stays in the settings and is re-applied on every later call.
+- **Devices own their gas lines.** Ventilator and ECLS gas compartments receive `pres_atm` and the default temperature here but are set by their device; they are not in `temp_settings`.
+- **Altitude changes only the ambient pressure.** No hypoxic ventilatory acclimatisation, no change in gas density.
 
 ## Example definition (JSON)
 
-From `term_neonate.json` — note the per-site temperature/humidity profile (cool, half-humid mouth;
-warm, fully-saturated alveoli):
+From `term_neonate.json`, `models.Gas` (trimmed to the config props):
 
 ```json
 {
   "name": "Gas",
-  "description": "gas composition model",
   "model_type": "Gas",
   "is_enabled": true,
   "pres_atm": 760,
   "fio2": 0.21,
   "temp": 20,
   "humidity": 0.5,
-  "humidity_settings": { "MOUTH": 0.5, "DS": 1, "ALL": 1, "ALR": 1 },
   "temp_settings": { "MOUTH": 20, "DS": 32, "ALL": 37, "ALR": 37 },
+  "humidity_settings": { "MOUTH": 0.5, "DS": 1, "ALL": 1, "ALR": 1 },
+  "thermoregulation_name": "Thermoregulation",
   "gas_containing_modeltypes": ["GasCapacitance"]
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- Built once per scenario; runs first so every [`GasCapacitance`](./GasCapacitance.md) starts with a
-  consistent pressure/temperature/humidity and a physiological room-air (or FiO₂-set) composition.
-- The setters are the entry points the UI / `Ventilator` / `Ecls` and the bot use to change inspired
-  oxygen, ambient pressure, and airway conditioning at runtime.
-- To model **humidified inspired gas** (a heated humidifier on a ventilator circuit), raise
-  `humidity_settings.MOUTH` — and `temp_settings.MOUTH` for a *heated* humidifier — in the scenario
-  JSON, or call `set_humidity` / `set_temperature` at runtime. Both paths now take effect on
-  `MOUTH`; before the step-7 pass above, only the runtime setters did.
-- Compartments not listed in `humidity_settings` keep whatever `humidity` they carry (the
-  `GasCapacitance` default is `1.0`, a saturated wall) and are humidified over time by
-  `GasCapacitance.add_watervapour`. Device gas paths that should stay dry — the ventilator supply,
-  the ECLS sweep gas — must declare `humidity: 0` explicitly.
-- The gas chemistry itself is documented in [`GasComposition`](./GasComposition.md) and
-  [`GasCapacitance`](./GasCapacitance.md).
+One instance in every scenario, with the settings above. `fio2`: 0.21 in term_neonate, preterm_30wk, bischoff_no_pda and the fetal scenarios; 0.25 preterm_28wk; 0.26 bischoff_ltr_pda; 0.28 bischoff_bidir_pda; 0.30 preterm_25wk.
+
+## References
+
+No literature values; the temperatures and humidities are the conventional room and airway values.
