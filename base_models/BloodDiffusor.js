@@ -27,9 +27,9 @@ export class BloodDiffusor extends BaseModelClass {
     this.dif_solutes_factor_ps = 1.0; // persistent diffusion factor for solutes (unitless)
 
     // scaling factors
-    this.dif_o2_factor_scaling = 1.0; // scaling factor for the o2 diffusion factor (unitless)
-    this.dif_co2_factor_scaling = 1.0; // scaling factor for the co2 diffusion factor (unitless)
-    this.dif_solutes_factor_scaling = 1.0; // scaling factor for the solute diffusion factor (unitless)
+    this.dif_o2_factor_scaling_ps = 1.0; // scaling factor for the o2 diffusion factor (unitless)
+    this.dif_co2_factor_scaling_ps = 1.0; // scaling factor for the co2 diffusion factor (unitless)
+    this.dif_solutes_factor_scaling_ps = 1.0; // scaling factor for the solute diffusion factor (unitless)
   
     // dependent properties
     this.dif_o2_step = 0.0; // effective o2 diffusion constant incl. the factors (mmol/(mmHg·s))
@@ -54,17 +54,17 @@ export class BloodDiffusor extends BaseModelClass {
     this.dif_o2_step = this.dif_o2
         + (this.dif_o2_factor - 1) * this.dif_o2
         + (this.dif_o2_factor_ps - 1) * this.dif_o2
-        + (this.dif_o2_factor_scaling - 1) * this.dif_o2;
+        + (this.dif_o2_factor_scaling_ps - 1) * this.dif_o2;
 
     this.dif_co2_step = this.dif_co2
         + (this.dif_co2_factor - 1) * this.dif_co2
         + (this.dif_co2_factor_ps - 1) * this.dif_co2
-        + (this.dif_co2_factor_scaling - 1) * this.dif_co2;
+        + (this.dif_co2_factor_scaling_ps - 1) * this.dif_co2;
 
     let solutes_step = 1.0
         + (this.dif_solutes_factor - 1)
         + (this.dif_solutes_factor_ps - 1)
-        + (this.dif_solutes_factor_scaling - 1);
+        + (this.dif_solutes_factor_scaling_ps - 1);
 
     // diffuse the gases, where diffusion is partial pressure-driven. A failed acid-base / O2 solve
     // leaves po2/pco2 at the -1 sentinel, which would drive a spurious flux: skip that gas this step

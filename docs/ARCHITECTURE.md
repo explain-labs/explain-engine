@@ -223,12 +223,7 @@ When adding a tunable param, follow this convention so it composes with interven
 - **[`BloodVessel`](./BloodVessel.md)** — most of the circulation — overrides `calc_resistances`/`calc_elastances` and composes **multiplicatively**. The three R layers are multiplied by the ANS multiplier, `r_eff = r · factor · factor_ps · factor_scaling_ps · (1 + (ans_activity − 1)·ans_sens)`. Elastance follows R through the α-coupling: `el_eff = el_base · (el layers) · (R multiplier)^α`. Its `u_vol` uses the inherited additive layers, then is multiplied by the ANS unstressed-volume multiplier.
 - **[`HeartChamber`](./HeartChamber.md)** stays additive but adds extra terms: drug, Mob, load and remodelling factors, plus an ANS term that is *subtracted* for `el_min` (lusitropy).
 
-**⚠️ The scaling-layer suffix is NOT uniform across the engine.** Verify before you copy:
-
-- The **capacitance / resistor / time-varying-elastance** family uses **`*_factor_scaling_ps`** (e.g. `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `r_factor_scaling_ps` in [`Capacitance.js`](../base_models/Capacitance.js) / [`Resistor.js`](../base_models/Resistor.js)).
-- The **diffusor / exchanger** family uses **`*_factor_scaling`** with **no `_ps`** (e.g. `dif_o2_factor_scaling`, `dif_co2_factor_scaling` in [`GasExchanger.js`](../base_models/GasExchanger.js) and `BloodDiffusor`).
-
-If you scale a diffusor through the `*_scaling_ps` name it will silently do nothing.
+**The scaling layer is always named `*_factor_scaling_ps`**, in every family: `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `r_factor_scaling_ps` ([`Capacitance.js`](../base_models/Capacitance.js), [`Resistor.js`](../base_models/Resistor.js)), and `dif_o2_factor_scaling_ps`, `dif_co2_factor_scaling_ps` ([`GasExchanger.js`](../base_models/GasExchanger.js), [`BloodDiffusor.js`](../base_models/BloodDiffusor.js)). The diffusors used `*_factor_scaling` (no `_ps`) until the v1.0 documentation pass.
 
 ### 7b. `ncc_*` cycle counters live on the components
 

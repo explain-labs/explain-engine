@@ -13,10 +13,9 @@ Each per-class doc follows the same house template (see the template section in
 calculation/math → factor system → example JSON → usage. The exemplar is
 [BloodCapacitance](./BloodCapacitance.md).
 
-> **Cross-cutting footgun:** the factor/effective-value scaling tier is **not uniformly named**.
-> The capacitance/resistor/time-varying-elastance family uses `*_factor_scaling_ps`, but the
-> diffusor/exchanger family (`GasExchanger`, `BloodDiffusor`) uses `*_factor_scaling`
-> (no `_ps`). See [ARCHITECTURE §cross-cutting patterns](./ARCHITECTURE.md).
+> **Factor layers:** every tunable has `*_factor` (per step), `*_factor_ps` (persistent) and
+> `*_factor_scaling_ps` (scaling) layers; the name is the same in every model family. See
+> [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
 
 ---
 

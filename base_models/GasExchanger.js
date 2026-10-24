@@ -32,19 +32,19 @@ export class GasExchanger extends BaseModelClass {
     this.dif_o2_factor_ps = 1.0; // factor modifying the oxygen diffusion constant
     this.dif_co2_factor_ps = 1.0; // factor modifying the carbon diffusion constant
 
-    // scaling factor
-    this.dif_o2_factor_scaling = 1.0; // scaling factor for the oxygen diffusion constant
-    this.dif_co2_factor_scaling = 1.0; // scaling factor for the carbon diffusion constant
+    // scaling factors (the persistent scaling layer)
+    this.dif_o2_factor_scaling_ps = 1.0; // scaling factor for the oxygen diffusion constant
+    this.dif_co2_factor_scaling_ps = 1.0; // scaling factor for the carbon diffusion constant
     
     // dependent properties
-    this.flux_o2 = 0.0; // oxygen flux (mmol)
-    this.flux_co2 = 0.0; // carbon dioxide flux (mmol)
+    this.flux_o2 = 0.0; // O2 moved this step, blood -> gas (mmol per step; uptake is negative)
+    this.flux_co2 = 0.0; // CO2 moved this step, blood -> gas (mmol per step)
 
     // local variables
     this._blood = null; // reference to the blood component
     this._gas = null; // reference to the gas component
-    this.dif_o2_step = 0.0; // state variable for the o2 diffusion (mmol)
-    this.dif_co2_step = 0.0; // state variable for the co2 diffusion (mmol)
+    this.dif_o2_step = 0.0; // effective O2 diffusion constant incl. the factors (mmol/(mmHg·s))
+    this.dif_co2_step = 0.0; // effective CO2 diffusion constant incl. the factors (mmol/(mmHg·s))
     // the blood-gas solve (calc_blood_composition, an iterative acid-base / O2 solve) runs every
     // bc_interval seconds instead of every step; the fluxes in between use the last po2/pco2
     this.bc_interval = 0.002;
@@ -60,6 +60,7 @@ export class GasExchanger extends BaseModelClass {
       this._gas_name = this.comp_gas;
       this._bc_counter = Infinity;
     }
+    if (!this._blood || !this._gas) return;
 
     // set the blood composition of the blood component (every bc_interval, see the constructor)
     this._bc_counter += this._t;
@@ -86,12 +87,12 @@ export class GasExchanger extends BaseModelClass {
     this.dif_o2_step = this.dif_o2 
         + (this.dif_o2_factor - 1) * this.dif_o2
         + (this.dif_o2_factor_ps - 1) * this.dif_o2
-        + (this.dif_o2_factor_scaling - 1) * this.dif_o2; // apply scaling factor to the diffusion factor
+        + (this.dif_o2_factor_scaling_ps - 1) * this.dif_o2; // apply scaling factor to the diffusion factor
 
     this.dif_co2_step = this.dif_co2 
         + (this.dif_co2_factor - 1) * this.dif_co2
         + (this.dif_co2_factor_ps - 1) * this.dif_co2
-        + (this.dif_co2_factor_scaling - 1) * this.dif_co2; // apply scaling factor to the diffusion factor
+        + (this.dif_co2_factor_scaling_ps - 1) * this.dif_co2; // apply scaling factor to the diffusion factor
 
     // the factor layers add up, so several writers lowering them at once (Surfactant derecruitment
     // plus atelectasis) can take the sum below zero; a negative diffusion constant would pump gas
