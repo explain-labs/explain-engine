@@ -1,131 +1,99 @@
 # BloodTimeVaryingElastance
 
-A BloodTimeVaryingElastance is a volume compartment with a time-varying elastance (cyclically changing stiffness) that holds blood with tracked composition. It is used for compartments that contract and relax cyclically but are not heart chambers -- for example, a pulsatile vessel segment driven by an external activation signal.
+A `BloodTimeVaryingElastance` is a [`TimeVaryingElastance`](./TimeVaryingElastance.md) that holds blood: a compartment whose stiffness follows the heartbeat and whose blood composition is tracked and mixed like a [`BloodCapacitance`](./BloodCapacitance.md). In the shipped scenarios it is the coronary bed.
+
+## Physiology
+
+The coronary vessels run through the heart muscle. When the ventricles contract, the muscle squeezes the vessels inside it (*intramyocardial compression*). Coronary inflow to the left ventricle is therefore impeded in systole and occurs mostly in diastole, and blood is pushed out of the coronary veins during systole. A tachycardia that shortens diastole, or a high diastolic ventricular pressure, reduces the time and the pressure available for coronary filling.
+
+Explain models this with one compartment whose stiffness rises with ventricular activation. Contraction raises the pressure in the coronary bed, which slows inflow from the aorta and speeds outflow to the right atrium. The same compartment is where the heart muscle takes up its oxygen: `Mob` removes the myocardial O2 consumption from the coronary blood and adds the CO2 it produces, so coronary venous blood is the most desaturated blood in the body.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── TimeVaryingElastance         (volume, time-varying elastance, pressure)
-        └── BloodTimeVaryingElastance  (blood composition tracking)
+  └── TimeVaryingElastance          (el_min/el_max, act_factor, pressure)
+        └── BloodTimeVaryingElastance   (blood composition mixing)
 ```
 
-## Relationship to HeartChamber
-
-Both `BloodTimeVaryingElastance` and `HeartChamber` extend `TimeVaryingElastance`. The difference is that `HeartChamber` adds ANS-mediated modulation of contractility (el_max) and relaxation (el_min) via beta-adrenergic receptor modeling. `BloodTimeVaryingElastance` does not have ANS coupling -- it uses the parent's `calc_elastances()` directly.
-
-## What it models
-
-A compartment whose elastance varies over time between a minimum (`el_min`) and maximum (`el_max`) value, driven by an external activation factor (`act_factor`). This produces pulsatile pressure changes. The compartment also tracks blood composition (gases, solutes, drugs, temperature, viscosity) using the same mixing logic as `BloodCapacitance`.
+All of the calculation (elastances, unstressed volume, pressure) is inherited unchanged from `TimeVaryingElastance`, with the additive factor layers. Unlike its sibling [`HeartChamber`](./HeartChamber.md), it has no ANS, drug or load terms.
 
 ## Properties
 
-### Inherited from TimeVaryingElastance
+Volume, elastance, activation and factor props are inherited: see [TimeVaryingElastance → Properties](./TimeVaryingElastance.md#properties).
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume |
-| `el_min` | mmHg/L | Minimum elastance (during relaxation/diastole) |
-| `el_max` | mmHg/L | Maximum elastance (during contraction/systole) |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient |
-| `act_factor` | 0-1 | Activation factor (set externally, e.g., by Heart model) |
-| `vol` | L | Current volume |
-| `pres` | mmHg | Total pressure |
-| `pres_in` | mmHg | Recoil pressure |
-| `pres_ext` | mmHg | External pressure (non-persistent, resets each step) |
+### Config (set in the definition JSON)
 
-### Blood composition (unique to BloodTimeVaryingElastance)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `temp` | °C | 37.0 | Blood temperature; mixed on inflow, relaxed toward `body_temp` by `Blood`. |
+| `viscosity` | cP | 6.0 | Overwritten by `Blood` from the compartment's haemoglobin every step; not mixed. |
+| `solutes` | object | `{}` | Solute concentrations, seeded from `Blood` when empty. |
+| `drugs` | object | `{}` | Drug concentrations (`Drugs`). |
 
-| Property | Unit | Description |
-|---|---|---|
-| `temp` | degC | Blood temperature |
-| `viscosity` | cP | Blood viscosity |
-| `to2` | mmol/L | Total oxygen concentration |
-| `tco2` | mmol/L | Total carbon dioxide concentration |
-| `ph` | unitless | Blood pH (-1 = not calculated) |
-| `pco2` | mmHg | Partial pressure of CO2 (-1 = not calculated) |
-| `po2` | mmHg | Partial pressure of O2 (-1 = not calculated) |
-| `so2` | unitless | Oxygen saturation (-1 = not calculated) |
-| `hco3` | mmol/L | Bicarbonate concentration (-1 = not calculated) |
-| `be` | mmol/L | Base excess (-1 = not calculated) |
-| `solutes` | object | Dictionary of solute concentrations |
-| `drugs` | object | Dictionary of drug concentrations |
+### Outputs
 
-### Calculated intermediates
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `to2`, `tco2` | mmol/L | 0.0 | Total O2 and CO2 content; mixed on inflow. |
+| `ph`, `pco2`, `po2`, `so2`, `hco3`, `be` | as in [BloodCapacitance](./BloodCapacitance.md#outputs) | -1 | Blood gases, `-1` = not calculated. No model solves them for `COR`, so they stay `-1`. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `el_min_eff` | mmHg/L | Effective minimum elastance this step (after all factors) |
-| `el_max_eff` | mmHg/L | Effective maximum elastance this step |
-| `el_k_eff` | mmHg/L² | Effective non-linear elastance coefficient |
-| `u_vol_eff` | L | Effective unstressed volume |
+### Set by other models
 
-## Three-tier factor system
+The same props `Blood` and `BloodComposition` write onto every blood compartment (`haldane_coeff`, `P50_0`, `viscosity_ref`, `body_temp`, `blood_temp_tc`, `temp_ext_override`, `prev_ph`, `prev_po2`): see [BloodCapacitance → Set by other models](./BloodCapacitance.md#set-by-other-models).
 
-| Tier | Factors | Purpose |
-|---|---|---|
-| Non-persistent | `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | Transient effects, reset each step |
-| Persistent (`_ps`) | `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | Ongoing physiological modulation |
-| Scaling (`_scaling_ps`) | `u_vol_factor_scaling_ps`, `el_min_factor_scaling_ps`, `el_max_factor_scaling_ps`, `el_k_factor_scaling_ps` | ModelScaler weight/manual scaling |
+The class has no `blood_pool` or `fixed_composition` prop. Both read as "not set", so the compartment counts as circulating blood and its composition is never frozen.
 
-Each effective value is computed additively:
+## Calculation
+
+`calc_model()` is inherited: `calc_elastances()` → `calc_volumes()` → `calc_pressure()`, with
 
 ```
-el_min_eff = el_min
-  + (el_min_factor - 1) * el_min
-  + (el_min_factor_ps - 1) * el_min
-  + (el_min_factor_scaling_ps - 1) * el_min
+pres_in = p_ed + (p_es − p_ed) · act_factor
 ```
 
-Note: `el_max_eff` is clamped to never fall below `el_min_eff`.
+(see [TimeVaryingElastance → Calculation](./TimeVaryingElastance.md#calculation)).
 
-## Pressure calculation
+The class adds one override, **`volume_in(dvol, comp_from)`**. It adds the volume, then mixes the incoming blood with `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), exactly as in [BloodCapacitance](./BloodCapacitance.md#calculation): `to2`, `tco2`, every solute and drug, and `temp`, by the inflow's share of the new volume.
 
-The time-varying elastance produces a pressure that interpolates between end-diastolic and maximum systolic pressure based on the activation factor:
+## Factor system
 
-```
-p_ms = (vol - u_vol_eff) * el_max_eff
-p_ed = el_k_eff * (vol - u_vol_eff)^2 + el_min_eff * (vol - u_vol_eff)
-pres_in = (p_ms - p_ed) * act_factor + p_ed
-```
+Inherited unchanged: `u_vol`, `el_min`, `el_max` and `el_k` carry the three layers, composed **additively** (see [TimeVaryingElastance → Factor system](./TimeVaryingElastance.md#factor-system)). No model writes them for `COR` in the shipped scenarios.
 
-When `act_factor = 0` (diastole), pressure equals `p_ed`. When `act_factor = 1` (peak systole), pressure equals `p_ms`.
+## Inputs and outputs
 
-## Mixing logic (`volume_in`)
+- **Reads:** the upstream compartment on inflow (composition).
+- **Written by:** `Heart` (`act_factor` = the ventricular activation `vaf`, every step); `Mob` (subtracts the myocardial O2 consumption from `to2` and adds CO2 to `tco2` by the respiratory quotient, every step); `Blood` (temperature, viscosity, seed composition); `Drugs`, `Lactate`, `Glucose` (their solutes and drugs); `PERICARDIUM` (`pres_ext`); the connected resistors (volume).
+- **Read by:** `AA_COR`, `COR_RAIVCI` and `COR_RASVC` (its pressure); `Mob` (its `to2`, `tco2` and volume, plus the `AA_COR` flow and aortic `to2` for O2 delivery); `DataCollector` watchers.
 
-Overrides `volume_in` to perform composition mixing when blood flows in, through the shared `mix_blood_in` ([`helpers/BloodMixing.js`](../helpers/BloodMixing.js)), identical to `BloodCapacitance`:
+## Assumptions and limitations
 
-```
-concentration += ((concentration_from - concentration) * dvol) / vol
-```
-
-Applied to: `to2`, `tco2`, all `solutes`, all `drugs`, `temp`, `viscosity`.
-
-## Calculation cycle
-
-Inherits from `TimeVaryingElastance`:
-
-1. `calc_elastances()` -- compute el_min_eff, el_max_eff, el_k_eff from base values + all factor tiers
-2. `calc_volumes()` -- compute u_vol_eff from base + all factor tiers
-3. `calc_pressure()` -- compute time-varying recoil pressure from activation factor
+- **One compartment for the whole coronary circulation.** Left and right coronary beds, and epicardial versus intramyocardial vessels, aren't separated.
+- **Compression follows the LV activation for the whole bed.** The right-ventricular activation (`rvaf`) doesn't act on it.
+- **The compression is fully coupled.** The pressure moves with `el_max/el_min` = 3 (90 000 / 30 000 mmHg/L) times the activation. In term_neonate the inflow is still slightly higher in systole than in diastole (about 43 vs 40 mL/min), where real left coronary inflow is diastole-dominant. To be reviewed with the heart group.
+- **Active only since the two-phase build** (`302ed76`). Before that, `Heart` never found `COR` (owned by `Mob`), and `act_factor` stayed 0.
 
 ## Example definition (JSON)
+
+From `term_neonate.json`, `models.Mob.components.COR` (trimmed to the config props):
 
 ```json
 {
   "name": "COR",
-  "description": "coronary circulation",
   "model_type": "BloodTimeVaryingElastance",
   "is_enabled": true,
-  "vol": 0.005,
-  "u_vol": 0.004,
-  "el_min": 5000,
-  "el_max": 15000,
-  "el_k": 0
+  "u_vol": 0.00028,
+  "el_min": 30000,
+  "el_max": 90000,
+  "el_k": 0,
+  "vol": 0.00067
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- Used for compartments that exhibit pulsatile behavior driven by an external activation signal but do not need the ANS-mediated contractility/relaxation modulation of HeartChamber
-- The coronary circulation (COR) is a typical example -- it is compressed during systole by ventricular contraction via the `act_factor` set by the Heart model
+One instance in all 10 scenarios: `COR`, owned by `Mob`, inside the `PERICARDIUM`. It is fed from the ascending aorta by `AA_COR` (implicit flow) and drains into both halves of the right atrium through `COR_RAIVCI` and `COR_RASVC`.
+
+## References
+
+This class introduces no literature-derived values. For the time-varying elastance concept see [TimeVaryingElastance](./TimeVaryingElastance.md#references). The coronary elastances are scenario calibrations.
