@@ -21,7 +21,7 @@ BaseModelClass
               └── BloodVessel  (adds resistance, flow, ANS coupling)
 ```
 
-`BloodTimeVaryingElastance` and `HeartChamber` carry the same blood properties but descend from `TimeVaryingElastance`. All four share the mixing code in [`helpers/BloodMixing.js`](../helpers/BloodMixing.js).
+`BloodTimeVaryingElastance` and `HeartChamber` carry the same blood properties but descend from `TimeVaryingElastance`. All three classes (and `BloodVessel` through this one) share the mixing code in [`BloodMixing`](./BloodMixing.md).
 
 ## Properties
 
