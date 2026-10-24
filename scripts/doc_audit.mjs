@@ -194,7 +194,13 @@ function auditClass(name, C) {
     const { mentioned, table } = docIdentifiers(md);
     r.undocumented = own.filter((k) => !mentioned.has(k));
     r.prose_only = own.filter((k) => mentioned.has(k) && !table.has(k));
-    r.runtime_undocumented = inj.filter((k) => !mentioned.has(k));
+    // a runtime prop documented on an ancestor's page counts as documented (it is shared by the family)
+    const ancestorMentions = new Set();
+    for (let P = Object.getPrototypeOf(C); P && P.name && P !== Function.prototype; P = Object.getPrototypeOf(P)) {
+      const amd = readDoc(P.name);
+      if (amd) for (const k of docIdentifiers(amd).mentioned) ancestorMentions.add(k);
+    }
+    r.runtime_undocumented = inj.filter((k) => !mentioned.has(k) && !ancestorMentions.has(k));
     const known = new Set([...(inst ? Object.keys(inst) : []), ...(pinst ? Object.keys(pinst) : []), ...methods, ...inj]);
     r.doc_stale = [...table].filter((k) => !known.has(k));
   }
