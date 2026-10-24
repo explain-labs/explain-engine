@@ -5708,7 +5708,7 @@
     "model_type": "Metabolism",
     "components": {},
     "met_active": true,
-    "vo2": 5.19,
+    "vo2": 5.24,
     "vo2_factor": 1,
     "vo2_temp_factor": 1.0039419398852432,
     "vo2_bat_factor": 1,
