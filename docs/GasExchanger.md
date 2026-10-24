@@ -1,148 +1,124 @@
 # GasExchanger
 
-A `GasExchanger` moves O₂ and CO₂ across the **blood–gas barrier** — between a blood compartment and a
-gas compartment — driven by their partial-pressure difference. It models alveolar gas exchange in the
-lung and the membrane of an ECLS oxygenator.
+A `GasExchanger` moves O2 and CO2 by diffusion between a **blood** compartment and a **gas** compartment: the alveolar gas and pulmonary capillary blood of each lung, and the sweep gas and blood of the ECLS oxygenator. Every bit of oxygen the patient takes up and CO2 it removes through the lungs crosses one of these.
+
+## Physiology
+
+In the alveoli, gas and blood are separated by a membrane less than a micrometre thick. O2 diffuses from the alveolar gas (pO2 ~100 mmHg) into the mixed-venous blood (~40 mmHg), and CO2 the other way. The rate is Fick's law: flux = diffusing capacity × partial-pressure difference. The diffusing capacity lumps membrane area, thickness and the gas's solubility; CO2 diffuses about 20 times more easily than O2. In a healthy lung, blood equilibrates with alveolar gas well within its transit time, so oxygenation is limited by ventilation and perfusion, not diffusion. Lung disease (RDS, atelectasis, oedema) lowers the effective capacity by removing area.
+
+The exchange also changes the gas volume: more O2 is taken up than CO2 given off (respiratory quotient < 1), so alveolar gas shrinks a little with every breath. During apnoea that shrinkage draws gas down the airways: apnoeic oxygenation.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── GasExchanger   (partial-pressure-driven O₂/CO₂ transfer between blood and gas)
+  └── GasExchanger
 ```
-
-Lives in `base_models/` (alongside `BloodDiffusor`). It is a transport element, not
-a compartment: it holds no volume and writes directly into the blood and gas compartments it
-references. It pairs a [`BloodCapacitance`](./BloodCapacitance.md)-family compartment with a
-[`GasCapacitance`](./GasCapacitance.md).
-
-## What it models
-
-```
-blood (po2, pco2)  ⇌[GasExchanger]⇌  gas (po2, pco2)
-   flux_o2  = (po2_blood  − po2_gas)  · dif_o2_step  · Δt
-   flux_co2 = (pco2_blood − pco2_gas) · dif_co2_step · Δt
-```
-
-Each step it recomputes the blood gas composition, computes the O₂ and CO₂ fluxes from the
-partial-pressure gradients, and transfers them between the blood's total contents (`to2`/`tco2`,
-mmol/L) and the gas compartment's concentrations (`co2`/`cco2`, mmol/L). The fluxes are signed, so the
-same element loads O₂ into blood at the lung when `po2_gas > po2_blood` and the gradient simply flips
-direction for CO₂.
-
-### Optional membrane transfer ceiling (`o2_cap` / `co2_cap`)
-
-By default the flux is pure partial-pressure diffusion with no upper bound, so a well-mixed compartment
-equilibrates fully every pass — fine for the alveolus, but it means a membrane oxygenator would always
-saturate its outlet regardless of blood flow. Setting `o2_cap`/`co2_cap` > 0 (mmol/s) **caps the
-per-step flux magnitude** at `cap · Δt`, modelling a membrane with a finite rated transfer. In steady
-state the outlet content becomes `venous + cap / Q_blood`, so below the rated flow the blood still
-fully saturates but above it the outlet saturation **falls** (total transfer plateaus at `cap`).
-
-The caps default to `0` and only the [`Ecls`](./Ecls.md) device sets them, only on `ECLS_GASEX` (from
-its oxygenator library). The native-lung exchangers `GASEX_LL`/`GASEX_RL` never receive a cap, so they
-keep the exact legacy pure-diffusion behaviour — this class change is inert for the lung.
 
 ## Properties
 
-### Config
+### Config (set in the definition JSON)
+
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `comp_blood` | – | `""` | Blood compartment (e.g. `LL_CAP`, `ECLS_OXY`). |
+| `comp_gas` | – | `""` | Gas compartment (e.g. `ALL`, `ECLS_GAS_OXY`). |
+| `dif_o2` | mmol/(mmHg·s) | 0 | O2 diffusing capacity. |
+| `dif_co2` | mmol/(mmHg·s) | 0 | CO2 diffusing capacity. |
+| `o2_cap`, `co2_cap` | mmol/s | 0, 0 | Optional membrane transfer ceiling; 0 = none. Only the ECLS oxygenator uses it (set by `Ecls` from the oxygenator's rated flow). |
+| `bc_interval` | s | 0.002 | How often the blood-gas solve runs; fluxes in between use the last pO2/pCO2. |
+
+### Factors
+
+| Property | Default | Layer and writers |
+|---|---|---|
+| `dif_o2_factor`, `dif_co2_factor` | 1.0 | Non-persistent (reset each step): `Surfactant` (derecruitment). |
+| `dif_o2_factor_ps`, `dif_co2_factor_ps` | 1.0 | Persistent, changed as deltas: `Respiration` (`set_gasexchange` and atelectasis), the `Calibrator`. |
+| `dif_o2_factor_scaling_ps`, `dif_co2_factor_scaling_ps` | 1.0 | Scaling layer; nothing writes it. (Named `*_factor_scaling` before v1.0.) |
+
+### Outputs
 
 | Property | Unit | Description |
 |---|---|---|
-| `comp_blood` | name | Blood compartment (the `po2`/`pco2` blood side) |
-| `comp_gas` | name | Gas compartment (the `po2`/`pco2` gas side) |
-| `dif_o2` | mmol/(mmHg·s) | O₂ diffusion constant (default 0.0) |
-| `dif_co2` | mmol/(mmHg·s) | CO₂ diffusion constant (default 0.0) |
-| `o2_cap` | mmol/s | Optional **membrane transfer ceiling** for O₂; `0` (default) = disabled = legacy pure-diffusion |
-| `co2_cap` | mmol/s | Optional membrane transfer ceiling for CO₂; `0` (default) = disabled |
+| `flux_o2`, `flux_co2` | mmol per step | Amount moved this step, positive = blood → gas (O2 uptake is negative). Divide by the step size for a rate. |
+| `dif_o2_step`, `dif_co2_step` | mmol/(mmHg·s) | Effective diffusing capacities with the factors. |
 
-### Computed / local
+## Calculation
 
-| Property | Unit | Description |
-|---|---|---|
-| `flux_o2` | mmol | O₂ transferred this step (blood → gas positive) |
-| `flux_co2` | mmol | CO₂ transferred this step (blood → gas positive) |
-| `dif_o2_step` / `dif_co2_step` | mmol/(mmHg·s) | Effective diffusion constants after the factors |
-| `_blood` / `_gas` | ref | Resolved compartment instances |
+Each step (skipped if either compartment is missing or empty):
+
+1. **Blood gases** of `comp_blood` by [`calc_blood_composition`](./BloodComposition.md), every `bc_interval`. The gas side's partial pressures come from its own step.
+2. **Factors**, additive, floored at 0 (several writers lowering them together must not make a negative capacity):
+   ```
+   dif_step = dif · (1 + (factor − 1) + (factor_ps − 1) + (factor_scaling_ps − 1)),   ≥ 0
+   ```
+3. **Fluxes** (Fick):
+   ```
+   flux_o2  = (pO2_blood  − pO2_gas)  · dif_o2_step  · dt
+   flux_co2 = (pCO2_blood − pCO2_gas) · dif_co2_step · dt
+   ```
+   - A gas is skipped while the blood solve has failed (the `-1` sentinel); otherwise the gradient would pump a runaway flux.
+   - With a ceiling set, each flux is clamped to `cap · dt`.
+   - Each flux is capped at what the donor holds.
+4. **Contents.** Blood `to2`/`tco2` and gas `co2`/`cco2` change by the flux over their volumes (a `fixed_composition` side is left unchanged).
+5. **Gas volume.** The net molar exchange `flux_o2 + flux_co2` changes the gas volume at the gas compartment's pressure and temperature (ideal gas); every species keeps its moles in the new volume. Alveolar gas shrinks when uptake exceeds output, and the pressure drop draws gas in through the airways.
 
 ## Factor system
 
-`dif_o2` and `dif_co2` use the three-tier [factor / effective-value pattern](./Capacitance.md). Note
-the scaling tier here is named **`_factor_scaling`** (not `_factor_scaling_ps` as on `Capacitance`):
+Additive layers, as in [Capacitance](./Capacitance.md#factor-system), with a floor at 0. See [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern).
 
-| Tier | Factors | Purpose |
-|---|---|---|
-| Non-persistent | `dif_o2_factor`, `dif_co2_factor` | Transient effects, reset to 1.0 each step |
-| Persistent (`_ps`) | `dif_o2_factor_ps`, `dif_co2_factor_ps` | `Respiration` / scenario modulation of diffusion capacity |
-| Scaling (`_scaling`) | `dif_o2_factor_scaling`, `dif_co2_factor_scaling` | `ModelScaler` scaling |
+## Inputs and outputs
 
-The effective constant (shown for O₂; identical for CO₂):
+- **Reads:** blood `po2`, `pco2`, `to2`, `tco2`, `vol`; gas `po2`, `pco2`, `co2`, `cco2`, `vol`, `pres`, `temp`.
+- **Writes:** blood `to2`, `tco2` (and its solved gases); gas `co2`, `cco2`, every gas concentration and `vol` (volume change).
+- **Written by:** `Surfactant`, `Respiration`, the `Calibrator` (factors); `Ecls` (`dif_o2`, `dif_co2`, `o2_cap`, `co2_cap` of `ECLS_GASEX`); the scenario generators (`dif_o2`, `dif_co2`).
+- **Read by:** `DataCollector` watchers; the probes (`flux_o2` as VO2).
 
-```
-dif_o2_step = dif_o2
-            + (dif_o2_factor          − 1) · dif_o2
-            + (dif_o2_factor_ps       − 1) · dif_o2
-            + (dif_o2_factor_scaling  − 1) · dif_o2
-```
+## Assumptions and limitations
 
-Both constants are floored at 0. The layers add, so several writers lowering them at once (Surfactant
-derecruitment plus atelectasis) could otherwise make one negative. Gas would then be pumped against
-its gradient, and the blood gases would blow up.
-
-## Calculation cycle (`calc_model`)
-
-1. Resolve `_blood` / `_gas` from `model.models`.
-2. Call `calc_blood_composition(_blood)` (from [`BloodComposition`](./BloodComposition.md)) to get
-   current blood `po2`/`pco2`; read `po2_blood`, `pco2_blood`, `to2_blood`, `tco2_blood` and the gas
-   `co2`, `cco2`, `po2`, `pco2`.
-3. **Skip the step** if either compartment's volume is `<= 0` (both volumes are denominators).
-4. Compose the effective diffusion constants `dif_o2_step` / `dif_co2_step` from the factors.
-5. **O₂ flux** and new contents:
-   ```
-   flux_o2      = (po2_blood − po2_gas) · dif_o2_step · Δt
-   if (o2_cap > 0) flux_o2 = clamp(flux_o2, −o2_cap·Δt, +o2_cap·Δt)   # membrane transfer ceiling
-   new_to2_blood = (to2_blood · vol_blood − flux_o2) / vol_blood     (floored at 0)
-   new_co2_gas   = (co2_gas   · vol_gas   + flux_o2) / vol_gas       (floored at 0)
-   ```
-6. **CO₂ flux** and new contents:
-   ```
-   flux_co2      = (pco2_blood − pco2_gas) · dif_co2_step · Δt
-   if (co2_cap > 0) flux_co2 = clamp(flux_co2, −co2_cap·Δt, +co2_cap·Δt)
-   new_tco2_blood = (tco2_blood · vol_blood − flux_co2) / vol_blood  (floored at 0)
-   new_cco2_gas   = (cco2_gas   · vol_gas   + flux_co2) / vol_gas     (floored at 0)
-   ```
-7. Write the results back, **guarding each compartment by `fixed_composition`**: the blood
-   `to2`/`tco2` are updated only if `!_blood.fixed_composition`, and the gas `co2`/`cco2` only if
-   `!_gas.fixed_composition` — so a fixed (infinite-reservoir) compartment is not changed.
-8. Reset the non-persistent factors (`dif_o2_factor`, `dif_co2_factor`) to 1.0.
-
-Note the flux sign convention: positive `flux_o2`/`flux_co2` moves substance **out of blood and into
-gas**. At the lung `po2_gas > po2_blood`, so `flux_o2` is negative (O₂ loads into blood) while
-`pco2_blood > pco2_gas` makes `flux_co2` positive (CO₂ off-loads to gas).
+- **Fick diffusion between two well-mixed compartments.** No capillary transit time, no end-capillary equilibration profile, no diffusion limitation that appears only at high cardiac output. Ventilation–perfusion mismatch comes from the network (intrapulmonary shunts, two lungs), not from inside the exchanger.
+- **The CO2/O2 capacity ratio is 6 in every scenario,** a calibration value (`scripts/reseed_term_neonate.mjs` raised CO2 sixfold), not the physical ~20.
+- **Diffusing capacities are per scenario,** set by the generators: term 0.001 / 0.006 per lung, preterm and Bischoff 0.00031–0.00068 / 0.0018–0.0041. As a lung DLO2 that is ~2.7 mL/(min·mmHg) at term (0.76 per kg).
+- **The fetal lungs exchange nothing** (`dif_o2` = `dif_co2` = 0), but the exchangers still run their blood solve.
+- **No water vapour or nitrogen crosses the membrane** (no N2 washout into blood, no absorption atelectasis from N2).
 
 ## Example definition (JSON)
 
-From `term_neonate.json` — the left-lung exchanger between the left-lung capillary blood and the left
-alveolar gas:
+From `term_neonate.json`, `models.Respiration.components.GASEX_LL` (trimmed to the config props):
 
 ```json
 {
   "name": "GASEX_LL",
-  "description": "gas exchanger model of the blood-gas connection of the left lung",
   "model_type": "GasExchanger",
   "is_enabled": true,
   "comp_blood": "LL_CAP",
   "comp_gas": "ALL",
   "dif_o2": 0.001,
-  "dif_co2": 0.006
+  "dif_co2": 0.006,
+  "o2_cap": 0,
+  "co2_cap": 0,
+  "bc_interval": 0.002
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- `GASEX_LL` / `GASEX_RL` — left / right lung capillary blood ↔ alveolar gas (`ALL` / `ALR`); the
-  `dif_o2`/`dif_co2` factors are how `Respiration` (and scaling) modulate diffusion capacity.
-- `ECLS_GASEX` — ECLS oxygenator blood ↔ sweep gas; the sweep gas is a `fixed_composition` reservoir,
-  so only the blood side is updated.
-- The volume guard and `fixed_composition` guards ensure a collapsed alveolus cannot produce NaN and a
-  fixed sweep-gas / blood reservoir stays constant.
+Three instances in every scenario:
+
+| Exchanger | Blood ↔ gas | State |
+|---|---|---|
+| `GASEX_LL`, `GASEX_RL` | `LL_CAP` ↔ `ALL`, `RL_CAP` ↔ `ALR` | enabled; capacity 0 in the fetal scenarios |
+| `ECLS_GASEX` | `ECLS_OXY` ↔ `ECLS_GAS_OXY` | disabled until ECLS runs; set by `Ecls` |
+
+| Scenario | `dif_o2` | `dif_co2` |
+|---|---|---|
+| term_neonate | 0.001 | 0.006 |
+| preterm_30wk | 0.00068 | 0.00405 |
+| preterm_28wk | 0.00045 | 0.0027 |
+| preterm_25wk | 0.00032 | 0.00189 |
+| bischoff no-PDA / L→R / bidir | 0.00034 / 0.00032 / 0.00031 | 0.00206 / 0.00194 / 0.00184 |
+| fetal ×3 | 0 | 0 |
+
+## References
+
+No literature values; the capacities are calibrated per scenario against arterial gases (see the `*Reference.md` pages).
