@@ -64,13 +64,13 @@ Inherited unchanged: `u_vol`, `el_min`, `el_max` and `el_k` carry the three laye
 
 - **Reads:** the upstream compartment on inflow (composition).
 - **Written by:** `Heart` (`act_factor` = the ventricular activation `vaf`, every step); `Mob` (subtracts the myocardial O2 consumption from `to2` and adds CO2 to `tco2` by the respiratory quotient, every step); `Blood` (temperature, viscosity, seed composition); `Drugs`, `Lactate`, `Glucose` (their solutes and drugs); `PERICARDIUM` (`pres_ext`); the connected resistors (volume).
-- **Read by:** `AA_COR`, `COR_RAIVCI` and `COR_RASVC` (its pressure); `Mob` (its `to2`, `tco2` and volume, plus the `AA_COR` flow and aortic `to2` for O2 delivery); `DataCollector` watchers.
+- **Read by:** `AA_COR` (whose resistance `Heart` raises in systole), `COR_RAIVCI` and `COR_RASVC` (its pressure); `Mob` (its `to2`, `tco2` and volume, plus the `AA_COR` flow and aortic `to2` for O2 delivery); `DataCollector` watchers.
 
 ## Assumptions and limitations
 
 - **One compartment for the whole coronary circulation.** Left and right coronary beds, and epicardial versus intramyocardial vessels, aren't separated.
 - **Compression follows the LV activation for the whole bed.** The right-ventricular activation (`rvaf`) doesn't act on it.
-- **The compression is fully coupled.** The pressure moves with `el_max/el_min` = 3 (90 000 / 30 000 mmHg/L) times the activation. In term_neonate the inflow is still slightly higher in systole than in diastole (about 43 vs 40 mL/min), where real left coronary inflow is diastole-dominant. To be reviewed with the heart group.
+- **Two compression effects.** The bed's own elastance swing (`el_max/el_min` = 3) squeezes blood *out* in systole. Holding inflow back is done by `Heart.cor_r_systolic_factor`, which raises the inflow resistance `AA_COR` by `(1 + 5·vaf)` in systole. With both, 73 % of the coronary inflow arrives in diastole at term (60–62 % in the preterm and fetal scenarios, which have shorter diastoles). This compares with ~75–85 % for an adult left coronary, which a lumped left+right bed should sit below. An intramyocardial-*pressure* variant was tried and dropped: with this bed's compliance it squeezed the bed empty in systole.
 - **Active only since the two-phase build** (`302ed76`). Before that, `Heart` never found `COR` (owned by `Mob`), and `act_factor` stayed 0.
 
 ## Example definition (JSON)

@@ -78,6 +78,7 @@ BaseModelClass
 | `relax_factor_left`, `relax_factor_right` | – | 1.0 | Diastolic stiffness, applied the same way to `el_min_factor_ps`. |
 | `pc_el_factor` | – | 1.0 | Pericardial stiffness (`PERICARDIUM` `el_base` and `el_k` `_factor_ps`). |
 | `pc_extra_volume` | L | 0.0 | Pericardial fluid (`PERICARDIUM.vol_extra`): tamponade. |
+| `cor_r_systolic_factor` | – | 0.0 | Systolic rise of the coronary inflow resistance: `AA_COR.r_factor = 1 + c·vaf` each step (intramural vessels compressed by the contracting myocardium). 5 in all shipped scenarios. |
 
 ### Set by other models
 
@@ -156,7 +157,7 @@ BaseModelClass
    - `vaf` → LV and COR;
    - `rvaf` → RV.
 
-   It also passes `ans_sens` and `ans_activity · ans_activity_factor` to the chambers.
+   It also passes `ans_sens` and `ans_activity · ans_activity_factor` to the chambers, and sets the coronary inflow resistor's non-persistent factor `AA_COR.r_factor = 1 + cor_r_systolic_factor · vaf`.
 9. **Per-beat analysis** (`analyze`), at the systole/diastole transitions:
    - at end-systole, it latches the end-systolic volume and pressure;
    - at end-diastole, the end-diastolic values, then `SV = EDV − ESV` and `EF = SV / EDV` (0 if EDV = 0).
@@ -175,7 +176,7 @@ Each is applied as a delta to the *shared* persistent layer, so the chamber's fa
 - **Reads:** the `LA_LV` flow and the active LV outflow valve's flow (systole timing); chamber volumes and `pres_in` (per-beat analysis); `PERICARDIUM`.
 - **Writes:**
   - `act_factor`, `ans_sens`, `ans_activity` of LA, LV, RV, RA/RAIVCI/RASVC;
-  - `act_factor` of COR;
+  - `act_factor` of COR, and `AA_COR.r_factor` (systolic coronary resistance);
   - the chambers' `el_max_factor_ps`/`el_min_factor_ps`;
   - `PERICARDIUM` factors and `vol_extra`.
 - **Written by:** the ANS efferents (`EF_HR`, `EF_HEART`, `EF_HR_CHEMO`), `Mob`, `Thermoregulation`, `Drugs` (see above); the user (rate, rhythm, factors, `trigger_pvc`).

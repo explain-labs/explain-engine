@@ -110,7 +110,7 @@ So set those on the vessel, not on the connector: a value written on the connect
 
 | Layer | Writers |
 |---|---|
-| `r_factor` (reset every step) | `Respiration` (airways), `Uterus` |
+| `r_factor` (reset every step) | `Respiration` (airways), `Uterus`, `Heart` (`AA_COR`, systolic coronary resistance) |
 | `r_factor_ps` | `Circulation`, `Brain`, `Kidneys`, `Hormones`, `Respiration`, `Surfactant`, the `Calibrator`; the user and scenarios via `setPropValue` |
 | `r_factor_scaling_ps` | `ModelScaler`; the `Calibrator` (PAP lever on `IPSL`/`IPSR`); `Uterus`, `MaternalPlacenta` |
 
