@@ -11975,9 +11975,7 @@
         "velocity_pa_min": 0,
         "forward_fraction": 1,
         "velocity_doppler_max": 0,
-        "velocity_doppler_min": 0,
-        "type": "conical",
-        "velocity": 0
+        "velocity_doppler_min": 0
       },
       "Shunts": {
         "name": "Shunts",

@@ -47,26 +47,12 @@ Closure
         Clinical correlation – even when closure is incomplete, angiography shows a residual aortic
         ampulla while the pulmonary end is already sealed off.
 
-Elastance
+Not modelled
 
-    Passive elastance is measured by slowly changing lumen pressure on an isolated vessel in a
-    calcium-free bath (no muscle tone). Active elastance is the additional stiffening from smooth-
-    muscle contraction under physiologic conditions.
-
-    The PDA has high SM content and a low elastin ratio, so its passive elastance at baseline is
-    higher than the aorta. In utero, PGE2 keeps SM relaxed (low active EE). Postnatally, O2-induced
-    SM contraction sharply raises active EE; the P-V curve can shift total elastance by an order
-    of magnitude.
-
-    Dynamic phases:
-        Fetal (patent):           low active EE, high compliance (PGE2-mediated relaxation)
-        Functional closure 12-24h: rising O2 + falling PGE2 → SM contraction → active EE rises
-        Anatomic remodeling 2-3wk: fibrosis and intimal cushion coalescence → effective infinity
-
-    Clinical implications:
-        Preterm: attenuated active EE rise → persistent patency
-        NSAIDs: lower PGE2 → raise active EE → pharmacologic closure
-        Largest active-EE jumps correlate with post-closure hypotension and low CO
+    The duct here is a resistor (conical Poiseuille + Bernoulli orifice) whose size is set by
+    diameter_relative (and PGE1 through diameter_drug_factor). Its O2/PGE2-driven constriction, the
+    order of closure along its length, and the passive/active elastance of its wall are physiology
+    background only: nothing in this class computes them. Closure is a scenario or user setting.
 
     See also: docs/Pda-velocity.md for the rationale behind the velocity outputs.
 */
@@ -126,7 +112,7 @@ export class Pda extends BaseModelClass {
     this.flow_pa = 0;             // alias of `flow` (kept for probe/back-compat; single resistor now)
     this.velocity_ao = 0;         // bulk mean velocity at aortic end, Q/A (m/s)
     this.velocity_pa = 0;         // bulk mean velocity at pulmonary end, Q/A (m/s)
-    this.velocity_doppler = 0;    // jet peak from the Bernoulli term, sign(Q)·√(|B·Q²|/4) (m/s)
+    this.velocity_doppler = 0;    // jet velocity from the Bernoulli term, = Q / A_eff (see Orifice.jet_velocity) (m/s)
     // per-beat envelope of velocity_pa, latched at each ventricular activation (read-outs for the
     // Doppler-pattern comparison of the cardiovascular paper, see papers/p1/): the systolic peak, the
     // minimum (negative = right-to-left), and the fraction of the beat with left-to-right flow
