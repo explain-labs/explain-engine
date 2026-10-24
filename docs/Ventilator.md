@@ -13,6 +13,16 @@ resistor — and modulates those parts every step to deliver the configured vent
 `PRVC`, `VC`, `PS`, `CPAP`, or `HFOV`). Pressures are entered in cmH₂O and converted to the engine's mmHg
 internally.
 
+## Physiology
+
+A neonatal ventilator delivers gas through an endotracheal tube. The main ways it supports a baby:
+- **pressure modes (PC, PS):** it raises the airway pressure to a set peak (PIP) for a set inspiratory time or until the flow decays, then lets it fall to PEEP;
+- **volume-targeted modes:** volume control, or volume guarantee / PRVC, which adjust the pressure breath by breath to reach a set tidal volume;
+- **CPAP:** a constant distending pressure while the baby breathes on its own;
+- **high-frequency oscillation (HFOV):** tiny tidal volumes at 5–15 Hz around a mean airway pressure, where gas moves by dispersion rather than bulk flow.
+
+PEEP and mean airway pressure keep the lung open (FRC, oxygenation); tidal volume and rate set CO2 removal. A ventilator also measures: pressures, volumes and flows, compliance and resistance, leak, end-tidal CO2. Synchronised modes deliver a breath when the patient's own effort is detected (trigger), and an uncuffed neonatal tube leaks around its outside.
+
 ## Inheritance
 
 ```
@@ -118,6 +128,9 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `term_sens_perc` | % | Termination sensitivity: a `PS` (or SIMV support) breath cycles off when inspiratory flow falls below this % of its peak (default 30) |
 | `backup_rate` | /min | `CPAP` apnoea backup: a time-cycled breath at `pip_cmh2o`/`insp_time` after `60/backup_rate` s without a spontaneous effort (default 0 = off) |
 | `synchronized` | bool | Enable patient-trigger detection in `PC`/`PRVC`/`VC` (default false). `PS` and `SIMV` always trigger; ignored in `CPAP` |
+| `tube_position` | string | Airway event: `trachea` (default), `right_main` (blocks the left main bronchus) or `extubated`; set with `set_tube_position` |
+| `circuit_connected` | bool | Airway event: false opens the circuit's Y-piece and the tube's proximal end to the room (default true); set with `set_circuit_connected` |
+| `disconnect_resistance` | mmHg·s/L | Resistance of the open Y-piece of a disconnected circuit (default 5) |
 
 ### Computed (dependent) read-outs
 
@@ -149,6 +162,9 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `pressure_limited` | bool | Volume-targeted modes: working pressure at `pip_cmh2o_max` while Vt is still below target (the "Vt low / Pmax reached" alarm condition) |
 | `map_meas` | cmH₂O | Mean airway pressure over the last breath; without breaths (CPAP, HFOV, apnoea) over 3 s blocks |
 | `hfo_amplitude_delivered` | cmH₂O | HFOV amplitude in use: the set one, or the working one with volume targeting |
+| `hfo_tidal_volume` | L | HFOV volume per oscillation at the tube |
+| `hfo_dco2` | mL²/s | HFOV gas transport coefficient f · Vt² |
+| `hfo_map_meas` / `hfo_amplitude_meas` | cmH₂O | Measured mean and peak-to-peak circuit pressure in HFOV |
 | `hfo_sigh_remaining` / `hfo_pause_remaining` | s | Time left of a running HFOV sigh / oscillation pause (0 = oscillating) |
 | `ti_meas` / `te_meas` | s | Measured inspiratory time of the last breath and the expiratory time before it |
 | `ie_ratio_meas` | – | `te_meas / ti_meas` (shown as 1:x) |
@@ -797,6 +813,13 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
 `is_enabled: false` is the normal resting state — the ventilator is switched on at runtime via
 `switch_ventilator(true)` (or by `Resuscitation.switch_cpr`).
 
+## Inputs and outputs
+
+- **Reads:** its circuit components; `DS` (pCO2, the tube's dead-space sub-tanks); the lungs through the airway; `Breathing` (`ncc_insp`, `insp_running`, `breathing_enabled`, `resp_rate`) for triggering and monitoring.
+- **Writes:** its circuit (valves, volumes, compositions, resistances); `MOUTH_DS.no_flow` (natural airway closed while intubated); `DS.tube_volume`/`tube_port_model` (tube dead space); `Respiration.set_tube_block` (right-main intubation).
+- **Written by:** the user and bot (modes and settings through the `set_*` API); [Resuscitation](./Resuscitation.md) (CPR ventilation); [Sle6000](./Sle6000.md) (its subclass).
+- **Read by:** Monitor (etCO2 and breath detection: `ncc_insp`, `_inspiration`, `is_enabled`), the app's ventilator screens, `DataCollector` watchers.
+
 ## Usage in the model
 
 - One `Ventilator` per scenario; disabled at rest so the patient breathes spontaneously through
@@ -808,7 +831,9 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
   tidal-volume feedback continues during CPAP/PS whatever the airway route (see "Coupling to
   `Breathing`").
 
-## Notes & caveats
+## Assumptions and limitations
+
+- **An ideal device.** Valves respond within one step (unless `pres_response_tau` is set); no circuit compliance beyond the circuit compartment; no humidifier water loss.
 
 - **`compliance`/`resistance` are measured per breath** at end-expiration (in
   `calc_measured_mechanics`), not recomputed every step. `compliance` mirrors `compliance_dynamic`
@@ -829,3 +854,8 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
   components and are assumed present after build.
 - **`exp_time` is floored at `_min_exp_time` (0.1 s)** — `60/vent_rate − insp_time` can no longer go
   negative at very high rates / long `insp_time`, so the cycler cannot jam into continuous inspiration.
+
+## References
+
+- ISO 80601-2-12 (critical care ventilators): the expiratory-limb pressure drop limits used for the automatic expiratory valve.
+- SLE6000 instructions for use: monitoring definitions (see [Sle6000](./Sle6000.md)).
