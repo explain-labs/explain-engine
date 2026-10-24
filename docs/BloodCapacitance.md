@@ -61,7 +61,7 @@ Everywhere else these fields stay at `-1`, or hold the last solved value.
 
 ### Set by other models
 
-These props are not declared in the constructor. Other models write them onto every blood compartment at build:
+These props are not declared in the constructor. Other models write them onto the blood compartments at build or when solving:
 
 | Property | Unit | Written by | Description |
 |---|---|---|---|
@@ -71,6 +71,7 @@ These props are not declared in the constructor. Other models write them onto ev
 | `body_temp` | °C | `Blood.init_model`, then `Thermoregulation` via `Blood.set_perfusion_target` | Perfusion target that `temp` relaxes toward. |
 | `blood_temp_tc` | s | `Blood.init_model` | Time constant of that relaxation. |
 | `temp_ext_override` | boolean | `Blood.init_model`, devices | `true` when a device (e.g. the ECLS heater) owns `body_temp`. |
+| `prev_ph`, `prev_po2` | –, mmHg | `BloodComposition` (on each solve) | Solver warm start: the last solved pH and pO2, which bound the next solve. Only on compartments that have been solved; saved with the state. |
 
 ## Calculation
 
