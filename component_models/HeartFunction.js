@@ -29,10 +29,11 @@ export class HeartFunction extends BaseModelClass {
        it fully recovers (factor -> 1) when the load normalizes.
 
     2. CHRONIC (remodeling, slow) — driven by the time-averaged wall stress.
-       Concentric remodeling (sustained high end-systolic stress) thickens the
-       wall, which lowers sigma (compensation), with a maladaptive tail of
-       diastolic stiffening (el_k_remodel_factor) and a mild contractility
-       decline. Eccentric remodeling (sustained high end-diastolic stress /
+       Concentric remodeling (sustained high end-systolic stress) adds diastolic
+       stiffening (el_k_remodel_factor; no effect while the chamber's el_k is 0)
+       and a mild contractility decline. It does NOT thicken the wall: the wall
+       volume stays fixed by heart weight, so there is no compensating fall in
+       wall stress. Eccentric remodeling (sustained high end-diastolic stress /
        volume overload) dilates the cavity (u_vol_remodel_factor) with a
        contractility decline (el_max_remodel_factor). Partially reversible.
 
