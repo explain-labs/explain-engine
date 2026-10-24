@@ -6977,16 +6977,24 @@
       "cl": 154
      },
      "ringers_lactate": {
-      "na": 130,
-      "cl": 109,
-      "ca": 1.4,
-      "k": 4
+       "na": 130,
+       "cl": 109,
+       "ca": 1.4,
+       "k": 4,
+       "lact": 28
      },
      "packed_cells": {
-      "hemoglobin": 12
+       "hemoglobin": 12,
+       "na": 140,
+       "k": 4.5,
+       "cl": 105,
+       "glucose": 25
      },
      "albumin_20%": {
-      "albumin": 20
+       "albumin": 200,
+       "na": 130,
+       "cl": 42,
+       "uma": 32
      },
      "d5": {
       "glucose": 278
