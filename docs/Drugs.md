@@ -1,149 +1,140 @@
-# Drugs (pharmacology PK/PD)
+# Drugs
 
-The `Drugs` model is the **pharmacology PK/PD controller** — a process/controller model in the same
-family as [`Hormones`](./Hormones.md) and `Ans`. It holds **no blood of its own**, resolves
-references to other models **lazily** (the blood compartments are built by [`Circulation`](./Circulation.md)
-after this model inits), runs each step, and **owns its effector channels while enabled** (releasing
-them once to neutral on disable, gated by `drugs_running`). Default config is **neutral**: with no
-drug present every concentration is `0`, so every `*_drug_factor` reads `1.0` (no effect) and a
-scenario that ships a `Drugs` model behaves identically until a dose is given.
+`Drugs` is the pharmacology controller (PK/PD).
+- **Dosing:** IV boluses and weight-based infusions add drug to a central vein.
+- **Transport:** the drug spreads with the blood through every compartment's `drugs` dictionary.
+- **Elimination:** a whole-body term everywhere plus organ clearance in the kidney, liver and gut capillaries.
+- **Effects:** each drug acts on heart rate, contractility, relaxation, vascular resistance and ductal patency through sigmoid Emax curves, summed over the drugs.
 
-The novelty versus `Hormones` is that the "signal" being controlled is an actual **drug mass that
-rides the blood circuit** — `Drugs` does not transport anything itself; it seeds a drug key into
-every blood compartment's `drugs{}` dict and lets the engine's existing `volume_in` mixing advect it,
-exactly as Na/K solutes propagate (see [`BloodCapacitance`](./BloodCapacitance.md)).
+It holds no blood. With no drug present it does nothing and its effects sit at 1.
 
-## Per-drug causal loop
+## Physiology
+
+An IV drug mixes into the central venous blood, reaches the heart and arterial tree within seconds, and is cleared by metabolism, mostly in the liver, kidney and the vessel walls. The plasma concentration settles where the infusion rate equals clearance; its half-life sets how fast it rises and falls.
+
+The effect follows the concentration at the receptor along a sigmoid dose–response curve (Emax, EC50, Hill slope):
+- **Adrenaline:** β1 (heart rate, contractility, faster relaxation) at low doses, plus α1 vasoconstriction at higher ones.
+- **Noradrenaline:** mainly α1 vasoconstriction.
+- **Prostaglandin E1:** keeps the ductus arteriosus open in duct-dependent heart disease. It is cleared largely in one pass through the lungs, hence the continuous infusion.
+
+## Inheritance
 
 ```
-SOURCE (dosing)          TRANSPORT (free)            SINK (clearance)            BIOPHASE         EFFECT (summed)
-injection_site.drugs{}   volume_in mixing carries    diffuse global term on      optional ke0     sigmoid Emax/Hill per drug
-  bolus    C += dose/vol the seeded drug key around  EVERY compartment  +        effect-comp lag  SUMMED onto shared channels:
-  infusion C += rate·wt  the whole circuit, by       organ-localized intrinsic   dCe/dt =         Heart.hr_drug_factor   (β1 chrono)
-           /60·dt/vol     incoming-volume fraction    clearance at named sites    ke0·(C−Ce)       chamber.el_max_drug_factor (β1 ino)
-  (mcg → ng/mL)          (drugs ride blood, free)    (KID_CAP/LS_CAP, perf.-scl.) → hysteresis    Circulation.svr_factor_drug (α1)
-                                                                                                   Pda.diameter_drug_factor (PGE1)
+BaseModelClass
+  └── Drugs
 ```
 
-- **SOURCE** — dosing injects drug mass into the `injection_site` compartment's `drugs{}` dict
-  (default `IVCI`, a central vein). A **bolus** adds `dose / vol` (dose in mcg, vol in L → ng/mL); a
-  weight-based **infusion** adds `(rate · weight / 60) · dt / vol` each step (rate in mcg/kg/min).
-- **TRANSPORT** — handled entirely by the engine. `Drugs` only **seeds** the drug key (value `0.0`)
-  into every blood-carrying compartment once (`_seed_drugs`, lazily on first step); the existing
-  `volume_in` mixing then advects it for free, like solutes. Blood model types that participate:
-  `BloodVessel`, `HeartChamber`, `BloodCapacitance`, `BloodTimeVaryingElastance` —
-  except compartments flagged `blood_pool: false` (the `URINE` collection compartment, set by
-  `Kidneys`), which are not blood and are neither seeded, cleared nor scanned.
-- **SINK** — elimination is a **diffuse first-order** term (`clearance.global`, 1/s, e.g. COMT/MAO/
-  uptake) decaying the drug on **every** compartment, **plus** organ-localized **intrinsic clearance**
-  (`clearance.sites`, 1/s) at named clearing compartments (e.g. `KID_CAP` renal, `LS_CAP` hepatic).
-  Because those organs are continuously perfused, the localized term behaves as a **well-stirred
-  organ model**: whole-body clearance scales with organ blood flow — if perfusion falls the drug
-  lingers, exactly like real renal/hepatic clearance. Clearance is physiology, not a controller: it
-  **runs even when `drugs_running` is false**, so a stopped controller does not freeze drug in the
-  blood. A `fixed_composition` compartment (an infinite reservoir) is skipped by the global term — its
-  concentration is held. Concentrations that fall below `1e-6` ng/mL are zeroed so the model can go
-  idle.
-- **BIOPHASE** — an optional effect compartment per drug, `dCe/dt = ke0·(C_site − Ce)`. With
-  `ke0 > 0` the PD map is driven by the lagged biophase concentration `Ce`, giving onset/offset
-  **hysteresis** (effect peak trails plasma peak). `ke0 = 0` (default) → PD uses the effect-site conc
-  directly.
-- **EFFECT** — each drug contributes an independent sigmoid `effect = emax·c^n / (ec50^n + c^n)`
-  (`_emax`), and contributions are **summed across all enabled drugs** onto the shared
-  `*_drug_factor` channels, so drugs **compose additively** rather than overwrite. `_emax` returns
-  `0` for any effect a drug leaves undefined (`emax` undefined), so drugs compose without every drug
-  defining every channel.
+## Properties
 
-The effect-site concentration is read from the `effect_site` compartment (default `AA`, a systemic
-artery). Concentration unit convention throughout: **mcg/L ≡ ng/mL** (dose in mcg, blood volumes in L).
+### Config (set in the definition JSON)
 
-## Effector channels (owned, default-neutral)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `drugs_running` | boolean | `true` | Effect switch (off releases the effects once; clearance keeps running). |
+| `injection_site` | – | `"IVCI"` | Compartment receiving boluses and infusions. |
+| `effect_site` | – | `"AA"` | Compartment whose concentration drives the effects. |
+| `heart_name`, `circulation_name` | – | `"Heart"`, `"Circulation"` | Effect targets. |
+| `drug_defs` | {drug: definition} | 3 drugs | Per-drug PK/PD (below). Built-in drugs a scenario lacks, and parameters a stored definition predates, are filled in from the code at build. |
+| `infusions` | {drug: mcg/kg/min} | `{}` | Running infusions (saved with the state). |
 
-| Channel | Target | Pharmacology |
+**A drug definition:**
+- `enabled`;
+- `clearance.global`: 1/s, on every compartment;
+- `clearance.sites`: {compartment: 1/s}, organ clearance;
+- `ke0`: 1/s, effect-compartment rate; 0 = none;
+- per effect `x` (`hr`, `cont`, `lus`, `svr`, `pda`): `x_emax` (maximal fractional change), `x_ec50` (ng/mL) and `x_hill`.
+
+| Drug | Clearance global / sites (1/s) | HR | Inotropy | Lusitropy | SVR | Duct |
+|---|---|---|---|---|---|---|
+| adrenaline | 0.022 / KID 0.6, LS 0.9, INT 0.4 | +0.6 @ 20 | +0.8 @ 25 | −0.25 @ 25 | +0.5 @ 40 | – |
+| noradrenaline | 0.018 / KID 0.6, LS 1.0, INT 0.4 | +0.1 @ 30 | +0.35 @ 30 | −0.12 @ 30 | +0.9 @ 25 | – |
+| pge1 | 0.08 / – | – | – | – | – | +1.5 @ 0.02 |
+
+(emax @ EC50 in ng/mL; Hill 1.5 for the cardiac effects, 2 for SVR, 1 for the duct.)
+
+### Outputs
+
+| Property | Unit | Description |
 |---|---|---|
-| `hr_drug_factor` | [`Heart`](./Heart.md)`.hr_drug_factor` | β1 chronotropy (heart rate) |
-| `cont_drug_factor` | each chamber's `el_max_drug_factor` (via the Heart inotropy path, mirroring Mob) | β1 inotropy (contractility) |
-| `svr_drug_factor` | [`Circulation`](./Circulation.md)`.svr_factor_drug` | α1 systemic vasoconstriction |
-| `pda_drug_factor` | [`Pda`](./Pda.md)`.diameter_drug_factor` | ductal patency (PGE1) |
+| `concentrations` | {drug: ng/mL} | Effect-site concentration. |
+| `biophase` | {drug: ng/mL} | The concentration driving the effect (the effect compartment when `ke0` > 0). |
+| `conc_inj`, `conc_eff` | ng/mL | Adrenaline at the injection and effect sites (convenience read-outs). |
+| `hr_drug_factor`, `cont_drug_factor`, `lus_drug_factor`, `svr_drug_factor`, `pda_drug_factor` | – | Summed effects (1 = none). |
 
-Inotropy is fanned to every heart chamber through the `Heart`'s resolved chamber refs
-(`_lv`/`_rv`/`_la`/`_raivci`/`_rasvc`/`_ra`), exactly as `Mob` writes `el_max_mob_factor`. The SVR
-channel is independent of the ANS and Hormones channels (`svr_factor_art/_ven`), so they compose.
+## Calculation
 
-## Drugs currently defined (`drug_defs`)
+Each step (ng/mL = mcg/L throughout):
+1. **Idle check.** With no infusion and no drug in the blood, nothing is computed (the blood is re-scanned every 1 s, since drug can also arrive another way).
+2. **Infusions:** `rate · weight / 60 · dt` mcg into the injection site.
+3. **Elimination** (also while `drugs_running` is off): every compartment loses `clearance.global · c · dt`; the clearing organs lose their site rate as well. That organ clearance depends on how much drug the perfusion brings, so it falls with organ blood flow. Values below 1e-6 ng/mL are zeroed.
+4. **Effects** (while running), per enabled drug, from the effect-site concentration (lagged by `ke0` when set):
+   ```
+   effect = emax · cⁿ / (EC50ⁿ + cⁿ),     factor = 1 + Σ over drugs
+   ```
+   - `Heart.hr_drug_factor`;
+   - each chamber's `el_max_drug_factor` (inotropy) and `el_min_drug_factor` (lusitropy; < 1 = faster relaxation);
+   - `Circulation.svr_factor_drug` (its own SVR channel, see [Circulation](./Circulation.md));
+   - `Pda.diameter_drug_factor`.
 
-| Drug | PK (`clearance`) | PD effects |
-|---|---|---|
-| `adrenaline` | global 0.022 + sites KID_CAP 0.6 / LS_CAP 0.9 / INT_CAP 0.4 | HR (ec50 20, emax 0.6), cont (ec50 25, emax 0.8), SVR (ec50 40, emax 0.5) |
-| `noradrenaline` | global 0.018 + sites KID_CAP 0.6 / LS_CAP 1.0 / INT_CAP 0.4 | predominantly α1 SVR (ec50 25, emax 0.9), modest cont (emax 0.35), minimal HR (emax 0.1) |
-| `pge1` | global 0.08, no sites | **ductal patency only** — `pda_ec50 0.02`, `pda_emax 1.5`, `pda_hill 1.0` |
+**Dosing API:**
+- `administer_bolus(drug, dose_mcg)`: adds `dose / volume` to the injection site;
+- `set_infusion(drug, rate)`: mcg/kg/min, 0 stops it;
+- `set_drug_param(drug, "path", value)`: e.g. `"hr_emax"`, `"clearance.global"`.
 
-**PGE1 (prostaglandin E1 / alprostadil)** is the duct-dependent-CHD agent: its **only** effect is
-ductal patency through the channel `Pda.diameter_drug_factor`. Its very low `pda_ec50` (0.02 ng/mL)
-reflects a **potent + heavily cleared** drug — extensive pulmonary first-pass metabolism (~80% per
-lung pass, hence the high `global` clearance, short half-life, and need for continuous infusion)
-yields a low effect-site conc (~0.01–0.05 ng/mL at a clinical 0.01–0.05 mcg/kg/min infusion) that
-sits on the sigmoid's rising limb. `pda_emax 1.5` allows up to a ~2.5× patency factor at saturation
-(capped at the anatomic maximum inside [`Pda`](./Pda.md)). It defines no HR/inotropy/SVR params — and
-because `_emax` is undefined-safe, drugs **compose without every drug defining every channel**
-(PGE1 has only `pda_*`; the catecholamines only `hr_*`/`cont_*`/`svr_*`).
+## Factor system
 
-### The `init_model` merge
+It owns the drug channels above: `hr_drug_factor`, `el_max_drug_factor`, `el_min_drug_factor`, `svr_factor_drug` and `diameter_drug_factor`. Effects of several drugs add.
 
-`init_model` captures the constructor's full built-in `drug_defs`, lets `super.init_model(args)`
-overwrite it with whatever a scenario baked, then merges:
+## Inputs and outputs
 
-```js
-this.drug_defs = { ...default_defs, ...this.drug_defs };
+- **Reads:** the compartments' `drugs`; `model.weight`.
+- **Writes:** the compartments' `drugs` (seeded with every drug key, dosing, clearance); the channels above.
+- **Written by:** the user and bot (dosing, parameters).
+- **Read by:** Heart, the chambers, Circulation, Pda (the channels); `DataCollector` watchers.
+
+## Assumptions and limitations
+
+- **The catecholamines are too weak at clinical doses.** Measured in term_neonate, adrenaline for 5 min:
+
+  | Rate | Arterial concentration | HR | MAP |
+  |---|---|---|---|
+  | 0.1 mcg/kg/min | 0.89 ng/mL | 120 → 121 | unchanged |
+  | 0.5 mcg/kg/min | 4.5 ng/mL | 120 → 125 | 59.5 → 60.1 |
+
+  The EC50s (20–40 ng/mL) sit far above these concentrations, and the arterial half-life after stopping is 20 s (adrenaline ~2 min). Both are listed for the re-validation, to recalibrate against neonatal dose–response data.
+- **PGE1 cannot reopen a closed duct** (see [Pda](./Pda.md)); its systemic vasodilation and apnoea are not modelled.
+- **No receptor down-regulation, no tachyphylaxis;** effects add without interaction.
+- **Effect at the arterial concentration** by default (no biophase lag unless `ke0` is set).
+- **Drugs live in the blood only** (no tissue distribution volume).
+
+## Example definition (JSON)
+
+From `term_neonate.json`, `models.Drugs` (trimmed to one drug):
+
+```json
+{
+  "name": "Drugs",
+  "model_type": "Drugs",
+  "is_enabled": true,
+  "drugs_running": true,
+  "injection_site": "IVCI",
+  "effect_site": "AA",
+  "drug_defs": {
+    "pge1": {
+      "enabled": true,
+      "clearance": { "global": 0.08, "sites": {} },
+      "ke0": 0,
+      "pda_ec50": 0.02, "pda_emax": 1.5, "pda_hill": 1
+    }
+  },
+  "infusions": {}
+}
 ```
 
-Scenario tuning wins for drugs it defines, but any **newly-added built-in drug** the baked state
-predates (e.g. `pge1`, added after older scenarios were serialized) is still present — so new drugs
-become available in **old scenarios without re-baking the JSON**.
+## Usage in the scenarios
 
-## Dosing API
+One instance in every scenario with adrenaline, noradrenaline and PGE1 defined and no infusion running.
 
-Callable via `callModelFunction` / the `TaskScheduler` (see the engine docs):
+## References
 
-| Method | Effect |
-|---|---|
-| `administer_bolus(drug, dose_mcg)` | instantaneous IV bolus — adds `dose_mcg / vol` to the injection-site `drugs{}` |
-| `set_infusion(drug, rate_mcg_kg_min)` | start/stop a weight-based continuous infusion; `rate 0` stops it |
-| `set_drug_param(drug, param, value)` | set a PK/PD constant via a **dotted path** into the per-drug def (e.g. `"hr_emax"`, `"ke0"`, `"clearance.global"`) — the nested dict is unreachable by the flat `setPropValue` path |
-
-## Read-outs
-
-| Read-out | Meaning |
-|---|---|
-| `concentrations` | `{ drug: effect-site conc (ng/mL) }` |
-| `biophase` | `{ drug: effect-compartment conc Ce (ng/mL) }` (= site conc when `ke0 = 0`) |
-| `conc_inj` / `conc_eff` | adrenaline injection-site / effect-site conc (convenience) |
-| `hr_drug_factor` / `cont_drug_factor` / `svr_drug_factor` / `pda_drug_factor` | applied (summed) effector factors (1.0 = no effect) |
-| `infusions` | active continuous infusions `{ drug: rate_mcg_kg_min }` |
-
-## Idle fast path
-
-With no infusion running and no drug present in the blood, `calc_model` does no per-step work: it
-releases the owned channels once (if they were active), then only **re-scans** the blood every
-`_scan_interval` (1 s) for any defined drug (a drug can also arrive through a fluid or a direct write,
-not only through the dosing API). When the scan finds drug, or an infusion starts, the full path
-(source, clearance, effect) resumes; it drops back to idle once clearance has taken every
-concentration below the floor.
-
-## Notes / scope
-
-- While enabled, `Drugs` **owns** the four `*_drug_factor` channels (`Heart.hr_drug_factor`, each
-  chamber's `el_max_drug_factor`, `Circulation.svr_factor_drug`, `Pda.diameter_drug_factor`) — manual
-  edits are overwritten each step. The clean "off" switch is `drugs_running = false`, which releases
-  all owned channels back to `1.0` exactly once.
-- **Known limitation — PK calibration is parked.** Adrenaline's global clearance (0.022 /s) gives a
-  plasma half-life of ~30 s (ln 2 / 0.022 ≈ 31 s), against ~2–3 min clinically. PGE1's pulmonary
-  first-pass metabolism is modelled as a **global** rate (0.08 /s on every compartment), not as an
-  extraction across the lung. Retuning the clearances is a separate calibration project, to be done
-  together with the EC50s (which were set against the current fast clearance).
-- Adding a drug = a new `drug_defs` entry; it is seeded, transported, cleared and aggregated
-  automatically. Surfacing per-drug params + dosing methods to the UI registry is the next milestone.
-
-## See also
-[`Heart`](./Heart.md) · [`Circulation`](./Circulation.md) · [`Pda`](./Pda.md) ·
-[`Hormones`](./Hormones.md) · [`BloodCapacitance`](./BloodCapacitance.md)
+No literature values yet; the PK/PD constants are to be recalibrated in the re-validation.
