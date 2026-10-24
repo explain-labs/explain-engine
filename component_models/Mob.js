@@ -65,6 +65,11 @@ export class Mob extends BaseModelClass {
     this.ans_tc = 5;
     this.ans_activity_factor = 1;
 
+    // hypoxia gains (rebuilt every step from the *_min/*_max bounds)
+    this.hr_g = 0.0;
+    this.cont_g = 0.0;
+    this.ans_g = 0.0;
+
     // Dependent / output properties
     this.hw = 0.0;
     this.bm_vo2 = 0.0;
@@ -119,6 +124,7 @@ export class Mob extends BaseModelClass {
     this._heart = this._model_engine.models["Heart"];
     this._lv = this._model_engine.models["LV"];
     this._rv = this._model_engine.models["RV"];
+    if (!this._aa || !this._aa_cor || !this._cor || !this._heart || !this._lv || !this._rv) return;
 
     const to2_cor = this._cor.to2;
     const tco2_cor = this._cor.tco2;
