@@ -47,6 +47,7 @@ So set those on the vessel, not on the connector: a value written on the connect
 | `no_back_flow` | boolean | `false` | One-way connection (valve). |
 | `implicit` | boolean | `false` | Numerical scheme for stiff pairs; see [Implicit flow](#implicit-flow-implicit). |
 | `mix_flow` | L/s | 0.0 | Exchange without net flow; see [Mixing without net flow](#mixing-without-net-flow-mix_flow). |
+| `inertance` | mmHg·s²/L | 0.0 | Inertance L of the blood column (ρ·length/area); see [Inertance](#inertance-inertance). 0 = purely resistive. |
 | `r_factor`, `r_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. `r_factor` scales both `r_for` and `r_back`. |
 | `r_factor_ps`, `r_k_factor_ps` | – | 1.0 | Persistent factors. |
 | `r_factor_scaling_ps`, `r_k_factor_scaling_ps` | – | 1.0 | Persistent scaling factors. |
@@ -125,10 +126,16 @@ The factors of a vessel-owned connector multiply on top of the vessel's own effe
 
 ## Assumptions and limitations
 
-- **Resistive, not inertial.** There is no inertance: flow responds instantly to the pressure difference. Flow waveforms are shaped only by the compartments' elastances and the resistances.
+- **Resistive unless `inertance` is set.** Without inertance flow responds instantly to the pressure difference. Only the AV valves carry inertance (see below).
 - **Laminar unless `r_k` is set.** Every shipped resistor is linear (`r_k = 0`). The duct and septal shunts compute their orifice losses separately (see [Pda](./Pda.md), [Shunts](./Shunts.md), `helpers/Orifice.js`).
 - **Valves are ideal switches.** A `no_back_flow` connection closes instantly at zero pressure difference. There is no valve leaflet dynamics and no regurgitation unless `no_back_flow` is false with a finite `r_back`.
 - **Explicit volume update.** See [Implicit flow](#implicit-flow-implicit) for when that matters.
+
+## Inertance (`inertance`)
+
+With `inertance` L > 0 the flow is a state that has to be accelerated: `dp = R·f + r_k·|f|·f + L·df/dt`. Each step it is updated semi-implicitly, `f ← (f + dt·dp/L) / (1 + dt·R/L)` with R = `r_for_eff` (or `r_back_eff` while flowing backward) plus `r_k_eff·|f|` linearised at the old flow, which is unconditionally stable for the resistor itself; with the compartments it oscillates at √(ΣE/L), far slower than the step for physiological L. The flow is kept in the public `flow`, so it survives a saved state. A valve (`no_back_flow`) closes when its flow comes to zero and stays closed until the pressure difference drives it forward again.
+
+Inertance is used on the atrioventricular valves (`LA_LV`, `RAIVCI_RV`, `RASVC_RV`), where it shapes the E and A filling waves: without it the ventricle filled in an early surge (term mitral E 1.58 m/s against ~0.6). Term: twice the column of a 10 mm mitral (12 mm tricuspid) orifice and 1.5 cm of inflow, L = 3.04 (tricuspid pair 2.12) mmHg·s²/L; smaller hearts scale as geometrically similar ones, L ∝ weight^(−1/3) (`scripts/_fix_av_inertance.mjs`). It works together with the ventricles' exponential relaxation ([Heart](./Heart.md) `relax_frac`).
 
 ## Implicit flow (`implicit`)
 
@@ -189,11 +196,11 @@ From `term_neonate.json`, `models.Circulation.components.PV_LA` (trimmed). The p
 
 ## Usage in the scenarios
 
-Term_neonate has 75: 70 `Resistor` and 5 `HeartValve` (`LA_LV`, `RV_PA`, `RV_AA`, `LV_AA`, `LV_PA`; each `r_for` 55, one-way).
+Term_neonate has 75: 68 `Resistor` and 7 `HeartValve` (`LA_LV`, `RAIVCI_RV`, `RASVC_RV`, `RV_PA`, `LV_AA`, and the disabled `RV_AA`, `LV_PA`; one-way). The AV valves carry inertance; the aortic and pulmonary valves have per-scenario resistances from Doppler peak velocities (`scripts/_fix_outflow_valves.mjs`).
 
 - **Vessel-owned (42):** the connector into every `BloodVessel`.
 - **Stand-alone (33):**
-  - heart inflow (`RAIVCI_RV`, `RASVC_RV`, `PV_LA`, `IVCI_RAIVCI`, `SVC_RASVC`) and the valves;
+  - heart inflow (`PV_LA`, `IVCI_RAIVCI`, `SVC_RASVC`) and the valves;
   - shunts (`AAR_DA`, `LA_RAIVCI`, `LA_RASVC`, `VSD`, `IPSL`, `IPSR`, `RAIVCI_RASVC`);
   - coronaries (`AA_COR`, `COR_RAIVCI`, `COR_RASVC`);
   - airways (`MOUTH_DS`, `DS_ALL`, `DS_ALR`);

@@ -15,6 +15,10 @@ export class Heart extends BaseModelClass {
     this.qrs_time = 0.075; // qrs time (s)
     this.qt_time = 0.4; // QT at 60 bpm (s), from QRS onset; rate-corrected each beat (Bazett)
     this.act_peak = 0.85; // fraction of the QT at which ventricular activation peaks (end-systole)
+    // relaxation after end-systole: the activation decays exponentially with time constant
+    // tau = relax_frac · RR, so relaxation speeds up with heart rate and keeps pace with diastole;
+    // 0 = a raised-cosine fall to zero at the end of the QT
+    this.relax_frac = 0.06;
     this.av_delay = 0.0005; // delay in the AV-node (s)
     this.rv_delay = 0.0; // RV activation lag behind the LV (s); 0 = both ventricles together
 
@@ -471,7 +475,8 @@ export class Heart extends BaseModelClass {
 
     // calculate ventricular activation factor
     // the ventricles contract over the QT (from QRS onset): a raised cosine that rises to its peak at
-    // act_peak of the QT (end-systole) and falls back over the rest, so ejection lasts most of the QT
+    // act_peak of the QT (end-systole), then relaxes exponentially (relax_frac), so ejection lasts most
+    // of the QT and the ventricle is still relaxing as it starts to fill
     let _ventricular_duration = this.cqt_time / this._t;
     this.vaf = this._activation(this.ncc_ventricular / _ventricular_duration);
 
@@ -537,12 +542,18 @@ export class Heart extends BaseModelClass {
   }
 
   _activation(x) {
-    // ventricular activation (0-1) at fraction x of the QT: a raised cosine up to act_peak, down after
-    if (!(x >= 0.0 && x < 1.0)) return 0.0;
+    // ventricular activation (0-1) at fraction x of the QT: a raised cosine up to act_peak; after it
+    // an exponential relaxation with tau = relax_frac · RR (cut below 0.5 %, and restarted by the next
+    // QRS), or with relax_frac 0 a raised cosine back to zero at the end of the QT
+    if (!(x >= 0.0)) return 0.0;
     const xp = Math.min(Math.max(this.act_peak, 0.05), 0.95);
-    return x < xp
-      ? 0.5 * (1.0 - Math.cos((Math.PI * x) / xp))
-      : 0.5 * (1.0 + Math.cos((Math.PI * (x - xp)) / (1.0 - xp)));
+    if (x < xp) return 0.5 * (1.0 - Math.cos((Math.PI * x) / xp));
+    if (this.relax_frac > 0.0) {
+      const tau = this.relax_frac * (60.0 / Math.max(this.heart_rate, 10.0));
+      const a = Math.exp(-((x - xp) * this.cqt_time) / tau);
+      return a > 0.005 ? a : 0.0;
+    }
+    return x < 1.0 ? 0.5 * (1.0 + Math.cos((Math.PI * (x - xp)) / (1.0 - xp))) : 0.0;
   }
 
   _st_time() {

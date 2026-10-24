@@ -46,6 +46,7 @@ BaseModelClass
 | `qrs_time` | s | 0.075 | Ventricular depolarisation (QRS). |
 | `qt_time` | s | 0.4 | QT at 60 bpm (a QTc), from QRS onset; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Sets both the ECG QT and how long the ventricles contract. 0.4 in every scenario (neonatal QTc ~0.40 s). |
 | `act_peak` | – | 0.85 | Fraction of the QT at which ventricular activation peaks (end-systole). |
+| `relax_frac` | – | 0.06 | Relaxation after end-systole: the activation decays with τ = `relax_frac`·RR (30 ms at 120/min). 0 = a raised-cosine fall to zero at the end of the QT. |
 | `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together. `bischoff_bidir_pda` uses 0.008. |
 
 ### Config: rhythm and conduction
@@ -152,10 +153,10 @@ BaseModelClass
    aaf = sin(π·n_a/N_a)                       N_a = pq_time/dt, while 0 ≤ n_a < N_a
    x = n_v/N_v                                N_v = cqt_time/dt (the QT includes the QRS)
    vaf = ½(1 − cos(π·x/p))        for x < p   p = act_peak
-       = ½(1 + cos(π·(x−p)/(1−p)))  for p ≤ x < 1, else 0
+       = exp(−(x−p)·cqt_time/τ)  for x ≥ p (cut below 0.005, restarted by the next QRS),  τ = relax_frac·60/HR
    rvaf = vaf shifted by rv_delay
    ```
-   A raised cosine that rises to 1 at end-systole (`act_peak` of the QT) and falls over the rest, so the ventricles eject for most of the QT. Heart writes these values to the chambers' `act_factor`:
+   A raised cosine that rises to 1 at end-systole (`act_peak` of the QT), so the ventricles eject for most of the QT, then an exponential relaxation that still runs as the ventricle starts to fill (with `relax_frac` 0 a raised cosine back to zero at the end of the QT instead). Heart writes these values to the chambers' `act_factor`:
    - `aaf` → LA, RA (or RAIVCI/RASVC);
    - `vaf` → LV and COR;
    - `rvaf` → RV.
@@ -193,7 +194,8 @@ Each is applied as a delta to the *shared* persistent layer, so the chamber's fa
 ## Assumptions and limitations
 
 - **QT sets both the ECG and the contraction.** With `qt_time` 0.40 the ECG QTc is 0.40 s and the ventricles eject for 157–180 ms (LV) in the postnatal and fetal scenarios at rest (term 180 ms at 121/min; fetus_term 166 ms; the fetal reference is 169 ms, Peixoto 2024, doi:10.1017/S1047951124025927). Until the 2026-10 re-validation QT was 0.25 s and the contraction lasted QRS + QT with a late-peaking `x·sin(πx)` pulse: ejection lasted only 118–131 ms, so peak flows and valve gradients were too high, and lengthening QT alone ate into diastolic filling (term mitral inflow 213 → 104 ms per beat). Counting the QT from QRS onset and the raised-cosine pulse keep filling, EF and output (≤1.4 % change).
-- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.4, `act_peak` 0.85 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
+- **Relaxation scales with the beat.** τ = `relax_frac`·RR, so relaxation speeds up with heart rate (the frequency-dependent acceleration of relaxation). A fixed τ was rejected: term output peaked at 150/min and fell to below rest at 210/min, while with τ ∝ RR it rises to ~180/min and plateaus. Sympathetic and drug lusitropy act on the passive stiffness only, not on τ. With the AV-valve inertance ([Resistor](./Resistor.md#inertance-inertance)) relax_frac 0.06 gives term mitral E/A 0.61/0.59 m/s (E/A 1.04); E/A 0.74–0.91 in preterm_28/30wk and bischoff_no_pda, 0.5–0.62 in the fetal scenarios. preterm_25wk and bischoff_ltr_pda (still on a linear diastolic curve) and fetus_25wk (a very stiff left atrium) are A-dominant (E/A 0.27–0.42); before the relaxation tail and inertance E/A was 1.8–5.4 everywhere.
+- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.4, `act_peak` 0.85, `relax_frac` 0.06 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
 - **The AV delay is nearly zero.** The PR interval is essentially `pq_time`, and atrial contraction (the `aaf` pulse) spans the whole PQ interval, ending just as the ventricles activate.
 - **`cardiac_cycle_time` is the activation time, not the RR interval** (≈0.28 s against 0.50 s at term). `Mob` therefore uses its own measured beat interval for the stroke-work O2 cost (since v1.0).
 - **End-diastolic and end-systolic pressures are transmural.** They exclude the pericardial (and thoracic) pressure, which is about −3 to −8 mmHg at term, so they read higher than a catheter's cavity pressure. Transmural is the right quantity for wall stress (`HeartFunction`).
