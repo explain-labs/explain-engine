@@ -24,21 +24,21 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
                   airway wall actually spent warming and humidifying the gas that passed through
                   it, metered by GasCapacitance rather than derived from minute ventilation, so it
                   stays right under mechanical ventilation and during apnea. Averaged because the
-                  1 s update is shorter than a breath and the _loss_trim seed samples it once.
+                  1 s update is shorter than a breath and the loss_trim seed samples it once.
     Q_perf  = G_perf * (core - blood_mean)                                       [W]
                 G_perf   = C_blood / blood_temp_tc     (perfusion conductance, W/K)
                 C_blood  = Sum_i vol_i * blood_density * cp_blood  (blood pool heat capacity)
                 blood_mean = heat-capacity-weighted mean blood temperature (Blood.get_thermal_state)
     dCore   = (Q_prod - Q_loss_eff - Q_perf) / C_tissue * dt
-                Q_loss_eff = Q_loss + _loss_trim   (the auto-seeded insulation/posture offset)
+                Q_loss_eff = Q_loss + loss_trim   (the auto-seeded insulation/posture offset)
                 C_tissue   = weight*heat_capacity - C_blood  (total body mass conserved)
 
   The blood pool warms toward `core` via Blood's per-step relaxation (over blood_temp_tc), absorbing
   exactly Q_perf — so cooling the blood (e.g. an ECLS heater-cooler on one compartment) lowers
   blood_mean, drives Q_perf > 0, and pulls the core down. At rest blood_mean == core → Q_perf == 0
-  and the balance is identical to the former single-node model, so the _loss_trim seed stays neutral.
+  and the balance is identical to the former single-node model, so the loss_trim seed stays neutral.
 
-  AUTO-SEED: at the first update after `_warmup_delay`, `_loss_trim` is set so Q_prod == Q_loss_eff
+  AUTO-SEED: at the first update after `_warmup_delay`, `loss_trim` is set so Q_prod == Q_loss_eff
   at core == setpoint. dCore is then 0 → the model is neutral at rest and only the SUBSEQUENT change
   of env_temp / radiant_temp / humidity / VO2 moves the core. (Same idiom as the Hormones setpoint
   anchoring and the Kidneys TGF seed.)
@@ -133,17 +133,21 @@ export class Thermoregulation extends BaseModelClass {
     this.vo2_bat_factor = 1.0; // → Metabolism.vo2_bat_factor (brown-fat O2 cost), read-out
     this.hr_temp_factor = 1.0; // → Heart.hr_temp_factor, read-out
 
+    // auto-seeded heat-loss trim (insulation / posture offset) that balances the body at rest. Public
+    // so a saved state keeps it, with its core temperature: re-seeding after a reload would balance
+    // the body against whatever environment it is in now (a cold room would stop cooling it)
+    this.loss_trim = 0.0; // W
+    this.loss_trim_seeded = false;
+
     // -----------------------------------------------
     // local parameters
     this._update_interval = 1.0; // run the controller every 1 s (temperature is slow)
     this._update_counter = 0.0;
-    this._warmup_delay = 5.0; // s before the auto-seed of _loss_trim (let the circuit settle)
+    this._warmup_delay = 5.0; // s before the auto-seed of loss_trim (let the circuit settle)
     this._warmup_counter = 0.0;
-    this._loss_trim = 0.0; // auto-seeded additive heat-loss offset (W) → neutral at rest
-    this._seeded = false;
     this._resp_joules = 0.0; // Q_resp accumulator: energy drained but not yet averaged (J)
     this._resp_elapsed = 0.0; // time covered by that accumulator (s)
-    this._resp_ready = false; // a full averaging window has completed → safe to seed _loss_trim
+    this._resp_ready = false; // a full averaging window has completed → safe to seed loss_trim
     this._was_active = false; // tracks active→inactive for the one-shot channel release
     this._metabolism = null;
     this._heart = null;
@@ -153,7 +157,8 @@ export class Thermoregulation extends BaseModelClass {
 
   init_model(args) {
     super.init_model(args);
-    this.core_temp = this.setpoint_temp; // start neutral
+    // a fresh build starts neutral at the set-point; a saved state keeps its own core temperature
+    if (!this.loss_trim_seeded) this.core_temp = this.setpoint_temp;
   }
 
   calc_model() {
@@ -232,7 +237,7 @@ export class Thermoregulation extends BaseModelClass {
     // Averaged over resp_window rather than reported per update, because _update_interval (1 s) is
     // SHORTER THAN A BREATH: an adult at 13/min swings between -0.8 and +19.4 W across the cycle
     // about a true mean of 7.3 W. The running balance would still be right on average, but the
-    // _loss_trim seed below takes a single snapshot — landing it on an unlucky breath phase would
+    // loss_trim seed below takes a single snapshot — landing it on an unlucky breath phase would
     // bias resting core permanently (~1 degC for an adult). Hence also _resp_ready: the seed waits
     // for one complete window so it is fed a representative number.
     const has_gas_drain = this._gas && typeof this._gas.drain_respiratory_heat === "function";
@@ -255,23 +260,23 @@ export class Thermoregulation extends BaseModelClass {
     const q_loss_raw = q_radiative + q_convective + q_evaporative + this.q_respiratory;
 
     // auto-seed the insulation/posture trim so the body is exactly in balance at rest
-    if (!this._seeded) {
+    if (!this.loss_trim_seeded) {
       this._warmup_counter += u;
       // _resp_ready holds the seed until Q_resp has a breath-spanning average behind it
       if (this._warmup_counter >= this._warmup_delay && this._resp_ready) {
-        this._loss_trim = this.heat_production - q_loss_raw; // makes Q_loss_eff == Q_prod at core==setpoint
-        this._seeded = true;
+        this.loss_trim = this.heat_production - q_loss_raw; // makes Q_loss_eff == Q_prod at core==setpoint
+        this.loss_trim_seeded = true;
       }
     }
 
-    this.heat_loss = q_loss_raw + this._loss_trim;
+    this.heat_loss = q_loss_raw + this.loss_trim;
 
     // --- perfusion heat exchange with the blood pool (two-node coupling) ---
     // The body's thermal mass is split into a tissue node (this integrator) and the distributed
     // blood pool (the blood compartments, warmed toward core by Blood's relaxation). Heat flows
     // tissue → blood at G_perf·(core − blood_mean); the blood side absorbs the same amount via its
     // relaxation (same conductance), so energy is conserved. At rest blood_mean == core → q = 0 and
-    // the balance reduces exactly to the single-node model, keeping the _loss_trim seed neutral.
+    // the balance reduces exactly to the single-node model, keeping the loss_trim seed neutral.
     // When a device cools the blood (ECLS heater-cooler), blood_mean < core → q > 0 → core falls.
     let c_tissue = weight * this.heat_capacity; // J/K (whole-body mass; blood share removed below)
     this.q_perfusion = 0.0;
@@ -323,7 +328,7 @@ export class Thermoregulation extends BaseModelClass {
     if (this._blood) this._blood.set_perfusion_target(this.core_temp);
 
     // propagate core temperature to the body-warmed airway gas compartments (alveoli track core,
-    // dead space holds its build-time offset below it) — the gas counterpart to Blood.set_temperature
+    // dead space holds its build-time offset below it) — the gas counterpart to Blood.set_perfusion_target
     if (this._gas) this._gas.set_body_temperature(this.core_temp);
   }
 
