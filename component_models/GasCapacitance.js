@@ -2,7 +2,7 @@ import { Capacitance } from "../base_models/Capacitance";
 import { GAS_CONSTANT, svp_h2o } from "../helpers/Units";
 
 // This class represents a gas capacitance model, which is a subclass of the Capacitance class.
-// This class adds functionality to handle gas-specific properties such as temperature, humidity ans gas concentrations.
+// This class adds functionality to handle gas-specific properties such as temperature, humidity and gas concentrations.
 
 export class GasCapacitance extends Capacitance {
   // static properties
@@ -14,8 +14,6 @@ export class GasCapacitance extends Capacitance {
 
     // initialize independent properties unique to a GasCapacitance
     this.pres_atm = 760; // atmospheric pressure (mmHg)
-    this.pres_cc = 0.0; // external pressure (mmHg)
-    this.pres_mus = 0.0; // muscle pressure (mmHg)
     this.fixed_composition = false; // flag for fixed gas composition
     this.target_temp = 0.0; // target temperature (dgs C)
     this.h2o_tc = 0.2; // water vapour equilibration time constant (s)
@@ -70,7 +68,7 @@ export class GasCapacitance extends Capacitance {
     this._q_wall_latent = 0.0;
   }
 
-  // override the calc_model method from the Capoacitance class
+  // override the calc_model method from the Capacitance class
   calc_model() {
     // series dead space: heat and water act on the bulk; replay the same change on every sub-tank
     const seg = this._seg_active();
@@ -104,13 +102,9 @@ export class GasCapacitance extends Capacitance {
     // call parent method to calculate the elastance
     super.calc_pressure();
 
-    // incorporate the external pressures and atmospheric pressure
-    this.pres = this.pres + this.pres_cc + this.pres_mus + this.pres_atm;
-    this.pres_rel = this.pres - this.pres_atm
-
-    // reset the external pressure
-    this.pres_cc = 0.0;
-    this.pres_mus = 0.0;
+    // the recoil (+ pres_ext, applied and reset by the parent) is relative to the atmosphere
+    this.pres = this.pres + this.pres_atm;
+    this.pres_rel = this.pres - this.pres_atm;
   }
 
   // the method overrides the 'volume_in' method of the Capacitance class and 

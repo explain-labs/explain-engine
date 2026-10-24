@@ -6529,8 +6529,6 @@
       "u_vol_eff": 5,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -6560,9 +6558,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "u_vol_factor_scaling": 1,
-      "el": 1000
+      "diffusion_rate": 0
      },
      "VENT_GASCIRCUIT": {
       "name": "VENT_GASCIRCUIT",
@@ -6591,8 +6587,6 @@
       "u_vol_eff": 0.262,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -6622,9 +6616,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "u_vol_factor_scaling": 1,
-      "el": 1130
+      "diffusion_rate": 0
      },
      "VENT_GASOUT": {
       "name": "VENT_GASOUT",
@@ -6653,8 +6645,6 @@
       "u_vol_eff": 5,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -6684,9 +6674,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "u_vol_factor_scaling": 1,
-      "el": 1000
+      "diffusion_rate": 0
      },
      "VENT_INSP_VALVE": {
       "name": "VENT_INSP_VALVE",
@@ -10913,8 +10901,6 @@
       "u_vol_eff": 1,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -10944,8 +10930,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "u_vol_factor_scaling": 1
+      "diffusion_rate": 0
      },
      "ECLS_GAS_OXY": {
       "name": "ECLS_GAS_OXY",
@@ -11033,8 +11018,6 @@
       "u_vol_eff": 0.031,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -11064,8 +11047,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "u_vol_factor_scaling": 1
+      "diffusion_rate": 0
      },
      "ECLS_GAS_OUT": {
       "name": "ECLS_GAS_OUT",
@@ -11094,8 +11076,6 @@
       "u_vol_eff": 1,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -11125,8 +11105,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "u_vol_factor_scaling": 1
+      "diffusion_rate": 0
      },
      "ECLS_GASEX": {
       "name": "ECLS_GASEX",
@@ -11508,8 +11487,6 @@
       "u_vol_eff": 1000000000,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 20,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -11539,9 +11516,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "el": 10,
-      "ans_activity_factor": 1
+      "diffusion_rate": 0
      },
      "DS": {
       "name": "DS",
@@ -11629,8 +11604,6 @@
       "u_vol_eff": 0.0021680360447533823,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 31.989022100209787,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -11663,9 +11636,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0.015,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0.00001,
-      "el": 5585,
-      "ans_activity_factor": 1
+      "diffusion_rate": 0.00001
      },
      "ALL": {
       "name": "ALL",
@@ -11694,8 +11665,6 @@
       "u_vol_eff": 0.0061382228490832165,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 36.98902210020979,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -11725,9 +11694,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "el": 186,
-      "ans_activity_factor": 1
+      "diffusion_rate": 0
      },
      "ALR": {
       "name": "ALR",
@@ -11756,8 +11723,6 @@
       "u_vol_eff": 0.0061382228490832165,
       "el_k_eff": 0,
       "pres_atm": 760,
-      "pres_cc": 0,
-      "pres_mus": 0,
       "target_temp": 36.98902210020979,
       "h2o_tc": 0.2,
       "temp_tc": 1,
@@ -11787,9 +11752,7 @@
       "tube_segments": 3,
       "dispersion_coeff": 0,
       "dispersion_tau_max": 0.1,
-      "diffusion_rate": 0,
-      "el": 186,
-      "ans_activity_factor": 1
+      "diffusion_rate": 0
      },
      "THORAX": {
       "name": "THORAX",
