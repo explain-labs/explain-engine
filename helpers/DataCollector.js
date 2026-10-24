@@ -37,10 +37,7 @@ export default class Datacollector {
     };
 
     // add the two always there
-    this.watch_list.push(this.ncc_atrial);
-    this.watch_list.push(this.ncc_ventricular);
-    this.watch_list_labels.add(this.ncc_atrial.label);
-    this.watch_list_labels.add(this.ncc_ventricular.label);
+    this._add_ecg_watches();
 
     // define the data list
     this.collected_data = [];
@@ -94,6 +91,16 @@ export default class Datacollector {
     if (this._on_chart_registry) this._on_chart_registry();
   }
 
+  // the two ECG counters are always watched, when the model has a Heart (a build without one would
+  // otherwise carry watches on an undefined model and fail in collect_data)
+  _add_ecg_watches() {
+    if (!this.ncc_atrial.model) return;
+    this.watch_list.push(this.ncc_atrial);
+    this.watch_list.push(this.ncc_ventricular);
+    this.watch_list_labels.add(this.ncc_atrial.label);
+    this.watch_list_labels.add(this.ncc_ventricular.label);
+  }
+
   clear_data() {
     this.collected_data = [];
   }
@@ -111,10 +118,7 @@ export default class Datacollector {
     this.watch_list_labels.clear();
 
     // add the two always present
-    this.watch_list.push(this.ncc_atrial);
-    this.watch_list.push(this.ncc_ventricular);
-    this.watch_list_labels.add(this.ncc_atrial.label);
-    this.watch_list_labels.add(this.ncc_ventricular.label);
+    this._add_ecg_watches();
 
     if (!this.legacy_mode) this._rebuild_chart_index();
   }
