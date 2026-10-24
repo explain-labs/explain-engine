@@ -257,22 +257,27 @@ applied to `to2`, `tco2`, every entry in `solutes` and `drugs`, plus `temp` and 
 5. **Export it from [`ModelIndex.js`](../ModelIndex.js).** The engine builds `available_model_map` from everything `ModelIndex` exports. **Forgetting this export is the usual cause of "model type not found" at build.**
 6. **Reference the `model_type`** in your `model_definitions/*.json` `models` map.
 7. **Add a `model_type` entry to the consumer's edit schema** (in explain-ui: `src/model-interface/registry.ts`) so the parameters become editable in the app (the engine ships no UI metadata).
-8. **Write a doc** in `docs/engine/` following the template in §10.
+8. **Write a doc** in `docs/` following the template in §9.
 
 ---
 
-## 9. The house doc template
+## 9. The house doc template (v1.0)
 
-Every per-class doc in `docs/engine/` should follow this structure (the canonical exemplar is [`BloodCapacitance.md`](./BloodCapacitance.md)):
+Every per-class doc in `docs/` follows this structure. The exemplar is [`BloodCapacitance.md`](./BloodCapacitance.md). A page has two layers: sections 1–2 are written for students and clinicians (plain language, no code), and sections 3–11 are the developer reference. Leave out a section only when it would be empty, and say so in one line when a reader would expect it (e.g. "No factors of its own").
 
-1. **Title + one-paragraph summary** — what the model is, in plain terms.
-2. **Inheritance** — an ASCII tree showing the chain up to `BaseModelClass`, and which classes extend this one.
-3. **What it models** — the physiological/engineering role.
-4. **Properties** — tables split into inherited vs. unique, with `Property | Unit | Description` columns. Mark sentinel values (e.g. `-1 = not calculated`).
-5. **Calc / math sections** — the equations and the order `calc_model()` runs them, referencing the actual method names.
-6. **Factor system** — the three-tier table for this model's tunables (link to §7a here rather than re-deriving it).
-7. **Example definition (JSON)** — a real, minimal `models` entry.
-8. **Usage in the model** — how it's wired into scenarios and which models reference it.
+1. **Title + summary.** One or two sentences: what the model is.
+2. **Physiology.** What it represents in the patient or device, in plain language, and what a clinician would see change when it changes. No code identifiers beyond the model's name.
+3. **Inheritance.** An ASCII tree up to `BaseModelClass`, plus the classes that extend this one.
+4. **Properties.** Tables with `Property | Unit | Default | Description`, split into *config* (set in the definition JSON), *outputs* (computed each step), and *set by other models* (props another model writes onto this one). The default is the constructor value; a scenario usually overrides it. Mark sentinel values (e.g. `-1 = not calculated`). For inherited props, link to the parent's table instead of repeating it.
+5. **Calculation.** The equations in the order `calc_model()` runs them, under the actual method names, plus any overridden hooks (`volume_in`, …).
+6. **Factor system.** Which tunables carry the three layers and whether they compose additively or multiplicatively. Link to §7a, don't re-derive it.
+7. **Inputs and outputs.** Which models this one reads and writes, and which models read or write it.
+8. **Assumptions and limitations.** Simplifications, calibrated constants and their rationale, and known gaps.
+9. **Example definition (JSON).** A real entry copied from a canonical scenario (`term_neonate` where possible), trimmed to the config props, with the scenario and path named.
+10. **Usage in the scenarios.** Where it is instantiated and what it is wired to.
+11. **References.** Literature for the equations and default values. If the class introduces no literature-derived values, say so.
+
+**Short form** for helpers and very small classes: title + summary, API (functions/methods with arguments and return values), where it is used, notes.
 
 ---
 
