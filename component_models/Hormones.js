@@ -119,7 +119,7 @@ export class Hormones extends BaseModelClass {
 
     // applied effector factors (diagnostic read-outs)
     this.svr_factor = 1.0; // → Circulation.svr_factor_hormones_art
-    this.svr_ven_factor = 1.0; // → Circulation.svr_factor_ven
+    this.svr_ven_factor = 1.0; // → Circulation.svr_factor_hormones_ven
     this.efferent_factor = 1.0; // → KID_CAP_KID_VEN.r_factor_ps
     this.na_reabs_factor = 1.0; // → Kidneys.reabsorption_factors.na
     this.k_reabs_factor = 1.0; // → Kidneys.reabsorption_factors.k
@@ -293,7 +293,8 @@ export class Hormones extends BaseModelClass {
 
   // first-order lag of x toward target over elapsed time u with time constant tc (s)
   _lag(x, target, u, tc) {
-    if (tc > 0) return x + u * ((1.0 / tc) * (-x + target));
+    // the step fraction is clamped so a time constant shorter than the 1 s update cannot overshoot
+    if (tc > 0) return x + Math.min(1.0, u / tc) * (target - x);
     return target;
   }
 
