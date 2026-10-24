@@ -37,15 +37,12 @@ export class Respiration extends BaseModelClass {
     this.lower_airways_right = ["DS_ALR"]
     this.dead_space = ["DS"]
     this.thorax = ["THORAX"]
-    this.pleural_space_left = []
-    this.pleural_space_right = []
     this.lungs = ["ALL", "ALR"]
     this.left_lung = ["ALL"]
     this.right_lung = ["ALR"]
     this.gas_exchangers = ["GASEX_LL", "GASEX_RL"]
     this.gas_exchanger_left_lung = ["GASEX_LL"]
     this.gas_exchanger_right_lung = ["GASEX_RL"]
-    this.intrapulmonary_shunt = ["IPS"]
 
     this.el_lungs_factor = 1.0;
     this.el_thorax_factor = 1.0;
@@ -159,30 +156,23 @@ export class Respiration extends BaseModelClass {
       if (this._prev_el_lungs_factor !== this.el_lungs_factor) {
         // update the model
         this.set_el_lung_factor(this.el_lungs_factor)
-        // store the current value
-        this._prev_el_lungs_factor = this.el_lungs_factor
       }
 
       if (this._prev_el_thorax_factor !== this.el_thorax_factor) {
         // update the model
         this.set_el_thorax_factor(this.el_thorax_factor)
-        // store the current value
-        this._prev_el_thorax_factor = this.el_thorax_factor
       }
 
       if (this._prev_res_upper_airways_factor !== this.res_upper_airways_factor) {
         this.set_upper_airway_resistance(this.res_upper_airways_factor)
-        this._prev_res_upper_airways_factor = this.res_upper_airways_factor
       }
 
       if (this._prev_res_lower_airways_factor !== this.res_lower_airways_factor) {
         this.set_lower_airway_resistance(this.res_lower_airways_factor)
-        this._prev_res_lower_airways_factor = this.res_lower_airways_factor
       }
 
       if (this._prev_gex_factor !== this.gex_factor) {
         this.set_gasexchange(this.gex_factor);
-        this._prev_gex_factor = this.gex_factor;
       }
 
       if (this._prev_atelectasis_left !== this.atelectasis_left) this.set_atelectasis_left(this.atelectasis_left);
@@ -211,6 +201,7 @@ export class Respiration extends BaseModelClass {
       m.el_base_factor_ps = f_ps;
     });
     this.el_lungs_factor = new_factor;
+    this._prev_el_lungs_factor = new_factor;
   }
 
   set_el_thorax_factor(new_factor) {
@@ -223,6 +214,7 @@ export class Respiration extends BaseModelClass {
       m.el_base_factor_ps = f_ps;
     });
     this.el_thorax_factor = new_factor;
+    this._prev_el_thorax_factor = new_factor;
   }
 
   set_upper_airway_resistance(new_factor) {
@@ -235,6 +227,7 @@ export class Respiration extends BaseModelClass {
       m.r_factor_ps = f_ps;
     });
     this.res_upper_airways_factor = new_factor;
+    this._prev_res_upper_airways_factor = new_factor;
   }
 
   set_lower_airway_resistance(new_factor) {
@@ -247,6 +240,7 @@ export class Respiration extends BaseModelClass {
       m.r_factor_ps = f_ps;
     });
     this.res_lower_airways_factor = new_factor;
+    this._prev_res_lower_airways_factor = new_factor;
   }
 
   set_gasexchange(new_factor) {
@@ -263,6 +257,7 @@ export class Respiration extends BaseModelClass {
       m.dif_co2_factor_ps = f_ps_co2;
     });
     this.gex_factor = new_factor;
+    this._prev_gex_factor = new_factor;
   }
 
   // the user entry point: sets the collapsed fraction AND the unstable region it defines, so 0

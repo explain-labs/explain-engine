@@ -11866,8 +11866,6 @@
     "thorax": [
      "THORAX"
     ],
-    "pleural_space_left": [],
-    "pleural_space_right": [],
     "lungs": [
      "ALL",
      "ALR"
@@ -11887,10 +11885,6 @@
     ],
     "gas_exchanger_right_lung": [
      "GASEX_RL"
-    ],
-    "intrapulmonary_shunt": [
-     "IPSL",
-     "IPSR"
     ],
     "el_lungs_factor": 1,
     "el_thorax_factor": 1,
