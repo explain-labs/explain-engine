@@ -123,13 +123,17 @@ export class Resistor extends BaseModelClass {
       }
   }
 
-  // current elastance of a compartment for the implicit correction: a capacitance's el_eff, or a
-  // time-varying elastance's instantaneous value between its minimum and maximum
+  // current local elastance dP/dV of a compartment for the implicit correction: a capacitance's el_eff, or
+  // a time-varying elastance's instantaneous value between its minimum and maximum, plus the slope of the
+  // non-linear term above the unstressed volume (2·el_k·S; for a time-varying elastance it belongs to the
+  // diastolic curve, so it fades with the activation)
   _elastance(c) {
     if (!c) return 0.0;
+    const s = typeof c.vol === "number" && typeof c.u_vol_eff === "number" ? c.vol - c.u_vol_eff : 0.0;
+    const k = s > 0.0 && typeof c.el_k_eff === "number" ? 2.0 * c.el_k_eff * s : 0.0;
     if (typeof c.el_max_eff === "number" && typeof c.act_factor === "number")
-      return c.el_min_eff + (c.el_max_eff - c.el_min_eff) * c.act_factor;
-    return typeof c.el_eff === "number" ? c.el_eff : 0.0;
+      return c.el_min_eff + k + (c.el_max_eff - c.el_min_eff - k) * c.act_factor;
+    return typeof c.el_eff === "number" ? c.el_eff + k : 0.0;
   }
 
   // flow magnitude (L/s) for a pressure drop dp >= 0 through a linear resistance r plus the turbulent
