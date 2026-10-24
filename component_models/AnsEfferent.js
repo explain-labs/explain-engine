@@ -12,8 +12,8 @@ export class AnsEfferent extends BaseModelClass {
     super(model_ref, name);
 
     // Initialize independent parameters
-    this.target_model = ""; // name of the target using dot notation (e.g. Heart.hr_ans_factor)
-    this.target_prop = ""; // name of the target using dot notation (e.g. Heart.hr_ans_factor)
+    this.target_model = ""; // name of the target model (e.g. Heart)
+    this.target_prop = ""; // name of the target property (e.g. ans_activity_hr)
     this.effect_at_max_firing_rate = 0.0; // effect size at average input firing rate of 1.0
     this.effect_at_min_firing_rate = 0.0; // effect size at average input firing rate of 0.0
     this.tc = 1.0; // time constant of the effect change (s)
@@ -44,6 +44,9 @@ export class AnsEfferent extends BaseModelClass {
         const inp = this._inputs[src];
         if (inp.n > 0) this.firing_rate += inp.sum / inp.n;
       }
+      // the sum of several afferents can leave 0..1; clamp so the effect stays between
+      // effect_at_min_firing_rate and effect_at_max_firing_rate (a target never gets a negative factor)
+      this.firing_rate = Math.min(Math.max(this.firing_rate, 0.0), 1.0);
 
       // Translate the average firing rate to the effect factor
       let effector;
