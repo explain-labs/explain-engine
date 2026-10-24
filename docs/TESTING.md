@@ -103,7 +103,7 @@ Probes are **interactive verification tools, not pass/fail test cases.** They pr
 ## The respiratory validation suite
 
 `npm run validate:resp` (`scripts/validate_respiratory.mjs`) **is** a pass/fail gate: it exits `1` when a
-check fails. It runs a fixed battery on preterm_28wk, term_neonate and adult_female, one child process per
+check fails. It runs a fixed battery on preterm_28wk and term_neonate (adult_female is archived), one child process per
 scenario, and checks each result against clinical ranges per patient class in
 `scripts/_resp_targets.mjs` (each range carries its literature source; the ranges are not fitted to the
 model). The battery:
