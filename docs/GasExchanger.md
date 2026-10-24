@@ -11,7 +11,7 @@ BaseModelClass
   └── GasExchanger   (partial-pressure-driven O₂/CO₂ transfer between blood and gas)
 ```
 
-Lives in `base_models/` (alongside `GasDiffusor` and `BloodDiffusor`). It is a transport element, not
+Lives in `base_models/` (alongside `BloodDiffusor`). It is a transport element, not
 a compartment: it holds no volume and writes directly into the blood and gas compartments it
 references. It pairs a [`BloodCapacitance`](./BloodCapacitance.md)-family compartment with a
 [`GasCapacitance`](./GasCapacitance.md).

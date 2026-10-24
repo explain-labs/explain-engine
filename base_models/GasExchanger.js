@@ -142,7 +142,7 @@ export class GasExchanger extends BaseModelClass {
     let new_cco2_gas = (cco2_gas * this._gas.vol + this.flux_co2) / this._gas.vol;
 
     // transfer the new concentrations, guarding each compartment by fixed_composition so a fixed
-    // (infinite-reservoir) compartment stays constant, mirroring BloodDiffusor/GasDiffusor
+    // (infinite-reservoir) compartment stays constant, mirroring BloodDiffusor
     if (!this._blood.fixed_composition) {
       this._blood.to2 = new_to2_blood;
       this._blood.tco2 = new_tco2_blood;

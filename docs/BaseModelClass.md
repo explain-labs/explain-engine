@@ -20,7 +20,7 @@ BaseModelClass
   ├── Resistor
   │     └── HeartValve
   ├── Container
-  ├── BloodDiffusor, GasDiffusor, GasExchanger
+  ├── BloodDiffusor, GasExchanger
   ├── Ventilator
   │     └── Sle6000
   └── every other component and device model (Heart, Circulation, Blood, Gas, Ans, Kidneys, Ecls, Monitor, …)

@@ -15,7 +15,7 @@ calculation/math → factor system → example JSON → usage. The exemplar is
 
 > **Cross-cutting footgun:** the factor/effective-value scaling tier is **not uniformly named**.
 > The capacitance/resistor/time-varying-elastance family uses `*_factor_scaling_ps`, but the
-> diffusor/exchanger family (`GasDiffusor`, `GasExchanger`, `BloodDiffusor`) uses `*_factor_scaling`
+> diffusor/exchanger family (`GasExchanger`, `BloodDiffusor`) uses `*_factor_scaling`
 > (no `_ps`). See [ARCHITECTURE §cross-cutting patterns](./ARCHITECTURE.md).
 
 ---
@@ -45,7 +45,6 @@ The reusable physical primitives every component model is built from.
 | [TimeVaryingElastance](./TimeVaryingElastance.md) | Compartment whose elastance varies over the cardiac cycle; basis for heart chambers. |
 | [Container](./Container.md) | Enclosing pressure container (thorax/pericardium); applies external pressure to members. |
 | [BloodDiffusor](./BloodDiffusor.md) | Diffusion of O₂/CO₂/solutes between two blood compartments. |
-| [GasDiffusor](./GasDiffusor.md) | Diffusion of gases between two gas compartments. |
 | [GasExchanger](./GasExchanger.md) | O₂/CO₂ transfer across the blood–gas (alveolar–capillary) barrier. |
 
 ## Blood side

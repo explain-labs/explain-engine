@@ -2,7 +2,7 @@
 
 `BloodDiffusor` exchanges gases (and optionally solutes) by diffusion between **two blood compartments** that don't share flow: O2 and CO2 move down their partial-pressure gradient, solutes down their concentration gradient. In the scenarios it is `PL_GASEX`, the placental barrier between the fetal villous capillaries and the mother's blood.
 
-For blood ↔ alveolar gas exchange (the lungs, the ECLS oxygenator) see [GasExchanger](./GasExchanger.md); for gas ↔ gas, [GasDiffusor](./GasDiffusor.md).
+For blood ↔ alveolar gas exchange (the lungs, the ECLS oxygenator) see [GasExchanger](./GasExchanger.md); for gas ↔ gas exchange without flow, [GasMixing](./GasMixing.md).
 
 ## Physiology
 
@@ -34,7 +34,7 @@ In the placenta, `dif_o2` and `dif_co2` are **overwritten every 15 ms by [Placen
 |---|---|---|
 | `dif_o2_factor`, `dif_co2_factor`, `dif_solutes_factor` | 1.0 | Non-persistent (reset to 1 after each step). |
 | `dif_o2_factor_ps`, `dif_co2_factor_ps`, `dif_solutes_factor_ps` | 1.0 | Persistent. |
-| `dif_o2_factor_scaling`, `dif_co2_factor_scaling`, `dif_solutes_factor_scaling` | 1.0 | Scaling layer. Named without `_ps`, like the other diffusors; nothing writes it (`ModelScaler` doesn't scale diffusors). |
+| `dif_o2_factor_scaling`, `dif_co2_factor_scaling`, `dif_solutes_factor_scaling` | 1.0 | Scaling layer. Named without `_ps`, like `GasExchanger`; nothing writes it (`ModelScaler` doesn't scale diffusors). |
 
 ### Outputs
 

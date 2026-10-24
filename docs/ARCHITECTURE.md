@@ -226,7 +226,7 @@ When adding a tunable param, follow this convention so it composes with interven
 **⚠️ The scaling-layer suffix is NOT uniform across the engine.** Verify before you copy:
 
 - The **capacitance / resistor / time-varying-elastance** family uses **`*_factor_scaling_ps`** (e.g. `el_base_factor_scaling_ps`, `u_vol_factor_scaling_ps`, `r_factor_scaling_ps` in [`Capacitance.js`](../base_models/Capacitance.js) / [`Resistor.js`](../base_models/Resistor.js)).
-- The **diffusor / exchanger** family uses **`*_factor_scaling`** with **no `_ps`** (e.g. `dif_o2_factor_scaling`, `dif_co2_factor_scaling` in [`GasDiffusor.js`](../base_models/GasDiffusor.js); likewise `GasExchanger`, `BloodDiffusor`).
+- The **diffusor / exchanger** family uses **`*_factor_scaling`** with **no `_ps`** (e.g. `dif_o2_factor_scaling`, `dif_co2_factor_scaling` in [`GasExchanger.js`](../base_models/GasExchanger.js) and `BloodDiffusor`).
 
 If you scale a diffusor through the `*_scaling_ps` name it will silently do nothing.
 
@@ -244,7 +244,7 @@ concentration += (concentration_from - concentration) * dvol / vol
 
 applied to `to2`, `tco2`, every entry in `solutes` and `drugs`, and `temp`. **Viscosity is not mixed**: `Blood` derives it from each compartment's haemoglobin every step. This dilution is how blood gases, solutes, drugs and temperature propagate through the circuit; a `fixed_composition` compartment keeps its composition.
 
-Gas compartments do the same for their gas composition in `GasCapacitance.volume_in`. Exchange **between** blood and gas, or across a membrane, is done by the diffusors and exchangers (`GasExchanger` alveolus↔capillary, `BloodDiffusor` placenta, `GasDiffusor` gas↔gas). Mixing without net flow between two compartments of one continuous pool is `Resistor.mix_flow` (see [Resistor](./Resistor.md#mixing-without-net-flow-mix_flow)). See [`BloodCapacitance.md`](./BloodCapacitance.md).
+Gas compartments do the same for their gas composition in `GasCapacitance.volume_in`. Exchange **between** blood and gas, or across a membrane, is done by the diffusors and exchangers (`GasExchanger` alveolus↔capillary, `BloodDiffusor` placenta). Mixing without net flow between two compartments of one continuous pool is `Resistor.mix_flow` (see [Resistor](./Resistor.md#mixing-without-net-flow-mix_flow)). See [`BloodCapacitance.md`](./BloodCapacitance.md).
 
 ### 7d. Who writes the scaling layer
 

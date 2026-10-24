@@ -118,7 +118,7 @@ Calibration when it was introduced (`scripts/probe_dead_space.mjs`, preterm_28wk
   - [Respiration](./Respiration.md) (series dead space on DS);
   - the Ventilator (`tube_volume`, `tube_port_model`);
   - Breathing and the thorax coupling (`pres_ext`);
-  - GasExchanger and GasDiffusor (`co2`, `cco2`);
+  - GasExchanger (`co2`, `cco2`);
   - the devices (their own gas lines).
 - **Read by:** GasExchanger (alveolar pO2/pCO2), Monitor (etCO2, airway pressure), the Ventilator, `DataCollector` watchers.
 
