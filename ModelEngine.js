@@ -344,10 +344,54 @@ const build = function (model_definition) {
     }
   });
 
+  // the models listed in the definition; only these are initialized below; the sub-models are
+  // initialized by their owner's init_model
+  const top_level_models = Object.values(model.models);
+
+  // pre-create the sub-models that composite models declare in `components` (recursively), so every
+  // model exists before any init_model runs. Blood and Gas collect their compartments from
+  // model.models in init_model, so without this they missed the compartments of an owner listed
+  // after them in the definition. The owner still applies the component args in its own init_model
+  // (BaseModelClass only instantiates a name that does not exist yet). Same insertion order as
+  // BaseModelClass.init_model (all of a model's components, then each component's own), because the
+  // step loop runs the models in insertion order.
+  const create_components = function (components) {
+    const created = [];
+    Object.entries(components || {}).forEach(([component_name, component_def]) => {
+      if (!component_def || model.models.hasOwnProperty(component_name)) return;
+      const model_class = available_model_map[component_def.model_type];
+      if (!model_class) {
+        errors += 1;
+        console.log("Model type not found: ", component_def.model_type);
+        _send({
+          type: "status",
+          message: "ERROR: " + component_def.model_type + " model not found",
+          payload: [],
+        });
+        return;
+      }
+      try {
+        model.models[component_name] = new model_class(model, component_name, component_def.model_type);
+      } catch (e) {
+        errors += 1;
+        console.error("ModelEngine: model instantiation error: ", component_name, e);
+        _send({
+          type: "status",
+          message: "ERROR: failed to instantiate " + component_name + " (" + component_def.model_type + ")",
+          payload: [],
+        });
+        return;
+      }
+      created.push(component_def);
+    });
+    created.forEach((component_def) => create_components(component_def.components));
+  };
+  Object.values(model_definition.models).forEach((sub_model_def) => create_components(sub_model_def.components));
+
   // initialize all sub models
   if (errors < 1) {
     // now initialize all the models with the correct properties stored in the model definition
-    Object.values(model.models).forEach((model_comp) => {
+    top_level_models.forEach((model_comp) => {
       // // find the arguments for the model in the model definition
       let args = [];
       for (const [key, value] of Object.entries(model_definition.models[model_comp.name])) {
