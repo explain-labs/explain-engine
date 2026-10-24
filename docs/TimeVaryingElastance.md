@@ -1,151 +1,139 @@
 # TimeVaryingElastance
 
-A `TimeVaryingElastance` is a volume compartment whose stiffness **varies over the cardiac cycle** —
-the base for contractile chambers (`HeartChamber`, `BloodTimeVaryingElastance`). Each step it
-interpolates between a relaxed (diastolic) and a contracted (systolic) pressure–volume relation,
-driven by an activation factor. It is the canonical implementation of the factor / effective-value
-pattern for the dual-elastance case.
+A `TimeVaryingElastance` is an elastic compartment whose stiffness changes during the heartbeat. It moves between a relaxed (diastolic) and a contracted (systolic) pressure–volume relation, driven by an activation signal from the `Heart`. It is the base of every heart chamber and of the coronary bed.
+
+## Physiology
+
+Heart muscle is soft when relaxed and stiff when contracted. If a chamber's volume is held fixed, its pressure therefore rises during systole and falls during diastole. The *time-varying elastance* concept (Suga and Sagawa) captures this with one number that changes over the cycle:
+
+- **Diastole.** The chamber sits on its *end-diastolic pressure–volume relation*: low elastance (`el_min`), so it fills at low pressure. A stiff, poorly relaxing ventricle (diastolic dysfunction) has a high `el_min`.
+- **Systole.** The elastance rises to `el_max`, the slope of the *end-systolic pressure–volume relation* and the classic load-independent index of contractility. A higher `el_max` means a stronger contraction.
+- **In between,** the activation signal from the `Heart` (0 at rest, 1 at peak contraction) blends the two curves. That one signal produces ejection, isovolumic relaxation and filling, depending on the valves and the pressures around the chamber.
+
+The same mechanism drives the coronary bed: the contracting myocardium squeezes the intramural vessels in systole.
 
 ## Inheritance
 
 ```
 BaseModelClass
-  └── TimeVaryingElastance        (el_min/el_max, act_factor)
-        ├── HeartChamber               (+ blood composition, ANS/MOB contractility)
+  └── TimeVaryingElastance
+        ├── HeartChamber               (+ blood composition, ANS/drug/load contractility; own factor composition)
         └── BloodTimeVaryingElastance  (+ blood composition)
 ```
 
-See [BaseModelClass.md](./BaseModelClass.md) for the lifecycle contract and shared fields.
-
-## What it models
-
-A chamber whose recoil pressure swings between an end-diastolic curve (relaxed) and an end-systolic
-curve (contracted) under an activation signal. With `act_factor = 0` it behaves like a passive
-[`Capacitance`](./Capacitance.md) on its diastolic curve; with `act_factor = 1` it sits on its
-systolic curve. This is the standard time-varying-elastance model of cardiac contraction.
+`HeartChamber` overrides `calc_elastances` and `calc_volumes` (extra layers; see [HeartChamber](./HeartChamber.md)) but uses `calc_pressure` from this class. `BloodTimeVaryingElastance` uses all of this class's calculation.
 
 ## Properties
 
-### Config / independent (set in the definition JSON)
+### Config (set in the definition JSON)
 
-| Property | Unit | Description |
-|---|---|---|
-| `u_vol` | L | Unstressed volume |
-| `el_min` | mmHg/L | Minimal (end-diastolic) elastance — the EDPVR |
-| `el_max` | mmHg/L | Maximal (end-systolic) elastance — the ESPVR |
-| `el_k` | mmHg/L² | Non-linear elastance coefficient (diastolic curve only) |
-| `pres_ext` | mmHg | External pressure applied this step (non-persistent; cleared each step) |
-| `act_factor` | unitless | Activation factor (0 → 1), supplied by the `Heart` model |
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `u_vol` | L | 0.0 | Unstressed volume (the end-systolic and end-diastolic relations share it). |
+| `el_min` | mmHg/L | 0.0 | Minimal (diastolic) elastance. |
+| `el_max` | mmHg/L | 0.0 | Maximal (end-systolic) elastance: contractility. |
+| `el_k` | mmHg/L² | 0.0 | Non-linear term of the diastolic relation, above `u_vol` only. 0 in every shipped chamber. |
+| `vol` | L | 0.0 | Volume; the starting volume in a definition. |
+| `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. |
+| `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | – | 1.0 | Persistent factors. |
+| `u_vol_factor_scaling_ps`, `el_min_factor_scaling_ps`, `el_max_factor_scaling_ps`, `el_k_factor_scaling_ps` | – | 1.0 | Persistent scaling factors. |
 
-Factor inputs (all default `1.0`) — see [Factor system](#factor-system):
-`u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` (non-persistent);
-`u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` (persistent);
-`u_vol_factor_scaling_ps`, `el_min_factor_scaling_ps`, `el_max_factor_scaling_ps`,
-`el_k_factor_scaling_ps` (scaling).
+### Outputs
 
-### Computed / dependent (engine outputs)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `pres_in` | mmHg | 0.0 | Recoil pressure of the wall. |
+| `pres` | mmHg | 0.0 | `pres_in + pres_ext`: what the valves and connectors read. |
+| `el_min_eff`, `el_max_eff`, `el_k_eff` | mmHg/L, mmHg/L² | 0.0 | Effective values after the factor layers. `el_max_eff` is kept ≥ `el_min_eff`. |
+| `u_vol_eff` | L | 0.0 | Effective unstressed volume, floored at 0. |
 
-| Property | Unit | Description |
-|---|---|---|
-| `vol` | L | Current volume |
-| `pres` | mmHg | Total pressure (`pres_in + pres_ext`) |
-| `pres_in` | mmHg | Internal recoil pressure |
-| `el_min_eff` | mmHg/L | Effective minimal elastance after the factor layers |
-| `el_max_eff` | mmHg/L | Effective maximal elastance after the factor layers |
-| `u_vol_eff` | L | Effective unstressed volume after the factor layers |
-| `el_k_eff` | mmHg/L² | Effective non-linear coefficient after the factor layers |
+### Set by other models
 
-## Calculation cycle (`calc_model`)
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `act_factor` | – | 0.0 | Activation, 0 (relaxed) to 1 (fully contracted). Written every step by `Heart`: `aaf` for the atria, `vaf` for the LV and the coronaries, `rvaf` for the RV (equal to `vaf` unless `Heart.rv_delay` is set). A saved value is overwritten on the first step. |
+| `pres_ext` | mmHg | 0.0 | External pressure for this step (the `PERICARDIUM` container), reset after use. |
 
-Each step: `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
+## Calculation
 
-### `calc_elastances`
+`calc_model()` runs `calc_elastances()` → `calc_volumes()` → `calc_pressure()`.
 
-```
-el_min_eff = el_min + (el_min_factor − 1)·el_min + (el_min_factor_ps − 1)·el_min + (el_min_factor_scaling_ps − 1)·el_min
-el_max_eff = el_max + (el_max_factor − 1)·el_max + (el_max_factor_ps − 1)·el_max + (el_max_factor_scaling_ps − 1)·el_max
-el_k_eff   = el_k   + (el_k_factor − 1)·el_k     + (el_k_factor_ps − 1)·el_k     + (el_k_factor_scaling_ps − 1)·el_k
-```
+1. **`calc_elastances`**: `el_min_eff`, `el_max_eff` and `el_k_eff` from the base value and the three layers, composed additively. `el_max_eff` is raised to `el_min_eff` if it falls below it. The non-persistent factors are then reset.
+2. **`calc_volumes`**: `u_vol_eff` from the three layers, floored at 0. `u_vol_factor` is reset.
+3. **`calc_pressure`**, with `S = vol − u_vol_eff`:
 
-It then clamps `el_max_eff` to be ≥ `el_min_eff`, and resets the non-persistent factors
-`el_min_factor`, `el_max_factor`, `el_k_factor` to `1.0`.
+   ```
+   p_es    = el_max_eff · S                                     end-systolic relation (linear)
+   p_ed    = (S > 0 ? el_k_eff · S² : 0) + el_min_eff · S       end-diastolic relation
+   pres_in = p_ed + (p_es − p_ed) · act_factor
+   pres    = pres_in + pres_ext
+   pres_ext = 0
+   ```
 
-### `calc_volumes`
+   At `act_factor` 0 the chamber is on its diastolic curve, at 1 on its systolic curve, and in between the pressure is blended linearly.
 
-```
-u_vol_eff = u_vol + (u_vol_factor − 1)·u_vol + (u_vol_factor_ps − 1)·u_vol + (u_vol_factor_scaling_ps − 1)·u_vol
-```
-
-A negative sum (the factor layers add up) is clamped to `0`, as in [Capacitance](./Capacitance.md); `HeartChamber`'s override, which adds the remodeling layer, does the same. Then resets the non-persistent factor `u_vol_factor` to `1.0`.
-
-### `calc_pressure`
-
-```
-p_ms = (vol − u_vol_eff) · el_max_eff                                  (end-systolic, linear)
-p_ed = el_k_eff · s² · [s > 0] + el_min_eff · s,  s = vol − u_vol_eff   (end-diastolic, non-linear)
-pres_in = (p_ms − p_ed) · act_factor + p_ed
-pres    = pres_in + pres_ext                                          (total)
-pres_ext := 0                                                         (external pressure is non-persistent)
-```
-
-`act_factor` runs `0 → 1` over a contraction: at 0 the chamber sits on its diastolic curve (`p_ed`), at
-1 on its systolic curve (`p_ms`), interpolating linearly in between. The non-linear `el_k` term lives
-only in the diastolic relation (the EDPVR stiffens at high filling), which is the physiologically
-expected shape, and only above `u_vol` (same guard as [Capacitance](./Capacitance.md)).
-
-`act_factor` is supplied by the `Heart` model (the atrial/ventricular activation functions `aaf`/
-`vaf`); see [HeartChamber.md](./HeartChamber.md) for the ANS/MOB contractility coupling layered on top
-of `el_max`.
-
-## Volume flow
-
-`volume_in`/`volume_out` behave as in [Capacitance](./Capacitance.md): `volume_out` clamps at `0` and
-returns the un-removed volume; subclasses extend `volume_in` to mix the incoming blood composition. Heart chambers can fall below their unstressed volume during ejection
-(ventricular suction), which the formula handles naturally.
+**Volume transfer.** `volume_in(dvol, comp_from)` adds `dvol` (the blood subclasses also mix the composition). `volume_out(dvol)` removes it, stops at 0 and returns what could not be removed, as in [Capacitance](./Capacitance.md). There is no `fixed_composition` here.
 
 ## Factor system
 
-Both elastances plus `el_k` and `u_vol` are **never used raw**. Each combines three multiplier layers
-**additively against the base** into an `*_eff` value:
+`u_vol`, `el_min`, `el_max` and `el_k` each carry the three layers, composed **additively** in this class (see [ARCHITECTURE §7a](./ARCHITECTURE.md#7a-the-factor--effective-value-pattern)). `HeartChamber` replaces this with its own composition. Writers in the current code:
 
-| Layer | Persistence | Set by |
-|---|---|---|
-| `<p>_factor` | reset to `1.0` every step | transient interventions |
-| `<p>_factor_ps` | persistent | user / scenario / regulator models (ANS, MOB…) |
-| `<p>_factor_scaling_ps` | persistent | `ModelScaler` (allometric/weight scaling) |
+| Layer | Writers |
+|---|---|
+| `_factor` (reset every step) | `HeartChamber` internally (ANS, drugs, load) |
+| `_factor_ps` | `Heart`: `set_contractility` → `el_max_factor_ps`, `set_relaxation` → `el_min_factor_ps` (left and right separately); the `Calibrator` (`el_max_factor_ps`); the user via `setPropValue` |
+| `_factor_scaling_ps` | `ModelScaler` (`scale_heart_el_min`/`el_max`, whole heart or left/right) |
 
-```
-p_eff = p + (factor − 1)·p + (factor_ps − 1)·p + (factor_scaling_ps − 1)·p
-```
+## Inputs and outputs
 
-Same pattern as [`Capacitance`](./Capacitance.md), applied to `el_min`, `el_max`, `el_k`, and `u_vol`.
-Contractility interventions typically drive `el_max_factor_ps`.
+- **Reads:** nothing from other models; `act_factor` and `pres_ext` are written onto it.
+- **Written by:** `Heart` (`act_factor`, contractility and relaxation factors); `PERICARDIUM` (`pres_ext`); the connected resistors and valves (volume); `ModelScaler`.
+- **Read by:**
+  - the valves and connectors (`pres`), and `Heart` (volumes and pressures for the per-beat analysis: EDV, ESV, SV, EF);
+  - `Resistor`s with `implicit`, which read the instantaneous elastance `el_min_eff + (el_max_eff − el_min_eff)·act_factor` (without `el_k`);
+  - `DataCollector` watchers (PV loops).
+
+## Assumptions and limitations
+
+- **One unstressed volume for both relations.** The end-systolic relation passes through `u_vol` (`V0` = `u_vol`); a separate `V0` for the ESPVR isn't modelled.
+- **Linear systolic relation.** `el_max` is a constant slope; the curvature of the real ESPVR at high loads is ignored.
+- **Diastolic relation linear in practice.** `el_k` is supported but 0 in every shipped chamber, so the diastolic relation is linear. The only diastolic non-linearity left is the pericardium (see [Container](./Container.md)).
+- **No force–velocity or length-dependent activation.** Contraction depends on volume and activation only. Shortening deactivation and the Frank–Starling length effect on activation aren't modelled; preload acts through the pressure–volume relation alone.
+- **Below the unstressed volume** the systolic term goes strongly negative (`el_max · S`), which acts as early-diastolic suction.
 
 ## Example definition (JSON)
 
-Plain `TimeVaryingElastance` is not instantiated directly in scenarios (the contractile subclasses are
-used); a definition block carries the config fields below (factor fields default to `1.0` and are
-usually omitted):
+No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this class's calculation unchanged; from `term_neonate.json`, `models.Mob.components.COR` (a `BloodTimeVaryingElastance`, trimmed to the props this class defines):
 
 ```json
 {
-  "name": "EXAMPLE_CHAMBER",
-  "description": "contractile chamber",
-  "model_type": "TimeVaryingElastance",
+  "name": "COR",
+  "model_type": "BloodTimeVaryingElastance",
   "is_enabled": true,
-  "vol": 0.015,
-  "u_vol": 0.005,
-  "el_min": 100,
-  "el_max": 1500,
+  "u_vol": 0.00028,
+  "el_min": 30000,
+  "el_max": 90000,
   "el_k": 0,
-  "act_factor": 0
+  "vol": 0.00067
 }
 ```
 
-## Usage in the model
+## Usage in the scenarios
 
-- The base for every contractile cardiac chamber: `HeartChamber` (LV/RV/LA/RA) and
-  `BloodTimeVaryingElastance`.
-- `el_max_factor_ps` is the primary contractility lever (used by ANS/MOB and scenario tuning);
-  `el_min`/`el_min_factor_ps` set diastolic stiffness (e.g. for filling-pressure / CVP shaping).
-- `act_factor` is written each step by the `Heart` model — do not set it statically.
+Six instances in every shipped scenario:
+
+| Instance | Class | Activation | term_neonate `el_min` / `el_max` (mmHg/L) | `u_vol` (mL) |
+|---|---|---|---|---|
+| `LV` | HeartChamber | `vaf` | 1166 / 30478 | 0.73 |
+| `RV` | HeartChamber | `rvaf` | 1167 / 28120 | 4.0 |
+| `LA` | HeartChamber | `aaf` | 1203 / 2975 | 0 |
+| `RAIVCI`, `RASVC` | HeartChamber | `aaf` | 2406 / 5947 each | 0 |
+| `COR` | BloodTimeVaryingElastance | `vaf` | 30000 / 90000 | 0.28 |
+
+The heart chambers are owned by `Heart`, the coronary bed by `Mob`.
+
+## References
+
+- Suga H, Sagawa K, Shoukas AA. Load independence of the instantaneous pressure-volume ratio of the canine left ventricle and effects of epinephrine and heart rate on the ratio. *Circ Res* 1973;32(3):314–322. [doi:10.1161/01.res.32.3.314](https://doi.org/10.1161/01.res.32.3.314) (the time-varying elastance concept).
+
+The elastance and unstressed-volume values are scenario calibrations (see the `*Reference.md` pages).
