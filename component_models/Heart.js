@@ -601,17 +601,14 @@ export class Heart extends BaseModelClass {
     // skip if no pericardium model is present in this configuration
     if (!this._pc) return;
 
-    // get the current factor from the model
-    let f_pc_el = this._pc.el_base_factor_ps;
-
     // calculate the delta
     let delta = new_el_factor - this.prev_pc_el_factor;
 
-    // guard the extremes
-    f_pc_el = Math.max(f_pc_el + delta, 0);
-
-    // set the new factor
-    this._pc.el_base_factor_ps = f_pc_el;
+    // scale the whole pressure-volume curve: the linear elastance and the non-linear wall. The
+    // shipped pericardium is el_base 0 with all its stiffness in el_k, so a factor on el_base
+    // alone did nothing. Guard the extremes.
+    this._pc.el_base_factor_ps = Math.max(this._pc.el_base_factor_ps + delta, 0);
+    this._pc.el_k_factor_ps = Math.max(this._pc.el_k_factor_ps + delta, 0);
   }
 
   set_contractillity(new_cont_factor_left, new_cont_factor_right) {
