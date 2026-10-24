@@ -13,25 +13,18 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   VUB. CBF = AA_BR_ART.flow. BR_CAP is the dominant neonatal O2 sink (Metabolism fvo2 ~0.45), so a fall
   in CBF shows up as BR_CAP.to2 collapsing (the HIE / ischaemia signature).
 
-  AUTOREGULATION (myogenic, mirrors Kidneys). Effector = AA_BR_ART.r_factor_ps (the cerebral arteriole
-  feeding resistor — a Resistor NOT in Circulation's ANS/SVR fan-out, so this composes cleanly; the
-  brain's ANS/SVR tone lives on BR_ART and is left alone). To hold CBF constant as CPP varies, the
-  arteriolar resistance must scale WITH CPP (CBF = CPP/R). So:
-      autoreg_target = clamp(CPP / CPP_setpoint, lower_ratio, upper_ratio)
-  Within the autoregulation range R tracks CPP → CBF flat; beyond the range R clamps → the circulation
-  becomes PRESSURE-PASSIVE (CBF follows CPP — the classic surge-→IVH / drop-→ischaemia of the sick or
-  premature neonate). `autoregulation_gain` ∈ [0,1] blends between intact (1) and pressure-passive (0):
-      r_factor = 1 + autoregulation_gain · (autoreg_target − 1)
-  Neonatal autoregulation is narrow and easily lost — set the gain < 1 (or 0) for HIE / extreme preterm.
+  AUTOREGULATION (closed loop on flow). Effector = AA_BR_ART.r_factor_ps (the cerebral arteriole
+  feeding resistor, outside Circulation's ANS/SVR fan-out; the brain's ANS/SVR tone lives on BR_ART).
+  A leaky integral controller adjusts the factor until the smoothed CBF matches cbf_setpoint, within
+  autoreg_factor_min..max; beyond those limits the circulation is PRESSURE-PASSIVE (CBF follows
+  pressure: the surge -> IVH / drop -> ischaemia of the sick or premature neonate).
+  `autoregulation_gain` in [0,1] blends between intact (1) and pressure-passive (0).
 
-  ICP (Monro–Kellie, exponential intracranial compliance). Cerebral blood volume CBV = BR_ART+BR_CAP+
-  BR_VEN volume; ΔV = (CBV − CBV0) + edema_volume (edema_volume is the settable mass/oedema/haemorrhage
-  lever, mL). The EXCESS pressure above baseline is
-      icp_excess = icp_e0 · (exp(icp_k · ΔV_ml) − 1)            (mmHg)
-  and ICP = icp_baseline + icp_excess. Only the EXCESS is applied as pres_ext on BR_ART/BR_CAP/BR_VEN
-  (so at baseline ΔV=0 → 0 added → neutral). The neonatal cranium is COMPLIANT (open fontanelle/sutures)
-  → a gentler curve than the adult; `icp_k` carries this. Rising ICP lowers CPP, which the autoregulation
-  loop defends by dilating — until the reserve is exhausted, then CBF falls and the brain goes ischaemic.
+  ICP (Monro-Kellie, exponential intracranial compliance). CBV = BR_ART + BR_CAP + BR_VEN volume;
+  dV = (CBV - cbv0) + edema_volume (mL), icp_excess = icp_e0 * (exp(icp_k * dV) - 1), ICP =
+  icp_baseline + icp_excess. The excess compresses the bridging veins: it raises the venous outflow
+  resistance BR_VEN_VUB.r_factor_ps (1 + icp_outflow_gain * excess), so CBF falls; autoregulation
+  defends it by dilating until its reserve is exhausted. CPP = MAP - ICP is a read-out.
 */
 
 export class Brain extends BaseModelClass {
@@ -97,7 +90,7 @@ export class Brain extends BaseModelClass {
     this.cbf = 0.0; // cerebral blood flow (L/min)
     this.cpp = 0.0; // cerebral perfusion pressure (mmHg)
     this.icp = 5.0; // intracranial pressure (mmHg)
-    this.icp_excess = 0.0; // ICP above baseline, applied as pres_ext (mmHg)
+    this.icp_excess = 0.0; // ICP above baseline, drives the venous outflow resistance (mmHg)
     this.cerebral_blood_volume = 0.0; // CBV (mL)
     this.brain_to2 = 0.0; // BR_CAP oxygen content (mmol/L) — ischaemia read-out
     this.autoreg_factor = 1.0; // applied → AA_BR_ART.r_factor_ps
@@ -131,6 +124,11 @@ export class Brain extends BaseModelClass {
     // start the flow smoother at the stored baseline, not at one pulsatile sample (which would kick
     // the integrator at the first step)
     if (this._seeded) this._cbf_smooth = this.cbf_setpoint;
+    // resume the autoregulation integrator where the saved state left it (it is _-prefixed and not
+    // saved; restarting it at 1.0 swings the cerebral resistance for ~30 s after every load)
+    if (this._seeded && this.autoregulation_gain > 0) {
+      this._ar_int = 1.0 + (this.autoreg_factor - 1.0) / this.autoregulation_gain;
+    }
   }
 
   calc_model() {
@@ -142,8 +140,7 @@ export class Brain extends BaseModelClass {
     }
     this._resolve_refs();
 
-    // ICP pres_ext must be re-applied EVERY step (compartments reset pres_ext each step); the slow
-    // control math (autoregulation + ICP magnitude) runs on the update interval.
+    // the control math (autoregulation + ICP) runs on the update interval
     this._update_counter += this._t;
     if (this._update_counter >= this._update_interval) {
       const u = this._update_counter;
