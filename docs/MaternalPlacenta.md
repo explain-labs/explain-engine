@@ -84,7 +84,7 @@ It writes the **scaling layer** `PL_IVS.r_factor_scaling_ps`, the layer that bel
 
 ## Assumptions and limitations
 
-- **Not calibrated.** In the archived scenario at 36 weeks, placental flow is 42 mL/min (28 % of uterine flow). Term uteroplacental flow is roughly 500–750 mL/min, about 80 % placental.
+- **Not calibrated across gestation.** At 40 weeks placental flow is 525 mL/min, 84 % of uterine flow, close to the term reference (~500–750 mL/min uteroplacental, ~80 % placental). But because resistance falls linearly with gestation, flow (∝ 1/R) stays small until the last weeks: 9 mL/min at 20 weeks, 42 at 36, 77 at 38. Real placental flow rises steadily from the first trimester. See the gestation table in [Uterus](./Uterus.md#assumptions-and-limitations).
 - **No fetal coupling.** Gas exchange between `PL_IVS` and a fetal placental capillary needs a combined mother + fetus scenario; the fetal [Placenta](./Placenta.md) uses its own fixed maternal pool.
 - **Linear growth** of spiral-artery conductance with gestational age between the threshold and term.
 - **Scaling-layer use** (see [Factor system](#factor-system)), as in [Uterus](./Uterus.md).
