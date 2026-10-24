@@ -1,305 +1,181 @@
 # Kidneys
 
-The `Kidneys` model turns the otherwise passive renal vascular bed
-(`KID_ART → KID_CAP → KID_VEN`) into an active filtration unit. It is a
-**controller/process model** (like [`Placenta`](./Placenta.md)) — it holds no
-blood itself, it operates on the existing glomerular capillary `KID_CAP` and a
-new `URINE` bladder compartment it owns.
+`Kidneys` turns the renal vascular bed (`KID_ART` → `KID_CAP` → `KID_VEN`) into a filtering organ. It holds no blood itself. Each step it:
+- filters plasma out of the glomerular capillary `KID_CAP` by the Starling balance;
+- reabsorbs most of the water and each solute by its own fraction;
+- moves the rest into a `URINE` compartment it owns.
 
-**Scope: fluid balance & urine output, per-solute reabsorption, and optional GFR autoregulation**
-(myogenic + TGF, see below). Reabsorption fractions are static (no hormonal control yet); no
-clearance/acid-base or RAAS/ADH — those are future phases.
+It also autoregulates glomerular filtration (myogenic and tubuloglomerular feedback) on the afferent arteriole, and offers the hooks through which [Hormones](./Hormones.md) applies ADH and aldosterone.
 
-## What it does each step
+## Physiology
 
-```
-oncotic = oncotic_base · (KID_CAP.solutes.albumin / albumin_ref)   # rises with hemoconcentration
-NFP     = max(0, KID_CAP.pres − p_bowman − oncotic)                 # Starling net filtration pressure
-GFR     = kf_eff · NFP                                              # glomerular filtration rate (L/s)
-Vf      = GFR · dt                                                  # filtrate volume this step (L)
-Uw      = Vf · (1 − reabsorption_fraction)                          # net urine WATER leaving the blood
-```
+The glomerulus filters plasma at a rate set by the filtration coefficient and the net filtration pressure: glomerular capillary pressure minus Bowman's capsule pressure minus plasma oncotic pressure. Proteins and cells stay behind; small solutes pass at their plasma concentration. The tubules reabsorb ~99 % of the filtered water and sodium at term, less in the immature kidney, so a preterm infant loses more sodium (higher FENa) and concentrates urine poorly.
 
-### Per-solute reabsorption (mass balance)
+Renal blood flow and GFR stay nearly constant over a range of pressures:
+- **myogenic response:** the afferent arteriole constricts when stretched;
+- **tubuloglomerular feedback:** the macula densa senses distal NaCl delivery and constricts the afferent when it is high.
 
-Each filterable solute is reabsorbed by **its own** fraction, so urine need not be
-iso-osmotic with plasma. `_transfer(Vf, wr)` does a conservative **mass balance** (NOT
-`volume_in`, which would copy *all* solutes incl. albumin/Hb and cause artifactual
-proteinuria). With water fraction `wr` and per-solute fraction `fr[s]`:
+Neonatal GFR is low and rises steeply with gestation and postnatal age.
+
+## Inheritance
 
 ```
-fr[s]  = reabsorption_fractions[s]  (else wr)         # clamped [0, 0.9999]
-Mf[s]  = Vf · C_plasma[s]                             # filtered solute mass
-Mx[s]  = min(Mf[s] · (1 − fr[s]), C[s]·V)             # excreted mass (clamped to available)
-C'[s]  = (C[s]·V − Mx[s]) / (V − Uw)                  # new blood conc (reabsorbed stays in blood)
-URINE.solutes[s] = (URINE.solutes[s]·Uvol + Mx[s]) / (Uvol + Uw)
+BaseModelClass
+  └── Kidneys
 ```
 
-Only the **net** excreted water (`Uw`) and solute mass (`Mx`) leave `KID_CAP`; the
-reabsorbed remainder is simply never removed (it returns to blood). `albumin` & `hemoglobin`
-are **not** filtered — total mass conserved, concentration scaled by `vol_before/vol_after`
-(hemoconcentration). Volume is guarded with a `1e-9` floor.
+## Properties
 
-- **Backward compatible:** if `fr[s] = wr` for every solute (e.g. an empty
-  `reabsorption_fractions`), then `Mx[s] = C[s]·Uw` and `C'[s] = C[s]` — urine is iso-osmotic
-  with plasma and output is identical to the old single-fraction model.
-- `fr[s] > wr` → solute concentrates in blood / **dilutes** in urine; `fr[s] < wr` →
-  **concentrates** in urine.
+### Config: filtration and reabsorption
 
-Net effect: diuresis slowly lowers circulating blood volume; `URINE.vol` accumulates total
-diuresis; the kidney now handles water and each solute independently (e.g. Na/Cl avidly
-reabsorbed, phosphate/urate spilled).
-
-> **Hormonal modulation hooks (driven by the [`Hormones`](./Hormones.md) RAAS/ADH model).** Two
-> dedicated, neutral-by-default factor channels let a hormonal controller modulate reabsorption
-> without colliding with the user/scenario `reabs_factor_ps` layer or the absolute
-> `reabsorption_fractions` dict:
-> - **`reabs_factor_adh`** (water) — a 4th multiplier folded into `_reabs_eff`
->   (`reabsorption_fraction · reabs_factor · reabs_factor_ps · reabs_factor_scaling_ps · reabs_factor_adh`).
->   ADH drives antidiuresis through it. Default `1.0`.
-> - **`reabsorption_factors`** (per-solute dict) — multiplies each solute's fraction in `_solute_reabs`
->   (`fr ·= reabsorption_factors[s] ?? 1`), so aldosterone can retain Na (`na > 1`) and waste K
->   (`k < 1`); also reusable for diuretics. Default `{}` (every solute → 1.0). Distinct from the
->   absolute `reabsorption_fractions` dict (this modulates on top of it).
->
-> Both default to neutral, so a scenario without a `Hormones` model is byte-identical. The absolute
-> `reabsorption_fractions` is also still scheduler-tweakable per key
-> (`setPropValue("Kidneys.reabsorption_fractions.na", …)`). The water fraction keeps its
-> `reabs_factor`/`_ps`/`_scaling_ps` stack; explicit per-solute overrides track the `wr` fallback
-> when absent.
-
-## Read-outs
-| Property | Unit | Meaning |
-|---|---|---|
-| `gfr` | mL/min | glomerular filtration rate |
-| `urine_flow` | mL/min | net urine output |
-| `nfp` | mmHg | net filtration pressure |
-| `urine_volume` | mL | cumulative diuresis (= `URINE.vol × 1000`) |
-| `fe_na` | % | fractional excretion of Na (= `(1 − fr_na)·100`) |
-
-Per-solute urine concentrations live in `URINE.solutes`.
-
-## Configuration
-| Param | Meaning |
-|---|---|
-| `kidneys_running` | master gate (false → GFR/urine = 0, bladder holds) |
-| `kf` | glomerular filtration coefficient (L/s·mmHg) — **the dominant, scenario-specific calibration knob** |
-| `p_bowman` | Bowman's capsule pressure (mmHg) |
-| `oncotic_base`, `albumin_ref` | plasma oncotic pressure at the reference albumin |
-| `reabsorption_fraction` | **water** reabsorption fraction (urine water = GFR·(1−FR)) |
-| `reabsorption_fractions` | per-solute reabsorption dict `{na, k, …}`; absent → uses the water fraction |
-| `filterable_solutes` | small solutes filtered into urine (albumin/Hb excluded) |
-
-`kf` carries the additive 3-layer factor stack (`kf_factor` / `_ps` / `_scaling_ps`),
-`reabsorption_fraction` a multiplicative one (clamped to [0, 0.9999]). The two scenarios now ship
-**distinct, headless-calibrated** per-solute fractions reflecting neonatal tubular immaturity (the
-neonate excretes a larger fraction of every solute → higher FE across the board):
-
-| reabsorption fraction | neonate | adult | → FE neonate / adult |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| water (`reabsorption_fraction`) | 0.980 | 0.990 | — |
-| na | 0.990 | 0.993 | **1.0% / 0.7%** |
-| cl | 0.988 | 0.991 | 1.2% / 0.9% |
-| lact | 0.99 | 0.99 | 1.0% / 1.0% |
-| ca | 0.975 | 0.985 | 2.5% / 1.5% |
-| mg | 0.95 | 0.96 | 5.0% / 4.0% |
-| k | 0.88 | 0.90 | 12% / 10% |
-| phosphates | 0.82 | 0.88 | 18% / 12% |
-| uma | 0.70 | 0.92 | 30% / 8% |
+| `kidneys_running` | boolean | `true` | Switch for filtration. |
+| `kid_cap_name`, `urine_name` | – | `"KID_CAP"`, `"URINE"` | Glomerular capillary and the bladder compartment (a component, kept out of the blood pool). |
+| `kf` | L/(s·mmHg) | 6.6e-6 | Filtration coefficient. term 6.0e-6, preterm 2.1–3.4e-6 (scaled by body surface). |
+| `p_bowman` | mmHg | 8 | Bowman's capsule pressure (preterm lower, scaled by the gestation's MAP). |
+| `oncotic_base`, `albumin_ref` | mmHg, g/L | 18, 25 | Plasma oncotic pressure at the reference albumin (preterm 15). |
+| `reabsorption_fraction` | – | 0.985 | Water reabsorption fraction. term 0.98, 25 wk 0.833. |
+| `reabsorption_fractions` | {solute: fraction} | `{}` | Per-solute fractions; absent = the water fraction (iso-osmotic). term Na 0.99, 25 wk 0.90. |
+| `filterable_solutes` | list | `na, k, ca, cl, lact, mg, phosphates, uma` | Solutes that pass the glomerulus. Everything else stays in the blood. |
+| `kf_factor`, `kf_factor_ps`, `kf_factor_scaling_ps` | – | 1.0 | Additive layers on `kf` (the first reset each step). |
+| `reabs_factor`, `reabs_factor_ps`, `reabs_factor_scaling_ps` | – | 1.0 | Multiplicative layers on the water fraction (the first reset each step). |
+| `reabs_factor_adh` | – | 1.0 | ADH water channel (written by Hormones). |
+| `reabsorption_factors` | {solute: factor} | `{}` | Aldosterone / drug channel on the per-solute fractions (written by Hormones: Na > 1, K < 1). |
 
-FENa is now **distinct** between scenarios (neonate ~1%, adult ~0.7%) — neonatal Na handling is
-immature, so its FENa is correctly higher. Each Na/Cl fraction stays above its scenario's water
-fraction (net-reabsorbed → dilute in urine); K/Mg/Ca/phosphate/urate fall below it (net-excreted →
-concentrated in urine).
+### Config: autoregulation
 
-The `URINE` compartment is a `BloodCapacitance` declared in the Kidneys
-`components` block (auto-instantiated by the base `init_model`), a pure sink with
-no resistor connections (it never feeds back into the circulation). `init_model` sets its
-`blood_pool = false`, so the blood-pool loops (Blood seeding and warming, Lactate clearance,
-Glucose and Drugs seeding) leave it alone.
-
-> **Wiring note.** `KID_CAP` is a component of the `Circulation` model and may be
-> instantiated *after* `Kidneys` in build order, so `_kid_cap` is resolved **lazily**
-> on the first `calc_model` step (the `URINE` own-component is resolved in `init_model`).
-
-## Calibration
-`kf` differs ~6× between scenarios because baseline `KID_CAP.pres` differs
-(neonate ≈ 37, adult ≈ 79 mmHg). Back-solve `kf ≈ target_GFR(L/s) / NFP_baseline`.
-Targets: neonate GFR ~2–4 mL/min & urine ~1–3 mL/kg/hr; adult GFR ~90–110 mL/min
-& urine ~0.5–1.5 mL/kg/hr. Keep `p_bowman + oncotic_base` well below `KID_CAP.pres`
-(the neonate NFP margin is thin, ~11 mmHg) or filtration stops.
-
-**Headless calibration.** Reproduce/re-tune with the in-repo runner
-`node scripts/headless.mjs <term_neonate|adult_female>` (builds the scenario, freezes `Ans`,
-steps to steady state, cycle-averages the renal panel: GFR, urine mL/kg/hr, NFP, the full FE
-panel, urine concentrations, and `afferent_factor`). Override knobs without editing the scenario
-JSON via `--kf`, `--water`, `--frac na=…,k=…`; add `--no-autoreg` to isolate raw filtration. The
-shipped values were calibrated this way (autoregulation enabled, `Ans` disabled):
-
-| measured (cycle-avg, steady state) | neonate | adult |
-|---|---|---|
-| GFR | 3.9 mL/min | 100 mL/min |
-| urine output | 1.3 mL/kg/hr | 1.0 mL/kg/hr |
-| FENa | 1.0% | 0.7% |
-| NFP / `KID_CAP.pres` | 10.9 / 37.0 mmHg | 44.0 / 79.0 mmHg |
-| `afferent_factor` (autoreg neutrality) | 1.02 | 0.88 |
-
-Stable across 60–150 s warm-ups (no drift/oscillation); `afferent_factor` ≈ 1 confirms
-autoregulation sits near-neutral at baseline (no railing).
-
-### Preterm kidney: the healthy renal reference by gestation
-
-Until 2026-10-15 every preterm and Bischoff scenario kept the term kidney. Bowman 8 + oncotic 18 =
-26 mmHg stood against a glomerular pressure of 18–25 mmHg, so GFR was 0 at ≤ 30 wk. The term
-myogenic set-point (40 mmHg) held the afferent at its 0.50 dilation floor, renal blood flow per kg
-was higher than term's, and `kf` was the term value at every size.
-
-`scripts/_renal_reference.mjs` gives a postnatal patient below 34 wk the kidney of its own
-gestation and size. The rules were chosen with the model's author, one at a time:
-
-| quantity | rule | basis |
-|---|---|---|
-| GFR target | Vieux 2010 day-7 medians, 7.9 (27 wk) → 30.3 (31 wk) mL/min per 1.73 m², exponential (×1.4/wk), extrapolated to 24 wk; plateau from 31 wk | Vieux, *Pediatrics* 2010 (doi 10.1542/peds.2009-1426); Gordjani 1988 |
-| `oncotic_base` | 15 mmHg at ≤ 28 wk, linear to 18 at 40 wk (kidney only; blood albumin also feeds the acid–base term) | preterm plasma COP ~15 vs term ~17–19 (*Crit Care Med* 1981) |
-| `p_bowman` | 8 × BR_MAP set-point / 50 | immature transglomerular gradient only modestly lower (Ichikawa 1979) |
-| `kf` | term `kf` × body surface / term body surface (Mosteller) | the filtration surface grows with the body |
-| renal blood flow | follows the GFR target at term's filtration fraction (RBF/GFR 21.0) | inulin and PAH clearance rise in parallel 28 → 35 wk (Fawer 1979) |
-| glomerular pressure | `p_bowman` + oncotic + GFR target / `kf` | what that `kf` needs to filter the target |
-
-`scripts/_renal_bed.mjs` (`solveRenalBed`) then sets the renal bed to these targets. With
-autoregulation off and Hormones released, it iterates the base `r_for` of `KID_ART` (afferent) and
-`KID_VEN` (efferent; a vessel pushes its resistance onto its input resistor `KID_CAP_KID_VEN`) until
-renal blood flow and `KID_CAP.pres` meet their targets. Base `r_for` is the only layer nobody else
-owns: autoregulation writes `KID_ART.r_factor_ps`, Hormones the efferent resistor's `r_factor_ps`,
-and the builder's `eng.scale(...)` groups can overwrite the vessels' `r_factor_scaling_ps`. The
-efferent resistor's own layers return to 1, so the old RAAS excess folds into the base. Last, it
-seeds the controllers at that resting state: myogenic set-point = `KID_ART.pres` (the term window
-width, scaled by the gestation's MAP), TGF set-point = GFR × Na, and Hormones'
-`perfusion_setpoint` = `KID_ART.pres`. The PR #61 rule (40 × BR_MAP/50) cannot hold here: at
-24 wk it gives 19.2 mmHg, below the glomerular pressure the kidney needs (19.7).
-
-The repaired scenarios (`scripts/_fix_renal_bed.mjs`; the same solve runs in `reseed_preterm.mjs`
-and in `build_patient.mjs` before calibration), at rest:
-
-| scenario | GFR mL/min/kg (target) | renal blood flow mL/min/kg (target) | MAP before → after |
+| Property | Unit | Default | Description |
 |---|---|---|---|
-| preterm_24wk | 0.22 (0.19) | 4.0 (4.1) | 24.5 → 27.4 |
-| bischoff_cohort (25 wk) | 0.25 (0.26) | 5.2 (5.4) | 29.5 → 30.3 |
-| p1_pda_none (25 wk) | 0.22 (0.26) | 5.5 (5.4) | 33.7 → 34.8 |
-| preterm_26wk | 0.32 (0.34) | 7.0 (7.1) | 28.8 → 30.0 |
-| preterm_28wk | 0.62 (0.63) | 13.3 (13.3) | 28.3 → 29.5 |
-| preterm_30wk | 1.12 (1.11) | 22.9 (23.4) | 33.4 → 33.5 |
-| preterm_32wk | 1.35 (1.45) | 30.0 (30.5) | 37.8 → 37.6 |
+| `autoregulation_enabled` | boolean | `false` | On in every scenario. |
+| `aff_resistor_name` | – | `"AD_KID_ART"` | The afferent's inflow resistor (the effector). |
+| `myogenic_input_model`, `myogenic_input_prop` | – | `"KID_ART"`, `"pres"` | Pressure the myogenic limb senses. |
+| `myogenic_p_set` | mmHg | 35 | Set-point: each scenario's resting `KID_ART.pres` (term 40.9, 25 wk 22.6). |
+| `myogenic_p_min`, `myogenic_p_max` | mmHg | 25, 55 | Autoregulatory window (term 25–65). |
+| `myogenic_gain_up`, `myogenic_gain_down` | 1/mmHg | 0.06 | Resistance gain above and below the set-point (scenarios 0.18). |
+| `myogenic_tc` | s | 4 | Myogenic time constant. |
+| `tgf_use_nacl` | boolean | `true` | TGF senses GFR × Na (else GFR alone). |
+| `tgf_setpoint` | – | 0 | TGF set-point; ≤ 0 = captured after `tgf_seed_delay`. Stored in every scenario. |
+| `tgf_seed_delay` | s | 30 | Warm-up before the capture. |
+| `tgf_gain`, `tgf_tc` | –, s | 0.8, 30 | TGF gain per fractional error (scenarios 2.0) and time constant. |
+| `afferent_apply_tc` | s | 6 | Lag on the applied factor. |
+| `afferent_factor_min`, `afferent_factor_max` | – | 0.5, 4 | Clamp on the applied factor (scenarios 0.5–10). |
 
-Autoregulation and angiotensin sit at ≈ 1 at rest, and blood gases are unchanged. The lower
-renal blood flow sends more blood to the rest of the body: MAP rises by 1–3 mmHg and the
-baroreflex lowers HR by 6–10 bpm at 25–28 wk. The model's author chose to keep that shift. Not
-changed: 34 wk and up (GFR already on the plateau), `fetus_30wk` (it already filters, and the
-reference values are postnatal), and the term and congenital scenarios.
+### Outputs
 
-`bischoff_cohort` and `p1_pda_none` also feed the P1 experiments, which were computed with the term
-kidney (and, in `p1_pda_none`, the term Hormones references: it got the Hormones repair of
-`scripts/_fix_hormone_references.mjs` first). Repairing them moves P1's ductal experiments (e.g. `pda_ltr` LVO/RVO 1.68 → 1.80, ductal flow
-+3 to +11 mL/kg/min); the model's author chose the correct kidney over P1's frozen numbers.
-
-## GFR autoregulation (myogenic + TGF)
-
-Optional closed-loop autoregulation (`autoregulation_enabled`, **default `false`** → the
-model is byte-identical to the no-autoregulation behaviour until toggled on). When enabled, a
-controller adjusts the **afferent arteriole** — the `KID_ART` `BloodVessel` (`aff_vessel_name`)
-— by writing its `r_factor_ps`. A `BloodVessel` owns its input resistor and pushes its computed
-resistance into it every step, so this modulates the renal supply resistor `AD_KID_ART`.
-Constricting it (`r_factor_ps > 1`) cuts renal inflow → lowers `KID_CAP.pres` → NFP → GFR (and
-α-couples a small elastance stiffening); dilating (`< 1`) raises them. Renal blood flow
-autoregulates alongside GFR. The controller runs on a 15 ms tick (`u`); each limb and the
-applied factor are first-order lagged (`x += u·(1/tc)·(−x + target)`).
-
-> **Why control the afferent vessel (upstream of the sensor), not the glomerular inflow.** The
-> myogenic limb senses `KID_ART.pres`, which sits *downstream* of `AD_KID_ART`. Constricting
-> `AD_KID_ART` lowers `KID_ART.pres` (more drop upstream), so the loop is **negative feedback**
-> (sense high → constrict → pressure falls → self-correcting). Controlling the downstream
-> `KID_ART_KID_CAP` resistor instead would *raise* the sensed pressure when it constricts —
-> positive feedback that rails the operating point. `AD_KID_ART` is also the dominant series
-> resistance, so a firm plateau needs only modest gain.
-
-**Myogenic limb (fast, `myogenic_tc ≈ 4 s`)** — senses the pressure the afferent feels
-(`myogenic_input_model.myogenic_input_prop`, default `KID_ART.pres`). Piecewise-linear,
-saturating outside the autoregulatory window `[p_min, p_max]`:
-
-```
-act = clamp(p_in, p_min, p_max) − p_set                 # deviation, saturated at the shoulders
-gain = (p_in >= p_set) ? gain_up : gain_down
-myo_target = 1 + gain·act                               # at setpoint → 1.0; rise → constrict
-```
-
-**TGF limb (slow, `tgf_tc ≈ 30 s`)** — senses distal NaCl delivery
-`tgf_signal = GFR × KID_CAP.solutes.na` (`tgf_use_nacl`; falls back to `GFR` alone). When
-`tgf_setpoint ≤ 0` it **auto-seeds**: the signal is smoothed by an EMA and the setpoint is
-captured only after a `tgf_seed_delay` (default 30 s) warm-up, so it reflects the steady
-state rather than the startup transient (seeding too early biases it low → standing
-constriction at rest). The TGF limb stays neutral (`tgf_factor = 1`) until seeded.
-
-```
-err = (tgf_signal − tgf_setpoint) / tgf_setpoint
-tgf_target = 1 + tgf_gain·err                           # high delivery → constrict
-```
-
-**Combine → clamp → lag → write** (`afferent_apply_tc ≈ 6 s`):
-
-Each limb target is floored at a small positive (`_limb_factor_floor`) so a large downward
-deviation × high gain can't drive a factor negative. Then:
-
-```
-combined = myogenic_factor · tgf_factor                 # multiplicative
-combined = clamp(combined, afferent_factor_min, afferent_factor_max)
-afferent_factor ← lag(afferent_factor → combined)       # then re-clamp
-KID_ART.r_factor_ps = afferent_factor                   # vessel propagates to AD_KID_ART
-```
-
-As perfusion pressure (`AD.pres`) rises, the afferent constricts and holds GFR / renal blood
-flow ~flat; beyond the window the factor saturates and GFR follows pressure again (the classic
-shoulders). The three lags + hard clamp keep the loop well-damped and `r_for_eff > 0`.
-
-| Read-out | Meaning |
-|---|---|
-| `myogenic_factor` / `tgf_factor` | per-limb afferent multipliers |
-| `afferent_factor` | applied (lagged, clamped) `r_factor_ps` on the afferent |
-| `sensed_pressure` | pressure driving the myogenic limb (mmHg) |
-| `tgf_signal` | current TGF signal (`GFR×Na` or `GFR`) |
-
-> **Ordering / one-step sensor delay.** `Kidneys` is a top-level model, so it steps before the
-> `Circulation` sub-compartments (`KID_ART`, `AD_KID_ART`, …) that are created during the build's
-> init pass. It therefore writes `KID_ART.r_factor_ps` **before** `KID_ART` steps and composes it
-> into the resistance it pushes to `AD_KID_ART` — same step, no effector lag (and `r_factor_ps`
-> persists, so ordering is non-fatal regardless). `Kidneys` reads `KID_ART.pres` from the previous
-> step's pass — a deliberate one-step sensor delay the lags absorb. Disabling mid-run writes
-> `KID_ART.r_factor_ps` back to `1.0` once, restoring linear behaviour.
-
-**Calibration.** Set `myogenic_p_set` to each scenario's baseline `KID_ART.pres` so the
-controller is near-neutral at steady state (the negative feedback makes this a fine-centering,
-not a stability requirement). Both scenarios ship **enabled**:
-
-| param | neonate | adult |
+| Property | Unit | Description |
 |---|---|---|
-| `autoregulation_enabled` | **true** | **true** |
-| `myogenic_p_set` / `_p_min` / `_p_max` | 40 / 25 / 65 | 83 / 55 / 140 |
-| `myogenic_gain_up` / `_down` | 0.18 | 0.25 |
-| `myogenic_tc` | 4 s | 4 s |
-| `tgf_gain` / `tgf_tc` | 2.0 / 30 s | 3.0 / 30 s |
-| `afferent_apply_tc` | 6 s | 6 s |
-| `afferent_factor_min` / `max` | 0.5 / 10.0 | 0.5 / 20.0 |
-| `tgf_setpoint` | 0 (auto-seed) | 0 (auto-seed) |
+| `nfp` | mmHg | Net filtration pressure. |
+| `gfr` | mL/min | Glomerular filtration rate. |
+| `urine_flow` | mL/min | Urine output. |
+| `urine_volume` | mL | Cumulative urine (`URINE.vol`). |
+| `fe_na` | % | Fractional excretion of sodium. |
+| `myogenic_factor`, `tgf_factor`, `afferent_factor` | – | Limb factors and the applied afferent factor. |
+| `sensed_pressure`, `tgf_signal` | mmHg, – | Inputs of the two limbs. |
 
-Validated headless (build the scenario, disable `Ans`, cycle-average, sweep preload to vary the
-upstream perfusion pressure `AD.pres`). Measured against `AD.pres` (the controller regulates
-`KID_ART.pres`, so it cannot be the x-axis): autoregulation cuts GFR variation **~77%** (neonate)
-and **~79%** (adult) vs off, stable, with ANS-on baseline `afferent_factor` ≈ 1.0 (neonate 1.02,
-adult 0.88) — no railing.
+## Calculation
 
-## Simplifications (current scope)
-- Autoregulation is **opt-in**; with it off, GFR rides directly on `KID_CAP.pres` (linear in
-  perfusion pressure).
-- Oncotic pressure is linear in albumin (not Landis-Pappenheimer).
-- Reabsorption is per-solute (each solute its own fraction), but **static** — no tubular load /
-  transport-maximum / secretion kinetics, and not yet hormonally driven (RAAS/ADH is the next phase).
-- `URINE` never empties on its own (a future `void_bladder()` function can reset it).
+Each step (nothing while off; skipped if `KID_CAP` or `URINE` is missing):
+
+1. **Effective values:** `kf_eff` (additive layers); `reabs_eff` = fraction × its layers × `reabs_factor_adh`, clamped to 0–0.9999.
+2. **Starling:**
+   ```
+   oncotic = oncotic_base · albumin / albumin_ref
+   nfp     = max(0, KID_CAP.pres − p_bowman − oncotic)
+   GFR     = kf_eff · nfp,      urine = GFR · (1 − reabs_eff)
+   ```
+3. **Transfer** of one step's filtrate `Vf`:
+   - urine water `Vf·(1 − reabs_eff)` leaves `KID_CAP` for `URINE`;
+   - each filterable solute leaves with `Vf · c · (1 − its fraction)`, its fraction modulated by `reabsorption_factors`;
+   - **everything not filtered keeps its mass**, so its concentration rises by `V_before / V_after`. That covers albumin and Hb (haemoconcentration), glucose (no glucosuria), the drugs, and the blood's O2 and CO2.
+4. **Autoregulation**, every 15 ms:
+   ```
+   myogenic → 1 + gain · (clamp(KID_ART.pres, p_min, p_max) − p_set)       (tc myogenic_tc)
+   tgf      → 1 + tgf_gain · (GFR·Na − tgf_setpoint) / tgf_setpoint          (tc tgf_tc)
+   afferent_factor → clamp(myogenic · tgf, min, max)                          (tc afferent_apply_tc)
+   AD_KID_ART.r_factor_ps = afferent_factor
+   ```
+   It acts on the afferent's inflow resistor, upstream of the sensed `KID_ART.pres`, so the loop is negative feedback. The `KID_ART` vessel keeps the systemic channels Circulation adds (SVR, Hormones, Drugs). Switching autoregulation off releases the factor to 1 once.
+
+## Factor system
+
+- `kf` takes additive layers (as Capacitance).
+- The reabsorption fraction takes multiplicative layers (it is a fraction).
+- ADH and aldosterone have their own channels: `reabs_factor_adh` and `reabsorption_factors`.
+- It owns `AD_KID_ART.r_factor_ps`.
+
+## Inputs and outputs
+
+- **Reads:** `KID_CAP` (`pres`, `vol`, `solutes`), `KID_ART.pres`.
+- **Writes:** `KID_CAP` (`vol`, `solutes`, `drugs`, `to2`, `tco2`), `URINE` (`vol`, `solutes`), `AD_KID_ART.r_factor_ps`.
+- **Written by:** Hormones (`reabs_factor_adh`, `reabsorption_factors`); the user and scenario scripts (calibration, see below).
+- **Read by:** `DataCollector` watchers, the Monitor (urine output).
+
+## Assumptions and limitations
+
+- **Oncotic pressure is linear in albumin.**
+- **Reabsorption fractions are static per solute:** no transport maxima, no secretion, no acid–base handling (bicarbonate, ammonium), no concentrating mechanism.
+- **The bladder never empties** (`URINE` accumulates).
+- **Urine water comes from `KID_CAP` only;** the rest of the body equilibrates through the circulation (no interstitial compartment).
+
+### Calibration
+
+- **Term:** `kf` was back-solved for a GFR of ~4 mL/min at a net filtration pressure of ~11 mmHg (a thin margin, so `p_bowman + oncotic` must stay well below `KID_CAP.pres`).
+- **Preterm (below 34 weeks) — the kidney of its own gestation and size:** `scripts/_renal_reference.mjs` with `scripts/_renal_bed.mjs`, applied by `reseed_preterm.mjs`, `build_patient.mjs` and `_fix_renal_bed.mjs`. The rules were chosen with the model's author:
+
+  | Quantity | Rule | Basis |
+  |---|---|---|
+  | GFR target | Vieux 2010 day-7 medians, 7.9 (27 wk) → 30.3 (31 wk) mL/min/1.73 m², exponential, extrapolated to 24 wk; plateau from 31 wk | Vieux R, et al. *Pediatrics* 2010. doi:10.1542/peds.2009-1426 |
+  | `oncotic_base` | 15 mmHg ≤ 28 wk, linear to 18 at 40 wk | preterm plasma colloid osmotic pressure ~15 vs term ~17–19 |
+  | `p_bowman` | 8 × BR_MAP set-point / 50 | immature transglomerular gradient only modestly lower |
+  | `kf` | term `kf` × body surface / term body surface (Mosteller) | the filtration surface grows with the body |
+  | Renal blood flow | follows the GFR target at term's filtration fraction | inulin and PAH clearance rise in parallel |
+  | Glomerular pressure | `p_bowman` + oncotic + GFR target / `kf` | what that `kf` needs to filter the target |
+
+  `solveRenalBed` then iterates the base resistances of `KID_ART` and `KID_VEN` until renal blood flow and `KID_CAP.pres` meet the targets. It seeds the myogenic set-point, the TGF set-point and Hormones' `perfusion_setpoint` at that rest. The resulting GFR and urine values are in the scenario tables below.
+
+- **Tooling:** `node scripts/headless.mjs <scenario>` reproduces and re-tunes the renal panel (GFR, urine, FE, afferent factor) with overrides such as `--kf` and `--water`.
+
+## Example definition (JSON)
+
+From `term_neonate.json`, `models.Kidneys` (trimmed to the main config; `components` holds `URINE`):
+
+```json
+{
+  "name": "Kidneys",
+  "model_type": "Kidneys",
+  "is_enabled": true,
+  "kidneys_running": true,
+  "kf": 6e-6,
+  "p_bowman": 8,
+  "oncotic_base": 18,
+  "reabsorption_fraction": 0.98,
+  "reabsorption_fractions": { "na": 0.99, "cl": 0.988, "lact": 0.99, "ca": 0.975, "mg": 0.95, "k": 0.88, "uma": 0.7, "phosphates": 0.82 },
+  "autoregulation_enabled": true,
+  "aff_resistor_name": "AD_KID_ART",
+  "myogenic_p_set": 40.877,
+  "myogenic_p_min": 25,
+  "myogenic_p_max": 65,
+  "myogenic_gain_up": 0.18,
+  "myogenic_gain_down": 0.18,
+  "tgf_gain": 2,
+  "tgf_setpoint": 554.96,
+  "afferent_factor_max": 10
+}
+```
+
+## Usage in the scenarios
+
+One instance in every scenario, with autoregulation on. Stored values at rest:
+
+| Scenario | `kf` (×1e-6) | Water reabs. | GFR (mL/min) | Urine (mL/kg/h) |
+|---|---|---|---|---|
+| term_neonate | 6.0 | 0.98 | 4.75 | 1.6 |
+| fetus_term | 6.0 | 0.98 | 3.4 | 1.2 |
+| preterm_30wk / fetus_30wk | 3.4 | 0.9375 | 0.97 / 1.35 | 2.4 / 3.4 |
+| preterm_28wk | 2.6 | 0.9175 | 0.67 | 3.3 |
+| preterm_25wk, fetus_25wk, Bischoff ×3 | 2.1–2.2 | 0.833 | 0.09–0.24 | 1.3–3.2 |
+
+## References
+
+- Vieux R, Hascoet JM, Merdariu D, Fresson J, Guillemin F. Glomerular filtration rate reference values in very preterm infants. *Pediatrics* 2010;125(5):e1186–92. doi:10.1542/peds.2009-1426.
