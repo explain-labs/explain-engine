@@ -7,6 +7,14 @@ oxygenator, outflow tubing, return cannula, plus a sweep-gas side) and, each upd
 resistances, enabled/clamped states, pump pressure and gas-exchange constants, then reads back
 smoothed pressures, flow and blood gases.
 
+## Physiology
+
+Extracorporeal life support (ECLS, ECMO) takes over gas exchange, and in the veno-arterial form also the circulation, while the lungs or heart recover. Neonatal indications include severe persistent pulmonary hypertension, meconium aspiration, congenital diaphragmatic hernia and cardiac failure.
+- **Veno-arterial (VA):** blood is drained from the right atrium or a large vein, pumped through a membrane oxygenator and returned to the aorta (the carotid in neonates). It supports heart and lungs.
+- **Veno-venous (VV):** blood is drained and returned to the right atrium, typically through one double-lumen cannula. It supports only the lungs; recirculation of returned blood into the drainage limb limits its efficiency.
+
+Circuit flow is limited by venous drainage (cannula size, the patient's volume) as much as by the pump. Oxygenation depends on blood flow; CO2 removal depends on the sweep-gas flow.
+
 ## Inheritance
 
 ```
@@ -107,10 +115,12 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 | `oxy_o2_cap` / `oxy_co2_cap` | mmol/s | Active O₂/CO₂ membrane transfer ceilings, pushed onto `ECLS_GASEX` |
 | `oxy_surface_area` / `oxy_rated_flow` | m², L/min | Selected oxygenator's surface area / rated blood flow (informational) |
 | `oxygenators` | dict | Oxygenator device library (surface area, rated flow, `o2_cap`/`co2_cap`, prime and blood-side pressure drop `dp_a` per device) |
-| `drainage_cannula_diameter` / `_length` | m | Drainage cannula geometry (copied from the selected library entry) |
-| `return_cannula_diameter` / `_length` | m | Return cannula geometry (copied from the selected library entry) |
-| `tubing_in_diameter`/`_length`, `tubing_out_diameter`/`_length` | m | Tubing geometry; sets the tubing resistances (Poiseuille, blood) |
-| `cannula_sizes_single`, `cannula_size_double` | Fr | Legacy size lists, not used by the engine |
+| `drainage_cannula_diameter`, `drainage_cannula_length` | m | Drainage cannula geometry (copied from the selected library entry) |
+| `return_cannula_diameter`, `return_cannula_length` | m | Return cannula geometry (copied from the selected library entry) |
+| `tubing_in_diameter`, `tubing_in_length`, `tubing_out_diameter`, `tubing_out_length` | m | Tubing geometry; sets the tubing resistances (Poiseuille, blood) and volumes |
+| `pump_max_rpm` | rpm | Maximum speed of the selected pump (informational, from the pump library) |
+| `pressure_avg_window`, `flow_avg_window` | samples | Window of the pressure and flow moving averages (default 400, ≈6 s at the 0.015 s update) |
+| `prev_fio2`, `prev_fico2` | – | Last applied sweep-gas FiO2 / FiCO2; a change rebuilds the gas-source composition |
 | `return_cannulas`, `drainage_cannulas` | dict | VA cannula libraries (inner diameter, length, water-chart fit `dp_a`/`dp_b` per device) |
 | `dl_cannulas` | dict | Double-lumen (VV) cannula library: per device a `drainage` and a `return` lumen fit (`dp_a`/`dp_b`) |
 
@@ -135,8 +145,8 @@ Sub-model references (`_ecls_drainage`, `_ecls_pump`, …, `_ecls_gasex`) are re
 
 ### Internal (`_`-prefixed) and moving averages
 
-`prev_fio2` / `prev_fico2` / `_prev_gas_temp` / `_prev_gas_humidity` detect sweep-gas changes so the
-gas-source composition is only rebuilt when one of them changes. `_stopped` makes the stop work
+`prev_fio2` / `prev_fico2` (above) with `_prev_gas_temp` / `_prev_gas_humidity` detect sweep-gas
+changes, so the gas-source composition is only rebuilt when one of them changes. `_stopped` makes the stop work
 edge-triggered (see below). `_update_interval` (0.015 s) and `_update_counter` gate the main
 control block; `_blood_comp_interval` (1.0 s) and `_blood_comp_counter` gate the blood-gas read-outs.
 `pressure_avg_window` / `flow_avg_window` (default 400 samples, ≈6 s at the 0.015 s update rate)
@@ -461,6 +471,13 @@ Device-level fields from `term_neonate.json` (the full block nests eleven `ECLS_
 model's `is_enabled`: with `is_enabled: false`, `calc_model` never runs, so nothing manages the
 sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
 
+## Inputs and outputs
+
+- **Reads:** its circuit compartments (pressures, flows, compositions via [`calc_blood_composition`](./BloodComposition.md)); the drainage and return site compartments.
+- **Writes:** its circuit components: cannula and tubing resistances, the pump's `p1_ext`/`p2_ext`, enabled and clamp states, the oxygenator exchanger (`dif_o2`, `dif_co2`, `o2_cap`, `co2_cap`), the sweep-gas source composition and valves; `ECLS_OXY` temperature control (heater-cooler).
+- **Written by:** the user and bot (cannulation, pump, sweep gas, heater-cooler); the app's ECLS panel.
+- **Read by:** the app's ECLS panel and diagram, `DataCollector` watchers.
+
 ## Usage in the model
 
 - Used to model VA/VV ECMO support of a patient. For VA, set `drainage_site`/`return_site` to the
@@ -474,7 +491,10 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   compartments, so circuit O₂/CO₂ propagate back into the patient via the standard
   [BloodCapacitance](./BloodCapacitance.md) mixing.
 
-## Notes & caveats
+## Assumptions and limitations
+
+- **No recirculation model beyond the anatomy:** in VV the returned blood re-enters the drainage only as far as the mixing in the right atrium carries it; there is no separate recirculation fraction.
+- **No circuit thrombosis, haemolysis, air or heparin effects.**
 
 - **Stopping the circuit disables it.** The off-branch sets `is_enabled = false` on all sub-models
   (both sweep-gas valves included), so a stopped ECLS no longer conducts passive flow, and releases the
@@ -493,7 +513,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   even at high rpm (correct); increasing `pump_rpm` past the preload limit just raises head, not flow.
 - **`flow` and `flow_avg` are in L/min** (`ECLS_RETURN.flow × 60`).
 
-## Changelog
+## History
 
 ### Crescent RA double-lumen cannulas (2026-10-12)
 
@@ -653,3 +673,7 @@ day (commits span 21:00–23:29), so this one date covers every change below. Co
 - **Centralized** the catalogue in the constructor and removed the per-scenario embedded copies, so
   every scenario sees the full catalogue and any cannula can be selected in any scenario
   (behaviour-neutral: all scenarios resolve to their shipped resistances).
+
+## References
+
+The cannula, pump and oxygenator libraries are calibrated to the manufacturers' pressure-drop, head–flow and transfer charts (Bio-Medicus, Avalon Elite, Crescent, CentriMag, PediMag, Quadrox-i, Nautilus); see [Circuit calibration](#circuit-calibration).
