@@ -12,7 +12,7 @@ export class HeartChamber extends TimeVaryingElastance {
 
     // initialize independent properties unique to a HeartChamber
     this.temp = 37.0; // blood temperature (dgs C)
-    this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
+    this.viscosity = 6.0; // blood viscosity (centipoise, cP = mPa·s)
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
     this.ans_sens = 1.0; // sensitivity of this blood time varying elastance for autonomic control. 0.0 is no effect, 1.0 is full effect

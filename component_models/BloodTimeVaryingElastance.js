@@ -12,7 +12,7 @@ export class BloodTimeVaryingElastance extends TimeVaryingElastance {
 
     // initialize independent properties unique to a BloodTimeVaryingElastance
     this.temp = 37.0; // blood temperature (dgs C)
-    this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
+    this.viscosity = 6.0; // blood viscosity (centipoise, cP = mPa·s)
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
 

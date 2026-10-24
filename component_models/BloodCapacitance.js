@@ -13,7 +13,7 @@ export class BloodCapacitance extends Capacitance {
 
     // initialize independent properties unique to a BloodCapacitance
     this.temp = 37.0; // blood temperature (dgs C)
-    this.viscosity = 6.0; // blood viscosity (centiPoise = Pa * s)
+    this.viscosity = 6.0; // blood viscosity (centipoise, cP = mPa·s)
     this.solutes = {}; // dictionary holding all solutes
     this.drugs = {}; // dictionary holding all drug concentrations
     this.blood_pool = true; // false for a non-circulating sink (e.g. URINE): skipped by Blood, Lactate, Glucose and Drugs
