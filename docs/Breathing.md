@@ -34,6 +34,13 @@ BaseModelClass
 | `mv_ans_factor` | – | 1.0 | Chemoreflex modulation of minute volume; written by the `EF_MV` efferent. |
 | `ans_activity_factor` | – | 1.0 | Global multiplier on minute volume; no model writes it (a manual lever). |
 | `thorax` | list | `["THORAX"]` | The container the muscle pressure acts on. |
+| `hvd_enabled` | boolean | `true` | Hypoxic ventilatory depression (below). |
+| `hvd_model` | – | `"AA"` | Arterial compartment whose pO2 is sensed. |
+| `hvd_po2_threshold` | mmHg | 70 | The depression grows as pO2 falls below this (term rests at ~75). |
+| `hvd_gain` | – | 2.0 | Drive reduction per fractional pO2 deficit below the threshold. |
+| `hvd_max` | – | 0.8 | Largest fractional reduction of the drive. |
+| `hvd_tc` | s | 120 | Time constant of the depression (onset and offset). |
+| `hvd_factor` | – | 1.0 | Applied factor on the drive (state, saved; 1 = none). |
 
 ### Outputs
 
@@ -57,12 +64,22 @@ BaseModelClass
 
 ```
 MV_ref               = minute_volume_ref · minute_volume_ref_factor · minute_volume_ref_scaling_factor · weight
-target_minute_volume = (MV_ref + (mv_ans_factor − 1) · MV_ref) · ans_activity_factor
+target_minute_volume = (MV_ref + (mv_ans_factor − 1) · MV_ref) · ans_activity_factor · hvd_factor
 resp_rate            = √( target_minute_volume / (vt_rr_ratio' · weight) )        Mecklenburgh: MV = ratio · RR²
 target_tidal_volume  = target_minute_volume / resp_rate
 ```
 
 `vt_rr_ratio'` includes its two factors. The inversion is guarded against a non-positive denominator or target.
+
+### Hypoxic ventilatory depression
+
+Under sustained hypoxaemia the newborn's ventilation rises within a minute (the peripheral chemoreflex, `EF_MV`) and then falls back over minutes, a central depression of the drive (De Boeck 1984; Rehan 1996). `hvd_factor` relaxes over `hvd_tc` towards
+
+```
+1 − min(hvd_gain · (hvd_po2_threshold − pO2) / hvd_po2_threshold, hvd_max)     while pO2 < hvd_po2_threshold, else 1
+```
+
+term_neonate (re-validation): FiO₂ 0.15 → ventilation +16 % at 30 s, +18 % at 1 min, back to +4 % by 5 min (12 % below the peak; data ~14–16 %); the chemoreflex re-drives against the depression (factor 0.51 at 5 min), so the net fall is smaller than the factor. FiO₂ 0.07 (`probe_lactate`): pH 7.44 at 1 min (early hyperventilation), then 7.33 at 7 min as the depression lets the lactic acidosis show. Without it, the stronger peripheral chemoreflex of re-validation (l) kept that baby alkalotic (pH 7.41 at 7 min).
 
 **term_neonate calibration (2026-10):** `ie_ratio` 0.40 (Ti 0.65 s of 1.63 s); `vt_rr_ratio` set for RR 40 / Vt 5.3 mL/kg at 213 mL/kg/min; `minute_volume_ref` 0.207, with the chemoreceptor set-points re-anchored so the chemoreflex is neutral at PaCO2 39.7. With the linear muscle ramp, peak flows are 0.70 / 0.66 L/min/kg (reference 0.83 / 0.64). See `scripts/_fix_term_breathing_pattern.mjs` and [TermNeonateReference](./TermNeonateReference.md).
 
@@ -170,3 +187,6 @@ One instance in every scenario.
 ## References
 
 The term breathing pattern (rate, tidal volume, minute ventilation, Ti/Ttot, peak flows) is referenced in [TermNeonateReference](./TermNeonateReference.md) (Schmalisch 2005; Hannover 2018).
+
+- De Boeck C, Van Reempts P, Rigatto H, Chernick V. Naloxone reduces decrease in ventilation induced by hypoxia in newborn infants. *J Appl Physiol* 1984;56:1507–11. doi:10.1152/jappl.1984.56.6.1507 (term newborns on 15 % O2: ventilation ~14 % below its early peak)
+- Rehan V, Haider AZ, Alvaro RE, et al. The biphasic ventilatory response to hypoxia in preterm infants is not due to a decrease in metabolism. *Pediatr Pulmonol* 1996;22:287–94. doi:10.1002/(SICI)1099-0496(199611)22:5<287::AID-PPUL1>3.0.CO;2-I (−16 ± 2 % from the peak at 5 min; likely central)
