@@ -53,13 +53,14 @@ from `term_neonate`. The levers (factors relative to 72 h), in the script's prof
 |---|---|---|
 | Duct | 4.6 mm at the pulmonary end, 5.1 mm at the aortic end | Kang 2016 at 2 h |
 | Pulmonary resistance (and `Shunts.ips_res` alike) | x1.2 | with a 4.6 mm duct the pulmonary pressure follows the aorta, so a small rise gives the bidirectional flow |
-| Systemic resistance | x0.5 | MAP ~48 at an LV output ~300 |
+| Systemic resistance | x0.5, but brain, gut, liver and kidney beds kept at 72 h | the high output runs through the duct, not the organs (Agata 1994; see below) |
 | Heart `el_max` / `heart_rate_ref` | x1.6 / x1.07 | the catecholamine surge: high output |
 | Blood volume / Hct | 80 mL/kg / 55 % | delayed clamping after the first plasma shift |
 | Lactate / unmeasured anions | 2.2 / +2.1 mmol/L | GLOW; BE -5 |
 | Glucose | 3.3 mmol/L (also the Glucose set-point) | GLOW, Hoseth |
 | Minute volume reference | x1.11 | pCO2 ~36 |
 | Lung liquid: alveolar (ALL/ALR) `u_vol` / `el_base` | x0.85 / x1.11 | see below |
+| Brain | settles pressure-passive; `cbf_setpoint` re-anchored last | see below |
 | Environment | 24 °C, 50 % humidity | dressed / skin-to-skin in the room (loss trim re-seeded) |
 
 Then the controllers are re-anchored at rest: the baroreflex activity is folded into the base values
@@ -88,6 +89,36 @@ its targets, and a smaller FRC only shrinks the oxygen store (the model has no V
 interstitial liquid). Side effect: the smaller lung volume makes the pleural pressure more negative and
 CVP falls from 1.8 to 1.4 (still 37 of 39 in range).
 
+**Step 3b, where the high output goes.** Agata 1994 (23 term babies, Doppler flow volume at 1, 4–8, 24
+and 96 h): middle cerebral, coeliac and superior mesenteric flow are significantly lower at 1 and 4–8 h
+than after 24 h, renal flow does not change, LV output is 365 ± 69 at 1 h; the low organ flow comes with
+low diastolic flow that correlates with the ductal diameter (diastolic steal), and LV output correlates
+with the ductal diameter too. With the SVR halved in every bed the model did the opposite: brain held at
+its 72 h set-point by autoregulation (factor 1.73), gut and coeliac +39 %, kidney +65 %. Now the organ
+beds keep their 72 h resistance, the high output runs through the duct (net left-to-right 74 mL/kg/min,
+Drayton 1987 62, 43–82) and the brain settles pressure-passive and takes that flow as its set-point.
+Lowering PVR further (x1.0, x0.85) made the shunt too large (111, 143) and ended the bidirectional flow.
+
+| mL/kg/min | 72 h | 1 h before | 1 h now | Agata, 1 h vs ≥ 24 h |
+|---|---|---|---|---|
+| LV output | 200 | 298 | 306 | ↑ (365 ± 69) |
+| Duct net left-to-right | 0 | 34 | 74 | (Drayton ~62) |
+| Brain | 29.9 | 30.0 (autoreg 1.73) | 24.9 (autoreg 1.00) | ↓ |
+| Gut (SMA) | 27.2 | 37.9 | 23.3 | ↓ |
+| Kidney | 28.2 | 46.4 | 29.6 | unchanged |
+| SVC | 83.7 | 104 | 108 | 99 (day 1) |
+
+The brain set-point (24.9 mL/kg/min, 88 mL/min) is close to the ultrasound values for term babies
+(Kehrer 2003, carotid + vertebral: 69 ± 14 mL/min at 39–40 weeks, 83 ± 16 at 41–42). FO now runs left-to-right (+6), MAP 50.2, PAP 48.3, SpO2 97.5 / 96.8;
+CVP falls to 1.0. Still 37 of 39 in range (CVP, urine); loaded, it holds for 10 min with the brain
+autoregulation at 1.00 and the baroreflex firing at 0.47–0.52.
+
+*Generator fix found on the way:* `Blood.init_model` calibrates the vessel resistances at the viscosity
+of the blood the scenario loads with. The generator raised Hct to 55 % in the live model without moving
+that reference, so it settled and re-anchored at ~21 % higher vascular resistance than the saved
+scenario has on load (MAP 52.0 live vs 50.3 reloaded, brain autoregulation 1.21 and a slow baroreflex
+drift after loading). It now takes the viscosity reference at the new Hb, as a load does.
+
 ## Hemodynamics
 
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
@@ -99,7 +130,7 @@ CVP falls from 1.8 to 1.4 (still 37 of 39 in range).
 | SVC flow (mL/kg/min) | 99 (day 1) | 99 | 99 | 77–83 | B | Lee 2009 |
 | PAP mean (mmHg) | ~45 (ratio ~0.9) | 41 ± 9 | 34 ± 10 | 25 ± 8 | B / A-B | Skinner 1991; Kang 2016 |
 | PAP systolic (mmHg) | ~58 | 52.5 ± 9.1 | 43.8 ± 7.9 | 36 ± 6.5 | B / A-B | Kang 2016 |
-| Cerebral (MCA) flow | lower than after 24 h | – | rises | – | B (direction) | Agata 1994 |
+| Cerebral (MCA) flow | lower than after 24 h (gut too; renal unchanged) | – | rises | – | B (direction) | Agata 1994 |
 
 ## Shunts
 
@@ -151,6 +182,7 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 - Kang C 2016, Medicine 95:e2599 ([doi](https://doi.org/10.1097/MD.0000000000002599)); Lim MK 1992, Arch Dis Child ([doi](https://doi.org/10.1136/adc.67.10_spec_no.1217))
 - Drayton MR 1987, Arch Dis Child 62:1030 ([doi](https://doi.org/10.1136/adc.62.10.1030)); Skinner JR 1991, Arch Dis Child 66:386 ([doi](https://doi.org/10.1136/adc.66.4_spec_no.386))
 - Hiraishi S 1991, Br Heart J 65:41 ([doi](https://doi.org/10.1136/hrt.65.1.41)); Lim 1989, Early Hum Dev (PMID 2691234)
+- Kehrer M 2003, Neuropediatrics 34:281, cerebral blood flow volume in preterm and term neonates (PMID 14681752, [doi](https://doi.org/10.1055/s-2003-44663))
 - Lee A 2009, SVC flow ([doi](https://doi.org/10.1136/adc.2009.176883))
 - Lee S 1999, Pediatr Pulmonol 27:318 (PMID 10344710); Milner AD 1978, Arch Dis Child 53:545 ([doi](https://doi.org/10.1136/adc.53.7.545)); Lødrup Carlsen KC 1993 (PMID 8112445)
 - Nikkola E 2002, Acta Paediatr ([doi](https://doi.org/10.1080/080352502760272605)); O'Brien LM 2000 ([doi](https://doi.org/10.1136/fn.83.1.f35)); Mariani G 2007, J Pediatr 150:418 ([doi](https://doi.org/10.1016/j.jpeds.2006.12.015))

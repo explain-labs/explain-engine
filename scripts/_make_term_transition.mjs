@@ -1,6 +1,7 @@
 // Generate a transitional term neonate (term_neonate_<age>h) from the 72 h term_neonate.
 //
 //   node scripts/_make_term_transition.mjs --age 1 [--seconds 300] [--write]
+//   prototyping: [--set '<json profile overrides>'] [--out <file>] (writes the dry run there)
 //
 // The baby is the same healthy 3.545 kg term neonate after a vaginal birth with delayed cord clamping
 // (~1 min), breathing room air, nursed skin-to-skin / dressed at room temperature. The reference values
@@ -28,6 +29,9 @@ const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? Number(argv[i
 const AGE = opt("--age", NaN);
 const SECONDS = opt("--seconds", 300);
 const WRITE = argv.includes("--write");
+const sopt = (n) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : null; };
+const SET = JSON.parse(sopt("--set") ?? "{}");
+const OUT = sopt("--out");
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 // Lever profiles per postnatal age (h). Factors are relative to the 72 h term_neonate.
@@ -44,6 +48,10 @@ const PROFILES = {
     // high output after birth (catecholamine surge; Agata 1991/1994 LVO 327-365): low SVR, higher
     // contractility and rate
     SVR: 0.5, HEART_EL_MAX: 1.6, HR_REF: 1.07,
+    // ...but the organ beds keep their 72 h resistance: the high output runs through the duct (L->R
+    // ~77, Drayton 1987 62) and its diastolic steal lowers brain and gut flow while renal flow is
+    // unchanged (Agata 1994); the brain settles pressure-passive and takes that flow as its set-point
+    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
     // blood: ~80 mL/kg at Hct 55 % (delayed clamping, after the first plasma shift)
     BLOOD_VOLUME: 80 / 85, HCT: 0.55,
     // gases and metabolites: lactate 2.2 (GLOW), BE ~-5 and pCO2 ~36 (textbook, C), glucose 3.3 (GLOW)
@@ -58,9 +66,13 @@ const PROFILES = {
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
 };
-const P = PROFILES[AGE];
+const P = PROFILES[AGE] && { ...PROFILES[AGE], ...SET };
 if (!P) { out(`usage: _make_term_transition.mjs --age <${Object.keys(PROFILES).join("|")}> [--seconds S] [--write]`); process.exit(1); }
 const NAME = `term_neonate_${AGE}h`;
+const SVR_BED_VESSELS = {
+  brain: ["BR_ART", "BR_CAP", "BR_VEN"], gut: ["INT_ART", "INT_CAP", "INT_VEN"], liver: ["LS_ART", "LS_CAP", "LS_VEN"],
+  kidney: ["KID_ART", "KID_CAP", "KID_VEN"], upper_body: ["RUB", "VUB"], lower_body: ["RLB", "VLB"],
+};
 
 const eng = await createEngine();
 const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
@@ -79,9 +91,12 @@ log.push(`duct ${(P.PDA_REL * P.PDA_PA_MAX).toFixed(2)} mm (PA end) / ${(P.PDA_R
 
 // 2. output: systemic resistance, contractility, rate
 eng.scale("systemic_resistances", P.SVR);
+// per-bed overrides of the systemic factor (absolute, like the scaler layer): the beds keep or raise
+// their 72 h resistance while the rest of the circulation dilates
+for (const [bed, f] of Object.entries(P.SVR_BEDS ?? {})) for (const n of SVR_BED_VESSELS[bed]) M[n].r_factor_scaling_ps = f;
 eng.scale("heart_el_max", P.HEART_EL_MAX);
 M.Heart.heart_rate_ref *= P.HR_REF;
-log.push(`SVR x${P.SVR}, heart el_max x${P.HEART_EL_MAX}, heart_rate_ref x${P.HR_REF} (${M.Heart.heart_rate_ref.toFixed(1)})`);
+log.push(`SVR x${P.SVR}${P.SVR_BEDS ? ` (beds ${JSON.stringify(P.SVR_BEDS)})` : ""}, heart el_max x${P.HEART_EL_MAX}, heart_rate_ref x${P.HR_REF} (${M.Heart.heart_rate_ref.toFixed(1)})`);
 
 // 3. blood volume and haematocrit (Hb with each compartment's O2 content, same saturation)
 eng.scale("blood_volume", P.BLOOD_VOLUME);
@@ -90,6 +105,12 @@ const hbNew = P.HCT * 33.0 * 0.6206; // Blood: hct = Hb / 0.6206 / 33
 const hbOld = M.Blood.solutes.hemoglobin;
 M.Blood.set_solute("hemoglobin", hbNew);
 for (const m of patientBlood) if (typeof m.to2 === "number") m.to2 *= hbNew / hbOld;
+// the resistances are calibrated at the loaded blood (Blood.init_model takes viscosity_ref from the Hb
+// on load), so take the reference at the new Hb now: otherwise the levers settle and the controllers
+// re-anchor at ~21 % higher resistance than the saved scenario has when it is loaded
+const viscRef = M.Blood.calc_viscosity(hbNew);
+M.Blood.viscosity_ref = viscRef; M.Blood.viscosity = viscRef;
+for (const m of Object.values(M)) if (m !== M.Blood && typeof m.viscosity_ref === "number" && m.viscosity_ref > 0) m.viscosity_ref = viscRef;
 log.push(`blood volume x${P.BLOOD_VOLUME.toFixed(4)}; Hb ${hbOld} -> ${hbNew.toFixed(3)} mmol/L (Hct ${P.HCT})`);
 
 // 4. lactate, unmeasured anions, glucose
@@ -118,7 +139,10 @@ M.Thermoregulation.rel_humidity = P.REL_HUMIDITY;
 M.Thermoregulation.loss_trim_seeded = false;
 log.push(`environment ${P.ENV_TEMP} degC / ${P.REL_HUMIDITY * 100} %`);
 
-// 7. settle, then re-anchor the controllers to this resting state
+// 7. settle, then re-anchor the controllers to this resting state (the brain settles pressure-passive
+// and takes the flow the transitional circulation gives it as its new set-point, last, after the other
+// re-anchors have moved the pressures)
+if (P.BRAIN_REANCHOR) M.Brain.autoregulation_enabled = false;
 eng.calc(SECONDS);
 reanchorBaroreflex();
 reanchorChemoreflex();
@@ -126,6 +150,7 @@ reanchorHormones();
 eng.calc(SECONDS);
 relearnHeartFunction();
 eng.calc(SECONDS);
+if (P.BRAIN_REANCHOR) { reanchorBrain(); eng.calc(60); }
 
 // 8. scenario metadata, bake the scaling layer, serialize at a sinus-node firing
 model.age = AGE / (24 * 365);
@@ -159,7 +184,8 @@ out(`  reloaded +120 s: HR ${r.hr.toFixed(0)}, ${r.sys.toFixed(0)}/${r.dia.toFix
   `LVO ${(r.lvo * 1000 / W).toFixed(0)}, RVO ${(r.rvo * 1000 / W).toFixed(0)} mL/kg/min, duct ${(r.q_da * 60000 / W).toFixed(0)}, FO ${(r.q_fo * 60000 / W).toFixed(1)} mL/kg/min, ` +
   `SpO2 ${r.spo2_pre.toFixed(1)}/${r.spo2_post.toFixed(1)}, pH ${r.ph.toFixed(3)}, pCO2 ${r.pco2.toFixed(1)}, BE ${r.be.toFixed(2)}, temp ${r.temp.toFixed(2)}`);
 void v;
-if (WRITE) {
+if (OUT) { fs.writeFileSync(OUT, text); out(`  prototype written ${OUT}`); }
+else if (WRITE) {
   fs.writeFileSync(dst, text);
   const idx = new URL("../model_definitions/index.json", import.meta.url);
   const list = JSON.parse(fs.readFileSync(idx, "utf8"));
@@ -216,6 +242,16 @@ function reanchorBaroreflex() {
   }
   M.BR_MAP.set_value = +M.BR_MAP.set_value.toFixed(2);
   log.push(`baroreflex: folded ${EF.map((k) => `${k} ${rest[k].toFixed(3)}`).join(", ")}; BR_MAP set ${before} -> ${M.BR_MAP.set_value}`);
+}
+
+// cerebral autoregulation re-anchored to the settled (pressure-passive) brain flow, neutral factor
+function reanchorBrain() {
+  const B = M.Brain;
+  const a = avgOver(20, () => ({ cbf: B.cbf, cpp: B.cpp, cbv: B.cerebral_blood_volume }));
+  const before = B.cbf_setpoint;
+  B.cbf_setpoint = +a.cbf.toPrecision(6); B.cpp_setpoint = +a.cpp.toFixed(2); B.cbv0 = +a.cbv.toPrecision(6);
+  B._ar_int = 1.0; B.autoreg_factor = 1.0; B.autoregulation_enabled = true;
+  log.push(`Brain cbf set-point ${before} -> ${B.cbf_setpoint} L/min (${(B.cbf_setpoint * 1000 / model.weight).toFixed(1)} mL/kg/min), cpp ${B.cpp_setpoint}`);
 }
 
 // chemoreceptor set-points = the resting arterial gases (the reflex is then neutral at rest)
