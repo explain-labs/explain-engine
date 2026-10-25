@@ -61,7 +61,7 @@ Each step:
 - **Not active** (`apnea_enabled` false, or a non-breathing patient): ventilation is restored if Apnea had suppressed it; nothing else.
 - **Breathing:** count toward `next_interval`, then start an episode. Its duration is drawn, and
   - **central:** `Breathing.switch_breathing(false)`;
-  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`.
+  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`, unless the patient is intubated (Ventilator on, tube not out).
 - **In an episode:**
   - a mixed episode also switches breathing off after `mixed_obstructive_fraction` of its duration;
   - at the end, ventilation is restored, the counters are updated and the next interval is drawn.
@@ -91,7 +91,7 @@ None. It switches `Breathing.breathing_enabled` and the airway resistor's `no_fl
 ## Assumptions and limitations
 
 - **Episodes are scheduled, not caused.** They don't follow sleep state, hypoxia, temperature, feeds or caffeine, and they don't end early on hypoxaemia: a pause runs its drawn duration.
-- **Obstruction closes `MOUTH_DS`.** With an endotracheal tube the airway is the tube, so an obstructive episode in an intubated patient closes the wrong path.
+- **No obstructive apnoea through a tube.** With an endotracheal tube in place the upper airway is bypassed and the Ventilator keeps `MOUTH_DS` closed, so an obstructive episode (or the obstructive part of a mixed one) does nothing, and Apnea never reopens `MOUTH_DS` while the tube is in. (Until the re-validation it closed and then reopened it, which left the natural airway open beside the tube after every episode: 56 of 120 s in a test with 8-s episodes.) The episode clock keeps running, so `apnea_count` still counts those episodes.
 - **Shared levers.** [Resuscitation](./Resuscitation.md) also switches breathing; Apnea only reopens what it closed itself (`drive_off`, `airway_obstructed`).
 - **Saved states keep the episode.** A state saved mid-pause finishes that pause after reload and restores ventilation.
 
