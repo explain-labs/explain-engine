@@ -119,6 +119,15 @@ that reference, so it settled and re-anchored at ~21 % higher vascular resistanc
 scenario has on load (MAP 52.0 live vs 50.3 reloaded, brain autoregulation 1.21 and a slow baroreflex
 drift after loading). It now takes the viscosity reference at the new Hb, as a load does.
 
+**Step 3c, CVP: the reference, not the model.** The 2–8 mmHg carried from 72 h is a textbook range from
+sick, catheterised infants. The only measurements in healthy newborns in the first hours are Siassi
+1980: right atrial mean pressure +1.6 mmHg (−3 to +4), A-wave +4.9 (2–8), every 6 h from 2 to 24 h in
+24 healthy spontaneously breathing preterm infants, not related to birth weight or gestation (grade C
+for a term baby). The model's 1.0 mmHg sits in it, and it is low for physiological reasons: the residual
+lung liquid makes the pleural pressure more negative and the ductal circuit returns more of the output
+through the lungs and the left heart. The 1 h CVP reference is now 1.6 (−3 to +4); the 72 h one is
+unchanged, and the model's 2.4 there gives the rise over the first days.
+
 ## Hemodynamics
 
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
@@ -131,6 +140,7 @@ drift after loading). It now takes the viscosity reference at the new Hb, as a l
 | PAP mean (mmHg) | ~45 (ratio ~0.9) | 41 ± 9 | 34 ± 10 | 25 ± 8 | B / A-B | Skinner 1991; Kang 2016 |
 | PAP systolic (mmHg) | ~58 | 52.5 ± 9.1 | 43.8 ± 7.9 | 36 ± 6.5 | B / A-B | Kang 2016 |
 | Cerebral (MCA) flow | lower than after 24 h (gut too; renal unchanged) | – | rises | – | B (direction) | Agata 1994 |
+| CVP / right atrial mean (mmHg) | 1.6 (−3 to +4), 2–24 h | – | – | 2–8 (textbook, sick infants) | C (healthy preterm) | Siassi 1980 |
 
 ## Shunts
 
@@ -183,6 +193,7 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 - Drayton MR 1987, Arch Dis Child 62:1030 ([doi](https://doi.org/10.1136/adc.62.10.1030)); Skinner JR 1991, Arch Dis Child 66:386 ([doi](https://doi.org/10.1136/adc.66.4_spec_no.386))
 - Hiraishi S 1991, Br Heart J 65:41 ([doi](https://doi.org/10.1136/hrt.65.1.41)); Lim 1989, Early Hum Dev (PMID 2691234)
 - Kehrer M 2003, Neuropediatrics 34:281, cerebral blood flow volume in preterm and term neonates (PMID 14681752, [doi](https://doi.org/10.1055/s-2003-44663))
+- Siassi B 1980, Biol Neonate 37:285, right atrial pressure in the first 24 h ([doi](https://doi.org/10.1159/000241288))
 - Lee A 2009, SVC flow ([doi](https://doi.org/10.1136/adc.2009.176883))
 - Lee S 1999, Pediatr Pulmonol 27:318 (PMID 10344710); Milner AD 1978, Arch Dis Child 53:545 ([doi](https://doi.org/10.1136/adc.53.7.545)); Lødrup Carlsen KC 1993 (PMID 8112445)
 - Nikkola E 2002, Acta Paediatr ([doi](https://doi.org/10.1080/080352502760272605)); O'Brien LM 2000 ([doi](https://doi.org/10.1136/fn.83.1.f35)); Mariani G 2007, J Pediatr 150:418 ([doi](https://doi.org/10.1016/j.jpeds.2006.12.015))

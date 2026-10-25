@@ -279,6 +279,11 @@
       "cite": "Eliot RJ et al. Plasma catecholamine concentrations in infants at birth and during the first 48 hours of life. J Pediatr 1980;96:311-5",
       "doi": "10.1016/s0022-3476(80)80836-5",
       "pmid": "7351604"
+    },
+    "siassi1980": {
+      "cite": "Siassi B et al. Central venous pressure in preterm infants. Biol Neonate 1980;37:285-90",
+      "doi": "10.1159/000241288",
+      "pmid": "7388082"
     }
   },
   "variables": [
@@ -387,20 +392,20 @@
       "group": "hemodynamics",
       "label": "Central venous pressure",
       "unit": "mmHg",
-      "mean": null,
+      "mean": 1.6,
       "sd": null,
-      "low": 2,
-      "high": 8,
-      "range_type": "range",
-      "method": "invasive (sick infants only)",
-      "age": "72 h value carried",
-      "n": null,
+      "low": -3,
+      "high": 4,
+      "range_type": "mean (range)",
+      "method": "right atrial mean pressure, umbilical venous catheter",
+      "age": "2-24 h",
+      "n": 24,
       "sources": [
-        "textbook"
+        "siassi1980"
       ],
       "grade": "C",
       "model_readout": "Monitor.minmax.cvp_pres_mean",
-      "notes": "No transition data. 72 h reference kept (No healthy-term data; range as used in scripts/_probe.mjs.)"
+      "notes": "Healthy spontaneously breathing preterm infants (no term data; RAP did not correlate with birth weight or gestation). A-wave 4.9 (2-8). The 72 h textbook range 2-8 comes from sick infants."
     },
     {
       "key": "pap_s",
