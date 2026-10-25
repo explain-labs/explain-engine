@@ -35,6 +35,12 @@ drifting toward 72 h. The time course is the series of scenarios, not something 
 - **Blood gases at 1 h:** textbook values, grade C. No quotable values were found: Weisbrot 1958, Koch &
   Wendel 1968 and Jovandaric 2018 (arterialized capillary gases at 1 and 2 h in 50 healthy newborns) give
   their numbers only in tables.
+- **Blood volume at 1 h: ~80 mL/kg** (corrected from a textbook 92). At birth the baby's volume is the
+  feto-placental volume (taken as 115 mL/kg) minus what stays in the placenta: 63–73 mL/kg after early
+  clamping, 96–100 after 3-min clamping (Linderkamp 1992, Nelle 1995), so ~85 after ~1 min. In the first
+  hours plasma leaves the circulation at a constant red cell mass, which is why Hct rises: 85 × 0.50/0.55 ≈ 77 at 1 h
+  (3-min clamping at 2 h: 100 × 0.50/0.63 ≈ 79). The extra placental blood shows up as red cells, not as
+  volume. Red cell mass 0.55 × 80 = 44 mL/kg then runs smoothly into the 72 h baby's 0.49 × 85 = 42.
 - **VO2:** 7.0 mL/kg/min at every age. The only human early value (~5 under 12 h, Hill & Robinson 1968)
   comes mostly from low-birth-weight infants, and lambs reach their postnatal VO2 within an hour.
 
@@ -88,7 +94,7 @@ drifting toward 72 h. The time course is the series of scenarios, not something 
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
 | Haematocrit (%) | ~55 (1-min DCC; 57.0 at 6 h) | ~57 | 56–59 (3-min DCC) | 49.5 (mixed clamping) | A/B | Ceriani Cernadas 2006; Linderkamp 1992; Nelle 1993; Jopling 2009 |
-| Blood volume (mL/kg) | ~92 | – | – | 80–90 | C | textbook; +50 % vs early clamping (Linderkamp 1992) |
+| Blood volume (mL/kg) | ~80 (75–85) | – | – | 80–90 | B (derived) at 1 h | Linderkamp 1992; Nelle 1995 |
 | First void | none yet (42 % by 6 h) | 76 % voided | 95 % | – | A | Ogala 1986 |
 
 ## Sources
@@ -109,6 +115,7 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 - Hill JR, Robinson DC 1968, J Physiol 199:685 ([doi](https://doi.org/10.1113/jphysiol.1968.sp008673))
 - Karlsson H 1996 ([doi](https://doi.org/10.1136/fn.75.2.f130)); Fransson AL 2005 ([doi](https://doi.org/10.1136/adc.2004.066589))
 - Eliot RJ 1980, J Pediatr 96:311 ([doi](https://doi.org/10.1016/s0022-3476(80)80836-5))
+- Nelle M 1995, Am J Perinatol 12:212 ([doi](https://doi.org/10.1055/s-2007-994455))
 - Ceriani Cernadas JM 2006, Pediatrics 117:e779 ([doi](https://doi.org/10.1542/peds.2005-1156)); Linderkamp O 1992, Acta Paediatr ([doi](https://doi.org/10.1111/j.1651-2227.1992.tb12095.x)); Nelle M 1993 ([doi](https://doi.org/10.1016/0002-9378(93)90161-b)); Jopling J 2009 ([doi](https://doi.org/10.1542/peds.2008-2654))
 - Ogala WN 1986 (PMID 3810846)
 
@@ -118,4 +125,4 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 - Hourly blood pressure in the first day (Kitterman 1969, Versmold 1981: no abstracts).
 - Respiratory rate, tidal volume and compliance values in the first hours (direction only).
 - Plasma catecholamine levels by hour (Eliot 1980 full text).
-- Blood volume after 1-min clamping (Yao 1969 not in PubMed).
+- Measured blood volume after 1-min clamping (Yao 1969 not in PubMed); the 1 h value is derived.
