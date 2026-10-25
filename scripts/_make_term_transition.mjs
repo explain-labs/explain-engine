@@ -52,6 +52,11 @@ const PROFILES = {
     // ~77, Drayton 1987 62) and its diastolic steal lowers brain and gut flow while renal flow is
     // unchanged (Agata 1994); the brain settles pressure-passive and takes that flow as its set-point
     SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
+    // immature glomerular filtration: Kf x0.8 -> GFR ~20 mL/min/1.73m2 (Smeets 2022, day 1: 19.6) and urine
+    // ~0.9 mL/kg/h (low before the postnatal diuresis, Hogg 1977). The renal autoregulation keeps its
+    // 1 h (dilated) tone: re-anchoring it to the 72 h afferent tone (KIDNEY_REANCHOR) collapses GFR to
+    // ~8 and renal flow to 23 at the slightly lower 1 h renal pressure, so it stays off
+    KF: 0.8,
     // blood: ~80 mL/kg at Hct 55 % (delayed clamping, after the first plasma shift)
     BLOOD_VOLUME: 80 / 85, HCT: 0.55,
     // gases and metabolites: lactate 2.2 (GLOW), BE ~-5 and pCO2 ~36 (textbook, C), glucose 3.3 (GLOW)
@@ -143,6 +148,12 @@ log.push(`environment ${P.ENV_TEMP} degC / ${P.REL_HUMIDITY * 100} %`);
 // and takes the flow the transitional circulation gives it as its new set-point, last, after the other
 // re-anchors have moved the pressures)
 if (P.BRAIN_REANCHOR) M.Brain.autoregulation_enabled = false;
+// the kidney settles at its 72 h resting afferent tone (autoregulation off), then the myogenic and TGF
+// set-points are re-anchored so the limbs give that same tone at the 1 h pressure and filtration
+const K = M.Kidneys;
+const kid72 = { aff: K.afferent_factor, myo: K.myogenic_factor, tgf: K.tgf_factor };
+if (P.KF) K.kf *= P.KF;
+if (P.KIDNEY_REANCHOR) { K.autoregulation_enabled = false; M[K.aff_resistor_name].r_factor_ps = kid72.aff; }
 eng.calc(SECONDS);
 reanchorBaroreflex();
 reanchorChemoreflex();
@@ -150,7 +161,9 @@ reanchorHormones();
 eng.calc(SECONDS);
 relearnHeartFunction();
 eng.calc(SECONDS);
-if (P.BRAIN_REANCHOR) { reanchorBrain(); eng.calc(60); }
+if (P.BRAIN_REANCHOR) reanchorBrain();
+if (P.KIDNEY_REANCHOR) reanchorKidney();
+if (P.BRAIN_REANCHOR || P.KIDNEY_REANCHOR) eng.calc(60);
 
 // 8. scenario metadata, bake the scaling layer, serialize at a sinus-node firing
 model.age = AGE / (24 * 365);
@@ -252,6 +265,19 @@ function reanchorBrain() {
   B.cbf_setpoint = +a.cbf.toPrecision(6); B.cpp_setpoint = +a.cpp.toFixed(2); B.cbv0 = +a.cbv.toPrecision(6);
   B._ar_int = 1.0; B.autoreg_factor = 1.0; B.autoregulation_enabled = true;
   log.push(`Brain cbf set-point ${before} -> ${B.cbf_setpoint} L/min (${(B.cbf_setpoint * 1000 / model.weight).toFixed(1)} mL/kg/min), cpp ${B.cpp_setpoint}`);
+}
+
+// renal autoregulation re-anchored: myogenic p_set and TGF set-point such that the limbs give their
+// 72 h resting factors at the settled 1 h renal pressure and distal NaCl delivery
+function reanchorKidney() {
+  M[K.aff_resistor_name].r_factor_ps = kid72.aff;
+  const a = avgOver(20, () => ({ p: M[K.myogenic_input_model][K.myogenic_input_prop], sig: K.gfr * (M[K.kid_cap_name].solutes?.na ?? 1), gfr: K.gfr }));
+  const before = [K.myogenic_p_set, K.tgf_setpoint];
+  K.myogenic_p_set = +(a.p - (kid72.myo - 1) / K.myogenic_gain_up).toFixed(3);
+  K.tgf_setpoint = +(a.sig / (1 + (kid72.tgf - 1) / K.tgf_gain)).toFixed(2);
+  K.myogenic_factor = kid72.myo; K.tgf_factor = kid72.tgf; K.afferent_factor = kid72.aff;
+  K.autoregulation_enabled = true;
+  log.push(`Kidneys myogenic p_set/TGF set-point ${before.join("/")} -> ${K.myogenic_p_set}/${K.tgf_setpoint} (afferent ${kid72.aff.toFixed(3)}, GFR ${a.gfr.toFixed(2)} mL/min)`);
 }
 
 // chemoreceptor set-points = the resting arterial gases (the reflex is then neutral at rest)

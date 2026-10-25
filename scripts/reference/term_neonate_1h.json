@@ -284,6 +284,15 @@
       "cite": "Siassi B et al. Central venous pressure in preterm infants. Biol Neonate 1980;37:285-90",
       "doi": "10.1159/000241288",
       "pmid": "7388082"
+    },
+    "hogg1977": {
+      "cite": "Hogg MI et al. Urinary excretion and metabolism of pethidine and norpethidine in the newborn. Br J Anaesth 1977;49:891-9",
+      "doi": "10.1093/bja/49.9.891",
+      "pmid": "20914"
+    },
+    "lorenz1995": {
+      "cite": "Lorenz JM et al. Phases of fluid and electrolyte homeostasis in the extremely low birth weight infant. Pediatrics 1995;96:484-9",
+      "pmid": "7651782"
     }
   },
   "variables": [
@@ -1270,18 +1279,20 @@
       "group": "kidneys",
       "label": "GFR",
       "unit": "mL/min/1.73m2",
-      "mean": null,
+      "mean": 19.6,
       "sd": null,
       "low": null,
       "high": null,
-      "range_type": null,
-      "method": "no data",
-      "age": "1 h",
+      "range_type": "mean",
+      "method": "measured GFR / creatinine clearance (IPD meta-analysis)",
+      "age": "day 1",
       "n": null,
-      "sources": [],
-      "grade": "C",
+      "sources": [
+        "smeets2022"
+      ],
+      "grade": "A/B",
       "model_readout": "Kidneys.gfr x 1.73 / BSA",
-      "notes": "Reference only; GFR low in the first day, doubles over 2 weeks."
+      "notes": "Day 1 value (30 at day 3, 40.6 at day 5); no hourly data."
     },
     {
       "key": "urine",
@@ -1290,18 +1301,20 @@
       "unit": "mL/kg/h",
       "mean": null,
       "sd": null,
-      "low": 0,
-      "high": 1,
-      "range_type": "derived",
-      "method": "first-void timing",
-      "age": "1 h",
-      "n": 1000,
+      "low": 0.5,
+      "high": 1.5,
+      "range_type": "range",
+      "method": "urine production before the postnatal diuresis",
+      "age": "first hours",
+      "n": null,
       "sources": [
+        "hogg1977",
+        "lorenz1995",
         "ogala1986"
       ],
-      "grade": "B",
+      "grade": "C",
       "model_readout": "Kidneys.urine_flow x 60 / weight",
-      "notes": "First void by 6 h in 42 %, 12 h 76 %, 24 h 95 %."
+      "notes": "Production, not voiding: urine flow is low for the first 7-22 h, then a diuresis (Hogg 1977, term); before the diuresis 1.6 mL/kg/h on average with periods < 1 (Lorenz 1995, ELBW). First void by 6 h in 42 %, 12 h 76 %, 24 h 95 % (Ogala 1986) fits ~0.5-1.5 mL/kg/h filling the bladder."
     },
     {
       "key": "pda",

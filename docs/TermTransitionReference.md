@@ -61,6 +61,7 @@ from `term_neonate`. The levers (factors relative to 72 h), in the script's prof
 | Minute volume reference | x1.11 | pCO2 ~36 |
 | Lung liquid: alveolar (ALL/ALR) `u_vol` / `el_base` | x0.85 / x1.11 | see below |
 | Brain | settles pressure-passive; `cbf_setpoint` re-anchored last | see below |
+| Glomerular filtration coefficient (`Kidneys.kf`) | x0.8 | GFR at the day-1 value (see below) |
 | Environment | 24 °C, 50 % humidity | dressed / skin-to-skin in the room (loss trim re-seeded) |
 
 Then the controllers are re-anchored at rest: the baroreflex activity is folded into the base values
@@ -128,6 +129,20 @@ lung liquid makes the pleural pressure more negative and the ductal circuit retu
 through the lungs and the left heart. The 1 h CVP reference is now 1.6 (−3 to +4); the 72 h one is
 unchanged, and the model's 2.4 there gives the rise over the first days.
 
+**Step 3d, urine and GFR.** The 0–1 mL/kg/h urine range came from first-void timing (Ogala 1986), but
+that times the first emptying of the bladder, not production; the model has no bladder to fill and its
+urine output is production. Production is low before the postnatal diuresis: urine flow stays low for
+the first 7–22 h and then rises for ~12 h (Hogg 1977, 7 term babies), and before the diuresis it is
+1.6 mL/kg/h on average with periods under 1 (Lorenz 1995, ELBW). The 1 h urine reference is now
+0.5–1.5 mL/kg/h (C), and GFR gets a real target, 19.6 mL/min/1.73 m² on day 1 (Smeets 2022, A/B). The
+model filtered 24.7 at 1 h (31.0 at 72 h). The glomerular filtration coefficient matures over the first
+days, so the 1 h kidney has `Kidneys.kf` x0.8: GFR 20.7, urine 0.93, renal flow unchanged (29.4).
+Re-anchoring the renal autoregulation to its 72 h afferent tone was tried and rejected: at the slightly
+lower 1 h renal pressure GFR collapsed to ~8 and renal flow to 23 (against Agata's unchanged renal
+flow), so the 1 h kidney keeps a near-maximally dilated afferent arteriole (factor 0.50) and has little
+dilator reserve if the pressure falls. **All 40 numeric targets are now in range**; loaded, it holds for
+10 min (BE drifts −5.15 → −5.19).
+
 ## Hemodynamics
 
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
@@ -181,6 +196,8 @@ unchanged, and the model's 2.4 there gives the rise over the first days.
 | Haematocrit (%) | ~55 (1-min DCC; 57.0 at 6 h) | ~57 | 56–59 (3-min DCC) | 49.5 (mixed clamping) | A/B | Ceriani Cernadas 2006; Linderkamp 1992; Nelle 1993; Jopling 2009 |
 | Blood volume (mL/kg) | ~80 (75–85) | – | – | 80–90 | B (derived) at 1 h | Linderkamp 1992; Nelle 1995 |
 | First void | none yet (42 % by 6 h) | 76 % voided | 95 % | – | A | Ogala 1986 |
+| Urine production (mL/kg/h) | low before the diuresis (0.5–1.5) | diuresis starts (7–22 h) | – | 1–3 (textbook) | C | Hogg 1977; Lorenz 1995 |
+| GFR (mL/min/1.73 m²) | 19.6 (day 1) | – | 19.6 (day 1) | ~30 (day 3) | A/B | Smeets 2022 |
 
 ## Sources
 
@@ -193,6 +210,7 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 - Drayton MR 1987, Arch Dis Child 62:1030 ([doi](https://doi.org/10.1136/adc.62.10.1030)); Skinner JR 1991, Arch Dis Child 66:386 ([doi](https://doi.org/10.1136/adc.66.4_spec_no.386))
 - Hiraishi S 1991, Br Heart J 65:41 ([doi](https://doi.org/10.1136/hrt.65.1.41)); Lim 1989, Early Hum Dev (PMID 2691234)
 - Kehrer M 2003, Neuropediatrics 34:281, cerebral blood flow volume in preterm and term neonates (PMID 14681752, [doi](https://doi.org/10.1055/s-2003-44663))
+- Hogg MI 1977, Br J Anaesth 49:891, urine flow in the first 24–40 h ([doi](https://doi.org/10.1093/bja/49.9.891)); Lorenz JM 1995, Pediatrics 96:484 (PMID 7651782)
 - Siassi B 1980, Biol Neonate 37:285, right atrial pressure in the first 24 h ([doi](https://doi.org/10.1159/000241288))
 - Lee A 2009, SVC flow ([doi](https://doi.org/10.1136/adc.2009.176883))
 - Lee S 1999, Pediatr Pulmonol 27:318 (PMID 10344710); Milner AD 1978, Arch Dis Child 53:545 ([doi](https://doi.org/10.1136/adc.53.7.545)); Lødrup Carlsen KC 1993 (PMID 8112445)
