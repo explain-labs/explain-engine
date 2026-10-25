@@ -4839,50 +4839,50 @@
           "adrenaline": {
             "enabled": true,
             "clearance": {
-              "global": 0.022,
+              "global": 0.003828,
               "sites": {
-                "KID_CAP": 0.6,
-                "LS_CAP": 0.9,
-                "INT_CAP": 0.4
+                "KID_CAP": 0.1044,
+                "LS_CAP": 0.1566,
+                "INT_CAP": 0.0696
               }
             },
             "ke0": 0,
-            "hr_ec50": 20,
-            "hr_emax": 0.6,
-            "hr_hill": 1.5,
-            "cont_ec50": 25,
-            "cont_emax": 0.8,
-            "cont_hill": 1.5,
-            "lus_ec50": 25,
-            "lus_emax": -0.25,
-            "lus_hill": 1.5,
-            "svr_ec50": 40,
-            "svr_emax": 0.5,
-            "svr_hill": 2
+            "hr_ec50": 5.7,
+            "hr_emax": 0.9,
+            "hr_hill": 1,
+            "cont_ec50": 18,
+            "cont_emax": 2.4,
+            "cont_hill": 1,
+            "lus_ec50": 18,
+            "lus_emax": -0.75,
+            "lus_hill": 1,
+            "svr_ec50": 18,
+            "svr_emax": 1.5,
+            "svr_hill": 1
           },
           "noradrenaline": {
             "enabled": true,
             "clearance": {
-              "global": 0.018,
+              "global": 0.0036,
               "sites": {
-                "KID_CAP": 0.6,
-                "LS_CAP": 1,
-                "INT_CAP": 0.4
+                "KID_CAP": 0.12,
+                "LS_CAP": 0.2,
+                "INT_CAP": 0.08
               }
             },
             "ke0": 0,
-            "hr_ec50": 30,
-            "hr_emax": 0.1,
-            "hr_hill": 1.5,
-            "cont_ec50": 30,
-            "cont_emax": 0.35,
-            "cont_hill": 1.5,
-            "lus_ec50": 30,
-            "lus_emax": -0.12,
-            "lus_hill": 1.5,
-            "svr_ec50": 25,
-            "svr_emax": 0.9,
-            "svr_hill": 2
+            "hr_ec50": 5.7,
+            "hr_emax": 0.2,
+            "hr_hill": 1,
+            "cont_ec50": 18,
+            "cont_emax": 0.56,
+            "cont_hill": 1,
+            "lus_ec50": 18,
+            "lus_emax": -0.192,
+            "lus_hill": 1,
+            "svr_ec50": 18,
+            "svr_emax": 1.44,
+            "svr_hill": 1
           },
           "pge1": {
             "enabled": true,

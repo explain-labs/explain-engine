@@ -46,11 +46,11 @@ BaseModelClass
 
 | Drug | Clearance global / sites (1/s) | HR | Inotropy | Lusitropy | SVR | Duct |
 |---|---|---|---|---|---|---|
-| adrenaline | 0.022 / KID 0.6, LS 0.9, INT 0.4 | +0.6 @ 20 | +0.8 @ 25 | −0.25 @ 25 | +0.5 @ 40 | – |
-| noradrenaline | 0.018 / KID 0.6, LS 1.0, INT 0.4 | +0.1 @ 30 | +0.35 @ 30 | −0.12 @ 30 | +0.9 @ 25 | – |
+| adrenaline | 0.00383 / KID 0.104, LS 0.157, INT 0.070 | +0.9 @ 5.7 | +2.4 @ 18 | −0.75 @ 18 | +1.5 @ 18 | – |
+| noradrenaline | 0.0036 / KID 0.12, LS 0.2, INT 0.08 | +0.2 @ 5.7 | +0.56 @ 18 | −0.19 @ 18 | +1.44 @ 18 | – |
 | pge1 | 0.08 / – | – | – | – | – | +1.5 @ 0.02 |
 
-(emax @ EC50 in ng/mL; Hill 1.5 for the cardiac effects, 2 for SVR, 1 for the duct.)
+(emax @ EC50 in ng/mL; Hill 1 throughout.)
 
 ### Outputs
 
@@ -94,14 +94,18 @@ It owns the drug channels above: `hr_drug_factor`, `el_max_drug_factor`, `el_min
 
 ## Assumptions and limitations
 
-- **The catecholamines are too weak at clinical doses.** Measured in term_neonate, adrenaline for 5 min:
+- **Catecholamine calibration** (re-validation (j), term_neonate, 20-min infusions, closed loop with the reflexes):
 
-  | Rate | Arterial concentration | HR | MAP |
-  |---|---|---|---|
-  | 0.1 mcg/kg/min | 0.89 ng/mL | 120 → 121 | unchanged |
-  | 0.5 mcg/kg/min | 4.5 ng/mL | 120 → 125 | 59.5 → 60.1 |
+  | Infusion (mcg/kg/min) | Arterial conc (ng/mL) | HR | MAP | LV output |
+  |---|---|---|---|---|
+  | adrenaline 0.05 / 0.1 / 0.3 | 2.0 / 4.0 / 11.8 | +11 / +16 / +24 % | +14 / +24 / +42 % | +15 / +25 / +45 % |
+  | adrenaline 0.6 / 1.0 | 23.6 / 39.2 | +28 / +31 % | +54 / +62 % | +53 / +58 % |
+  | noradrenaline 0.1 / 0.3 / 0.5 / 1.0 | 4.0 / 12.0 / 20.1 / 40.2 | 0 / −3 / −5 / −8 % | +9 / +18 / +22 / +28 % | +2 / +4 / +3 / +5 % |
 
-  The EC50s (20–40 ng/mL) sit far above these concentrations, and the arterial half-life after stopping is 20 s (adrenaline ~2 min). Both are listed for the re-validation, to recalibrate against neonatal dose–response data.
+  - **Clearance** 25 mL/kg/min for both, so the arterial half-life after stopping is ~2.2 min (130 s): Oualha 2014 (2 L/h·kg^0.75, i.e. 24 mL/kg/min at 3.5 kg, volume = blood volume, t½ ~2.3 min), Fisher 1993 (29 ± 16 mL/kg/min; 0.03–0.2 mcg/kg/min gave 0.67–9.4 ng/mL). Before: 116 mL/kg/min and t½ 20 s, so 0.1 mcg/kg/min reached only 0.9 ng/mL.
+  - **Adrenaline** EC50s from Oualha 2014 (heart rate 5.7 ng/mL; the stroke volume × SVR product 18 ng/mL, used here for inotropy, lusitropy and SVR), Emax values fitted so the closed-loop response matches that study's model: 0.1 mcg/kg/min HR +15 %, MAP +24 %; up to 1.0 mcg/kg/min within a few percent of it. Before, the EC50s were 20–40 ng/mL and 0.5 mcg/kg/min raised HR by 5 bpm.
+  - **Noradrenaline**: no neonatal PK/PD data. Clearance as adrenaline; mainly vascular, fitted to the neonatal cohorts (MAP +15–20 % at 0.1–0.5 mcg/kg/min, e.g. 30.6 → 37.8 and 34.4 → 39.4 mmHg; heart rate unchanged or lower).
+  - **Boluses overshoot briefly.** With `ke0` 0 the effect follows the arterial concentration at once, and a bolus reaches the aorta unmixed: 5 mcg (1.4 mcg/kg) peaks at ~50 ng/mL and MAP ~156 mmHg for a few seconds, before mixing brings it to ~15 ng/mL. Real adrenaline takes tens of seconds to act; a `ke0` (biophase lag) would model that.
 - **PGE1 cannot reopen a closed duct** (see [Pda](./Pda.md)); its systemic vasodilation and apnoea are not modelled.
 - **No receptor down-regulation, no tachyphylaxis;** effects add without interaction.
 - **Effect at the arterial concentration** by default (no biophase lag unless `ke0` is set).
@@ -137,4 +141,9 @@ One instance in every scenario with adrenaline, noradrenaline and PGE1 defined a
 
 ## References
 
-No literature values yet; the PK/PD constants are to be recalibrated in the re-validation.
+- Oualha M, Urien S, Spreux-Varoquaux O, et al. Pharmacokinetics, hemodynamic and metabolic effects of epinephrine to prevent post-operative low cardiac output syndrome in children. *Crit Care* 2014;18:R23. doi:10.1186/cc13707
+- Fisher DG, Schwartz PH, Davis AL. Pharmacokinetics of exogenous epinephrine in critically ill children. *Crit Care Med* 1993;21:111–7. doi:10.1097/00003246-199301000-00021
+- Heckmann M, Trotter A, Pohlandt F, Lindner W. Epinephrine treatment of hypotension in very low birthweight infants. *Acta Paediatr* 2002;91:566–70. doi:10.1080/080352502753711704
+- Kallimath A, et al. Hemodynamic effects of noradrenaline in neonatal septic shock. *J Trop Pediatr* 2024;70. doi:10.1093/tropej/fmae001
+- Gupta S, et al. The effect of norepinephrine on clinical and hemodynamic parameters in neonates with shock. *Eur J Pediatr* 2022;181:2379–87. doi:10.1007/s00431-022-04437-4
+- Lu P, et al. Use of norepinephrine in preterm neonates with dopamine-resistant shock. *BMJ Paediatr Open* 2023;7. doi:10.1136/bmjpo-2022-001804

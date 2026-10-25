@@ -64,29 +64,35 @@ export class Drugs extends BaseModelClass {
     this.drug_defs = {
       adrenaline: {
         enabled: true,
-        // PK — mostly diffuse (adrenaline is widely metabolised) with a minor renal/hepatic component
-        clearance: { global: 0.022, sites: { KID_CAP: 0.6, LS_CAP: 0.9, INT_CAP: 0.4 } },
+        // PK — calibrated (re-validation (j)) to the paediatric clearance, 25 mL/kg/min with the blood as
+        // its volume (t½ ~2.2 min): Oualha 2014 (2 L/h·kg^0.75, 24 mL/kg/min at 3.5 kg), Fisher 1993
+        // (29 ± 16). Mostly diffuse (widely metabolised) with a minor renal/hepatic component
+        clearance: { global: 0.003828, sites: { KID_CAP: 0.1044, LS_CAP: 0.1566, INT_CAP: 0.0696 } },
         ke0: 0.0, // biophase off by default
-        // PD — heart rate (β1 chronotropy)
-        hr_ec50: 20.0, hr_emax: 0.6, hr_hill: 1.5,
+        // PD — EC50s from Oualha 2014 (heart rate 5.7 ng/mL; the SV·SVR product 18 ng/mL); Emax values
+        // fitted so term_neonate's closed-loop response matches that model (0.1 mcg/kg/min: HR +15 %,
+        // MAP +24 %). Heart rate (β1 chronotropy)
+        hr_ec50: 5.7, hr_emax: 0.9, hr_hill: 1.0,
         // PD — contractility / inotropy (β1)
-        cont_ec50: 25.0, cont_emax: 0.8, cont_hill: 1.5,
+        cont_ec50: 18.0, cont_emax: 2.4, cont_hill: 1.0,
         // PD — lusitropy / diastolic relaxation (β1); negative emax lowers el_min = faster relaxation
-        lus_ec50: 25.0, lus_emax: -0.25, lus_hill: 1.5,
-        // PD — systemic vascular resistance (α1); higher EC50 (α dominates at higher concentration)
-        svr_ec50: 40.0, svr_emax: 0.5, svr_hill: 2.0,
+        lus_ec50: 18.0, lus_emax: -0.75, lus_hill: 1.0,
+        // PD — systemic vascular resistance (α1)
+        svr_ec50: 18.0, svr_emax: 1.5, svr_hill: 1.0,
       },
       noradrenaline: {
         enabled: true,
-        // PK — similar fast handling; clearing organs configured to exercise organ-localized clearance
-        clearance: { global: 0.018, sites: { KID_CAP: 0.6, LS_CAP: 1.0, INT_CAP: 0.4 } },
+        // PK — as adrenaline (no neonatal data; adult clearance is similar): 25 mL/kg/min, t½ ~2.2 min
+        clearance: { global: 0.0036, sites: { KID_CAP: 0.12, LS_CAP: 0.2, INT_CAP: 0.08 } },
         ke0: 0.0,
-        // PD — predominantly α1 vasoconstriction, modest β1 inotropy, minimal direct chronotropy
-        hr_ec50: 30.0, hr_emax: 0.1, hr_hill: 1.5,
-        cont_ec50: 30.0, cont_emax: 0.35, cont_hill: 1.5,
+        // PD — predominantly α1 vasoconstriction, modest β1 inotropy, little chronotropy; fitted to the
+        // neonatal cohorts (MAP +15-20 % at 0.1-0.5 mcg/kg/min, heart rate unchanged or lower):
+        // term_neonate 0.3 mcg/kg/min MAP +18 %, HR -3 %
+        hr_ec50: 5.7, hr_emax: 0.2, hr_hill: 1.0,
+        cont_ec50: 18.0, cont_emax: 0.56, cont_hill: 1.0,
         // PD — modest β1 lusitropy (negative emax → better relaxation)
-        lus_ec50: 30.0, lus_emax: -0.12, lus_hill: 1.5,
-        svr_ec50: 25.0, svr_emax: 0.9, svr_hill: 2.0,
+        lus_ec50: 18.0, lus_emax: -0.192, lus_hill: 1.0,
+        svr_ec50: 18.0, svr_emax: 1.44, svr_hill: 1.0,
       },
       pge1: {
         // Prostaglandin E1 (alprostadil) — keeps the ductus arteriosus patent in duct-dependent CHD.
