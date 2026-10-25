@@ -20,7 +20,7 @@ export class Heart extends BaseModelClass {
     // 0 = a raised-cosine fall to zero at the end of the QT
     this.relax_frac = 0.06;
     this.av_delay = 0.0005; // delay in the AV-node (s)
-    this.rv_delay = 0.0; // RV activation lag behind the LV (s); 0 = both ventricles together
+    this.rv_delay = 0.0; // RV activation lag behind the LV (s); 0 = both ventricles together, < 0 = the LV lags the RV
 
     // -----------------------------------------------
     // conduction / rhythm (default = normal sinus rhythm; all of this is identity at the defaults)
@@ -80,7 +80,7 @@ export class Heart extends BaseModelClass {
     this.cqt_time = 0.0; // rate-corrected QT of the current beat (Bazett, s), from QRS onset
     this.aaf = 0.0; // atrial activation factor (0-1)
     this.vaf = 0.0; // ventricular activation factor (0-1)
-    this.rvaf = 0.0; // right-ventricular activation factor (0-1); equals vaf unless rv_delay > 0
+    this.rvaf = 0.0; // right-ventricular activation factor (0-1); equals vaf unless rv_delay != 0
 
     this.lv_edv = this.lv_esv = 0.0
     this.lv_edp = 0.0
@@ -481,11 +481,14 @@ export class Heart extends BaseModelClass {
     // act_peak of the QT (end-systole), then relaxes exponentially (relax_frac), so ejection lasts most
     // of the QT and the ventricle is still relaxing as it starts to fill
     let _ventricular_duration = this.cqt_time / this._t;
-    this.vaf = this._activation(this.ncc_ventricular / _ventricular_duration);
+    // rv_delay > 0: the RV pulse lags the LV's; rv_delay < 0: the LV pulse (vaf, also the coronaries)
+    // lags the RV's by |rv_delay|
+    const _lag = Math.abs(this.rv_delay) / this._t;
+    this.vaf = this._activation((this.ncc_ventricular - (this.rv_delay < 0 ? _lag : 0)) / _ventricular_duration);
 
-    // right ventricular activation factor: the same pulse, lagging the LV by rv_delay
-    if (this.rv_delay > 0) {
-      const _ncc_rv = this.ncc_ventricular - this.rv_delay / this._t;
+    // right ventricular activation factor: the same pulse, shifted by rv_delay
+    if (this.rv_delay !== 0) {
+      const _ncc_rv = this.ncc_ventricular - (this.rv_delay > 0 ? _lag : 0);
       this.rvaf = this._activation(_ncc_rv / _ventricular_duration);
     } else {
       this.rvaf = this.vaf;

@@ -19,7 +19,7 @@ Explain reproduces this sequence with timers and produces the conduction disorde
 - **Ventricular tachycardia.**
 - **Single premature ventricular contractions.**
 
-The **activation signal** is what turns electricity into mechanics. During atrial and ventricular activation, Heart sends each chamber a value between 0 (relaxed) and 1 (fully contracted), which stiffens the chamber (see [TimeVaryingElastance](./TimeVaryingElastance.md)). The ventricles' pulse rises slowly and falls quickly, like the real ventricular pressure. The right ventricle can lag the left by a few milliseconds (`rv_delay`), as in a pressure-loaded RV.
+The **activation signal** is what turns electricity into mechanics. During atrial and ventricular activation, Heart sends each chamber a value between 0 (relaxed) and 1 (fully contracted), which stiffens the chamber (see [TimeVaryingElastance](./TimeVaryingElastance.md)). The ventricles' pulse rises slowly and falls quickly, like the real ventricular pressure. The right ventricle can lag the left by a few milliseconds (`rv_delay` > 0), as in a pressure-loaded RV, or lead it (`rv_delay` < 0: the LV lags), so the pulmonary valve opens first, as in the transitional circulation.
 
 Heart also measures each beat as an echo or catheter study would:
 - end-diastolic and end-systolic volumes and pressures of all four chambers;
@@ -47,7 +47,7 @@ BaseModelClass
 | `qt_time` | s | 0.4 | QT at 60 bpm (a QTc), from QRS onset; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Sets both the ECG QT and how long the ventricles contract. 0.4 in every scenario (neonatal QTc ~0.40 s). |
 | `act_peak` | – | 0.85 | Fraction of the QT at which ventricular activation peaks (end-systole). |
 | `relax_frac` | – | 0.06 | Relaxation after end-systole: the activation decays with τ = `relax_frac`·RR (30 ms at 120/min). 0 = a raised-cosine fall to zero at the end of the QT. |
-| `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together. No shipped scenario sets it (the removed `bischoff_bidir_pda` used 0.008). |
+| `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together; negative = the LV (and the coronaries) lag the RV by \|`rv_delay`\|. `term_neonate_1h` uses −0.035 (early systolic right-to-left ductal flow); the removed `bischoff_bidir_pda` used 0.008. |
 
 ### Config: rhythm and conduction
 
@@ -154,7 +154,7 @@ BaseModelClass
    x = n_v/N_v                                N_v = cqt_time/dt (the QT includes the QRS)
    vaf = ½(1 − cos(π·x/p))        for x < p   p = act_peak
        = exp(−(x−p)·cqt_time/τ)  for x ≥ p (cut below 0.005, restarted by the next QRS),  τ = relax_frac·60/HR
-   rvaf = vaf shifted by rv_delay
+   rvaf = vaf shifted by rv_delay             (rv_delay < 0: vaf is the one shifted, by |rv_delay|)
    ```
    A raised cosine that rises to 1 at end-systole (`act_peak` of the QT), so the ventricles eject for most of the QT, then an exponential relaxation that still runs as the ventricle starts to fill (with `relax_frac` 0 a raised cosine back to zero at the end of the QT instead). Heart writes these values to the chambers' `act_factor`:
    - `aaf` → LA, RA (or RAIVCI/RASVC);
