@@ -1,17 +1,19 @@
 # Fetal circulation scenarios
 
+> **Scenarios removed (2026-10-25).** `fetus_25wk`, `fetus_30wk` and `fetus_term` were removed during the re-validation, to be rebuilt from scratch once term_neonate is final. This page is kept as the design record (fetal invariants, operating points, what each lever did); the files and links it names are gone.
+
 **Current scenarios (2026-10-19/20)**, all rebuilt from the literature-validated `term_neonate` by
 `node scripts/_make_fetus_validated.mjs --profile 25|30|40` (levers in `scripts/_fetal_profiles.mjs`):
-- [`fetus_25wk`](../model_definitions/fetus_25wk.json), 25 wk, 0.7 kg (as preterm_25wk), validated against
-  [Fetus25wkReference](./Fetus25wkReference.md) (50 of 51). Size/maturity levers from preterm_25wk corrected by the
+- `fetus_25wk`, 25 wk, 0.7 kg (as preterm_25wk), validated against
+  Fetus25wkReference (50 of 51). Size/maturity levers from preterm_25wk corrected by the
   fetus-30 / preterm-30 ratios; the heart needed less diastolic stiffness (`HEART_EL_MIN` 2.5) to keep MAP at the
   baroreflex set-point (systemic resistance was a weak lever: the placenta takes the flow). Operating point: HR 148,
   MAP 34, CVP 2.2, output ~440, RV:LV 58:42, UV 92 > IVC 80 > AA 72 > UA 68 %, umbilical flow 148, core 37.5.
-- [`fetus_30wk`](../model_definitions/fetus_30wk.json), 30 wk, 1.5 kg, validated against
-  [Fetus30wkReference](./Fetus30wkReference.md) (49 of 51 graded rows in range); see
+- `fetus_30wk`, 30 wk, 1.5 kg, validated against
+  Fetus30wkReference (49 of 51 graded rows in range); see
   [The rebuilt fetus_30wk](#the-rebuilt-fetus_30wk-2026-10-19) below;
-- [`fetus_term`](../model_definitions/fetus_term.json), 40 wk, 3.545 kg (as term_neonate), validated against
-  [TermFetusReference](./TermFetusReference.md) (50 of 51). What differs from 30 wk: placental O₂ diffusion 10× lower
+- `fetus_term`, 40 wk, 3.545 kg (as term_neonate), validated against
+  TermFetusReference (50 of 51). What differs from 30 wk: placental O₂ diffusion 10× lower
   (`dif_o2` 0.003: at term the umbilical vein stays ~30 % short of the maternal side), no RV boost
   (`cont_factor_right` 1.0, `cont_factor_left` 1.15), PVR ×0.8 on the fetal ×9.5, umbilical flow ~142 mL/kg/min.
   Operating point: HR 142, MAP 48, CVP 3.3, output ~430, RV:LV 59:41, UV 80 > IVC 68 > AA 61 > UA 57 %, core 37.5.

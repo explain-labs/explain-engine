@@ -112,7 +112,7 @@ It owns `AA_BR_ART.r_factor_ps` (inflow) and `BR_VEN_VUB.r_factor_ps` (outflow).
 
   - Autoregulation holds CBF against a systemic dilation that also dilates the brain's vessels.
   - **ICP couples weakly to CBF:** an ICP of 26 mmHg lowers CBF only 4 %. The venous outflow is a small part of the cerebral resistance, so the HIE picture (ICP up → CBF and `brain_to2` down) needs large volumes. This is listed for the re-validation.
-- **Stored state predates v1.0 circulation changes** in several scenarios: the autoregulation factor settles away from its stored value in the first ~30 s after load (fetus_term 1.29 → 1.10). Listed for the re-validation re-bake.
+- **Stored state predates v1.0 circulation changes** in several scenarios: the autoregulation factor settles away from its stored value in the first ~30 s after load (measured in the since-removed fetus_term, 1.29 → 1.10). Listed for the re-validation re-bake.
 - **One cerebral bed:** no regional flow, no CO2 reactivity (hypercapnia doesn't dilate the cerebral vessels), no venous haemorrhage model.
 
 ## Example definition (JSON)
@@ -138,7 +138,7 @@ From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defa
 
 ## Usage in the scenarios
 
-One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` ranges from 0.0196 L/min (preterm_25wk) to 0.355 L/min (fetus_term).
+One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` is 0.106 L/min in term_neonate.
 
 ## References
 

@@ -131,7 +131,7 @@ From `term_neonate.json`, `models.Heart.components.PERICARDIUM` (trimmed to the 
 
 ## Usage in the scenarios
 
-All 7 shipped scenarios have the same two containers:
+term_neonate has two containers:
 
 | Instance | Owner | Contains | Role |
 |---|---|---|---|

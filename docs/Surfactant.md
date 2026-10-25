@@ -30,7 +30,7 @@ BaseModelClass
 | `lung_models` | list | `["ALL", "ALR"]` | Alveolar compartments. |
 | `gasex_models` | list | `["GASEX_LL", "GASEX_RL"]` | Gas exchangers. |
 | `shunt_models` | list | `["IPSL", "IPSR"]` | Intrapulmonary shunt resistors. |
-| `surfactant` | 0–1 | 0.3 | Surfactant maturity: 0 = severe deficiency, 1 = mature or fully treated. Scenarios: 25 wk 0.2, 28 wk 0.25, 30 wk 0.3. |
+| `surfactant` | 0–1 | 0.3 | Surfactant maturity: 0 = severe deficiency, 1 = mature or fully treated. |
 | `surfactant_target` | 0–1 or null | null | Therapy target the maturity ramps toward; null holds it. Set by `administer_surfactant`. |
 | `surfactant_tc` | s | 180 | Ramp time constant of the therapy response. |
 | `open_margin`, `close_margin` | mmHg | 2, 2 | Half-widths of the dead zone above and below the baseline pressure. |
@@ -85,7 +85,7 @@ Each step:
 
 `administer_surfactant(target = 1.0)` sets `surfactant_target` (clamped 0–1); it is callable through `callModelFunction` or the TaskScheduler.
 
-**Example** (preterm_25wk, surfactant given): after 15 min the open fraction is 1.0, `el_lung_factor` 0.65, `ips_factor` 4. SaO2 rises 90.9 → 97.8 %, PaO2 55 → 89 and PaCO2 falls 48 → 43 mmHg; left alveolar volume 7.1 → 11.4 mL.
+**Example** (the since-removed preterm_25wk, surfactant given): after 15 min the open fraction is 1.0, `el_lung_factor` 0.65, `ips_factor` 4. SaO2 rises 90.9 → 97.8 %, PaO2 55 → 89 and PaCO2 falls 48 → 43 mmHg; left alveolar volume 7.1 → 11.4 mL.
 
 ## Factor system
 
@@ -112,7 +112,7 @@ Each step:
 
 ## Example definition (JSON)
 
-From `preterm_25wk.json`, `models.Surfactant` (trimmed to the config props):
+From the removed `preterm_25wk.json` (no shipped scenario has a Surfactant model), `models.Surfactant` (trimmed to the config props):
 
 ```json
 {
@@ -142,8 +142,8 @@ From `preterm_25wk.json`, `models.Surfactant` (trimmed to the config props):
 
 ## Usage in the scenarios
 
-In the three preterm scenarios, with the defaults above and `surfactant` 0.2–0.3. Not in term_neonate or the fetal scenarios.
+In no shipped scenario at present: the three preterm scenarios that had it (`surfactant` 0.2–0.3) were removed on 2026-10-25 to be rebuilt. `scripts/_add_surfactant.mjs` adds it to a scenario.
 
 ## References
 
-No literature values; the gains and thresholds are calibrated on the preterm scenarios' response to CPAP and surfactant.
+No literature values; the gains and thresholds are calibrated on the (since-removed) preterm scenarios' response to CPAP and surfactant.

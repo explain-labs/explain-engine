@@ -26,17 +26,17 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate 1.5, term fetus 6.0, 25 wk 0.75. |
+| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate 1.5. |
 | `diameter_fo_max` | mm | 10.0 | Upper clamp. |
 | `atrial_septal_width` | mm | 3.0 | Length of the FO channel in the Poiseuille law. |
 | `fo_lr_factor` | – | 10.0 | Left-to-right resistance multiplier (flap valve). **1 in every shipped scenario.** |
-| `fo_svc_fraction` | – | 0.5 | Share of the FO area opening onto the SVC half of the right atrium (`RASVC`); the rest opens onto `RAIVCI`. 0 in the fetal scenarios (crista dividens). |
+| `fo_svc_fraction` | – | 0.5 | Share of the FO area opening onto the SVC half of the right atrium (`RASVC`); the rest opens onto `RAIVCI`. 0 in a fetus (crista dividens). |
 | `discharge_coeff_fo` | – | 0.7 | Discharge coefficient of the FO orifice (between funnel and sharp edge). |
 | `diameter_vsd` | mm | 2.0 | VSD diameter; 0 = closed (0 in every shipped scenario). |
 | `diameter_vsd_max` | mm | 10.0 | Upper clamp. |
 | `ventricular_septal_width` | mm | 5.0 | Length of the VSD channel. |
 | `discharge_coeff_vsd` | – | 0.64 | Discharge coefficient of the VSD (sharp-edged hole). |
-| `ips_res` | mmHg·s/L | 5000 | Base resistance of each intrapulmonary shunt resistor. term_neonate 20 400, 25 wk 10 500, fetal 10⁸ (closed). |
+| `ips_res` | mmHg·s/L | 5000 | Base resistance of each intrapulmonary shunt resistor. term_neonate 20 400; 10⁸ (closed) in a fetus. |
 
 ### Outputs
 

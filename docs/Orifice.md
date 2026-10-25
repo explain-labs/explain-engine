@@ -35,7 +35,6 @@ The jet is narrower than the anatomical opening (the *vena contracta*). The *dis
 
 Shipped settings, for example:
 - **term_neonate:** duct closed (diameter 0), FO 1.5 mm, no VSD.
-- **preterm_25wk:** duct 0.8 mm (0.27 × 3 mm), FO 0.75 mm.
 
 ## Notes
 

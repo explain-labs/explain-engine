@@ -15,7 +15,6 @@
 
 // scenario -> class; a scenario not listed is classified by weight in classify()
 export const SCENARIO_CLASS = {
-  preterm_28wk: "preterm",
   term_neonate: "term",
   adult_female: "adult",
 };

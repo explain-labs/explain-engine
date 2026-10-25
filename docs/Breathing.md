@@ -21,7 +21,7 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `breathing_enabled` | boolean | `true` | Spontaneous breathing on/off (`switch_breathing`); off in the fetal scenarios. |
+| `breathing_enabled` | boolean | `true` | Spontaneous breathing on/off (`switch_breathing`); off in a fetus. |
 | `minute_volume_ref` | L/kg/min | 0.2 | Reference minute volume (term 0.207). |
 | `minute_volume_ref_factor`, `minute_volume_ref_scaling_factor` | – | 1.0 | Persistent multipliers on the reference (no engine model writes them). |
 | `vt_rr_ratio` | L·min/kg | 1.212e-4 | Mecklenburgh ratio: `Vt / RR` per kg (term 1.298e-4). |
@@ -166,8 +166,6 @@ One instance in every scenario.
 | Scenario | Breathing | `minute_volume_ref` | `vt_rr_ratio` | `ie_ratio` | `rmp_gain` |
 |---|---|---|---|---|---|
 | term_neonate | on | 0.207 | 1.30e-4 | 0.40 | 334 |
-| preterm_30wk / 28wk / 25wk | on | 0.285 / 0.30 / 0.30 | 7.9e-5 / 7.8e-5 / 7.1e-5 | 0.38 | 790 / 1263 / 2371 |
-| fetal ×3 | off | (term values) | | 0.40 | 334 |
 
 ## References
 

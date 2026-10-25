@@ -26,8 +26,8 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `placenta_running` | boolean | `false` | Enables the whole unit (flow and gas exchange). `true` in the fetal scenarios. |
-| `umb_clamped` | boolean | `true` | Stops flow in the cord and placenta (`no_flow`) while the unit stays enabled, e.g. cord occlusion. `false` in the fetal scenarios. |
+| `placenta_running` | boolean | `false` | Enables the whole unit (flow and gas exchange). `true` in a fetus. |
+| `umb_clamped` | boolean | `true` | Stops flow in the cord and placenta (`no_flow`) while the unit stays enabled, e.g. cord occlusion. `false` in a fetus. |
 | `umb_art_res`, `umb_art_res_factor` | mmHg·s/L, – | 800, 1.0 | Resistance of the umbilical arteries `PL_UMB_ART`. |
 | `umb_ven_res`, `umb_ven_res_factor` | mmHg·s/L, – | 100, 1.0 | Resistance of the umbilical vein `PL_UMB_VEN`. |
 | `plf_res`, `plf_res_factor` | mmHg·s/L, – | 2000, 1.0 | Resistance of each fetal-placenta vessel (`PL_FETAL_ART`, `_CAP`, `_VEN`). |
@@ -73,22 +73,22 @@ None of its own. It writes the base `r_for`/`r_back` of its vessels; their own f
 
 ## Example definition (JSON)
 
-From `fetus_term.json`, `models.Placenta` (trimmed to the config props; `components` holds the sub-models):
+From `term_neonate.json`, `models.Placenta` (trimmed to the config props; `components` holds the sub-models):
 
 ```json
 {
   "name": "Placenta",
   "model_type": "Placenta",
   "is_enabled": true,
-  "placenta_running": true,
-  "umb_clamped": false,
-  "umb_art_res": 585,
-  "umb_ven_res": 115,
-  "plf_res": 1298,
-  "mat_to2": 5.4,
-  "mat_tco2": 21.6,
-  "dif_o2": 0.003,
-  "dif_co2": 0.04
+  "placenta_running": false,
+  "umb_clamped": true,
+  "umb_art_res": 800,
+  "umb_ven_res": 100,
+  "plf_res": 2000,
+  "mat_to2": 3.825,
+  "mat_tco2": 24.29,
+  "dif_o2": 0.01,
+  "dif_co2": 0.01
 }
 ```
 
@@ -98,10 +98,7 @@ One instance in every scenario. It owns `PL_UMB_ART`, `PL_FETAL_ART`, `PL_FETAL_
 
 | Scenario | Running | Resistances art / ven / placenta | `mat_to2` / `mat_tco2` | Fetoplacental blood |
 |---|---|---|---|---|
-| fetus_term | yes | 585 / 115 / 1298 | 5.4 / 21.6 | ~83 mL |
-| fetus_30wk | yes | 1095 / 160 / 2430 | 5.6 / 21.5 | ~46 mL |
-| fetus_25wk | yes | 2245 / 330 / 4980 | 6.0 / 21.0 | ~26 mL |
-| postnatal scenarios | no (clamped) | – | – | – |
+| term_neonate | no (clamped) | – | – | – |
 
 ## References
 

@@ -129,9 +129,7 @@ One instance in every scenario.
 
 | Scenario | `P50_0` (mmHg) | Hb (mmol/L) |
 |---|---|---|
-| term_neonate / fetus_term | 20 | 10 / 9.3 |
-| preterm_30wk / fetus_30wk | 19 | 9.6 / 8.4 |
-| preterm_25wk / preterm_28wk / fetus_25wk | 18.5 | 8.4 / 9.0 / 7.9 |
+| term_neonate | 20 | 10 |
 
 ## References
 

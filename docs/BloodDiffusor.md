@@ -76,35 +76,32 @@ Additive layers (as Capacitance and Resistor), on `dif_o2`, `dif_co2` and one sh
 - **Fick diffusion on partial pressures, no geometry.** A diffusing capacity lumps membrane area, thickness and permeability. No counter-current or concurrent flow pattern; each compartment is well mixed.
 - **Full equilibration at the shipped settings.** Fetal capillary blood leaves the exchanger at the maternal pCO2, so the diffusing capacities have little authority over fetal gases; the maternal contents set them (see [Placenta](./Placenta.md#assumptions-and-limitations)).
 - **Explicit, one step.** A very large capacity with a small compartment could overshoot the equilibrium in one step; the cap only stops a negative concentration.
-- **Two blood solves every step** while it runs (fetal scenarios only), including on the fixed `PL_MAT`.
+- **Two blood solves every step** while it runs (a fetus with the placenta running), including on the fixed `PL_MAT`.
 
 ## Example definition (JSON)
 
-From `fetus_term.json`, `models.Placenta.components.PL_GASEX` (trimmed to the config props):
+From `term_neonate.json`, `models.Placenta.components.PL_GASEX` (trimmed to the config props):
 
 ```json
 {
   "name": "PL_GASEX",
   "model_type": "BloodDiffusor",
-  "is_enabled": true,
+  "is_enabled": false,
   "comp_blood1": "PL_FETAL_CAP",
   "comp_blood2": "PL_MAT",
-  "dif_o2": 0.003,
-  "dif_co2": 0.04,
+  "dif_o2": 0.01,
+  "dif_co2": 0.01,
   "dif_solutes": {}
 }
 ```
 
 ## Usage in the scenarios
 
-One instance, `PL_GASEX`, owned by `Placenta`, in every scenario: enabled in the three fetal scenarios, disabled after birth.
+One instance, `PL_GASEX`, owned by `Placenta`, disabled in term_neonate (it runs only in a fetus with the placenta running; the fetal scenarios were removed on 2026-10-25 to be rebuilt).
 
 | Scenario | `dif_o2` | `dif_co2` |
 |---|---|---|
-| fetus_term | 0.003 | 0.04 |
-| fetus_30wk | 0.02 | 0.027 |
-| fetus_25wk | 0.012 | 0.016 |
-| postnatal (disabled) | 0.01 | 0.01 |
+| term_neonate (disabled) | 0.01 | 0.01 |
 
 ## References
 

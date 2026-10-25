@@ -112,7 +112,7 @@ From `archive/adult_female_uterus.json`, `models.MaternalPlacenta` (trimmed to t
 
 ## Usage in the scenarios
 
-Only `archive/adult_female_uterus` (60 kg adult female), with `PL_IVS` between `UT_ART` and `UT_VEN` in parallel with the uterine tissue bed (`UT_CAP`). None of the canonical neonatal and fetal scenarios include it.
+Only `archive/adult_female_uterus` (60 kg adult female), with `PL_IVS` between `UT_ART` and `UT_VEN` in parallel with the uterine tissue bed (`UT_CAP`). The shipped scenario (term_neonate) doesn't include it.
 
 ## References
 

@@ -31,7 +31,7 @@ BaseModelClass
 |---|---|---|---|
 | `fluids` | {name: {solute: value}} | `{}` | The fluid library (see the table below). |
 | `fluids_temp` | °C | 37 | Temperature of given fluids. |
-| `maintenance_rate` | mL/kg/h | 0 | Continuous maintenance intake. term 1.35, preterm and fetal 3. |
+| `maintenance_rate` | mL/kg/h | 0 | Continuous maintenance intake. term_neonate 1.35. |
 | `maintenance_fluid` | – | `"maintenance"` | Its composition (a key in `fluids`; missing = water). |
 | `maintenance_site` | – | `"IVCI"` | Compartment receiving it. |
 
@@ -111,7 +111,7 @@ From `term_neonate.json`, `models.Fluids` (trimmed to two fluids):
 
 ## Usage in the scenarios
 
-One instance in every scenario with the library above; maintenance 1.35 mL/kg/h (term, fetus_term) or 3 mL/kg/h (preterm, fetal 25/30 wk), each matching its resting urine output.
+One instance in every scenario with the library above; maintenance 1.35 mL/kg/h in term_neonate, matching its resting urine output.
 
 ## References
 

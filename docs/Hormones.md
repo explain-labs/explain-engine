@@ -110,7 +110,7 @@ Hormones writes **its own channels**, so it composes with the other writers inst
 ## Assumptions and limitations
 
 - **Set-points are the healthy reference of the patient's size and gestation.** A lesion keeps its size's reference, so a coarctation's low renal pressure activates RAAS (angiotensin ≈ 2.5), as it should. `scripts/_reference.mjs` (`scaleHormoneReferences`) derives them: volume scales with weight, perfusion with the gestation's defended MAP (`BR_MAP.set_value`). `_make_preterm.mjs`, `_make_bischoff.mjs`, `_make_fetus*.mjs` and `build_patient.mjs` apply it; below 34 weeks the [Kidneys](./Kidneys.md) renal reference replaces `perfusion_setpoint`.
-- **Near-neutral at rest** in every scenario (300 s from build): angiotensin, aldosterone and ADH 0.99–1.03, except **fetus_term**. There the fetal renal pressure (39 mmHg) sits above its reference (35 mmHg), so angiotensin settles at 0.70 and the arteriolar factor at 0.91. This is known from its validation ([TermFetusReference](./TermFetusReference.md)); the stored file holds 0.77 / 0.93, so it drifts a little after loading.
+- **Near-neutral at rest** in term_neonate (300 s from build): angiotensin, aldosterone and ADH 0.99–1.03. (The since-removed fetus_term was not: its fetal renal pressure, 39 mmHg, sat above its 35 mmHg reference, so angiotensin settled at 0.70.)
 - **Aldosterone's volume effect is small:** water transport isn't osmotically coupled to Na, so aldosterone shows as lower urinary Na rather than volume. ADH and angiotensin carry the volume and pressure defence. With the physiologic `aldosterone_tc`, aldosterone barely moves in a short session.
 - **The owned channels are overwritten** while running: edit them through the hormones, or switch them off (`hormones_running`, `raas_enabled`, `adh_enabled`), which releases them to 1.
 - **Not modelled:** natriuretic peptides, thirst and intake, catecholamines (the ANS and Drugs cover those).
@@ -142,7 +142,7 @@ From `term_neonate.json`, `models.Hormones` (trimmed to gating and set-points; g
 
 ## Usage in the scenarios
 
-One instance in every scenario, running. `perfusion_setpoint` ranges from 22.6 (25 wk) to 40.9 mmHg (term), `volume_setpoint` from 55 to 286 mL.
+One instance in every scenario, running. term_neonate: `perfusion_setpoint` 40.9 mmHg, `volume_setpoint` 0.301 L.
 
 ## References
 

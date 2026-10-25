@@ -17,10 +17,7 @@ import fs from "node:fs";
 const WRITE = process.argv.includes("--write");
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 const LM_TERM = 3.04, LT_TERM = 2.12, W_TERM = 3.545;
-const WEIGHT = {
-  term_neonate: 3.545, fetus_term: 3.545, preterm_30wk: 1.5, fetus_30wk: 1.5, preterm_28wk: 1.0,
-  preterm_25wk: 0.7, fetus_25wk: 0.7,
-};
+const WEIGHT = { term_neonate: 3.545 }; // the other scenarios (0.7-3.545 kg) were removed on 2026-10-25
 const path = (n) => new URL(`../model_definitions/${n}.json`, import.meta.url);
 
 // add (or replace) "inertance" in one Heart component, after its r_k line, as text

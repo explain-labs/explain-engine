@@ -25,7 +25,7 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `apnea_enabled` | boolean | `false` | Switch (`switch_apnea`). Off in every scenario. |
-| `apnea_frequency` | /min | 0.5 | Mean number of episodes per minute. Scenarios: 25 wk 1.2, 28 wk 0.7, 30 wk 0.5. |
+| `apnea_frequency` | /min | 0.5 | Mean number of episodes per minute. |
 | `apnea_duration` | s | 12 | Mean episode duration. Scenarios 14–20. |
 | `apnea_variability` | 0–1 | 0.3 | Uniform jitter of interval and duration (± fraction of the mean). |
 | `apnea_type` | – | `"central"` | `"central"`, `"obstructive"` or `"mixed"`. |
@@ -97,7 +97,7 @@ None. It switches `Breathing.breathing_enabled` and the airway resistor's `no_fl
 
 ## Example definition (JSON)
 
-From `preterm_28wk.json`, `models.Apnea` (trimmed to the config props):
+From the removed `preterm_28wk.json` (no shipped scenario has an Apnea model), `models.Apnea` (trimmed to the config props):
 
 ```json
 {
@@ -118,7 +118,7 @@ From `preterm_28wk.json`, `models.Apnea` (trimmed to the config props):
 
 ## Usage in the scenarios
 
-In the three preterm scenarios, dormant (`apnea_enabled` false), so their baseline vitals are unchanged. Not in term_neonate or the fetal scenarios. Verification: `node scripts/probe_apnea.mjs <scenario>` reports per-episode duration, SpO2 and HR nadirs and the desaturation → bradycardia lag; `--no-chemoreflex` disables `EF_HR_CHEMO` for comparison. See [TESTING](./TESTING.md).
+In no shipped scenario at present: the three preterm scenarios that had it (dormant, `apnea_enabled` false) were removed on 2026-10-25 to be rebuilt. `scripts/_add_apnea.mjs` adds it to a scenario. Verification: `node scripts/probe_apnea.mjs <scenario>` reports per-episode duration, SpO2 and HR nadirs and the desaturation → bradycardia lag; `--no-chemoreflex` disables `EF_HR_CHEMO` for comparison. See [TESTING](./TESTING.md).
 
 ## References
 

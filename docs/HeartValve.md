@@ -86,7 +86,7 @@ From `term_neonate.json`, `models.Heart.components.LV_AA` (trimmed to the config
 
 ## Usage in the scenarios
 
-Seven valves in all 7 scenarios, all owned by `Heart`:
+Seven valves in term_neonate, all owned by `Heart`:
 
 | Valve | Connection | State |
 |---|---|---|

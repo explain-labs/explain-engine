@@ -4,29 +4,15 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
-> **Since 2026-10-16 only `term_neonate` is maintained**, joined on 2026-10-18 by `preterm_28wk`
-> (28 wk, 1 kg, 72 h on nasal CPAP 6) and on 2026-10-19 by `preterm_25wk` (25 wk, 0.7 kg, 72 h on nasal
-> CPAP 7) and `preterm_30wk` (30 wk, 1.5 kg, 72 h on nasal CPAP 5 in room air). All three are generated
-> from `term_neonate` by `scripts/_make_preterm_validated.mjs --profile 28|25|30` (lever profiles in
-> `scripts/_preterm_profiles.mjs`) and validated against [Preterm28wkReference](./Preterm28wkReference.md),
-> [Preterm25wkReference](./Preterm25wkReference.md) and [Preterm30wkReference](./Preterm30wkReference.md).
-> On 2026-10-19 the fetus `fetus_30wk` (30 wk, 1.5 kg, in utero, not in labour) was rebuilt the same way, from
-> `term_neonate` by `scripts/_make_fetus_validated.mjs --profile 30` (levers in `scripts/_fetal_profiles.mjs`),
-> and validated against [Fetus30wkReference](./Fetus30wkReference.md); it replaces the archived version. The term
-> fetus `fetus_term` (40 wk, 3.545 kg) followed the same day (`--profile 40`, [TermFetusReference](./TermFetusReference.md)), and the 25-week fetus
-> `fetus_25wk` (0.7 kg) on 2026-10-20 (`--profile 25`, [Fetus25wkReference](./Fetus25wkReference.md)).
-> On 2026-10-22 `bischoff_no_pda` (the no-PDA group of Bischoff et al. 2021: 25.5 wk, 0.764 kg, 72 h, room air,
-> duct closed) joined as a further `_make_preterm_validated.mjs` profile (`--profile bischoff_no_pda`), validated
-> against [BischoffNoPdaReference](./BischoffNoPdaReference.md).
-> The same day `bischoff_ltr_pda` (the left-to-right PDA group: 25.8 wk, 0.72 kg, 72 h, FiO₂ 0.26, unrestrictive
-> PDA 2.1 mm) followed as `--profile bischoff_ltr_pda`, validated against [BischoffLtrPdaReference](./BischoffLtrPdaReference.md),
-> and on 2026-10-23 `bischoff_bidir_pda` ([BischoffBidirPdaReference](./BischoffBidirPdaReference.md)). All three were
-> removed on 2026-10-25, during the re-validation, to be rebuilt from scratch; their reference pages and probe targets
-> (`scripts/reference/bischoff_*.json`) are kept for the rebuild.
+> **Only `term_neonate` is shipped** (since 2026-10-25). It is the literature-validated healthy term
+> neonate at 72 h ([TermNeonateReference](./TermNeonateReference.md)) and the root every other patient is
+> built from. The preterm scenarios (`preterm_25wk`, `preterm_28wk`, `preterm_30wk`, 2026-10-18/19), the
+> fetal scenarios (`fetus_25wk`, `fetus_30wk`, `fetus_term`, 2026-10-19/20) and the three Bischoff 2021
+> scenarios (2026-10-22/23) were removed on 2026-10-25, during the re-validation, together with their
+> generators (`_make_preterm_validated.mjs`, `_make_fetus_validated.mjs`), lever profiles, reference pages and
+> probe targets: term is finished first, then they are rebuilt from scratch. Git history holds them.
 > The frozen set that the P1 companion and the ToF lesson used (`bischoff_cohort`, `p1_baseline`,
-> `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20: the P1
-> experiments are to be re-run on the current engine, and the ToF lesson is offline until a ToF
-> scenario is rebuilt. Everything else
+> `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20. Everything else
 > is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
 > the fixed term baby.
 >

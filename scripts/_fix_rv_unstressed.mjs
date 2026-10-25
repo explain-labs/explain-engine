@@ -15,7 +15,7 @@ import { createEngine } from "./_harness.mjs";
 
 const WRITE = process.argv.includes("--write");
 const RATIO = 1.64;
-const POSTNATAL = ["term_neonate", "preterm_30wk", "preterm_28wk", "preterm_25wk"];
+const POSTNATAL = ["term_neonate"]; // the preterm scenarios were removed on 2026-10-25
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const names = args.length ? args : POSTNATAL;
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");

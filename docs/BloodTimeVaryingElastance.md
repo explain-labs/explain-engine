@@ -92,7 +92,7 @@ From `term_neonate.json`, `models.Mob.components.COR` (trimmed to the config pro
 
 ## Usage in the scenarios
 
-One instance in all 7 scenarios: `COR`, owned by `Mob`, inside the `PERICARDIUM`. It is fed from the ascending aorta by `AA_COR` (implicit flow) and drains into both halves of the right atrium through `COR_RAIVCI` and `COR_RASVC`.
+One instance in term_neonate: `COR`, owned by `Mob`, inside the `PERICARDIUM`. It is fed from the ascending aorta by `AA_COR` (implicit flow) and drains into both halves of the right atrium through `COR_RAIVCI` and `COR_RASVC`.
 
 ## References
 

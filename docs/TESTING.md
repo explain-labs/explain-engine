@@ -88,10 +88,9 @@ A probe is a self-contained `.mjs` that boots the engine, runs a scripted physio
 
 ```bash
 node scripts/probe_vitals.mjs term_neonate
-node scripts/probe_vitals.mjs preterm_28wk --profile preterm_28
 node scripts/probe_vitals.mjs term_neonate --no-ans --seconds 90
 node scripts/probe_brain.mjs --scenario term_neonate --bleed 0.3
-node scripts/probe_pda.mjs preterm_28wk --beats 6
+node scripts/probe_pda.mjs <scenario with an open duct> --beats 6
 ```
 
 Common flags seen across the vitals/brain/pda probes: `--seconds N` (warm-up), `--window W` (averaging window), `--verbose` (un-silence engine logs), `--no-ans` (freeze the baroreflex). Scenario-specific probes add their own (e.g. `probe_brain.mjs` `--bleed`/`--edema`/`--scenario`, `probe_pda.mjs` `--beats`/`--trace`). Confirm a probe's flags by reading its header comment — each script documents its own `Usage:` line.
@@ -103,7 +102,7 @@ Probes are **interactive verification tools, not pass/fail test cases.** They pr
 ## The respiratory validation suite
 
 `npm run validate:resp` (`scripts/validate_respiratory.mjs`) **is** a pass/fail gate: it exits `1` when a
-check fails. It runs a fixed battery on preterm_28wk and term_neonate (adult_female is archived), one child process per
+check fails. It runs a fixed battery on term_neonate (preterm_28wk was removed on 2026-10-25 to be rebuilt, so the preterm-class checks, HFOV among them, wait for the rebuild; adult_female is archived), one child process per
 scenario, and checks each result against clinical ranges per patient class in
 `scripts/_resp_targets.mjs` (each range carries its literature source; the ranges are not fitted to the
 model). The battery:
@@ -137,13 +136,13 @@ fail the run. One that starts passing reports `XPASS`: remove its entry. Options
 |---|---|---|
 | **Core vitals / calibration** | `probe_vitals.mjs`, `probe_tune.mjs`, `probe_ea.mjs` | Regulated vitals + ABG vs normal ranges; the live closed-loop tuner; mitral E/A ratio. |
 | **Physiology systems** | `probe_brain.mjs`, `probe_respiratory.mjs`, `probe_surfactant.mjs`, `probe_derecruitment.mjs`, `probe_thermo.mjs`, `probe_glucose.mjs`, `probe_lactate.mjs`, `probe_renal.mjs`, `probe_heartfunction.mjs`, `probe_cpap.mjs`, `probe_apnea.mjs`, `probe_arrhythmia.mjs`, `probe_drugs.mjs`, `probe_pge1.mjs` | Cerebral autoregulation/ICP; respiratory/acid-base dose-response sweeps (FiO2, O2 diffusion, minute volume, UMA); RDS recruitment/derecruitment + surfactant; thermoregulation; glucose/insulin; hypoxic lactate; GFR + RAAS/ADH response to haemorrhage and volume load; load-induced contractility; CPAP/PS ventilation of spontaneous breathing; apnea of prematurity (episode count, SpO2/HR nadirs, desat→brady lag; `--no-chemoreflex` attribution); conduction arrhythmias; adrenaline/noradrenaline PK/PD; PGE1 ductal patency. |
-| **Devices** | `probe_ventilator.mjs`, `probe_sle6000.mjs`, `probe_ecls.mjs`, `probe_resuscitation.mjs` | Pressure-control ventilation of a preterm RDS lung with spontaneous drive off, sweeping FiO2 / rate / PEEP; veno-arterial ECMO rescue under near-abolished alveolar diffusion, sweeping pump speed / sweep-gas flow (both report the **emergent** blood gas from the gas-exchange physics, not the device); the SLE6000 device model — pass/fail checks of its modes, settings validation, VTV, CPAP backup, O2 Boost and monitored values (exit 1 on failure); CPR — under a simulated arrest, verifies the compression waveform, that compressions drive forward aortic flow via `pres_ext`, the `vent_no`-breaths-per-pause timing, and a clean `switch_cpr` re-toggle. |
-| **Fetal / maternal** | `probe_fetus.mjs [scenario]`, `probe_uterus.mjs`, `probe_placenta.mjs` | Fetal circulation (takes a scenario stem, default `fetus_term`; see [fetal_circulation.md](./fetal_circulation.md)); uterine bed / pregnancy adaptation / contractions; maternal placenta. |
+| **Devices** | `probe_ventilator.mjs`, `probe_sle6000.mjs`, `probe_ecls.mjs`, `probe_resuscitation.mjs` | Pressure-control ventilation with spontaneous drive off, sweeping FiO2 / rate / PEEP; veno-arterial ECMO rescue under near-abolished alveolar diffusion, sweeping pump speed / sweep-gas flow (both report the **emergent** blood gas from the gas-exchange physics, not the device); the SLE6000 device model — pass/fail checks of its modes, settings validation, VTV, CPAP backup, O2 Boost and monitored values (exit 1 on failure); CPR — under a simulated arrest, verifies the compression waveform, that compressions drive forward aortic flow via `pres_ext`, the `vent_no`-breaths-per-pause timing, and a clean `switch_cpr` re-toggle. |
+| **Fetal / maternal** | `probe_fetus.mjs [scenario]`, `probe_uterus.mjs`, `probe_placenta.mjs` | Fetal circulation (takes a scenario stem; no fetal scenario is shipped at present, see [fetal_circulation.md](./fetal_circulation.md)); uterine bed / pregnancy adaptation / contractions; maternal placenta. |
 | **PDA / CDH** | `probe_p1.mjs` | Reproduces the cardiovascular paper's validation experiments from `papers/p1/experiments.json` (paper vs engine vs literature) |
 | `probe_pda.mjs`, `probe_cdh.mjs` | PDA Doppler envelope classification; congenital diaphragmatic hernia phenotypes. |
 | **CHD family** | `probe_as.mjs`, `probe_coarc.mjs`, `probe_dtga.mjs`, `probe_hlhs.mjs`, `probe_paivs.mjs`, `probe_pavsd.mjs`, `probe_ps.mjs`, `probe_ta.mjs`, `probe_tapvc.mjs`, `probe_tof.mjs` | Duct/FO-dependent congenital heart disease scenarios (aortic stenosis, coarctation, d-TGA, HLHS, PA-IVS, PA-VSD, pulmonary stenosis, tricuspid atresia, TAPVC, tetralogy of Fallot). |
 
-> Most probes default to `term_neonate`; the ones whose physiology only makes sense on a sick lung default elsewhere (e.g. `probe_ventilator.mjs` → `preterm_28wk`). Check the script's `Usage:` header.
+> Every probe defaults to `term_neonate`. Until the preterm and fetal scenarios are rebuilt, `probe_apnea`, `probe_surfactant` and `probe_derecruitment` (they need an Apnea or Surfactant model) and `probe_fetus`/`probe_placenta` (they need a running placenta) have no shipped scenario to run on. Check the script's `Usage:` header.
 
 ## Other engine-dev tooling
 
@@ -152,10 +151,9 @@ The remaining `scripts/*.mjs` support calibration, scenario authoring, and stead
 | Group | Scripts | Role |
 |---|---|---|
 | **Calibration** | `build_patient.mjs`, `probe_build_patient.mjs`, `probe_tune.mjs` | Closed-loop calibration via [`helpers/Calibrator.js`](../helpers/Calibrator.js) (see [Calibrator](./Calibrator.md)) — `build_patient.mjs` builds a new calibrated patient from target vitals; `probe_build_patient.mjs` runs it on a few SPECs, reloads each emitted scenario in a fresh engine and checks it against its own `build_report` (targets still within tolerance, FiO2 persisted, desaturation in room air, derived blood-pressure targets, solutes held after reload) and prints levers that ended on a bound; `probe_tune.mjs` exercises the same live tuner headlessly. |
-| **Validated scenario generators** | `_make_preterm_validated.mjs --profile <25\|28\|30>`, `_make_fetus_validated.mjs --profile <25\|30\|40>` | Build the shipped preterm and fetal scenarios from `term_neonate` against their `*Reference.md` targets, then `incorporate` (bake) the scaling layer before serializing. Use these, not the older generators below, for the canonical set. |
 | **Reseeding** | `reseed_*.mjs` (e.g. `reseed_term_neonate`) | Warm a scenario to steady state and serialize it back into `model_definition` (baking equilibrium seeds, clearing startup transients). Each shares `_serialize_state.mjs` (replicates `Model._processModelState`). **Default is a dry run to `/tmp`**; pass `--write` to overwrite the scenario file in place. Only `reseed_term_neonate` remains here; the reseeders of the archived scenarios are in `scripts/archive/` (see below). |
 | **Archived generators** | `scripts/archive/` (`_make_preterm`, `_make_fetus`, `_make_cdh_phenotypes`, `_make_dtga`, `_make_pda_patterns`, …, and their `reseed_*`) | The scripts of the archived scenarios: they derive a scenario from `term_neonate` by phenotype-specific lever edits and read and write `model_definitions/archive/` only. Unvalidated against the current engine; see their README. New scenario titles still go in `_titles.mjs` (`setDiagramTitle`). |
-| **Gestational-age tables** | `scripts/_ga_tables.mjs`, `_preterm_profiles.mjs`, `_fetal_profiles.mjs` | The per-GA levers and reference profiles shared by the validated generators and `build_patient.mjs`. Generate → probe against the `*Reference.md` → adjust the profile → regenerate. |
+| **Gestational-age tables** | `scripts/_ga_tables.mjs` | The per-GA seed levers used by `build_patient.mjs`. (The validated preterm/fetal generators and their profiles were removed on 2026-10-25 to be rebuilt.) |
 | **Feature patchers** | `_add_neonatal_core.mjs`, `_add_brain.mjs`, `_add_surfactant.mjs`, `_add_titles.mjs` | Patch a model/feature into many existing scenario JSONs at once (without reseeding, to preserve calibration). `_add_titles.mjs` re-applies the `_titles.mjs` diagram titles in place. |
 | **Shared internals** | `_harness.mjs`, `_probe.mjs`, `_serialize_state.mjs`, `_titles.mjs`, `resolve-extensionless.mjs` | `createEngine`; `measureVitals`/`RANGES`/`selectProfile`/`flagOf`; the `serializeState` baker; the scenario diagram-title map; the ESM `.js`-retry resolve hook. |
 

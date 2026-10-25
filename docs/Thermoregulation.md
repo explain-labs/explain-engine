@@ -152,8 +152,6 @@ One instance in every scenario.
 | Scenario | `env_temp` (°C) | Humidity | Set-point | Brown fat | Respiratory heat |
 |---|---|---|---|---|---|
 | term_neonate | 32 | 0.5 | 37 | yes | yes |
-| preterm_30wk / 28wk / 25wk | 34 / 35 / 36 / 36 | 0.6 / 0.7 / 0.8 / 0.8 | 37 | yes | yes |
-| fetal ×3 | 37.3 | 1.0 | 37.5 | no | no |
 
 ## References
 

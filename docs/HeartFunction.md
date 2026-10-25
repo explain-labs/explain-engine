@@ -142,7 +142,7 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
 
 ## Example definition (JSON)
 
-From `preterm_25wk.json`, `models.HeartFunction` (trimmed to the main config props):
+From `term_neonate.json`, `models.HeartFunction` (trimmed to the main config props):
 
 ```json
 {
@@ -153,10 +153,10 @@ From `preterm_25wk.json`, `models.HeartFunction` (trimmed to the main config pro
   "remodel_active": true,
   "stress_deadband": 1.5,
   "setpoint_warmup": 60,
-  "sigma_es_ref_lv": 23.5996,
-  "sigma_ed_ref_lv": 9.2291,
-  "sigma_es_ref_rv": 42.2645,
-  "sigma_ed_ref_rv": 16.5871
+  "sigma_es_ref_lv": 78.1419,
+  "sigma_ed_ref_lv": 21.6036,
+  "sigma_es_ref_rv": 127.4271,
+  "sigma_ed_ref_rv": 56.9684
 }
 ```
 
@@ -167,12 +167,6 @@ One instance in every scenario, enabled, with resting setpoints learned for that
 | Scenario | LV σ_es / σ_ed | RV σ_es / σ_ed |
 |---|---|---|
 | term_neonate | 78.1 / 21.6 | 127.4 / 57.0 |
-| fetus_term | 51.0 / 12.7 | 121.2 / 38.7 |
-| fetus_30wk | 28.2 / 8.2 | 57.2 / 21.5 |
-| fetus_25wk | 17.8 / 3.1 | 34.8 / 7.7 |
-| preterm_30wk | 39.6 / 15.8 | 52.8 / 34.5 |
-| preterm_28wk | 30.3 / 11.3 | 56.3 / 24.4 |
-| preterm_25wk | 23.6 / 9.2 | 42.3 / 16.6 |
 
 `scripts/probe_heartfunction.mjs` exercises it on term_neonate with an afterload and a volume challenge.
 

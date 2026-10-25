@@ -16,7 +16,7 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 
 const WRITE = process.argv.includes("--write");
-const ALL = ["term_neonate", "preterm_30wk", "preterm_28wk", "preterm_25wk", "fetus_25wk", "fetus_30wk", "fetus_term"];
+const ALL = ["term_neonate"]; // the other scenarios were removed on 2026-10-25
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const names = args.length ? args : ALL;
 const target = (n) => (n.startsWith("fetus") ? 0.5 : 0.55);

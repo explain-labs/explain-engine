@@ -186,10 +186,10 @@ Trace on `term_neonate`, right lung, set to 0.6 on SLE CMV 20/5 (`scripts/probe_
 | Standby, spontaneous, 3 min | 0.55 | 90.6 | 50 % | 26 |
 
 With `atelectasis_recruitable = false` (a mucus plug, resorption atelectasis) the collapse ignores
-pressure. In the preterm scenarios [Surfactant](./Surfactant.md) keeps its own whole-lung
+pressure. Where a scenario has [Surfactant](./Surfactant.md), it keeps its own whole-lung
 recruitment on the non-persistent layer. The two run independently and their effects add.
 
-The thresholds are calibrated on the term lung. In `preterm_28wk`, recruitment with PIP 28 or sighs
+The thresholds are calibrated on the term lung. In the since-removed `preterm_28wk`, recruitment with PIP 28 or sighs
 works the same way, but PEEP 8 already lets some re-collapse. At PEEP ≤ 5, Surfactant derecruits the
 whole lung as well, so a surfactant-deficient lung needs more PEEP, as at the bedside.
 
@@ -272,7 +272,7 @@ From `term_neonate.json`, `models.Respiration` (trimmed: groups and atelectasis 
 
 ## Usage in the scenarios
 
-One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. All seven scenarios use the defaults above for every lever (1) and for atelectasis (0); disease in the preterm scenarios is carried by the compartments' own values and by Surfactant (enabled there).
+One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. term_neonate uses the defaults above for every lever (1) and for atelectasis (0); disease (in the since-removed preterm scenarios) is carried by the compartments' own values and by Surfactant (enabled there).
 
 ## References
 

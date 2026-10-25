@@ -23,11 +23,10 @@ const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 const g = (v) => 4 * v * v;
 const TERM = { LV_AA: g(0.9), RV_PA: g(0.8) };
 const PRETERM = { LV_AA: g(0.7), RV_PA: g(0.6) };
-const TUNE = {
-  term_neonate: TERM, preterm_30wk: PRETERM, preterm_28wk: PRETERM, preterm_25wk: PRETERM,
-  fetus_25wk: { LV_AA: g(0.6), RV_PA: g(0.55) }, fetus_30wk: { LV_AA: g(0.75), RV_PA: g(0.65) }, fetus_term: TERM,
-};
-const COPY = {}; // the three Bischoff scenarios took preterm_25wk's values (removed 2026-10-25)
+// the preterm and fetal scenarios (PRETERM; fetus 25 wk 0.6/0.55, 30 wk 0.75/0.65, term as TERM) and the
+// three Bischoff ones (preterm_25wk's values) were removed on 2026-10-25
+const TUNE = { term_neonate: TERM };
+const COPY = {};
 
 const eng = await createEngine();
 const path = (n) => new URL(`../model_definitions/${n}.json`, import.meta.url);

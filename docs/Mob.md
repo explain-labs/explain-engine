@@ -82,14 +82,8 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
   | Scenario | Heart weight | MVO2 | Coronary flow (per 100 g), before → after | Extraction |
   |---|---|---|---|---|
   | term_neonate | 23.0 g | 10.6 | 37.4 (163) → 18.1 (79 per 100 g) | 30 → 55 % |
-  | preterm_30wk | 14.2 g | 7.8 | 16.4 (115) → 8.3 (59 per 100 g) | 32 → 55 % |
-  | preterm_28wk | 12.1 g | 7.5 | 11.5 (95) → 7.4 (61 per 100 g) | 40 → 55 % |
-  | preterm_25wk | 10.8 g | 6.5 | 7.9 (73) → 6.9 (64 per 100 g) | 50 → 55 % |
-  | fetus_25wk | 10.8 g | 7.1 | 7.9 (73) → 11.3 (105 per 100 g) | 64 → 50 % |
-  | fetus_30wk | 14.2 g | 8.5 | 13.8 (97) → 17.4 (122 per 100 g) | 60 → 50 % |
-  | fetus_term | 23.0 g | 12.4 | 30.5 (133) → 44.8 (195 per 100 g) | 69 → 50 % |
 
-  The term flow (18 mL/min) is close to the ~20–25 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests; the fetal flows (105–195 per 100 g) sit in the range of fetal-lamb microsphere data (Smolich 1996, Dalshaug 2002). The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
+  The term flow (18 mL/min) is close to the ~20–25 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests; the since-removed fetal scenarios got 105–195 per 100 g at 50 %, in the range of fetal-lamb microsphere data (Smolich 1996, Dalshaug 2002), and the preterm ones 59–64 at 55 %. The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
 - **The hypoxia effects start only at a very low `COR.to2`** (0.2 mmol/L, ~2 % saturation). At rest they are inactive, and they engage only in profound coronary hypoxia.
 - **Contractility is depressed twice** under hypoxia: `cont_factor` lowers `el_max`, and `ans_activity_factor` lowers the sympathetic inotropy. Their combined strength is set by `cont_factor_min` and `ans_factor_min`.
 - **Heart weight follows body weight only** (no hypertrophy).

@@ -63,14 +63,6 @@ const CASES = [
     expectDerived: { pp: 28, map: 49.3 }, expectDia: true,
   },
   {
-    // a small infant on an already-preterm baseline: arteries sized against the term weight and the
-    // implicit aortic resistors let a 20 mmHg pulse pressure converge (it stopped near 11 with the
-    // lever at the old x1.8 bound); the pair is fitted as diastolic + pulse pressure
-    name: "preterm_baseline_bp",
-    spec: { baseline: "preterm_25wk", name: "probe_preterm25_bp", targets: { hr: 159, sys: 45, dia: 25 } },
-    expectDia: true, expectPpFree: true,
-  },
-  {
     // lactic acidosis with measured electrolytes: the BE target is fitted by the unmeasured
     // anions left over after Na/K/Cl/lactate/albumin
     name: "term_lactate_electrolytes",
