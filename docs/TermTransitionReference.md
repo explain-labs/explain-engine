@@ -1,0 +1,121 @@
+# Term neonate in transition: reference values at 1, 12, 24 and 72 h
+
+Reference values for the transitional term scenarios: a healthy term neonate of about 3.5 kg after an
+uncomplicated **vaginal birth with delayed cord clamping (~1 min)**, breathing room air and nursed
+**skin-to-skin or dressed at room temperature**, not yet fed at 1 h. The 72 h column is the
+`term_neonate` set ([TermNeonateReference](./TermNeonateReference.md)); the earlier ages describe what
+changes on the way there. Compiled 2026-10-25 from PubMed.
+
+The machine-readable sets are [`term_neonate_1h.json`](../scripts/reference/term_neonate_1h.json)
+(and, when those scenarios are built, `term_neonate_12h.json` and `term_neonate_24h.json`), in the
+same format as [`term_neonate_72h.json`](../scripts/reference/term_neonate_72h.json). Variables without
+data at an age are reference-only there (no numbers) or carry the 72 h range, marked C.
+
+**Grades**
+- **A**: healthy term infants measured at (or within a few hours of) that age
+- **B**: a nearby age, a mixed cohort or delivery mode, or direction only
+- **C**: textbook, derived, or the 72 h value carried
+
+## Each scenario is a snapshot
+
+A baby at 1 h is mid-transition: the duct is closing, pulmonary pressure is falling, lung liquid is
+being absorbed, and catecholamines are still high. Each transitional scenario is a **steady state of
+that moment**. Its controllers (chemo- and baroreflex, Brain, Hormones, Glucose, HeartFunction and the
+thermal loss trim) are re-anchored to the age's values, so the scenario holds them when loaded instead of
+drifting toward 72 h. The time course is the series of scenarios, not something one scenario runs through.
+
+## Decisions (2026-10-25)
+
+- **Pulmonary artery pressure at 1 h:** near-systemic, PAP:SAP ~0.9. Every baby has a bidirectional duct
+  at 2 h (Kang 2016), and bidirectional ductal flow goes with a ratio of 0.88–1.22 (Skinner 1991). Kang's
+  absolute 2 h values (77/63 mmHg, from the ductal gradient plus cuff pressure) are above systemic
+  pressure and would force right-to-left flow, so they are not used as targets.
+- **Haematocrit and blood volume:** the delayed-clamping values (Hct ~55 % at 1 h, 57 % at 6 h). The 72 h
+  baby (Hct 49.5, a mixed-clamping population) is left unchanged, so the series is not continuous in Hct.
+- **Blood gases at 1 h:** textbook values, grade C. No quotable values were found: Weisbrot 1958, Koch &
+  Wendel 1968 and Jovandaric 2018 (arterialized capillary gases at 1 and 2 h in 50 healthy newborns) give
+  their numbers only in tables.
+- **VO2:** 7.0 mL/kg/min at every age. The only human early value (~5 under 12 h, Hill & Robinson 1968)
+  comes mostly from low-birth-weight infants, and lambs reach their postnatal VO2 within an hour.
+
+## Hemodynamics
+
+| Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
+|---|---|---|---|---|---|---|
+| Heart rate (bpm) | 126 (P2–P98 102–162) at 2 h | 120–122 | 120–122; 121 ± 11 | 118 | A at 2/24 h | Tveiten 2021; Agata 1991 |
+| SBP/DBP/MAP (mmHg) | 65/45/48–52 (day 1) | day 1 | day 1 | 74/46/58 | B (no hourly data) | Kent 2007; He 2011 (66/33/44 → 71/38/49, day 1 → 3) |
+| LV output (mL/kg/min) | **327 ± 66; 365 ± 69** | ~290 (301 at 4–8 h) | 245 ± 56; 272 ± 48 | 196 (MRI) / 258 (echo, 96 h) | A | Agata 1991, 1994 |
+| LV stroke volume (mL/kg) | 2.25 ± 0.37 | – | 2.02 ± 0.42 | 1.6 | A | Agata 1991 |
+| SVC flow (mL/kg/min) | 99 (day 1) | 99 | 99 | 77–83 | B | Lee 2009 |
+| PAP mean (mmHg) | ~45 (ratio ~0.9) | 41 ± 9 | 34 ± 10 | 25 ± 8 | B / A-B | Skinner 1991; Kang 2016 |
+| PAP systolic (mmHg) | ~58 | 52.5 ± 9.1 | 43.8 ± 7.9 | 36 ± 6.5 | B / A-B | Kang 2016 |
+| Cerebral (MCA) flow | lower than after 24 h | – | rises | – | B (direction) | Agata 1994 |
+
+## Shunts
+
+| Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
+|---|---|---|---|---|---|---|
+| Ductal diameter (mm) | 4.60 ± 0.59 (2 h) | 2.47 ± 0.49 | 1.89 ± 0.41 | 1.20 ± 0.24 | A | Kang 2016 |
+| Duct closed | 0 % | 0 % | 38 % (Lim 1992: 20 % day 1) | 95 % (Lim: 96 % day 3) | A | Kang 2016; Lim 1992 |
+| Ductal direction | bidirectional in 100 % (2 h) | L→R only in 88 % | L→R | closed | A | Kang 2016 |
+| Ductal L→R flow (mL/kg/min) | 62 (95 % CI 43–82) shortly after birth | falling fast | small | unmeasurable by 48 h | B (n = 10) | Drayton 1987 |
+| Foramen ovale | shunt in 92 % at ~40 min, mostly L→R, small diastolic R→L in 64 % | – | patent in 22/37 | shunt in 47 % (days 4–5), R→L in 19 % | A | Hiraishi 1991; Lim 1989 (patency) |
+
+## Lungs and breathing
+
+| Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
+|---|---|---|---|---|---|---|
+| FRC (mL/kg) | 23.1 at 4–6 h (vaginal); TGV 32.7 < 6 h | – | 24.9 | 27.1 | A | Lee 1999; Milner 1978 |
+| Compliance | lower on day 0 | – | higher from day 1 | 3.6 mL/cmH2O | B (direction) | Lødrup Carlsen 1993 |
+| Tidal volume | lower on day 0 | – | rises from day 0 to day 1 | 5.6 mL/kg | B (direction) | Lødrup Carlsen 1993 |
+| RR, minute ventilation | no data | – | – | 44; 215 mL/kg/min | – | carried from 72 h |
+| SpO2 (%) | 96 ± 1 (1.5–13.5 h); median 98.3 (0–24 h) | 98 | 98 | 97.3 | A | Nikkola 2002; O'Brien 2000 |
+| Pre/post-ductal gradient | gone by 15 min | – | – | – | A | Mariani 2007 |
+
+## Gases and metabolism
+
+| Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
+|---|---|---|---|---|---|---|
+| pH / pCO2 / BE | 7.32 / 36 / −5 | – | – | 7.395 / 38.7 / −4..2 | C at 1 h | textbook; cord UA P10 pH 7.21, BD 5.9 (Dudenhausen 1997) |
+| Lactate (mmol/L) | 2.2 (1.1–6.2), 0–12 h | 2.2 | – | 1.4 (0.8–3.3) | A | GLOW 2021 |
+| Glucose (mmol/L) | ~3.3; 1 h not lower than later | rising | 3.3 ± 0.6 plateau | 3.3–4.6 (day 4: 4.6) | A/B | GLOW 2020; Hoseth 2000 |
+| VO2 (mL/kg/min) | 7.0 (decision) | 7.0 | 7.0 | 6.3–7.0 | B | Hill & Robinson 1968 (~5 < 12 h, LBW) |
+| Temperature (°C) | 36.8 (skin-to-skin rewarms 36.3 → 37.0 in 1 h) | – | rectal lower on day 1 than day 2 | 37.0 | B | Karlsson 1996; Fransson 2005 |
+| Catecholamines | raised plateau to 3 h | adult resting level | resting | resting | B (no numbers) | Eliot 1980 |
+
+## Blood and kidneys
+
+| Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
+|---|---|---|---|---|---|---|
+| Haematocrit (%) | ~55 (1-min DCC; 57.0 at 6 h) | ~57 | 56–59 (3-min DCC) | 49.5 (mixed clamping) | A/B | Ceriani Cernadas 2006; Linderkamp 1992; Nelle 1993; Jopling 2009 |
+| Blood volume (mL/kg) | ~92 | – | – | 80–90 | C | textbook; +50 % vs early clamping (Linderkamp 1992) |
+| First void | none yet (42 % by 6 h) | 76 % voided | 95 % | – | A | Ogala 1986 |
+
+## Sources
+
+All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
+
+- Agata Y 1991, J Pediatr 119:441 ([doi](https://doi.org/10.1016/s0022-3476(05)82060-8)); Agata Y 1994, Pediatr Res 36:805 ([doi](https://doi.org/10.1203/00006450-199412000-00022))
+- Tveiten L 2021, Arch Dis Child Fetal Neonatal Ed ([doi](https://doi.org/10.1136/archdischild-2020-320761))
+- Kent AL 2007, Pediatr Nephrol 22:1335 ([doi](https://doi.org/10.1007/s00467-007-0480-8)); He 2011, Chin Med J 124:2284 (PMID 21933558)
+- Kang C 2016, Medicine 95:e2599 ([doi](https://doi.org/10.1097/MD.0000000000002599)); Lim MK 1992, Arch Dis Child ([doi](https://doi.org/10.1136/adc.67.10_spec_no.1217))
+- Drayton MR 1987, Arch Dis Child 62:1030 ([doi](https://doi.org/10.1136/adc.62.10.1030)); Skinner JR 1991, Arch Dis Child 66:386 ([doi](https://doi.org/10.1136/adc.66.4_spec_no.386))
+- Hiraishi S 1991, Br Heart J 65:41 ([doi](https://doi.org/10.1136/hrt.65.1.41)); Lim 1989, Early Hum Dev (PMID 2691234)
+- Lee A 2009, SVC flow ([doi](https://doi.org/10.1136/adc.2009.176883))
+- Lee S 1999, Pediatr Pulmonol 27:318 (PMID 10344710); Milner AD 1978, Arch Dis Child 53:545 ([doi](https://doi.org/10.1136/adc.53.7.545)); Lødrup Carlsen KC 1993 (PMID 8112445)
+- Nikkola E 2002, Acta Paediatr ([doi](https://doi.org/10.1080/080352502760272605)); O'Brien LM 2000 ([doi](https://doi.org/10.1136/fn.83.1.f35)); Mariani G 2007, J Pediatr 150:418 ([doi](https://doi.org/10.1016/j.jpeds.2006.12.015))
+- Dudenhausen JW 1997, cord gases ([doi](https://doi.org/10.1016/s0020-7292(97)02890-7))
+- Harris DL 2020 (GLOW glucose) ([doi](https://doi.org/10.1016/j.jpeds.2020.02.079)); Harris DL 2021 (GLOW lactate) ([doi](https://doi.org/10.1016/j.jpeds.2020.12.063)); Hoseth E 2000 ([doi](https://doi.org/10.1136/fn.83.2.f117))
+- Hill JR, Robinson DC 1968, J Physiol 199:685 ([doi](https://doi.org/10.1113/jphysiol.1968.sp008673))
+- Karlsson H 1996 ([doi](https://doi.org/10.1136/fn.75.2.f130)); Fransson AL 2005 ([doi](https://doi.org/10.1136/adc.2004.066589))
+- Eliot RJ 1980, J Pediatr 96:311 ([doi](https://doi.org/10.1016/s0022-3476(80)80836-5))
+- Ceriani Cernadas JM 2006, Pediatrics 117:e779 ([doi](https://doi.org/10.1542/peds.2005-1156)); Linderkamp O 1992, Acta Paediatr ([doi](https://doi.org/10.1111/j.1651-2227.1992.tb12095.x)); Nelle M 1993 ([doi](https://doi.org/10.1016/0002-9378(93)90161-b)); Jopling J 2009 ([doi](https://doi.org/10.1542/peds.2008-2654))
+- Ogala WN 1986 (PMID 3810846)
+
+## Gaps
+
+- Blood gases (pH, pCO2, pO2, BE) at 1, 12 and 24 h: the classic series need full text.
+- Hourly blood pressure in the first day (Kitterman 1969, Versmold 1981: no abstracts).
+- Respiratory rate, tidal volume and compliance values in the first hours (direction only).
+- Plasma catecholamine levels by hour (Eliot 1980 full text).
+- Blood volume after 1-min clamping (Yao 1969 not in PubMed).
