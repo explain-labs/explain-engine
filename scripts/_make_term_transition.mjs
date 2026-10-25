@@ -48,6 +48,10 @@ const PROFILES = {
     BLOOD_VOLUME: 80 / 85, HCT: 0.55,
     // gases and metabolites: lactate 2.2 (GLOW), BE ~-5 and pCO2 ~36 (textbook, C), glucose 3.3 (GLOW)
     LACT: 2.2, UMA_DELTA: 2.1, MV_REF: 1.11, GLUCOSE: 3.3,
+    // residual lung liquid: a smaller, proportionally stiffer aerated lung (alveolar u_vol and el_base of
+    // ALL/ALR) -> FRC ~-10 % (Lee 1999: vaginal FRC 23.1 at 4-6 h vs 24.9 at 24 h), Crs ~-8 % (Lødrup
+    // Carlsen 1993: Crs lower on day 0; direction only), specific compliance about constant
+    LUNG_U_VOL: 0.85, LUNG_EL: 1.11,
     // reflex set-points at the targets while the levers settle (re-anchored to the result afterwards)
     BR_MAP_INIT: 50, CR_PCO2_INIT: 36, CR_PH_INIT: 7.33,
     // dressed / skin-to-skin at room temperature
@@ -105,6 +109,8 @@ log.push(`lactate ${P.LACT}, uma +${P.UMA_DELTA}, glucose ${P.GLUCOSE}`);
 M.Breathing.minute_volume_ref *= P.MV_REF;
 M.CR_PCO2.set_value = P.CR_PCO2_INIT; M.CR_PH.set_value = P.CR_PH_INIT; M.BR_MAP.set_value = P.BR_MAP_INIT;
 log.push(`minute_volume_ref x${P.MV_REF}`);
+for (const n of ["ALL", "ALR"]) { M[n].u_vol *= P.LUNG_U_VOL; M[n].el_base *= P.LUNG_EL; }
+log.push(`lung liquid: alveolar u_vol x${P.LUNG_U_VOL}, el_base x${P.LUNG_EL}`);
 
 // 6. thermal environment: the loss trim re-seeds neutral there
 M.Thermoregulation.env_temp = P.ENV_TEMP;

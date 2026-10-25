@@ -59,6 +59,7 @@ from `term_neonate`. The levers (factors relative to 72 h), in the script's prof
 | Lactate / unmeasured anions | 2.2 / +2.1 mmol/L | GLOW; BE -5 |
 | Glucose | 3.3 mmol/L (also the Glucose set-point) | GLOW, Hoseth |
 | Minute volume reference | x1.11 | pCO2 ~36 |
+| Lung liquid: alveolar (ALL/ALR) `u_vol` / `el_base` | x0.85 / x1.11 | see below |
 | Environment | 24 °C, 50 % humidity | dressed / skin-to-skin in the room (loss trim re-seeded) |
 
 Then the controllers are re-anchored at rest: the baroreflex activity is folded into the base values
@@ -74,6 +75,18 @@ time, FO -1.4 mL/kg/min, SpO2 97.4 / 96.1, SvO2 88, pH 7.35 / pCO2 36.8 / BE -5.
 80.4. Not yet addressed: FRC 30 (reference 23 at 4–6 h, lung liquid), compliance (lower on day 0),
 brain autoregulation strongly constricted (factor 1.7: CBF held at its 72 h set-point while the
 reference says it is lower at 1 h).
+
+**Step 3a, lung liquid.** After a vaginal birth most lung liquid is gone within hours: Lee 1999 measured
+FRC (argon) 23.1 mL/kg at 4–6 h and 24.9 at 24 h (−7 %, P = 0.08), and Lødrup Carlsen 1993 found Crs
+lower on day 0 (first measured at 1 h) than later, with no size we could use. The model reads FRC
+about 10 % above its helium reference even at 72 h (29.9 vs 27.1), so the 1 h baby is set relative to
+its 72 h self: the residual liquid is a smaller aerated lung that is proportionally stiffer (liquid-filled
+alveoli do not ventilate), alveolar `u_vol` x0.85 and `el_base` x1.11, which keeps the specific
+compliance (Crs/FRC) about constant. Result: FRC 30.1 → 26.9 mL/kg (−11 %), Crs 3.41 → 3.14 mL/cmH2O
+(−8 %, grade C). Tidal volume (5.4) and SpO2 (97.4 / 96.0) do not change: the breathing controller holds
+its targets, and a smaller FRC only shrinks the oxygen store (the model has no V/Q effect of
+interstitial liquid). Side effect: the smaller lung volume makes the pleural pressure more negative and
+CVP falls from 1.8 to 1.4 (still 37 of 39 in range).
 
 ## Hemodynamics
 
