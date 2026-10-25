@@ -139,7 +139,7 @@ BaseModelClass
    ```
    With `hr_override` it is `HR_ref`. It is floored at 0; at 0 the sinus node is silent.
 4. **Conduction timers**:
-   - **SA firing** (every `60/HR` s while `sa_node_enabled`) starts the PQ interval and the atrial activation (`ncc_atrial = −1`).
+   - **SA firing** (every `60/HR` s while `sa_node_enabled`) starts the PQ interval and the atrial activation (`ncc_atrial = −1`). The SA timer is not saved: after a load the node fires on the first step. (It used to wait a whole interval, which skipped one beat after every load: term MAP 61 → 53 mmHg for ~2 s, enough to set the brain autoregulation ringing.)
    - **After PQ**, the AV delay runs.
    - **After the AV delay**, the ventricles are activated if they aren't refractory and `av_block_mode` lets this beat through.
    - **After the QRS** comes the QT; the ventricles are refractory until it ends.

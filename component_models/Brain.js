@@ -121,9 +121,12 @@ export class Brain extends BaseModelClass {
     // a scenario that stores its baseline (cbf_setpoint, cbv0) is neutral from the first step, without
     // a warm-up re-seed whose result depends on when the scenario was loaded
     this._seeded = this.cbf_setpoint > 0.0 && this.cbv0 > 0.0;
-    // start the flow smoother at the stored baseline, not at one pulsatile sample (which would kick
-    // the integrator at the first step)
-    if (this._seeded) this._cbf_smooth = this.cbf_setpoint;
+    // start the smoothers where the saved state left them (cbf and sensed_map are the smoothed values),
+    // not at one pulsatile sample, and not at cbf_setpoint: the leaky integrator holds its factor with a
+    // small standing flow error, so starting the error at 0 let the leak pull the factor toward 1 for
+    // the first seconds after every load (term: 1.12 -> 1.04, back after ~5 min)
+    if (this._seeded) this._cbf_smooth = this.cbf > 0.0 ? this.cbf : this.cbf_setpoint;
+    if (this.sensed_map > 0.0) this._map_smooth = this.sensed_map;
     // resume the autoregulation integrator where the saved state left it (it is _-prefixed and not
     // saved; restarting it at 1.0 swings the cerebral resistance for ~30 s after every load)
     if (this._seeded && this.autoregulation_gain > 0) {

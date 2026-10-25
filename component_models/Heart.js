@@ -113,7 +113,7 @@ export class Heart extends BaseModelClass {
     this.prev_cardiac_cycle_state = 0;
     this._temp_cardiac_cycle_time = 0.0;
     this._sa_node_interval = 1.0;
-    this._sa_node_timer = 0.0;
+    this._sa_node_timer = null; // null = not started: the SA node fires on the first step
     this._av_delay_timer = 0.0;
     this._pq_timer = 0.0;
     this._pq_running = false;
@@ -345,7 +345,10 @@ export class Heart extends BaseModelClass {
     // would make the SA node fire on every step
     this._sa_node_interval = this.heart_rate > 0.0 ? 60.0 / this.heart_rate : Infinity;
 
-    // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over)
+    // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over). The
+    // timer is not saved: on the first step after a load (null) the node fires at once, instead of
+    // waiting a whole interval, which skipped a beat after every load (term: MAP 61 → 53 for ~2 s)
+    if (this._sa_node_timer === null) this._sa_node_timer = this._sa_node_interval + this._t;
     if (this.sa_node_enabled && this._sa_node_timer > this._sa_node_interval) {
       this._sa_node_timer = 0.0; // reset the timer
       this._pq_running = true; // start the pq-time

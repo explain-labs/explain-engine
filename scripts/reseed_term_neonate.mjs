@@ -1,68 +1,55 @@
-// Re-seed term_neonate.json to its calibrated steady state (same approach as reseed_adult_female.mjs).
+// Re-bake term_neonate.json at its steady state: build it, let it settle, and serialize the live model
+// back into model_definition the way the app's save-state does (Model._processModelState, via
+// _serialize_state.mjs). No parameter changes: only the state (volumes, pressures, contents, controller
+// states such as Brain.autoreg_factor, the renal autoregulation factors, the ANS firing rates, the hormone
+// activities, Thermoregulation.loss_trim) moves to where the model settles, so a loaded scenario starts
+// without a drift in its first minutes.
 //
-// Applies the neonatal calibration deltas, warms up to steady state, then serializes the live model
-// back into model_definition the way the app's save-state does (Model._processModelState).
+//   node scripts/reseed_term_neonate.mjs [--seconds 600] [--write]
 //
-//   node scripts/reseed_term_neonate.mjs [--seconds 200] [--write]
-
+// The slowest controller states settle within ~10 min (Brain autoregulation, renal afferent/TGF factors;
+// the renal myogenic factor keeps a small sustained oscillation), hence the 600 s default.
+// Until 2026-10-25 this script also applied the original neonatal calibration deltas (heart_rate_ref 145,
+// uma 6, venous u_vol x0.95, dif_co2 x6) before warming up; later calibrations changed or build on those
+// values, so re-applying them would undo or compound them. They were removed.
 import fs from "node:fs";
-import { register } from "node:module";
-register("./resolve-extensionless.mjs", import.meta.url);
+import os from "node:os";
+import path from "node:path";
+import { createEngine } from "./_harness.mjs";
+import { serializeState } from "./_serialize_state.mjs";
 
 const argv = process.argv.slice(2);
-const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 200; })();
+const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Number(argv[i + 1]) : 600; })();
 const WRITE = argv.includes("--write");
-
-let liveModel = null;
-globalThis.self = globalThis;
-globalThis.postMessage = (m) => { if (m && m.type === "state") liveModel = m.payload; };
-const _log = console.log; console.log = () => {};
-await import("../ModelEngine.js");
-const send = (t, msg, p) => self.onmessage({ data: { type: t, message: msg, payload: p } });
+const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
+const eng = await createEngine();
+const model = eng.build(json.model_definition);
+eng.calc(SECONDS);
+// save at a sinus-node firing: a loaded heart fires on its first step (Heart._sa_node_timer is not
+// saved), so the stored volumes then belong to the phase the cycle restarts in
+const H = model.models.Heart;
+for (let i = 0; i < 400; i++) {
+  const before = H._sa_node_timer;
+  eng.calc(model.modeling_stepsize);
+  if (H._sa_node_timer < before) break;
+}
 
-send("POST", "build", json.model_definition);
-send("GET", "state", []);
-const model = liveModel;
-
-// --- neonatal calibration deltas (baked into base values; factors stay 1.0) ---
-const Blood = model.models.Blood;
-Blood.set_solute("hemoglobin", 10.0); // term-newborn polycythemia (≈16 g/dL), was 8
-Blood.set_solute("uma", 6.0);         // newborn-like mild metabolic acidosis (HCO3 ~22, BE ~-3), was 3.8
-if (model.models.Heart) model.models.Heart.heart_rate_ref = 145;                 // resting HR ~130, was ref 125
-for (const n of ["VLB", "VUB"]) { const m = model.models[n]; if (m) m.u_vol *= 0.95; }       // preload → CO ~195 mL/kg/min
-for (const n of ["GASEX_LL", "GASEX_RL"]) { const m = model.models[n]; if (m) m.dif_co2 *= 6; } // CO2 diffusion (was =dif_o2) → etCO2 35-40
-
-// --- warm up to steady state ---
-send("POST", "calc", SECONDS);
-
-// --- replicate Model._processModelState ---
-delete model["DataCollector"];
-delete model["TaskScheduler"];
-delete model["ModelScaler"];
-delete model["_baseline_weight"];
-// diagram_definition / animation_definition get copied onto the live model at build but belong at
-// the top level of the scenario file; strip them so they are not baked into model_definition as a
-// stale duplicate (Model.load prefers a nested copy over the top-level one — see _processModelState)
-delete model["diagram_definition"];
-delete model["animation_definition"];
-for (const key in model) if (key.startsWith("ncc")) delete model[key];
-Object.values(model.models).forEach((m) => {
-  for (const key in m) {
-    if (key.startsWith("_")) delete m[key];
-    if (key === "components" && Object.keys(m[key]).length > 0) {
-      Object.keys(m[key]).forEach((cn) => { m.components[cn] = model.models[cn]; delete model.models[cn]; });
-    }
-  }
-});
-model.model_time_total = 0;
-
-console.log = _log;
-json.model_definition = model;
-const out = JSON.stringify(json, null, 1) + "\n";
-JSON.parse(out);
-console.log(`reseed: ${Object.keys(model.models).length} top-level models, warmup ${SECONDS}s, output ${out.length} bytes`);
-if (WRITE) { fs.writeFileSync(file, out); console.log("WROTE", file.pathname); }
-else { fs.writeFileSync("/tmp/term_neonate_reseed.json", out); console.log("dry run -> /tmp/term_neonate_reseed.json (pass --write to commit)"); }
+const baselineWeight = json.model_definition._baseline_weight;
+json.model_definition = serializeState(model);
+// serializeState drops _baseline_weight (as the app's save does); the file carries it, so keep it
+if (baselineWeight !== undefined) json.model_definition._baseline_weight = baselineWeight;
+// the file is 2-space JSON without a trailing newline
+const text = JSON.stringify(json, null, 2);
+JSON.parse(text);
+out(`reseed: ${Object.keys(json.model_definition.models).length} top-level models, settled ${SECONDS} s, ${text.length} bytes`);
+if (WRITE) {
+  fs.writeFileSync(file, text);
+  out(`written ${file.pathname}`);
+} else {
+  const dry = path.join(os.tmpdir(), "term_neonate_reseed.json");
+  fs.writeFileSync(dry, text);
+  out(`dry run -> ${dry} (pass --write to save)`);
+}

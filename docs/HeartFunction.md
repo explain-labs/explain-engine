@@ -153,10 +153,10 @@ From `term_neonate.json`, `models.HeartFunction` (trimmed to the main config pro
   "remodel_active": true,
   "stress_deadband": 1.5,
   "setpoint_warmup": 60,
-  "sigma_es_ref_lv": 78.1419,
-  "sigma_ed_ref_lv": 21.6036,
-  "sigma_es_ref_rv": 127.4271,
-  "sigma_ed_ref_rv": 56.9684
+  "sigma_es_ref_lv": 77.3612,
+  "sigma_ed_ref_lv": 25.9997,
+  "sigma_es_ref_rv": 124.4274,
+  "sigma_ed_ref_rv": 63.1358
 }
 ```
 
@@ -166,7 +166,9 @@ One instance in every scenario, enabled, with resting setpoints learned for that
 
 | Scenario | LV σ_es / σ_ed | RV σ_es / σ_ed |
 |---|---|---|
-| term_neonate | 78.1 / 21.6 | 127.4 / 57.0 |
+| term_neonate | 77.4 / 26.0 | 124.4 / 63.1 |
+
+term_neonate's set-points were re-learned in the re-validation (g). The heart changes (valves, AV inertance, RV, coronary flow, blood volume) had raised its resting LV end-diastolic stress ~19 % above the old set-point (21.6), so the LV dilated slowly at rest (eccentric remodelling ~0.07 per simulated day); after the re-learn it stays at 0.
 
 `scripts/probe_heartfunction.mjs` exercises it on term_neonate with an afterload and a volume challenge.
 

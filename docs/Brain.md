@@ -63,7 +63,7 @@ BaseModelClass
 | `cpp` | mmHg | MAP − ICP. |
 | `icp`, `icp_excess` | mmHg | ICP and its excess above baseline. |
 | `cerebral_blood_volume` | mL | CBV. |
-| `autoreg_factor` | – | Applied factor on `AA_BR_ART.r_factor_ps` (saved; the integrator resumes from it on load). |
+| `autoreg_factor` | – | Applied factor on `AA_BR_ART.r_factor_ps` (saved; the integrator resumes from it on load, the smoothers from `cbf` and `sensed_map`). |
 | `brain_to2` | mmol/L | `BR_CAP` O2 content (ischaemia read-out). |
 
 ## Calculation
@@ -112,7 +112,8 @@ It owns `AA_BR_ART.r_factor_ps` (inflow) and `BR_VEN_VUB.r_factor_ps` (outflow).
 
   - Autoregulation holds CBF against a systemic dilation that also dilates the brain's vessels.
   - **ICP couples weakly to CBF:** an ICP of 26 mmHg lowers CBF only 4 %. The venous outflow is a small part of the cerebral resistance, so the HIE picture (ICP up → CBF and `brain_to2` down) needs large volumes. This is listed for the re-validation.
-- **Stored state predates v1.0 circulation changes** in several scenarios: the autoregulation factor settles away from its stored value in the first ~30 s after load (measured in the since-removed fetus_term, 1.29 → 1.10). Listed for the re-validation re-bake.
+- **Resuming after a load.** The integrator restarts from the saved `autoreg_factor`, and the CBF and MAP smoothers from the saved `cbf` and `sensed_map`. Starting the CBF smoother at `cbf_setpoint` (as before the re-validation) zeroed the small standing error that the leaky integrator holds its factor with, so the leak pulled the factor toward 1 for the first seconds. term_neonate was re-baked at its settled state (`scripts/reseed_term_neonate.mjs`, re-validation (g)): `autoreg_factor` 1.009 stored → 1.12, and it now stays at 1.12–1.13 from the first second after load.
+- **The autoregulation loop is lightly damped.** A disturbance (a skipped beat at load used to be one) makes it ring with a ~22 s period for over a minute (term: factor 0.97–1.28).
 - **One cerebral bed:** no regional flow, no CO2 reactivity (hypercapnia doesn't dilate the cerebral vessels), no venous haemorrhage model.
 
 ## Example definition (JSON)
