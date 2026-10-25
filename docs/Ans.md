@@ -43,14 +43,14 @@ Every scenario (term_neonate values; the set-points are re-anchored per scenario
 
 | Afferent | Input | min / set / max | → Efferent(s) |
 |---|---|---|---|
-| `BR_MAP` (baroreceptor) | `AAR.pres` | 25 / 57.8 / 100 mmHg | `EF_HR`, `EF_SVR`, `EF_HEART` |
+| `BR_MAP` (baroreceptor, tc 0.5 s) | `AAR.pres` | 25 / 60.6 / 100 mmHg | `EF_HR`, `EF_SVR`, `EF_HEART` |
 | `CR_PCO2` (central chemoreceptor) | `AA.pco2` | 15 / 39.7 / 75 mmHg | `EF_MV` |
-| `CR_PO2` (peripheral chemoreceptor, weight −0.15) | `AA.po2` | 30 / 75.5 / 150 mmHg | `EF_MV` |
+| `CR_PO2` (peripheral chemoreceptor, weight −0.4) | `AA.po2` | 30 / 75.5 / 150 mmHg | `EF_MV` |
 | `CR_PH` | `AA.ph` | 6.9 / 7.36 / 7.7 | none |
 
 | Efferent | Target | Effect at firing 0 / 1 | Time constant |
 |---|---|---|---|
-| `EF_HR` | `Heart.ans_activity_hr` | 1.5 / 0.43 | 2 s |
+| `EF_HR` | `Heart.ans_activity_hr` | 1.5 / 0.43 | 0.5 s |
 | `EF_SVR` | `Circulation.ans_activity` (vascular tone) | 2.0 / 0.5 | 10 s |
 | `EF_HEART` | `Heart.ans_activity` (contractility) | 1.15 / 0.85 | 10 s |
 | `EF_MV` | `Breathing.mv_ans_factor` | 0.1 / 10 | 5 s |
@@ -72,6 +72,10 @@ None of its own; the efferents write the targets' ANS inputs (`ans_activity`, `a
 
 ## Assumptions and limitations
 
+- **Reflex responses of term_neonate** (re-validation (l), `BR_MAP` and `EF_HR` time constants 4 and 2 s → 0.5 s, `CR_PO2` weight −0.15 → −0.4, baroreflex set-point re-anchored to the resting arch pressure so it is neutral at rest):
+  - **Baroreflex sensitivity** (transfer gain from systolic pressure to RR interval at 0.1 Hz, systemic resistance modulated ±5 %): 6.0 ms/mmHg (was 1.5; 0 with the ANS off). Term infants: ~15 ms/mmHg in the first days (Andriessen 2005, LF transfer gain), 6.4 at 2–4 weeks (Yiallourou 2010). The static strength was already ~7 ms/mmHg; the slow receptor smoothing (4 s) and HR efferent (2 s) passed only ~23 % of it at 0.1 Hz, where the real vagal arm acts within about a second.
+  - **Hypoxic ventilatory response** (FiO₂ 0.21 → 0.15): minute ventilation +16 % at 30 s, +19 % at 1 min, then +11 % by 5 min as PaCO₂ falls (39.6 → 34.9 mmHg); SaO₂ 97 → 93.4 %. Term newborns: an early rise (~+17 %, Rigatto 1982) then a late fall of ~14 % from the peak (De Boeck 1984). The model's late fall (~8 % of the peak) comes only from the hypocapnic brake: the central **hypoxic ventilatory depression** is not modelled.
+  - **Hypercapnic response:** gain 0.25 (fractional rise in ventilation per mmHg PaCO₂; neonatal 0.10–0.40, `validate_respiratory.mjs`).
 - **One receptor per reflex, set-points fixed.** No baroreceptor resetting over hours, no adaptation of the chemoreceptors to chronic hypercapnia.
 - **Afferent deviations add in the efferent**, so two afferents on one efferent can drive its firing rate outside 0–1 (see [AnsEfferent](./AnsEfferent.md)).
 - **`CR_PH` is computed but drives nothing** in every scenario.
@@ -99,4 +103,9 @@ One instance in every scenario, with the network above. No shipped scenario has 
 
 ## References
 
-No literature values; set-points are each scenario's calibrated rest, ranges and gains are model choices.
+- Andriessen P, et al. Baroreceptor reflex sensitivity in human neonates: the effect of postmenstrual age. *J Physiol* 2005;568:333–41. doi:10.1113/jphysiol.2005.093641
+- Yiallourou SR, Sands SA, Walker AM, Horne RSC. Postnatal development of baroreflex sensitivity in infancy. *J Physiol* 2010;588:2193–203. doi:10.1113/jphysiol.2010.187070
+- Rigatto H, et al. Ventilatory response to 100% and 15% O2 during wakefulness and sleep in preterm infants. *Early Hum Dev* 1982;7:1–10. doi:10.1016/0378-3782(82)90002-0
+- De Boeck C, Van Reempts P, Rigatto H, Chernick V. Naloxone reduces decrease in ventilation induced by hypoxia in newborn infants. *J Appl Physiol* 1984;56:1507–11. doi:10.1152/jappl.1984.56.6.1507
+
+The baroreflex HR dynamics and the peripheral chemoreceptor weight are set from the references above; the set-points are each scenario's calibrated rest, and the other ranges and gains are model choices.
