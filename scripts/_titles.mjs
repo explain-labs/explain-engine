@@ -6,6 +6,9 @@
 // Hand-authored baselines (term_neonate, adult_female*) keep their own titles and are not listed here.
 
 export const TITLES = {
+  term_neonate_1h: "TERM NEONATE (1H, DUCT OPEN)",
+  term_neonate_12h: "TERM NEONATE (12H)",
+  term_neonate_24h: "TERM NEONATE (24H)",
   fetus_term: "TERM FETUS (40 WK, 3.5 KG, IN UTERO)",
   fetus_25wk: "FETUS (25 WK, 0.7 KG, IN UTERO)",
   fetus_30wk: "FETUS (30 WK, 1.5 KG, IN UTERO)",
