@@ -142,7 +142,7 @@ fail the run. One that starts passing reports `XPASS`: remove its entry. Options
 | `probe_pda.mjs`, `probe_cdh.mjs` | PDA Doppler envelope classification; congenital diaphragmatic hernia phenotypes. |
 | **CHD family** | `probe_as.mjs`, `probe_coarc.mjs`, `probe_dtga.mjs`, `probe_hlhs.mjs`, `probe_paivs.mjs`, `probe_pavsd.mjs`, `probe_ps.mjs`, `probe_ta.mjs`, `probe_tapvc.mjs`, `probe_tof.mjs` | Duct/FO-dependent congenital heart disease scenarios (aortic stenosis, coarctation, d-TGA, HLHS, PA-IVS, PA-VSD, pulmonary stenosis, tricuspid atresia, TAPVC, tetralogy of Fallot). |
 
-> Every probe defaults to `term_neonate`. Until the preterm and fetal scenarios are rebuilt, `probe_apnea`, `probe_surfactant` and `probe_derecruitment` (they need an Apnea or Surfactant model) and `probe_fetus`/`probe_placenta` (they need a running placenta) have no shipped scenario to run on. Check the script's `Usage:` header.
+> Every probe defaults to `term_neonate`. Until the preterm and fetal scenarios are rebuilt, `probe_apnea`, `probe_surfactant` and `probe_derecruitment` (they need an Apnea or Surfactant model) `probe_fetus`/`probe_placenta` (they need a running placenta), `probe_oxygenie` (it titrates a hypoxaemic preterm, `preterm_26wk`) and `probe_pge1` (it needs a duct-dependent lesion, `pa_ivs`) have no shipped scenario to run on. `probe_tune` takes the scenario first: `probe_tune.mjs term_neonate --map 50 --co x0.8`. Check the script's `Usage:` header.
 
 ## Other engine-dev tooling
 
