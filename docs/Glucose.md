@@ -26,7 +26,9 @@ BaseModelClass
 | `glu_use_rate` | mmol/kg/min | 0.03 | Tissue glucose use (5.4 mg/kg/min). |
 | `hgp_rate` | mmol/kg/min | 0.03 | Hepatic glucose production (equal to use, so neutral at rest). |
 | `glucose_setpoint` | mmol/L | 0 | Set-point; ≤ 0 = captured 30 s after build. Stored in every scenario. |
-| `insulin_gain`, `counterreg_gain` | – | 6, 6 | Drive per fractional glucose excess and deficit. |
+| `insulin_gain` | – | 0.54 | Insulin rise per fractional glucose excess (blunted newborn secretion: a dextrose load decays at ~1.5 %/min). |
+| `insulin_suppression_gain` | – | 6 | Insulin fall per fractional glucose deficit (suppression stays prompt). |
+| `counterreg_gain` | – | 6 | Counter-regulation rise per fractional glucose deficit (it does not fall above the set-point). |
 | `insulin_tc`, `counterreg_tc` | s | 120, 120 | Time constants. |
 | `uptake_insulin_gain` | – | 1.0 | Uptake rise per (insulin − 1). |
 | `hgp_insulin_gain`, `hgp_counterreg_gain` | – | 0.8, 2.0 | Hepatic-output suppression by insulin and rise by counter-regulation. |
@@ -34,6 +36,11 @@ BaseModelClass
 | `uptake_factor_min`, `uptake_factor_max` | – | 0.1, 5 | Clamp on the uptake factor. |
 | `production_factor_min`, `production_factor_max` | – | 0, 8 | Clamp on the production factor. |
 | `glucose_default` | mmol/L | 4.0 | Seed for any blood compartment without a glucose key. |
+| `isf_volume` | L/kg | 0.31 | Interstitial glucose pool (term ECF ~0.40 L/kg minus the blood). |
+| `isf_tc` | s | 300 | Time constant of the pool's equilibration with the blood. |
+| `isf_glucose` | mmol/L | 0 | Interstitial glucose (state, saved); ≤ 0 = seeded at the consumption sites' mean. |
+| `insulin_independent_sites` | list | `["BR_CAP"]` | Beds whose uptake insulin does not scale (brain: GLUT1/3). |
+| `independent_km` | mmol/L | 1.0 | Saturation of their uptake: × (G/(Km+G)) / (Gs/(Km+Gs)), Gs the set-point. |
 
 ### Outputs
 
@@ -52,13 +59,14 @@ Every 1 s:
 2. **Sense** `AA.solutes.glucose`. If no set-point is stored, capture it after 30 s.
 3. **Controller**, with `e = (glucose − set-point) / set-point`:
    ```
-   insulin    → clamp(1 + insulin_gain · e)          (tc 120 s)
-   counterreg → clamp(1 − counterreg_gain · e)       (tc 120 s)
+   insulin    → clamp(1 + insulin_gain · e)   e > 0;   clamp(1 + insulin_suppression_gain · e)   e < 0   (tc 120 s)
+   counterreg → clamp(1 − counterreg_gain · min(e, 0))                                           (tc 120 s)
    uptake_factor     = clamp(1 + uptake_insulin_gain · (insulin − 1))
    production_factor = clamp(1 − hgp_insulin_gain · (insulin − 1) + hgp_counterreg_gain · (counterreg − 1))
    ```
-4. **Sink:** `glu_use_rate · weight / 60 · Δt · uptake_factor` mmol, split over Metabolism's beds by their shares (each bed floored at 0).
-5. **Source:** `hgp_rate · weight / 60 · Δt · production_factor` mmol into `IVCI`.
+4. **Sink:** `glu_use_rate · weight / 60 · Δt` mmol, split over Metabolism's beds by their shares; each bed's part × `uptake_factor`, or × the saturable factor for the insulin-independent beds (each bed takes at most what it holds).
+5. **Interstitial pool:** each bed exchanges `(V_isf/isf_tc) · share · Δt · (C_bed − isf_glucose)` with the pool (limited per update so neither side overshoots).
+6. **Source:** `hgp_rate · weight / 60 · Δt · production_factor` mmol into `IVCI`.
 
 **IV dextrose needs no extra code:** a dextrose fluid in [Fluids](./Fluids.md) carries `glucose` in its solutes, and the controller responds to the rise.
 
@@ -75,9 +83,16 @@ None; its own uptake and production factors.
 
 ## Assumptions and limitations
 
-- **Glucose lives only in the blood.** Real glucose distributes through the extracellular fluid, 3–4× the blood volume, so changes here run 3–4× too fast. With hepatic output set to 0 in term_neonate, arterial glucose falls 4.0 → 3.6 mmol/L in the first minute (~9 %/min). Listed for the re-validation.
-- **Insulin scales all uptake, the brain's included.** With hepatic output at 0, insulin falls to 0.01 within 10 min and total uptake to its 0.1 floor, so glucose levels off at ~2.8 mmol/L. That happens because the brain's use has fallen tenfold, which real brain uptake doesn't do. Listed for the re-validation (an insulin-independent brain share).
-- **Use doesn't depend on the glucose level** above the 0 floor (no Michaelis–Menten kinetics), and a depleted bed's missing use is not reported.
+- **Behaviour in term_neonate** (re-validation (i)):
+
+  | Test | Glucose (mmol/L) |
+  |---|---|
+  | Rest, 30 min | 4.00 → 4.00; interstitial pool 3.70 |
+  | Hepatic output stopped, 1 / 10 / 30 / 60 / 90 min | 3.68 / 3.27 / 2.72 / 1.95 / 1.25 (insulin 0.03 by 10 min; the brain keeps its use) |
+  | D10 2 mL/kg (0.2 g/kg) over 1 min, 2 / 10 / 30 / 60 min | 10.1 / 6.1 / 5.6 / 5.0; K 1.54 %/min from 10 to 40 min, no rebound |
+
+  Before the re-validation glucose lived only in the blood (changes 3–4× too fast; hepatic output stopped: 2.82 at 10 min, 0.01 at 90), insulin scaled the brain's uptake too, and a falling counter-regulation added to insulin's hepatic suppression: the same D10 bolus was cleared in ~8 min (K ~10 %/min) with a rebound to 1.99 mmol/L. The newborn insulin response to an IV glucose load is poor (Salle 1976); K ~1.5 %/min is a judgement within the 1–2 %/min usually reported. The brain's share (31 %, Metabolism's map) is near the 37 % of production used by the newborn dog's cerebral cortex, whose uptake stays constant across a wide glucose range (Huang 1989).
+- **Only the brain's use depends on the glucose level** (saturable); the other beds' use depends on insulin only. A depleted bed's missing use is counted out of `glucose_use_step`.
 - **No glucosuria** (`glucose` isn't in the Kidneys' `filterable_solutes`), no glycogen store, no lactate–glucose cycle.
 - **Hepatic output enters `IVCI`;** in the fetus that is also where the placental supply arrives through the umbilical vein, so the same parameters stand in for the placental glucose supply.
 
@@ -106,4 +121,8 @@ One instance in every scenario, running with use = production = 0.03 mmol/kg/min
 
 ## References
 
-No literature values; the rate is the textbook neonatal glucose use (4–6 mg/kg/min), the gains are model choices.
+- Bier DM, Leake RD, Haymond MW, et al. Measurement of "true" glucose production rates in infancy and childhood with 6,6-dideuteroglucose. *Diabetes* 1977;26:1016–23. doi:10.2337/diab.26.11.1016 (term neonates 6.07 ± 0.27 mg/kg/min; production scales with brain size)
+- Huang MM, Kliegman RM, Chau K. Partitioning and extraction of glucose regulates cerebral glucose utilization in newborn dogs. *Biol Neonate* 1989;55:290–7. doi:10.1159/000242931 (cortex 37 % of production, uptake constant across glucose levels)
+- Salle B, Ruitton-Uglienco A. Glucose disappearance rate, insulin response and growth hormone response in the small for gestational age and premature infant of very low birth weight. *Biol Neonate* 1976;29:1–17. doi:10.1159/000240843 (poor insulin response to an IV glucose load)
+
+The use rate (5.4 mg/kg/min) is close to Bier's; the interstitial volume, its time constant, the K target and the other gains are model choices.

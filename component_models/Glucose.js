@@ -51,7 +51,8 @@ export class Glucose extends BaseModelClass {
 
     // set-point + controller dynamics (1.0 = baseline activity)
     this.glucose_setpoint = 0.0; // mmol/L; a stored value is kept, <= 0 → auto-seeded to the resting arterial value
-    this.insulin_gain = 6.0; // insulin drive per fractional glucose excess
+    this.insulin_gain = 0.54; // insulin drive per fractional glucose excess (newborn: blunted secretion; a dextrose load decays at ~1.5 %/min)
+    this.insulin_suppression_gain = 6.0; // insulin fall per fractional glucose deficit (suppression stays prompt)
     this.counterreg_gain = 6.0; // counter-regulatory drive per fractional glucose deficit
     this.insulin_tc = 120.0; // s — insulin responds over a couple of minutes
     this.counterreg_tc = 120.0; // s
@@ -67,6 +68,17 @@ export class Glucose extends BaseModelClass {
     this.production_factor_min = 0.0;
     this.production_factor_max = 8.0;
     this.glucose_default = 4.0; // value used to seed the solute key where it is missing
+
+    // interstitial pool: glucose distributes through the extracellular fluid, not only the blood. The
+    // pool exchanges with the blood at the consumption sites (same shares as the uptake)
+    this.isf_volume = 0.31; // L/kg — interstitial fluid (term ECF ~0.40 L/kg minus the blood)
+    this.isf_tc = 300.0; // s — time constant of the interstitial pool's equilibration with the blood
+    this.isf_glucose = 0.0; // mmol/L — interstitial glucose (state); <= 0 → seeded at the sites' mean
+
+    // insulin-independent uptake (brain: GLUT1/3), saturable at low glucose: uptake x
+    // (G/(Km+G)) / (Gs/(Km+Gs)) with Gs the set-point
+    this.insulin_independent_sites = ["BR_CAP"];
+    this.independent_km = 1.0; // mmol/L
 
     // -----------------------------------------------
     // dependent properties (read-outs)
@@ -152,25 +164,40 @@ export class Glucose extends BaseModelClass {
 
     // --- controller (insulin vs counter-regulation) ---
     const glu_err = this.glucose_setpoint > 0 ? (this.glucose - this.glucose_setpoint) / this.glucose_setpoint : 0.0;
-    const insulin_target = this._clamp(1.0 + this.insulin_gain * glu_err, this.hormone_min, this.hormone_max);
-    const counterreg_target = this._clamp(1.0 - this.counterreg_gain * glu_err, this.hormone_min, this.hormone_max);
+    // secretion above the set-point is blunted in the newborn; suppression below it stays prompt
+    const ins_gain = glu_err > 0.0 ? this.insulin_gain : this.insulin_suppression_gain;
+    const insulin_target = this._clamp(1.0 + ins_gain * glu_err, this.hormone_min, this.hormone_max);
+    // counter-regulation defends against hypoglycaemia only; above the set-point hepatic output is
+    // suppressed through insulin alone (a falling counter-regulation there double-counted that
+    // suppression and cleared a dextrose load at ~20 %/min)
+    const counterreg_target = this._clamp(1.0 - this.counterreg_gain * Math.min(glu_err, 0.0), this.hormone_min, this.hormone_max);
     this.insulin = this._lag(this.insulin, insulin_target, u, this.insulin_tc);
     this.counterreg = this._lag(this.counterreg, counterreg_target, u, this.counterreg_tc);
 
     this.uptake_factor = this._clamp(1.0 + this.uptake_insulin_gain * (this.insulin - 1.0), this.uptake_factor_min, this.uptake_factor_max);
     this.production_factor = this._clamp(1.0 - this.hgp_insulin_gain * (this.insulin - 1.0) + this.hgp_counterreg_gain * (this.counterreg - 1.0), this.production_factor_min, this.production_factor_max);
 
-    // --- SINK: peripheral utilization, distributed exactly like Metabolism's VO2 ---
-    const use_total = (this.glu_use_rate * weight / 60.0) * u * this.uptake_factor; // mmol over this update
-    this.glucose_use_step = use_total;
+    // --- SINK: utilization, distributed like Metabolism's VO2. Insulin scales the uptake of the other
+    // tissues; the insulin-independent sites (brain) take a saturable share that falls only at low glucose
+    const use_base = (this.glu_use_rate * weight / 60.0) * u; // mmol over this update at baseline
+    const km = this.independent_km;
+    const gs = this.glucose_setpoint > 0 ? this.glucose_setpoint : this.glucose;
+    const independent_factor = gs > 0 ? (this.glucose / (km + this.glucose)) / (gs / (km + gs)) : 1.0;
     const sites = this._metabolism?.metabolic_active_models ?? {};
+    let use_total = 0.0;
     for (const [site, fvo2] of Object.entries(sites)) {
       let comp = this._model_engine.models[site];
       if (!comp || !comp.solutes || comp.vol <= 0.0) continue;
-      const dmol = use_total * fvo2; // mmol removed from this site
-      const new_conc = (comp.solutes.glucose * comp.vol - dmol) / comp.vol;
-      comp.solutes.glucose = new_conc > 0 ? new_conc : 0.0;
+      const f = this.insulin_independent_sites.includes(site) ? independent_factor : this.uptake_factor;
+      const want = use_base * fvo2 * f; // mmol to remove from this site
+      const dmol = Math.min(want, Math.max(comp.solutes.glucose * comp.vol, 0.0));
+      comp.solutes.glucose = (comp.solutes.glucose * comp.vol - dmol) / comp.vol;
+      use_total += dmol;
     }
+    this.glucose_use_step = use_total;
+
+    // --- interstitial pool: first-order exchange with the blood at the same sites ---
+    this._exchange_isf(sites, weight, u);
 
     // --- SOURCE: endogenous hepatic glucose output into the central vein ---
     if (this._inject?.solutes && this._inject.vol > 0.0) {
@@ -178,6 +205,34 @@ export class Glucose extends BaseModelClass {
       this.glucose_prod_step = prod_total;
       this._inject.solutes.glucose += prod_total / this._inject.vol;
     }
+  }
+
+  _exchange_isf(sites, weight, u) {
+    const v_isf = this.isf_volume * weight; // L
+    if (!(v_isf > 0.0) || !(this.isf_tc > 0.0)) return;
+    // seed at the share-weighted mean site concentration, so the exchange is zero at rest
+    if (!(this.isf_glucose > 0.0)) {
+      let c = 0.0, w = 0.0;
+      for (const [site, share] of Object.entries(sites)) {
+        const comp = this._model_engine.models[site];
+        if (comp?.solutes?.glucose === undefined) continue;
+        c += share * comp.solutes.glucose; w += share;
+      }
+      this.isf_glucose = w > 0 ? c / w : this.glucose;
+    }
+    // exchange conductance (L/s) so that the pool alone relaxes with isf_tc; limited per step so the
+    // explicit update cannot overshoot either side
+    const g = v_isf / this.isf_tc;
+    let to_isf = 0.0;
+    for (const [site, share] of Object.entries(sites)) {
+      const comp = this._model_engine.models[site];
+      if (!comp?.solutes || comp.vol <= 0.0) continue;
+      const gs = Math.min(g * share * u, 0.5 * comp.vol, 0.5 * v_isf * share); // L-equivalent this update
+      const dmol = gs * (comp.solutes.glucose - this.isf_glucose);
+      comp.solutes.glucose -= dmol / comp.vol;
+      to_isf += dmol;
+    }
+    this.isf_glucose += to_isf / v_isf;
   }
 
   _release() {
