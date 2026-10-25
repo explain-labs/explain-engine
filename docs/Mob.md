@@ -77,15 +77,22 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
 
 ## Assumptions and limitations
 
-- **Behaviour at rest** (30 s averages, after the beat-interval fix):
+- **Coronary flow is set by a resting O2 extraction** (re-validation, `scripts/_fix_coronary_extraction.mjs`): `AA_COR`'s resistance gives 55 % extraction in the postnatal scenarios (between newborn lambs, ~50 %, and adults, ~70 %) and 50 % in the fetal ones. Before, every scenario had about the same flow per kg body weight (10.5–11.4 mL/kg/min), so extraction ranged from 30 % (term, ~2× Aburawi's estimate) to 70 % (fetus_term). Values at rest (10 s averages after 2 min; MVO2 in mL O2/min/100 g, flow in mL/min):
 
-  | Scenario | Heart weight | Basal + stroke work | Per 100 g | Coronary flow | `COR` / arterial to2 |
-  |---|---|---|---|---|---|
-  | term_neonate | 23.0 g | 1.15 + 1.39 mL/min | 11.0 mL/min | 40 mL/min (174 per 100 g) | 6.9 / 9.6 mmol/L |
-  | preterm_25wk | 10.8 g | 0.54 + 0.20 | 6.8 | 9.0 (83 per 100 g) | 3.9 / 7.5 |
-  | fetus_term | 23.0 g | 1.15 + 1.73 | 12.5 | 32.6 (141 per 100 g) | 1.9 / 5.7 |
+  | Scenario | Heart weight | MVO2 | Coronary flow (per 100 g), before → after | Extraction |
+  |---|---|---|---|---|
+  | term_neonate | 23.0 g | 10.6 | 37.4 (163) → 18.1 (79 per 100 g) | 30 → 55 % |
+  | preterm_30wk | 14.2 g | 7.8 | 16.4 (115) → 8.3 (59 per 100 g) | 32 → 55 % |
+  | preterm_28wk | 12.1 g | 7.5 | 11.5 (95) → 7.4 (61 per 100 g) | 40 → 55 % |
+  | preterm_25wk | 10.8 g | 6.5 | 7.9 (73) → 6.9 (64 per 100 g) | 50 → 55 % |
+  | bischoff_no_pda | 11.1 g | 6.1 | 8.1 (73) → 7.0 (63 per 100 g) | 49 → 55 % |
+  | bischoff_ltr_pda | 10.9 g | 6.7 | 7.9 (72) → 7.6 (69 per 100 g) | 53 → 55 % |
+  | bischoff_bidir_pda | 10.7 g | 6.3 | 7.1 (66) → 7.3 (68 per 100 g) | 56 → 55 % |
+  | fetus_25wk | 10.8 g | 7.1 | 7.9 (73) → 11.3 (105 per 100 g) | 64 → 50 % |
+  | fetus_30wk | 14.2 g | 8.5 | 13.8 (97) → 17.4 (122 per 100 g) | 60 → 50 % |
+  | fetus_term | 23.0 g | 12.4 | 30.5 (133) → 44.8 (195 per 100 g) | 69 → 50 % |
 
-- **The coronary flow is high for the heart's O2 use.** At term the heart extracts only ~30–35 % of its arterial O2, against ~70 % in vivo. Aburawi's neonatal LAD flow of 8.2 mL/min points to a total coronary flow of roughly 20–30 mL/min, not 40. Listed for the scenario re-validation (retune `AA_COR` per scenario and check the extraction).
+  The term flow (18 mL/min) is close to the ~20–25 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests; the fetal flows (105–195 per 100 g) sit in the range of fetal-lamb microsphere data (Smolich 1996, Dalshaug 2002). The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
 - **The hypoxia effects start only at a very low `COR.to2`** (0.2 mmol/L, ~2 % saturation). At rest they are inactive, and they engage only in profound coronary hypoxia.
 - **Contractility is depressed twice** under hypoxia: `cont_factor` lowers `el_max`, and `ans_activity_factor` lowers the sympathetic inotropy. Their combined strength is set by `cont_factor_min` and `ans_factor_min`.
 - **Heart weight follows body weight only** (no hypertrophy).
@@ -126,3 +133,5 @@ One instance in every scenario, with the defaults above, owning the coronary bed
 ## References
 
 - Aburawi EH, Malcus P, Thuring A, Fellman V, Pesonen E. Coronary flow in neonates with impaired intrauterine growth. *J Am Soc Echocardiogr* 2012;25(3):313–8. doi:10.1016/j.echo.2011.11.019 (healthy controls: LAD flow 8.2 ± 3.0 mL/min at 1 week).
+- Smolich JJ, Berger PJ, Walker AM. Interrelation between ventricular function, myocardial blood flow, and O2 consumption changes at birth in lambs. *Am J Physiol* 1996;270:H741–9. doi:10.1152/ajpheart.1996.270.2.H741 (LV myocardial flow 234 → 199 mL/min/100 g fetus → 4 h; LV AV O2 difference 3.6 → 7.5 mL/dL).
+- Dalshaug GB, Scholz TD, Smith OM, et al. Effects of gestational age on myocardial blood flow and coronary flow reserve in pressure-loaded ovine fetal hearts. *Am J Physiol Heart Circ Physiol* 2002;282:H1359–69. doi:10.1152/ajpheart.00686.2001 (LV 258 vs 172, RV 341 vs 230 mL/min/100 g at 100 vs 128 days).
