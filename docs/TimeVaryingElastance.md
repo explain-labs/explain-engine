@@ -130,7 +130,7 @@ Six instances in every shipped scenario:
 | `RAIVCI`, `RASVC` | HeartChamber | `aaf` | 0 / 9.20·10⁵ / 5947 each | 0 |
 | `COR` | BloodTimeVaryingElastance | `vaf` | 30000 / 0 / 90000 | 0.28 |
 
-(`el_min`, `el_max` in mmHg/L, `el_k` in mmHg/L². preterm_25wk and bischoff_ltr_pda still have linear chambers, `el_k` 0.)
+(`el_min`, `el_max` in mmHg/L, `el_k` in mmHg/L².)
 
 The heart chambers are owned by `Heart`, the coronary bed by `Mob`.
 

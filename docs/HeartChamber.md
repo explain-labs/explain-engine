@@ -149,12 +149,12 @@ From `term_neonate.json`, `models.Heart.components.LV` (trimmed to the config pr
 
 Normal hearts stiffen steeply as they fill. Volume-normalised end-diastolic pressure–volume curves share one shape across human, dog and rat hearts, `EDP ∝ V^2.79` (Klotz 2006). The engine's diastolic term is `el_min·S + el_k·S²` (`S = vol − u_vol`). The closest it gets is a **pure quadratic**, `el_min` 0 with all the stiffness in `el_k`: local stiffness at rest is then 2× the average, against 2.8× for the power law.
 
-In 8 scenarios all five chambers use the pure quadratic, with `el_k` fitted by `scripts/_fix_chamber_edpvr.mjs`:
+In all 10 scenarios all five chambers use the pure quadratic, with `el_k` from `scripts/_fix_chamber_edpvr.mjs`:
 - **Fit:** the resting end-diastolic (ventricles) and mean (atria) volumes are unchanged, and so are the resting vitals.
 - **Right atrium:** the two halves share one `el_k`, and their connector `RAIVCI_RASVC` is `implicit`. With stiffening atria the explicit scheme of that low-resistance connector oscillated.
 - **Effect:** in term_neonate with the reflexes off, +30 mL of blood raises stroke volume +17 % (linear: +34 %) and LV EDP +5.6 mmHg (linear: +3.6). That is the limited preload reserve of the newborn heart.
 
-`preterm_25wk` and `bischoff_ltr_pda` still use linear chambers. These small left-to-right-duct patients respond to the curve shape itself (HR +4/+9 bpm, SvO2 −1.3 %), so they are converted only when they are re-validated against their reference values.
+`preterm_25wk` and `bischoff_ltr_pda`, small babies with a left-to-right duct, are not fitted. Their resting atrial pressures and ventricular volumes are set by the circulation around the heart and hardly respond to chamber stiffness, so fitting the atria on volume drove the LA soft until its pressure collapsed (preterm_25wk LA 3.2 → −1.4 mmHg). They use the unfitted start, `el_k = el_min_old / S₀` (`--iter 1 --force`), within 2–4 % of every resting volume and pressure. Against their reference pages nothing moves more than 1.5 % (HR, MAP, SpO2, SvO2, outputs), preterm_25wk's foramen ovale flow returns to left-to-right (−0.9 → +2.4 mL/kg/min) and mitral E/A rises from 0.35/0.42 to 0.69.
 
 ## Usage in the scenarios
 
