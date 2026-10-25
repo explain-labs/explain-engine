@@ -111,7 +111,7 @@ for (let i = 0; i < N; i++) {
 for (const k in acc) acc[k] /= N;
 
 // normal resting ranges by profile; [low, high]. Auto-selected from body weight (term neonate ≈ 3.5 kg)
-// unless overridden with --profile adult|neonate.
+// (neonate_1h for a term baby under 6 h old) unless overridden with --profile adult|neonate|neonate_1h.
 const RANGES = {
   adult: {
     hr: [60, 100], rr: [12, 20], sys: [90, 130], dia: [60, 85], map: [70, 100],
@@ -127,6 +127,15 @@ const RANGES = {
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
     spo2_pre: [94.5, 100], svo2: [80, 86], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
+  },
+  // the healthy term neonate at ~1 h (vaginal birth, delayed cord clamping): the ranges of
+  // docs/TermTransitionReference.md (scripts/reference/term_neonate_1h.json); SpO2 mean - 2 SD;
+  // pap_s, pap_d and etco2 have no 1 h range
+  neonate_1h: {
+    hr: [102, 162], rr: [32, 57], sys: [51, 79], dia: [31, 59], map: [38, 62],
+    pap_m: [38, 56], cvp: [-3, 4],
+    spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
+    ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],
   },
   // preterm neonates with RDS, first days of life. MAP target ~ GA in mmHg; faster HR/RR, lower
   // SpO2/PO2 and mild respiratory acidosis are expected with surfactant deficiency. Ranges loosen
@@ -180,7 +189,8 @@ const RANGES = {
   },
 };
 const profileArg = (() => { const i = argv.indexOf("--profile"); return i >= 0 ? argv[i + 1] : null; })();
-const profile = profileArg || (weight < 10 ? "neonate" : "adult");
+const ageHours = (model.age ?? 1) * 24 * 365;
+const profile = profileArg || (weight < 10 ? (ageHours < 6 ? "neonate_1h" : "neonate") : "adult");
 const ranges = RANGES[profile] || RANGES.adult;
 const flagOf = (k, v) => { const r = ranges[k]; if (!r || typeof v !== "number") return ""; return v < r[0] ? " LOW" : v > r[1] ? " HIGH" : " ok"; };
 const bsa = Math.sqrt((heightCm * weight) / 3600); // Mosteller

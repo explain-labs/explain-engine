@@ -16,6 +16,7 @@
 // scenario -> class; a scenario not listed is classified by weight in classify()
 export const SCENARIO_CLASS = {
   term_neonate: "term",
+  term_neonate_1h: "term_1h",
   adult_female: "adult",
 };
 
@@ -49,6 +50,19 @@ export const TARGETS = {
     ppl_swing: [2, 8],       // [Bhutani]
     cstat_kg: [1.0, 2.0],    // mL/cmH2O/kg, total respiratory system [Polgar]
     co2_gain: [0.10, 0.40],  // 0.03-0.06 L/kg/min/mmHg on ~0.2 L/kg/min [Rigatto]
+  },
+  // the term baby at 1 h (docs/TermTransitionReference.md): mild metabolic acidosis and residual lung
+  // liquid; everything else as term
+  term_1h: {
+    rr: [30, 60],            // [Rennie]
+    vt_kg: [4.5, 7.5],       // [Polgar]
+    mv_kg: [0.15, 0.35],     // [Polgar]
+    paco2: [30, 42],         // 1 h reference (textbook, C)
+    ph: [7.27, 7.38],        // 1 h reference: BE ~-5 (textbook, C)
+    spo2: [94, 100],         // 96 +/- 1 at 1.5-13.5 h (Nikkola 2002)
+    ppl_swing: [2, 8],       // [Bhutani]
+    cstat_kg: [0.85, 2.0],   // term range, lower bound -15 %: Crs lower on day 0 (Lodrup Carlsen 1993), FRC ~-10 % (Lee 1999)
+    co2_gain: [0.10, 0.40],  // [Rigatto]
   },
   adult: {
     rr: [10, 20],            // [West]

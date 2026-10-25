@@ -70,6 +70,15 @@ export const RANGES = {
     spo2_pre: [94.5, 100], svo2: [80, 86], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
   },
+  // the healthy term neonate at ~1 h (vaginal birth, delayed cord clamping): the ranges of
+  // docs/TermTransitionReference.md (scripts/reference/term_neonate_1h.json); SpO2 mean - 2 SD;
+  // pap_s, pap_d and etco2 have no 1 h range
+  neonate_1h: {
+    hr: [102, 162], rr: [32, 57], sys: [51, 79], dia: [31, 59], map: [38, 62],
+    pap_m: [38, 56], cvp: [-3, 4],
+    spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
+    ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],
+  },
   preterm_36: {
     hr: [115, 170], rr: [38, 62], sys: [48, 80], dia: [27, 52], map: [38, 54],
     pap_s: [20, 43], pap_d: [6, 21], pap_m: [13, 31], cvp: [1, 8],
@@ -146,7 +155,8 @@ export const RANGES = {
 };
 
 // pick a normal-range profile from body weight (term neonate ≈ 3.5 kg) unless
-// overridden; gestational age narrows preterm babies onto the matching table.
+// overridden; gestational age narrows preterm babies onto the matching table, and a term baby
+// younger than 6 h (ageHours) gets the transitional neonate_1h table.
 // Is this a fetus in utero? Verified unambiguous across the shipped scenario library: only
 // fetus_term / fetus_*wk have the placenta running with the cord unclamped; every neonatal and
 // adult scenario has placenta_running=false, umb_clamped=true. Takes either a live model or a
@@ -159,7 +169,7 @@ export function isFetal(model) {
 // `fetal` must be passed explicitly by a caller that knows (via isFetal, or a spec flag): a 30 wk
 // fetus and a 30 wk preterm neonate share a gestational age and a weight but not their normal
 // ranges, so neither GA nor weight can separate them. An explicit `profile` still wins over both.
-export function selectProfile({ weight, gestational_age, profile, fetal = false } = {}) {
+export function selectProfile({ weight, gestational_age, profile, fetal = false, ageHours } = {}) {
   if (profile && RANGES[profile]) return profile;
   if (fetal) {
     const ga = Math.round(gestational_age ?? 40);
@@ -173,7 +183,8 @@ export function selectProfile({ weight, gestational_age, profile, fetal = false 
     const nearest = defined.reduce((a, b) => (Math.abs(b - ga) < Math.abs(a - ga) ? b : a));
     if (RANGES[`preterm_${nearest}`]) return `preterm_${nearest}`;
   }
-  return typeof weight === "number" && weight < 10 ? "neonate" : "adult";
+  if (typeof weight === "number" && weight < 10) return typeof ageHours === "number" && ageHours < 6 ? "neonate_1h" : "neonate";
+  return "adult";
 }
 
 // Pulmonary artery pressure falls steeply over the first days, so the term neonate's PAP ranges

@@ -82,7 +82,7 @@ A probe is a self-contained `.mjs` that boots the engine, runs a scripted physio
 6. **Perturb (optional)** — apply an insult between phases (e.g. remove a volume fraction from every blood compartment for a haemorrhage, then `calc` again and re-measure) to compare baseline vs perturbed.
 7. **Report** — print a labelled table with normal-range flags (`ok` / `LOW` / `HIGH`).
 
-`probe_vitals.mjs` is the canonical example: it reports HR, ABP (sys/dia/mean), CVP, PAP, CO/RV-output, cardiac index, SpO2 (pre/post-ductal), PDA shunt, SvO2, RR, etCO2, temperature, and a full arterial blood gas, each flagged against a `RANGES` table selected by `--profile adult|neonate|preterm_24|…|preterm_36` (auto-picked from body weight when omitted). The measurement loop, the `RANGES` tables, and `selectProfile()`/`flagOf()` are shared via `scripts/_probe.mjs` so the generic builder (`build_patient.mjs`) measures identically.
+`probe_vitals.mjs` is the canonical example: it reports HR, ABP (sys/dia/mean), CVP, PAP, CO/RV-output, cardiac index, SpO2 (pre/post-ductal), PDA shunt, SvO2, RR, etCO2, temperature, and a full arterial blood gas, each flagged against a `RANGES` table selected by `--profile adult|neonate|neonate_1h|preterm_24|…|preterm_36` (auto-picked from body weight when omitted; a term baby under 6 h old gets `neonate_1h`, the ranges of the 1 h transition reference). The measurement loop, the `RANGES` tables, and `selectProfile()`/`flagOf()` are shared via `scripts/_probe.mjs` so the generic builder (`build_patient.mjs`) measures identically.
 
 ### Run examples
 
@@ -102,7 +102,7 @@ Probes are **interactive verification tools, not pass/fail test cases.** They pr
 ## The respiratory validation suite
 
 `npm run validate:resp` (`scripts/validate_respiratory.mjs`) **is** a pass/fail gate: it exits `1` when a
-check fails. It runs a fixed battery on term_neonate (preterm_28wk was removed on 2026-10-25 to be rebuilt, so the preterm-class checks, HFOV among them, wait for the rebuild; adult_female is archived), one child process per
+check fails. It runs a fixed battery on term_neonate and term_neonate_1h (class `term_1h`: the 1 h pH, PaCO2, SpO2 and a static compliance floor 15 % lower for residual lung liquid; preterm_28wk was removed on 2026-10-25 to be rebuilt, so the preterm-class checks, HFOV among them, wait for the rebuild; adult_female is archived), one child process per
 scenario, and checks each result against clinical ranges per patient class in
 `scripts/_resp_targets.mjs` (each range carries its literature source; the ranges are not fitted to the
 model). The battery:
