@@ -48,6 +48,18 @@ function count(m, V, seconds) {
     if (prev && !V._inspiration) n.ti_max = Math.max(n.ti_max, V.ti_meas);
     prev = V._inspiration;
   }
+  // the other window edge: an effort in the last instant triggers its breath ~0.1 s later, after the
+  // window. Follow up to 0.5 s for that breath, stopping at the next effort (which is not counted)
+  for (let i = 0; i < Math.round(0.5 / dt) && n.efforts > n.triggered + n.mandatory; i++) {
+    eng.calc(dt);
+    if (B.ncc_insp === 1) break;
+    if (!prev && V._inspiration) {
+      if (V._ps_breath) n.supported++;
+      if (V.triggered_breath && !V._mandatory_breath) n.triggered++;
+      else n.mandatory++;
+    }
+    prev = V._inspiration;
+  }
   n.trigger_frac = n.efforts > n.blocked ? n.triggered / (n.efforts - n.blocked) : 0;
   return n;
 }
