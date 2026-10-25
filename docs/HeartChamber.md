@@ -123,9 +123,21 @@ The scaling layers are written by `ModelScaler`, and the `Calibrator` also write
 
 - **Additive composition.** Large simultaneous effects add linearly. Several large negative terms together can only be stopped by the floor at 0.
 - **One ANS signal, all chambers.** The atria and both ventricles get the same `ans_activity` and `ans_sens`.
-- **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law. Two scenarios still use linear chambers.
+- **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law.
 - **One unstressed volume** for the diastolic and systolic relations (inherited).
-- **Right-ventricle unstressed volume.** The postnatal scenarios give the RV a `u_vol` 5.5× the LV's (term 4.0 vs 0.73 mL, since the first commit). `u_vol` is also the volume intercept of the end-systolic relation, so the RV's end-systolic elastance comes out at 28 mmHg/mL, about the LV's 30, where real RVs are typically ~⅓–½ of the LV. Term RV volumes and EF (52 %) match CMR, but the RV is too insensitive to afterload. With the fetal ratio (1.64×, already used by the fetal scenarios) and `el_max` rescaled, pulmonary arterioles ×2 lower RV stroke volume 6.1 % instead of 3.5 %. To be re-parameterised in the scenario re-validation session (it shifts the PDA patients' `cont_factor_right` calibrations).
+- **Right-ventricle unstressed volume: 1.64× the LV's in every scenario.** `u_vol` is also the volume intercept of the end-systolic relation, so it sets how stiff the contracting RV is. Until the re-validation the postnatal scenarios had 5.46× (term 4.0 vs 0.73 mL), which made the RV's end-systolic elastance about the LV's (term 28 vs 30 mmHg/mL), where real RVs have roughly ⅓–½ of it, and left the RV almost insensitive to afterload. They now use the fetal scenarios' ratio, with `el_max` and `el_k` refitted (`scripts/_fix_rv_unstressed.mjs`) so the resting RV end-diastolic and end-systolic volumes are unchanged:
+
+  | Scenario | RV `u_vol` (mL) | RV / LV `el_max` (mmHg/mL) | Pulmonary arterioles ×2, RV SV (reflexes off) |
+  |---|---|---|---|
+  | term_neonate | 4.0 → 1.20 | 9.8 / 30.5 (was 28.1) | −5.7 % (was −3.4 %) |
+  | preterm_30wk | 1.69 → 0.51 | 16.5 / 69.2 | −5.0 % (was −2.0 %) |
+  | preterm_28wk | 1.13 → 0.34 | 29.1 / 103.6 | −5.4 % (was −2.3 %) |
+  | preterm_25wk | 0.79 → 0.24 | 36.8 / 148.1 | −6.5 % (was −2.6 %) |
+  | bischoff_no_pda | 0.86 → 0.26 | 30.9 / 135.6 | −7.0 % (was −3.2 %) |
+  | bischoff_ltr_pda | 0.81 → 0.24 | 40.5 / 143.9 | −2.6 % (was −0.2 %) |
+  | bischoff_bidir_pda | 0.77 → 0.23 | 58.4 / 152.4 | −2.1 % (was −0.1 %) |
+
+  An open duct offloads the pulmonary artery, so the RV of the PDA patients still feels less of a pulmonary resistance rise. The resting state moved ≤0.5 % in six scenarios. In bischoff_bidir_pda the RV now raises the PA pressure by ~2 mmHg, tilting the duct further right-to-left (R→L time 24 → 31 % of the cycle, ductal peak velocity 0.80 → 1.24 m/s); its balance is re-anchored at the end of the re-validation heart block.
 
 ## Example definition (JSON)
 
