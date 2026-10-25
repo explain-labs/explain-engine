@@ -115,7 +115,7 @@ One instance in every scenario, with the same eight beds.
 |---|---|---|---|
 | term_neonate | 6.14 | 0.80 | 0.313 |
 | preterm_30wk | 5.69 | 0.92 | 0.313 |
-| preterm_25wk / 28wk, Bischoff ×3 | 5.19 | 0.95 | 0.313 |
+| preterm_25wk / 28wk | 5.19 | 0.95 | 0.313 |
 | fetus_term / 30wk / 25wk | 5.46 / 4.98 / 4.98 | 0.95 | 0.65 |
 
 ## References

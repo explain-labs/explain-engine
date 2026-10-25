@@ -9,7 +9,7 @@
 // tricuspid orifice and 1.5 cm of inflow give 1.52 and 1.06 mmHg·s²/L; twice that (the column
 // extends into the atrium) gave the best E and A at term (prototype, with the exponential
 // relaxation of Heart.relax_frac). Smaller hearts are scaled as geometrically similar ones:
-// diameter ~ weight^(1/3), so L ~ weight^(-1/3). The three Bischoff scenarios share preterm_25wk's
+// diameter ~ weight^(1/3), so L ~ weight^(-1/3). The three Bischoff scenarios (removed 2026-10-25) shared preterm_25wk's
 // valves, as for the outflow valves. The tricuspid connection is two parallel halves
 // (RAIVCI_RV, RASVC_RV), each carrying 2·L so the pair has L. Only the inertance key is added.
 import fs from "node:fs";
@@ -19,7 +19,7 @@ const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 const LM_TERM = 3.04, LT_TERM = 2.12, W_TERM = 3.545;
 const WEIGHT = {
   term_neonate: 3.545, fetus_term: 3.545, preterm_30wk: 1.5, fetus_30wk: 1.5, preterm_28wk: 1.0,
-  preterm_25wk: 0.7, fetus_25wk: 0.7, bischoff_no_pda: 0.7, bischoff_ltr_pda: 0.7, bischoff_bidir_pda: 0.7,
+  preterm_25wk: 0.7, fetus_25wk: 0.7,
 };
 const path = (n) => new URL(`../model_definitions/${n}.json`, import.meta.url);
 

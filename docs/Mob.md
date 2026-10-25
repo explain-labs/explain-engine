@@ -85,9 +85,6 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
   | preterm_30wk | 14.2 g | 7.8 | 16.4 (115) → 8.3 (59 per 100 g) | 32 → 55 % |
   | preterm_28wk | 12.1 g | 7.5 | 11.5 (95) → 7.4 (61 per 100 g) | 40 → 55 % |
   | preterm_25wk | 10.8 g | 6.5 | 7.9 (73) → 6.9 (64 per 100 g) | 50 → 55 % |
-  | bischoff_no_pda | 11.1 g | 6.1 | 8.1 (73) → 7.0 (63 per 100 g) | 49 → 55 % |
-  | bischoff_ltr_pda | 10.9 g | 6.7 | 7.9 (72) → 7.6 (69 per 100 g) | 53 → 55 % |
-  | bischoff_bidir_pda | 10.7 g | 6.3 | 7.1 (66) → 7.3 (68 per 100 g) | 56 → 55 % |
   | fetus_25wk | 10.8 g | 7.1 | 7.9 (73) → 11.3 (105 per 100 g) | 64 → 50 % |
   | fetus_30wk | 14.2 g | 8.5 | 13.8 (97) → 17.4 (122 per 100 g) | 60 → 50 % |
   | fetus_term | 23.0 g | 12.4 | 30.5 (133) → 44.8 (195 per 100 g) | 69 → 50 % |

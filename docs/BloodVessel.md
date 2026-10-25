@@ -173,7 +173,7 @@ From `term_neonate.json`, `models.Circulation.components.KID_ART` (trimmed to th
 
 ## Usage in the scenarios
 
-Term_neonate has 39 vessels (the same layout in all 10 scenarios):
+Term_neonate has 39 vessels (the same layout in all 7 scenarios):
 
 | Bed | Vessels | α | `ans_sens` | `u_vol_ans_sens` |
 |---|---|---|---|---|

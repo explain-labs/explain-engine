@@ -111,7 +111,7 @@ From `term_neonate.json`, `models.Fluids` (trimmed to two fluids):
 
 ## Usage in the scenarios
 
-One instance in every scenario with the library above; maintenance 1.35 mL/kg/h (term, fetus_term) or 3 mL/kg/h (preterm, Bischoff, fetal 25/30 wk), each matching its resting urine output.
+One instance in every scenario with the library above; maintenance 1.35 mL/kg/h (term, fetus_term) or 3 mL/kg/h (preterm, fetal 25/30 wk), each matching its resting urine output.
 
 ## References
 

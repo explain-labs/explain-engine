@@ -78,7 +78,7 @@ Additive layers, as in [Capacitance](./Capacitance.md#factor-system), with a flo
 
 - **Fick diffusion between two well-mixed compartments.** No capillary transit time, no end-capillary equilibration profile, no diffusion limitation that appears only at high cardiac output. Ventilation–perfusion mismatch comes from the network (intrapulmonary shunts, two lungs), not from inside the exchanger.
 - **The CO2/O2 capacity ratio is 6 in every scenario,** a calibration value (`scripts/reseed_term_neonate.mjs` raised CO2 sixfold), not the physical ~20.
-- **Diffusing capacities are per scenario,** set by the generators: term 0.001 / 0.006 per lung, preterm and Bischoff 0.00031–0.00068 / 0.0018–0.0041. As a lung DLO2 that is ~2.7 mL/(min·mmHg) at term (0.76 per kg).
+- **Diffusing capacities are per scenario,** set by the generators: term 0.001 / 0.006 per lung, preterm 0.000315–0.000675 / 0.00189–0.00405. As a lung DLO2 that is ~2.7 mL/(min·mmHg) at term (0.76 per kg).
 - **The fetal lungs exchange nothing** (`dif_o2` = `dif_co2` = 0), but the exchangers still run their blood solve.
 - **No water vapour or nitrogen crosses the membrane** (no N2 washout into blood, no absorption atelectasis from N2).
 
@@ -116,7 +116,6 @@ Three instances in every scenario:
 | preterm_30wk | 0.00068 | 0.00405 |
 | preterm_28wk | 0.00045 | 0.0027 |
 | preterm_25wk | 0.00032 | 0.00189 |
-| bischoff no-PDA / L→R / bidir | 0.00034 / 0.00032 / 0.00031 | 0.00206 / 0.00194 / 0.00184 |
 | fetal ×3 | 0 | 0 |
 
 ## References

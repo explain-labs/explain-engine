@@ -30,7 +30,7 @@ BaseModelClass
 | `lung_models` | list | `["ALL", "ALR"]` | Alveolar compartments. |
 | `gasex_models` | list | `["GASEX_LL", "GASEX_RL"]` | Gas exchangers. |
 | `shunt_models` | list | `["IPSL", "IPSR"]` | Intrapulmonary shunt resistors. |
-| `surfactant` | 0–1 | 0.3 | Surfactant maturity: 0 = severe deficiency, 1 = mature or fully treated. Scenarios: 25 wk and Bischoff 0.2, 28 wk 0.25, 30 wk 0.3. |
+| `surfactant` | 0–1 | 0.3 | Surfactant maturity: 0 = severe deficiency, 1 = mature or fully treated. Scenarios: 25 wk 0.2, 28 wk 0.25, 30 wk 0.3. |
 | `surfactant_target` | 0–1 or null | null | Therapy target the maturity ramps toward; null holds it. Set by `administer_surfactant`. |
 | `surfactant_tc` | s | 180 | Ramp time constant of the therapy response. |
 | `open_margin`, `close_margin` | mmHg | 2, 2 | Half-widths of the dead zone above and below the baseline pressure. |
@@ -142,7 +142,7 @@ From `preterm_25wk.json`, `models.Surfactant` (trimmed to the config props):
 
 ## Usage in the scenarios
 
-In the six preterm and Bischoff scenarios, with the defaults above and `surfactant` 0.2–0.3. Not in term_neonate or the fetal scenarios.
+In the three preterm scenarios, with the defaults above and `surfactant` 0.2–0.3. Not in term_neonate or the fetal scenarios.
 
 ## References
 

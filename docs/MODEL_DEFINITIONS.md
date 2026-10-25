@@ -19,7 +19,10 @@ A scenario file is a single JSON document that describes one complete patient/ex
 > duct closed) joined as a further `_make_preterm_validated.mjs` profile (`--profile bischoff_no_pda`), validated
 > against [BischoffNoPdaReference](./BischoffNoPdaReference.md).
 > The same day `bischoff_ltr_pda` (the left-to-right PDA group: 25.8 wk, 0.72 kg, 72 h, FiO₂ 0.26, unrestrictive
-> PDA 2.1 mm) followed as `--profile bischoff_ltr_pda`, validated against [BischoffLtrPdaReference](./BischoffLtrPdaReference.md).
+> PDA 2.1 mm) followed as `--profile bischoff_ltr_pda`, validated against [BischoffLtrPdaReference](./BischoffLtrPdaReference.md),
+> and on 2026-10-23 `bischoff_bidir_pda` ([BischoffBidirPdaReference](./BischoffBidirPdaReference.md)). All three were
+> removed on 2026-10-25, during the re-validation, to be rebuilt from scratch; their reference pages and probe targets
+> (`scripts/reference/bischoff_*.json`) are kept for the rebuild.
 > The frozen set that the P1 companion and the ToF lesson used (`bischoff_cohort`, `p1_baseline`,
 > `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20: the P1
 > experiments are to be re-run on the current engine, and the ToF lesson is offline until a ToF

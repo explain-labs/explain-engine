@@ -167,7 +167,6 @@ One instance in every scenario.
 |---|---|---|---|---|---|
 | term_neonate | on | 0.207 | 1.30e-4 | 0.40 | 334 |
 | preterm_30wk / 28wk / 25wk | on | 0.285 / 0.30 / 0.30 | 7.9e-5 / 7.8e-5 / 7.1e-5 | 0.38 | 790 / 1263 / 2371 |
-| bischoff no-PDA / L→R / bidir | on | 0.335 / 0.31 / 0.31 | 7.9e-5 / 7.3e-5 / 7.3e-5 | 0.38 | 1943 / 2084 / 2190 |
 | fetal ×3 | off | (term values) | | 0.40 | 334 |
 
 ## References

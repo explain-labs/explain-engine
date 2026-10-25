@@ -142,7 +142,7 @@ From `term_neonate.json`, `models.Hormones` (trimmed to gating and set-points; g
 
 ## Usage in the scenarios
 
-One instance in every scenario, running. `perfusion_setpoint` ranges from 22.5 (25 wk, Bischoff) to 40.9 mmHg (term), `volume_setpoint` from 55 to 286 mL.
+One instance in every scenario, running. `perfusion_setpoint` ranges from 22.6 (25 wk) to 40.9 mmHg (term), `volume_setpoint` from 55 to 286 mL.
 
 ## References
 

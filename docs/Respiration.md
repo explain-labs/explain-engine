@@ -272,7 +272,7 @@ From `term_neonate.json`, `models.Respiration` (trimmed: groups and atelectasis 
 
 ## Usage in the scenarios
 
-One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. All ten scenarios use the defaults above for every lever (1) and for atelectasis (0); disease in the preterm and Bischoff scenarios is carried by the compartments' own values and by Surfactant (enabled there).
+One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. All seven scenarios use the defaults above for every lever (1) and for atelectasis (0); disease in the preterm scenarios is carried by the compartments' own values and by Surfactant (enabled there).
 
 ## References
 

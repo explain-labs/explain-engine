@@ -134,10 +134,10 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
   - +50 mL blood volume → LV factor 0.84 (LA 17.6);
   - PVR ×4 → RV 0.81;
   - arterioles ×3 → LV 0.96.
-- **Concentric remodelling does not thicken the wall.** The wall volume is fixed by heart weight, so there is no compensating fall in stress. Its diastolic stiffening acts on `el_k`, which is the whole diastolic stiffness of the chambers in 8 scenarios but 0 in the two still-linear ones (`preterm_25wk`, `bischoff_ltr_pda`), where concentric remodelling only lowers contractility. To be revisited.
+- **Concentric remodelling does not thicken the wall.** The wall volume is fixed by heart weight, so there is no compensating fall in stress. Its diastolic stiffening acts on `el_k`, which is the whole diastolic stiffness of the chambers in every scenario.
 - **Spherical geometry for both ventricles.** The crescent-shaped RV is treated as a sphere with 15 % of the heart mass.
 - **The heart-weight relation has a large intercept** (7.8 g), so small infants get relatively thick walls and low wall stress. The stress values compare within a scenario, not between sizes.
-- **One-beat start-up transient.** Right after a scenario loads, the first latched beat can exceed the dead-band briefly (bischoff_ltr_pda: LV end-diastolic 1.54 ×). The effect on the load factor is about 10⁻⁵.
+- **One-beat start-up transient.** Right after a scenario loads, the first latched beat can exceed the dead-band briefly (LV end-diastolic up to 1.54 × in a 25-week PDA patient). The effect on the load factor is about 10⁻⁵.
 - **Remodelling is slow by design** (`remodel_tc` one day). Over a normal session it stays at its saved value.
 
 ## Example definition (JSON)
@@ -173,9 +173,6 @@ One instance in every scenario, enabled, with resting setpoints learned for that
 | preterm_30wk | 39.6 / 15.8 | 52.8 / 34.5 |
 | preterm_28wk | 30.3 / 11.3 | 56.3 / 24.4 |
 | preterm_25wk | 23.6 / 9.2 | 42.3 / 16.6 |
-| bischoff_no_pda | 21.2 / 7.5 | 34.7 / 18.5 |
-| bischoff_ltr_pda | 27.1 / 14.8 | 52.3 / 21.4 |
-| bischoff_bidir_pda | 21.0 / 6.7 | 66.7 / 18.0 |
 
 `scripts/probe_heartfunction.mjs` exercises it on term_neonate with an afterload and a volume challenge.
 

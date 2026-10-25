@@ -26,7 +26,7 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate 1.5, term fetus 6.0, 25 wk 0.75, Bischoff 0.5. |
+| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate 1.5, term fetus 6.0, 25 wk 0.75. |
 | `diameter_fo_max` | mm | 10.0 | Upper clamp. |
 | `atrial_septal_width` | mm | 3.0 | Length of the FO channel in the Poiseuille law. |
 | `fo_lr_factor` | – | 10.0 | Left-to-right resistance multiplier (flap valve). **1 in every shipped scenario.** |

@@ -174,7 +174,7 @@ One instance in every scenario, with autoregulation on. Stored values at rest:
 | fetus_term | 6.0 | 0.98 | 3.4 | 1.2 |
 | preterm_30wk / fetus_30wk | 3.4 | 0.9375 | 0.97 / 1.35 | 2.4 / 3.4 |
 | preterm_28wk | 2.6 | 0.9175 | 0.67 | 3.3 |
-| preterm_25wk, fetus_25wk, Bischoff ×3 | 2.1–2.2 | 0.833 | 0.09–0.24 | 1.3–3.2 |
+| preterm_25wk, fetus_25wk | 2.1–2.2 | 0.833 | 0.09–0.24 | 1.3–3.2 |
 
 ## References
 

@@ -1,5 +1,7 @@
 # Bischoff 2021 bidirectional PDA patient (25.1 wk, 680 g) at 72 h: reference values
 
+> **Scenario removed (2026-10-25).** The `bischoff_bidir_pda` scenario was removed during the re-validation, to be rebuilt from scratch. This reference set and its probe targets (`scripts/reference/bischoff_bidir_pda.json`) are kept for the rebuild; the model values and calibration notes below describe the removed version.
+
 Reference values for validating `bischoff_bidir_pda`: a virtual patient matching the **bidirectional PDA group** (n = 15)
 of Bischoff et al. 2021 (Echocardiography 38:1524-33, Tables 1 and 2). Compiled 2026-10-23. Every judgement call was
 made by the model's author (see the decisions log).

@@ -138,7 +138,7 @@ From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defa
 
 ## Usage in the scenarios
 
-One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` ranges from 0.019 L/min (Bischoff) to 0.355 L/min (fetus_term).
+One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` ranges from 0.0196 L/min (preterm_25wk) to 0.355 L/min (fetus_term).
 
 ## References
 

@@ -27,7 +27,7 @@ const TUNE = {
   term_neonate: TERM, preterm_30wk: PRETERM, preterm_28wk: PRETERM, preterm_25wk: PRETERM,
   fetus_25wk: { LV_AA: g(0.6), RV_PA: g(0.55) }, fetus_30wk: { LV_AA: g(0.75), RV_PA: g(0.65) }, fetus_term: TERM,
 };
-const COPY = { bischoff_no_pda: "preterm_25wk", bischoff_ltr_pda: "preterm_25wk", bischoff_bidir_pda: "preterm_25wk" };
+const COPY = {}; // the three Bischoff scenarios took preterm_25wk's values (removed 2026-10-25)
 
 const eng = await createEngine();
 const path = (n) => new URL(`../model_definitions/${n}.json`, import.meta.url);

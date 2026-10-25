@@ -89,7 +89,7 @@ From `term_neonate.json`, `models.Ans.components.EF_HR` (trimmed to the config p
 
 ## Usage in the scenarios
 
-`EF_HR`, `EF_SVR`, `EF_HEART` and `EF_MV` in every scenario; `EF_HR_CHEMO` in the six preterm and Bischoff scenarios. Their targets, ranges and time constants are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
+`EF_HR`, `EF_SVR`, `EF_HEART` and `EF_MV` in every scenario; `EF_HR_CHEMO` in the three preterm scenarios. Their targets, ranges and time constants are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
 
 ## References
 

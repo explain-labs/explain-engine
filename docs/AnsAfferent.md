@@ -90,7 +90,7 @@ From `term_neonate.json`, `models.Ans.components.BR_MAP` (trimmed to the config 
 
 ## Usage in the scenarios
 
-`BR_MAP`, `CR_PCO2`, `CR_PO2` and `CR_PH` in every scenario; `CR_PO2_HR` in the six preterm and Bischoff scenarios. Their settings are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
+`BR_MAP`, `CR_PCO2`, `CR_PO2` and `CR_PH` in every scenario; `CR_PO2_HR` in the three preterm scenarios. Their settings are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
 
 ## References
 

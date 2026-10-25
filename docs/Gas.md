@@ -93,7 +93,7 @@ From `term_neonate.json`, `models.Gas` (trimmed to the config props):
 
 ## Usage in the scenarios
 
-One instance in every scenario, with the settings above. `fio2`: 0.21 in term_neonate, preterm_30wk, bischoff_no_pda and the fetal scenarios; 0.25 preterm_28wk; 0.26 bischoff_ltr_pda; 0.28 bischoff_bidir_pda; 0.30 preterm_25wk.
+One instance in every scenario, with the settings above. `fio2`: 0.21 in term_neonate, preterm_30wk and the fetal scenarios; 0.25 preterm_28wk; 0.30 preterm_25wk.
 
 ## References
 

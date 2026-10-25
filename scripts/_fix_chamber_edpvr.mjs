@@ -125,7 +125,7 @@ for (const name of names) {
   Object.assign(elk, best.elk);
   const ok = (c) => Math.abs((res.v[c] - base.u[c]) / (base.v[c] - base.u[c]) - 1) < 0.01;
   // the volumes must be back at rest, and as a guard the atrial filling pressures must not have moved:
-  // in the small left-to-right-duct patients (preterm_25wk, bischoff_ltr_pda) the atrial volume barely
+  // in the small left-to-right-duct patients (preterm_25wk, and the since-removed bischoff_ltr_pda) the atrial volume barely
   // responds to the atrial stiffness, and fitting it drove the LA soft until its pressure collapsed
   // (preterm_25wk: LA 3.2 -> -1.4 mmHg, foramen ovale reversed). Fitting their atria on pressure fails too
   // (neither the atrial pressures nor the ventricular volumes respond: the circulation around the heart sets
