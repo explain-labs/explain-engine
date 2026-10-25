@@ -45,6 +45,11 @@ const PROFILES = {
     // alike so the shunt fraction stays): with a 4.6 mm duct the pulmonary pressure follows the aorta,
     // so a small rise is enough for the bidirectional flow seen at 2 h
     PVR: 1.2,
+    // transitional ductal Doppler (Kang 2016: bidirectional at 2 h; classically right-to-left in early
+    // systole, left-to-right in late systole and diastole): the LV activation lags the RV's by 35 ms so
+    // the pulmonary valve opens first (Heart.rv_delay < 0), and stiffer main/branch pulmonary arteries
+    // give the sharper systolic PA pressure peak of a small, high-resistance pulmonary tree
+    RV_DELAY: -0.035, PA_EL: 2.5,
     // high output after birth (catecholamine surge; Agata 1991/1994 LVO 327-365): low SVR, higher
     // contractility and rate
     SVR: 0.5, HEART_EL_MAX: 1.6, HR_REF: 1.07,
@@ -92,7 +97,12 @@ const log = [];
 M.Pda.diameter_ao_max = P.PDA_AO_MAX; M.Pda.diameter_pa_max = P.PDA_PA_MAX; M.Pda.diameter_relative = P.PDA_REL;
 eng.scale("pulmonary_resistances", P.PVR);
 M.Shunts.ips_res *= P.PVR;
-log.push(`duct ${(P.PDA_REL * P.PDA_PA_MAX).toFixed(2)} mm (PA end) / ${(P.PDA_REL * P.PDA_AO_MAX).toFixed(2)} mm (Ao end); PVR x${P.PVR} (ips_res alike)`);
+// optional: stiffer main/branch pulmonary arteries (sharper systolic PA pressure peak) and an RV
+// activation lag (Heart.rv_delay), the two levers of the systolic right-to-left ductal jet
+if (P.PA_EL) for (const n of ["PA", "PAAL", "PAAR"]) M[n].el_base *= P.PA_EL;
+if (P.RV_DELAY) M.Heart.rv_delay = P.RV_DELAY;
+log.push(`duct ${(P.PDA_REL * P.PDA_PA_MAX).toFixed(2)} mm (PA end) / ${(P.PDA_REL * P.PDA_AO_MAX).toFixed(2)} mm (Ao end); PVR x${P.PVR} (ips_res alike)` +
+  (P.PA_EL ? `; PA el_base x${P.PA_EL}` : "") + (P.RV_DELAY ? `; rv_delay ${P.RV_DELAY * 1000} ms` : ""));
 
 // 2. output: systemic resistance, contractility, rate
 eng.scale("systemic_resistances", P.SVR);

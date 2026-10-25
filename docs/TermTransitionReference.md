@@ -62,6 +62,7 @@ from `term_neonate`. The levers (factors relative to 72 h), in the script's prof
 | Lung liquid: alveolar (ALL/ALR) `u_vol` / `el_base` | x0.85 / x1.11 | see below |
 | Brain | settles pressure-passive; `cbf_setpoint` re-anchored last | see below |
 | Glomerular filtration coefficient (`Kidneys.kf`) | x0.8 | GFR at the day-1 value (see below) |
+| `Heart.rv_delay` / main and branch PA `el_base` | −35 ms (the LV lags) / x2.5 | early systolic right-to-left ductal flow (see below) |
 | Environment | 24 °C, 50 % humidity | dressed / skin-to-skin in the room (loss trim re-seeded) |
 
 Then the controllers are re-anchored at rest: the baroreflex activity is folded into the base values
@@ -142,6 +143,27 @@ lower 1 h renal pressure GFR collapsed to ~8 and renal flow to 23 (against Agata
 flow), so the 1 h kidney keeps a near-maximally dilated afferent arteriole (factor 0.50) and has little
 dilator reserve if the pressure falls. **All 40 numeric targets are now in range**; loaded, it holds for
 10 min (BE drifts −5.15 → −5.19).
+
+**Step 4a, the ductal Doppler pattern.** The duct was bidirectional, but in the wrong order: the aortic
+valve opened 33 ms before the pulmonary valve, so each beat began with a left-to-right surge and the
+right-to-left flow came in mid–late systole. The classic transitional pattern (bidirectional in all
+babies at 2 h, Kang 2016) is right-to-left in early systole and left-to-right in late systole and
+diastole. A stronger RV did not change the order (it has to reach almost the same diastolic pressure
+as the LV through the open duct), so `Heart.rv_delay` now also takes negative values (the LV
+activation lags the RV's). The 1 h baby has the LV lagging by 35 ms and main/branch pulmonary arteries
+2.5x stiffer (the sharper systolic PA pressure peak of a small, high-resistance pulmonary tree):
+
+| One beat (459 ms) | After QRS | Duct |
+|---|---|---|
+| Pulmonary valve opens | 61 ms (aortic 69 ms) | |
+| Early systole | 63–175 ms | right-to-left, peak −230 mL/kg/min (−0.9 m/s) at 80 ms |
+| Late systole | 180–240 ms | turns left-to-right |
+| Diastole | 240–459 ms | left-to-right, ~0.75 m/s after aortic closure, easing to 0.4 m/s |
+
+`probe_pda`: bidirectional signature confirmed (systolic peak −0.60 m/s right-to-left, diastolic
++0.78 m/s left-to-right), right-to-left for 19 % of the cycle, net 74 mL/kg/min left-to-right.
+Nothing else moved: 40 of 40 in range (PAP 69/32/50, BP 70/33/51, SpO2 97.5 / 96.6); loaded, it holds
+for 10 min. The 72 h baby (`rv_delay` 0) is unchanged.
 
 ## Hemodynamics
 
