@@ -47,8 +47,8 @@ const LEVER_COLOR = {
 // ---------------------------------------------------------------------------
 function figA() {
   const sum = load(RES + "_summary.json");
-  if (!sum || !sum.term_neonate) throw new Error("missing results/_summary.json (term_neonate)");
-  const T = sum.term_neonate.targets;
+  if (!sum || !sum.term_neonate_72h) throw new Error("missing results/_summary.json (term_neonate_72h)");
+  const T = sum.term_neonate_72h.targets;
   // paper order: the three clean pressure levers, then coupled, then the inert oxygenation pair
   const order = ["map", "pap_m", "cvp", "hr", "be", "ph", "co", "pco2", "spo2", "po2"];
   const rows = order.filter((t) => T[t] && T[t].sobol);
@@ -131,7 +131,7 @@ function figA() {
 // ---------------------------------------------------------------------------
 function figB() {
   const scenarios = [
-    ["term_neonate", "Term"],
+    ["term_neonate_72h", "Term"],
     ["preterm_28wk", "Preterm 28wk"],
     ["bischoff_cohort", "Bischoff 25wk"],
     ["pphn", "PPHN"],
@@ -156,7 +156,7 @@ function figB() {
   }
   // designated levers (from term summary, stable across scenarios)
   const sum = load(RES + "_summary.json");
-  for (const t of targets) designated[t] = sum?.term_neonate?.targets?.[t]?.designated;
+  for (const t of targets) designated[t] = sum?.term_neonate_72h?.targets?.[t]?.designated;
 
   const cw = 118, ch = 30, mL = 92, mT = 96, mB = 96;
   const W = mL + scenarios.length * cw + 220, H = mT + targets.length * ch + mB;

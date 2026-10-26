@@ -1,10 +1,10 @@
-// One-off recalibration: term_neonate whole-body VO2 to 7.0 mL/kg/min at 72 h, measured as lung O2
+// One-off recalibration: term_neonate_72h whole-body VO2 to 7.0 mL/kg/min at 72 h, measured as lung O2
 // uptake (Metabolism + the myocardium's Mob share), with breathing re-anchored so the chemoreflex
 // stays neutral.
 //
 //   node scripts/_fix_term_vo2.mjs [--seconds 300] [--write]
 //
-// Why (docs/TermNeonateReference.md, step 6.2 of the term_neonate validation): the scenario took up
+// Why (docs/TermNeonateReference.md, step 6.2 of the term_neonate_72h validation): the scenario took up
 // 8.1 mL/kg/min — Metabolism.vo2 7.288 (the old whole-body value, minus nothing) plus Mob's ~0.8 for
 // the heart on top. First-week term infants measure 6.26 +/- 1.51 at thermoneutral rest (phototherapy
 // study, ADC F&N 2001), and resting energy expenditure of 45-50 kcal/kg/d is ~6.5-7.2 mL O2/kg/min;
@@ -28,7 +28,7 @@ const WRITE = argv.includes("--write");
 const VO2 = 6.1396, MV_REF = 0.202886;
 const CR = { CR_PCO2: 39.67, CR_PO2: 75.7, CR_PH: 7.364 };
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);
@@ -49,4 +49,4 @@ if (baselineWeight !== undefined) json.model_definition._baseline_weight = basel
 const text = JSON.stringify(json, null, 2);
 JSON.parse(text);
 if (WRITE) fs.writeFileSync(file, text);
-out(WRITE ? "term_neonate.json written" : "dry run (pass --write to save)");
+out(WRITE ? "term_neonate_72h.json written" : "dry run (pass --write to save)");

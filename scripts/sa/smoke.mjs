@@ -7,7 +7,7 @@ import { createEvaluator } from "./_sa_eval.mjs";
 import { REDUCED } from "./_sa_params.mjs";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? Number(argv[i + 1]) : d; };
 const warm = opt("--warm", 60), window = opt("--window", 12);
 

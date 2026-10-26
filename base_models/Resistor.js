@@ -36,6 +36,11 @@ export class Resistor extends BaseModelClass {
     // exchange_blood). Gas: molecular diffusion and cardiogenic mixing (helpers/GasMixing.js
     // exchange_gas). Advection by `flow` only carries upstream contents downstream. 0 (default) = off.
     this.mix_flow = 0.0;
+    // Inertance L (mmHg·s²/L) of the blood column through this connection: dp = R·f + L·df/dt, so
+    // the flow is a state that accelerates and decelerates instead of following the pressure
+    // difference instantly (L = ρ·length/area). Used on the AV valves, where it shapes the E and A
+    // waves. 0 (default) = the plain resistor.
+    this.inertance = 0.0;
 
     // non-persistent property factors. These factors reset to 1.0 after each model step
     this.r_factor = 1.0; // non-persistent resistance factor
@@ -154,6 +159,12 @@ export class Resistor extends BaseModelClass {
     this.p1_ext = 0.0;
     this.p2_ext = 0.0;
 
+    // with inertance the flow is a state carried from the previous step
+    if (this.inertance > 0.0) {
+      this._calc_inertial_flow(_p1_t - _p2_t);
+      return;
+    }
+
     // reset the current flow
     this.flow = 0.0;
 
@@ -191,5 +202,34 @@ export class Resistor extends BaseModelClass {
     }
 
     // reached only when p1 < p2 and backflow is blocked: no flow this step
+  }
+
+  _calc_inertial_flow(dp) {
+    // dp = R·f + r_k·|f|·f + L·df/dt, integrated semi-implicitly in f (the resistive terms at the new
+    // flow, r_k linearised at the old one), which is unconditionally stable for the resistor itself;
+    // the coupling with the compartments' pressures oscillates at sqrt(ΣE/L), far slower than the
+    // step for physiological L. A valve (no_back_flow) closes when its flow comes to zero: it cannot
+    // reverse, so the flow is held at 0 until the pressure difference drives it forward again.
+    if (this.no_flow || this.no_flow_ext) {
+      this.flow = 0.0;
+      return;
+    }
+    const f0 = this.flow;
+    const r = (f0 >= 0.0 ? this.r_for_eff : this.r_back_eff) + this.r_k_eff * Math.abs(f0);
+    if (!(r > 0.0)) {
+      this.flow = 0.0;
+      return;
+    }
+    const a = this._t / this.inertance;
+    let f = (f0 + a * dp) / (1.0 + a * r);
+    if (this.no_back_flow && f < 0.0) f = 0.0;
+    this.flow = f;
+    if (f > 0.0) {
+      const vol_not_removed = this._comp_from.volume_out(f * this._t);
+      this._comp_to.volume_in(f * this._t - vol_not_removed, this._comp_from);
+    } else if (f < 0.0) {
+      const vol_not_removed = this._comp_to.volume_out(-f * this._t);
+      this._comp_from.volume_in(-f * this._t - vol_not_removed, this._comp_to);
+    }
   }
 }

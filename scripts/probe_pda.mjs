@@ -29,7 +29,7 @@ import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "preterm_28wk";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h"; // term's duct is closed: pass a scenario with an open duct
 const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const SECONDS = opt("--seconds", 120);

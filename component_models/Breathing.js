@@ -38,6 +38,15 @@ export class Breathing extends BaseModelClass {
     this.ans_activity_factor = 1.0; // global ANS activity factor
     this.load_compensation = 0.5; // 0-1, partial compensation of the effort for loads and support
     this.thorax = ["THORAX"]; // container the muscle pressure acts on
+    // hypoxic ventilatory depression (newborn): under sustained hypoxaemia the central drive falls over
+    // minutes after the peripheral chemoreflex's early rise, so ventilation declines from its peak
+    this.hvd_enabled = true;
+    this.hvd_model = "AA"; // arterial compartment whose pO2 is sensed
+    this.hvd_po2_threshold = 70.0; // mmHg — the depression grows as pO2 falls below this (term rests at ~75)
+    this.hvd_gain = 2.0; // drive reduction per fractional pO2 deficit below the threshold
+    this.hvd_max = 0.8; // largest fractional reduction of the drive
+    this.hvd_tc = 120.0; // s — time constant of the depression (onset and offset)
+    this.hvd_factor = 1.0; // applied factor on the drive (state, saved; 1 = no depression)
 
     // initialize dependent properties
     this.target_minute_volume = 0.0; // target minute volume (L/min)
@@ -89,6 +98,21 @@ export class Breathing extends BaseModelClass {
     this.exp_running = v;
   }
 
+  // slow central depression of the drive under sustained hypoxaemia (see hvd_* above)
+  calc_hypoxic_depression() {
+    let target = 1.0;
+    if (this.hvd_enabled) {
+      const site = this._model_engine.models[this.hvd_model];
+      const po2 = site?.po2;
+      if (po2 > 0.0 && this.hvd_po2_threshold > 0.0 && po2 < this.hvd_po2_threshold) {
+        const deficit = (this.hvd_po2_threshold - po2) / this.hvd_po2_threshold;
+        target = 1.0 - Math.min(this.hvd_gain * deficit, this.hvd_max);
+      }
+    }
+    const frac = this.hvd_tc > 0.0 ? Math.min(1.0, this._t / this.hvd_tc) : 1.0;
+    this.hvd_factor += (target - this.hvd_factor) * frac;
+  }
+
   init_model(args = []) {
     super.init_model(args);
     // a scenario saved before the redesign stores rmp_gain as an elastance gain: recalibrate
@@ -103,6 +127,8 @@ export class Breathing extends BaseModelClass {
     // drive: target minute volume, split into rate and tidal volume
     const _minute_volume_ref = this.minute_volume_ref * this.minute_volume_ref_factor * this.minute_volume_ref_scaling_factor * _weight;
     this.target_minute_volume = (_minute_volume_ref + (this.mv_ans_factor - 1.0) * _minute_volume_ref) * this.ans_activity_factor;
+    this.calc_hypoxic_depression();
+    this.target_minute_volume *= this.hvd_factor;
     this.vt_rr_controller(_weight);
 
     const v_lung = this._lung_volume();

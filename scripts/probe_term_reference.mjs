@@ -5,10 +5,8 @@
 // deviation in SD where an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference,
 // n/a = no model read-out). Reference sets:
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
-//   scripts/reference/preterm_28wk.json    (docs/Preterm28wkReference.md)
-//   scripts/reference/fetus_30wk.json      (docs/Fetus30wkReference.md; fetal read-outs switch on when the placenta runs)
-//   scripts/reference/bischoff_ltr_pda.json (docs/BischoffLtrPdaReference.md; SvO2 as svo2_ra, mixed right-atrial blood)
-//   scripts/reference/bischoff_bidir_pda.json (docs/BischoffBidirPdaReference.md; ductal R->L velocity as pda_v_rtl, post-ductal SpO2 as spo2_post)
+//   (the preterm, fetal and Bischoff sets were removed with their scenarios on 2026-10-25, to be rebuilt; the probe
+//   still reads their extra rows: fetal read-outs when the placenta runs, svo2_ra, pda_v_rtl, spo2_post)
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
@@ -19,7 +17,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a, i) => !a.startsWith("-") && !/^\d/.test(a) && !argv[i - 1]?.startsWith("--")) || "term_neonate";
+const scenario = argv.find((a, i) => !a.startsWith("-") && !/^\d/.test(a) && !argv[i - 1]?.startsWith("--")) || "term_neonate_72h";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
 const SETTLE = Number(opt("--settle", 180));
 const WINDOW = Number(opt("--window", 20));

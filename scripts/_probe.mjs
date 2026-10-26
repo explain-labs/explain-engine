@@ -26,10 +26,12 @@ export function measureVitals(model, send, { window = 20 } = {}) {
     add("rr", M.resp_rate);
     add("sys", M.minmax?.abp_pre_pres_max);
     add("dia", M.minmax?.abp_pre_pres_min);
-    add("map", M.minmax?.abp_pre_pres_mean);
+    add("map", M.minmax?.abp_pre_pres_mean); // clinical mean, dia + pp/3 (Monitor.arterial_mean_targets)
+    add("map_int", M.minmax?.abp_pre_pres_mean_int); // true time-averaged mean over the beat
     add("pap_s", M.minmax?.pap_pres_max);
     add("pap_d", M.minmax?.pap_pres_min);
     add("pap_m", M.minmax?.pap_pres_mean);
+    add("pap_m_int", M.minmax?.pap_pres_mean_int);
     add("cvp", M.minmax?.cvp_pres_mean);
     add("spo2_pre", M.sao2_pre);
     add("spo2_post", M.sao2_post);
@@ -61,11 +63,39 @@ export const RANGES = {
     spo2_pre: [95, 100], svo2: [65, 75], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.35, 7.45], pco2: [35, 45], po2: [80, 100], hco3: [22, 26], be: [-2, 2],
   },
+  // the healthy term neonate at ~72 h: the ranges of docs/TermNeonateReference.md
+  // (scripts/reference/term_neonate_72h.json) where it gives one; SpO2 mean - 2 SD; pap_* stay the
+  // age-dependent table below (rangesFor); hco3 and etco2 have no reference range
   neonate: {
-    hr: [100, 160], rr: [30, 60], sys: [55, 90], dia: [30, 55], map: [40, 60],
+    hr: [91, 145], rr: [32, 57], sys: [60, 89], dia: [31, 61], map: [45, 72],
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
-    spo2_pre: [93, 100], svo2: [60, 80], temp: [36.5, 37.5], etco2: [35, 45],
-    ph: [7.30, 7.42], pco2: [35, 45], po2: [50, 85], hco3: [18, 24], be: [-6, 2],
+    spo2_pre: [94.5, 100], svo2: [80, 86], temp: [36.5, 37.5], etco2: [35, 45],
+    ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
+  },
+  // the healthy term neonate at ~1 h (vaginal birth, delayed cord clamping): the ranges of
+  // docs/TermTransitionReference.md (scripts/reference/term_neonate_1h.json); SpO2 mean - 2 SD;
+  // pap_s, pap_d and etco2 have no 1 h range
+  neonate_1h: {
+    hr: [102, 162], rr: [32, 57], sys: [52, 83], dia: [25, 49], map: [36, 59],
+    pap_m: [38, 56], cvp: [-3, 4],
+    spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
+    ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],
+  },
+  // the healthy term neonate at ~12 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_12h.json); pap_d and etco2 have no 12 h range
+  neonate_12h: {
+    hr: [97, 152], rr: [32, 57], sys: [54, 85], dia: [28, 53], map: [39, 62],
+    pap_s: [34, 71], pap_m: [32, 50], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
+    ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
+  },
+  // the healthy term neonate at ~24 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_24h.json); pap_d and etco2 have no 24 h range
+  neonate_24h: {
+    hr: [99, 143], rr: [32, 57], sys: [58, 84], dia: [29, 53], map: [41, 61],
+    pap_s: [28, 60], pap_m: [24, 44], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [81, 87], temp: [36.5, 37.5],
+    ph: [7.32, 7.42], pco2: [30, 41], po2: [60, 90], hco3: [18, 23], be: [-5.5, -1.5],
   },
   preterm_36: {
     hr: [115, 170], rr: [38, 62], sys: [48, 80], dia: [27, 52], map: [38, 54],
@@ -143,7 +173,9 @@ export const RANGES = {
 };
 
 // pick a normal-range profile from body weight (term neonate ≈ 3.5 kg) unless
-// overridden; gestational age narrows preterm babies onto the matching table.
+// overridden; gestational age narrows preterm babies onto the matching table, and a term baby
+// younger than 6 h (ageHours) gets the transitional neonate_1h table, 6 to under 18 h neonate_12h and
+// 18 to under 48 h neonate_24h.
 // Is this a fetus in utero? Verified unambiguous across the shipped scenario library: only
 // fetus_term / fetus_*wk have the placenta running with the cord unclamped; every neonatal and
 // adult scenario has placenta_running=false, umb_clamped=true. Takes either a live model or a
@@ -156,7 +188,7 @@ export function isFetal(model) {
 // `fetal` must be passed explicitly by a caller that knows (via isFetal, or a spec flag): a 30 wk
 // fetus and a 30 wk preterm neonate share a gestational age and a weight but not their normal
 // ranges, so neither GA nor weight can separate them. An explicit `profile` still wins over both.
-export function selectProfile({ weight, gestational_age, profile, fetal = false } = {}) {
+export function selectProfile({ weight, gestational_age, profile, fetal = false, ageHours } = {}) {
   if (profile && RANGES[profile]) return profile;
   if (fetal) {
     const ga = Math.round(gestational_age ?? 40);
@@ -170,7 +202,13 @@ export function selectProfile({ weight, gestational_age, profile, fetal = false 
     const nearest = defined.reduce((a, b) => (Math.abs(b - ga) < Math.abs(a - ga) ? b : a));
     if (RANGES[`preterm_${nearest}`]) return `preterm_${nearest}`;
   }
-  return typeof weight === "number" && weight < 10 ? "neonate" : "adult";
+  if (typeof weight === "number" && weight < 10) {
+    if (typeof ageHours === "number" && ageHours < 6) return "neonate_1h";
+    if (typeof ageHours === "number" && ageHours < 18) return "neonate_12h";
+    if (typeof ageHours === "number" && ageHours < 48) return "neonate_24h";
+    return "neonate";
+  }
+  return "adult";
 }
 
 // Pulmonary artery pressure falls steeply over the first days, so the term neonate's PAP ranges
@@ -184,7 +222,7 @@ export const NEONATE_PAP_BY_AGE = [
 ];
 
 // The range table for a profile at a postnatal age (days; null/undefined = day 1). The
-// term_neonate baseline itself is 72 h old, so builds from it default to the day-3 table. Only the term `neonate` profile is age-dependent, and only its PAP keys.
+// term_neonate_72h baseline itself is 72 h old, so builds from it default to the day-3 table. Only the term `neonate` profile is age-dependent, and only its PAP keys.
 export function rangesFor(profile, { ageDays } = {}) {
   const base = RANGES[profile] || RANGES.adult;
   if (profile !== "neonate") return base;

@@ -45,16 +45,13 @@ When you add or change a model class, update its per-class doc — the house tem
 No install step. Everything runs with `node` directly from the repo root.
 
 ```bash
-node scripts/probe_vitals.mjs term_neonate            # canonical probe: vitals + ABG vs normal ranges
-node scripts/probe_vitals.mjs preterm_28wk --profile preterm_28
-node scripts/probe_vitals.mjs term_neonate --no-ans --seconds 90
-node scripts/probe_pda.mjs preterm_28wk --beats 6
-npm run probe                                          # the one wired script — just probe_fetus.mjs
-node scripts/probe_fetus.mjs fetus_30wk                 # probe_fetus takes an optional scenario stem
+node scripts/probe_vitals.mjs term_neonate_72h            # canonical probe: vitals + ABG vs normal ranges
+node scripts/probe_vitals.mjs term_neonate_72h --no-ans --seconds 90
+npm run probe                                          # the one wired script — probe_vitals.mjs on term_neonate_72h
 ```
 
 Scenario arguments are filename stems from `model_definitions/` **without `.json`**
-(`term_neonate`, `pphn`, `cdh_severe`, …; the full list is `model_definitions/index.json`).
+(`term_neonate_72h`, `pphn`, `cdh_severe`, …; the full list is `model_definitions/index.json`).
 
 Common flags across probes: `--seconds N` (warm-up), `--window W` (averaging window),
 `--no-ans` (freeze the baroreflex), `--verbose` (un-silence engine logs). Scenario-specific probes
@@ -87,8 +84,8 @@ once) are leading-underscore = internal/shared, not entry points you run casuall
 
 ```bash
 node scripts/sa/validate_estimators.mjs                 # check estimators vs closed-form (Ishigami) FIRST
-node scripts/sa/smoke.mjs term_neonate                  # determinism + lever-sign check
-node scripts/sa/run_sa.mjs --scenario term_neonate --tier oat --set reduced
+node scripts/sa/smoke.mjs term_neonate_72h                  # determinism + lever-sign check
+node scripts/sa/run_sa.mjs --scenario term_neonate_72h --tier oat --set reduced
 node scripts/sa/run_sa.mjs --scenario pphn --tier sobol --set reduced --N 512
 node scripts/sa/campaign.mjs --quick                    # tiny sizes, plumbing only
 node scripts/sa/campaign.mjs                            # FULL campaign — hours; run in background

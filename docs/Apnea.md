@@ -25,7 +25,7 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `apnea_enabled` | boolean | `false` | Switch (`switch_apnea`). Off in every scenario. |
-| `apnea_frequency` | /min | 0.5 | Mean number of episodes per minute. Scenarios: 25 wk 1.2, 28 wk 0.7, 30 wk 0.5, Bischoff 0.9. |
+| `apnea_frequency` | /min | 0.5 | Mean number of episodes per minute. |
 | `apnea_duration` | s | 12 | Mean episode duration. Scenarios 14–20. |
 | `apnea_variability` | 0–1 | 0.3 | Uniform jitter of interval and duration (± fraction of the mean). |
 | `apnea_type` | – | `"central"` | `"central"`, `"obstructive"` or `"mixed"`. |
@@ -61,7 +61,7 @@ Each step:
 - **Not active** (`apnea_enabled` false, or a non-breathing patient): ventilation is restored if Apnea had suppressed it; nothing else.
 - **Breathing:** count toward `next_interval`, then start an episode. Its duration is drawn, and
   - **central:** `Breathing.switch_breathing(false)`;
-  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`.
+  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`, unless the patient is intubated (Ventilator on, tube not out).
 - **In an episode:**
   - a mixed episode also switches breathing off after `mixed_obstructive_fraction` of its duration;
   - at the end, ventilation is restored, the counters are updated and the next interval is drawn.
@@ -91,13 +91,13 @@ None. It switches `Breathing.breathing_enabled` and the airway resistor's `no_fl
 ## Assumptions and limitations
 
 - **Episodes are scheduled, not caused.** They don't follow sleep state, hypoxia, temperature, feeds or caffeine, and they don't end early on hypoxaemia: a pause runs its drawn duration.
-- **Obstruction closes `MOUTH_DS`.** With an endotracheal tube the airway is the tube, so an obstructive episode in an intubated patient closes the wrong path.
+- **No obstructive apnoea through a tube.** With an endotracheal tube in place the upper airway is bypassed and the Ventilator keeps `MOUTH_DS` closed, so an obstructive episode (or the obstructive part of a mixed one) does nothing, and Apnea never reopens `MOUTH_DS` while the tube is in. (Until the re-validation it closed and then reopened it, which left the natural airway open beside the tube after every episode: 56 of 120 s in a test with 8-s episodes.) The episode clock keeps running, so `apnea_count` still counts those episodes.
 - **Shared levers.** [Resuscitation](./Resuscitation.md) also switches breathing; Apnea only reopens what it closed itself (`drive_off`, `airway_obstructed`).
 - **Saved states keep the episode.** A state saved mid-pause finishes that pause after reload and restores ventilation.
 
 ## Example definition (JSON)
 
-From `preterm_28wk.json`, `models.Apnea` (trimmed to the config props):
+From the removed `preterm_28wk.json` (no shipped scenario has an Apnea model), `models.Apnea` (trimmed to the config props):
 
 ```json
 {
@@ -118,7 +118,7 @@ From `preterm_28wk.json`, `models.Apnea` (trimmed to the config props):
 
 ## Usage in the scenarios
 
-In the six preterm and Bischoff scenarios, dormant (`apnea_enabled` false), so their baseline vitals are unchanged. Not in term_neonate or the fetal scenarios. Verification: `node scripts/probe_apnea.mjs <scenario>` reports per-episode duration, SpO2 and HR nadirs and the desaturation → bradycardia lag; `--no-chemoreflex` disables `EF_HR_CHEMO` for comparison. See [TESTING](./TESTING.md).
+In no shipped scenario at present: the three preterm scenarios that had it (dormant, `apnea_enabled` false) were removed on 2026-10-25 to be rebuilt. `scripts/_add_apnea.mjs` adds it to a scenario. Verification: `node scripts/probe_apnea.mjs <scenario>` reports per-episode duration, SpO2 and HR nadirs and the desaturation → bradycardia lag; `--no-chemoreflex` disables `EF_HR_CHEMO` for comparison. See [TESTING](./TESTING.md).
 
 ## References
 

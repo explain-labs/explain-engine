@@ -113,7 +113,7 @@ Listeners are stored in an instance field `_listeners: Map<string, Set<Function>
 
 | Method | What it does |
 |---|---|
-| `load(definition_name)` | Fetches `/model_definitions/<name>.json`, unwraps `jsonData.model_definition \|\| jsonData`, forwards `diagram_definition`/`animation_definition`, then calls `build`. |
+| `load(definition_name)` | Maps a renamed scenario's old name to its current one (`SCENARIO_ALIASES` in `helpers/ScenarioAliases.js`: `term_neonate` → `term_neonate_72h`), fetches `/model_definitions/<name>.json`, unwraps `jsonData.model_definition \|\| jsonData`, forwards `diagram_definition`/`animation_definition`, then calls `build`. |
 | `build(explain_definition)` | POST `build` with the stringified definition. |
 | `restart()` | Re-POST `build` with the last `modelDefinition` snapshot. |
 | `updateDiagram(diagram_definition)` | PUT `diagram_definition` — live sprite-anim rebind, no model rebuild. |
@@ -166,7 +166,7 @@ Note the two-pass structure: **all** instances, sub-models included, are constru
 3. `TaskScheduler.run_tasks()`.
 4. `model.model_time_total += model.modeling_stepsize`.
 
-**What "insertion order" means in practice.** The top-level entries of `model_definition.models` are inserted first, in JSON order. Sub-models declared in a composite's `components` are inserted after them (build step 5, in owner order), so every one of them steps **after all top-level entries**. For `term_neonate` (172 models):
+**What "insertion order" means in practice.** The top-level entries of `model_definition.models` are inserted first, in JSON order. Sub-models declared in a composite's `components` are inserted after them (build step 5, in owner order), so every one of them steps **after all top-level entries**. For `term_neonate_72h` (172 models):
 1. the 25 systems (`Heart` at position 1, which sets the chambers' `act_factor`);
 2. the 43 top-level resistors;
 3. the `Heart` components (chambers, valves, `PERICARDIUM`);
@@ -274,7 +274,7 @@ Every per-class doc in `docs/` follows this structure. The exemplar is [`BloodCa
 6. **Factor system.** Which tunables carry the three layers and whether they compose additively or multiplicatively. Link to §7a, don't re-derive it.
 7. **Inputs and outputs.** Which models this one reads and writes, and which models read or write it.
 8. **Assumptions and limitations.** Simplifications, calibrated constants and their rationale, and known gaps.
-9. **Example definition (JSON).** A real entry copied from a canonical scenario (`term_neonate` where possible), trimmed to the config props, with the scenario and path named.
+9. **Example definition (JSON).** A real entry copied from a canonical scenario (`term_neonate_72h` where possible), trimmed to the config props, with the scenario and path named.
 10. **Usage in the scenarios.** Where it is instantiated and what it is wired to.
 11. **References.** Literature for the equations and default values. If the class introduces no literature-derived values, say so.
 

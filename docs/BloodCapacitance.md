@@ -117,7 +117,7 @@ Inherited unchanged from `Capacitance`: `u_vol`, `el_base` and `el_k` each carry
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Kidneys.components.URINE` (trimmed to the config props). The `Kidneys` model builds it through the `components` mechanism:
+From `term_neonate_72h.json`, `models.Kidneys.components.URINE` (trimmed to the config props). The `Kidneys` model builds it through the `components` mechanism:
 
 ```json
 {

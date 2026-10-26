@@ -125,7 +125,7 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
 
 ## Assumptions and limitations
 
-- **The dead-band keeps normal loading out.** The response starts only above 1.5 × the resting stress. Without it, any preload rise above rest depressed contractility; the depressed ventricle dilated, which raised the stress further, and a normal +8 % volume load ran away to `cont_floor`. In term_neonate (reflexes off), 1.5 × is reached at:
+- **The dead-band keeps normal loading out.** The response starts only above 1.5 × the resting stress. Without it, any preload rise above rest depressed contractility; the depressed ventricle dilated, which raised the stress further, and a normal +8 % volume load ran away to `cont_floor`. In term_neonate_72h (reflexes off), 1.5 × is reached at:
   - a MAP of ~80 mmHg (LV afterload);
   - LA ~9 mmHg (LV over-dilation);
   - a doubled PVR (RV).
@@ -134,15 +134,15 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
   - +50 mL blood volume → LV factor 0.84 (LA 17.6);
   - PVR ×4 → RV 0.81;
   - arterioles ×3 → LV 0.96.
-- **Concentric remodelling does not thicken the wall.** The wall volume is fixed by heart weight, so there is no compensating fall in stress. Its diastolic stiffening acts on `el_k`, which is the whole diastolic stiffness of the chambers in 8 scenarios but 0 in the two still-linear ones (`preterm_25wk`, `bischoff_ltr_pda`), where concentric remodelling only lowers contractility. To be revisited.
+- **Concentric remodelling does not thicken the wall.** The wall volume is fixed by heart weight, so there is no compensating fall in stress. Its diastolic stiffening acts on `el_k`, which is the whole diastolic stiffness of the chambers in every scenario.
 - **Spherical geometry for both ventricles.** The crescent-shaped RV is treated as a sphere with 15 % of the heart mass.
 - **The heart-weight relation has a large intercept** (7.8 g), so small infants get relatively thick walls and low wall stress. The stress values compare within a scenario, not between sizes.
-- **One-beat start-up transient.** Right after a scenario loads, the first latched beat can exceed the dead-band briefly (bischoff_ltr_pda: LV end-diastolic 1.54 ×). The effect on the load factor is about 10⁻⁵.
+- **One-beat start-up transient.** Right after a scenario loads, the first latched beat can exceed the dead-band briefly (LV end-diastolic up to 1.54 × in a 25-week PDA patient). The effect on the load factor is about 10⁻⁵.
 - **Remodelling is slow by design** (`remodel_tc` one day). Over a normal session it stays at its saved value.
 
 ## Example definition (JSON)
 
-From `preterm_25wk.json`, `models.HeartFunction` (trimmed to the main config props):
+From `term_neonate_72h.json`, `models.HeartFunction` (trimmed to the main config props):
 
 ```json
 {
@@ -153,10 +153,10 @@ From `preterm_25wk.json`, `models.HeartFunction` (trimmed to the main config pro
   "remodel_active": true,
   "stress_deadband": 1.5,
   "setpoint_warmup": 60,
-  "sigma_es_ref_lv": 23.5996,
-  "sigma_ed_ref_lv": 9.2291,
-  "sigma_es_ref_rv": 42.2645,
-  "sigma_ed_ref_rv": 16.5871
+  "sigma_es_ref_lv": 77.3612,
+  "sigma_ed_ref_lv": 25.9997,
+  "sigma_es_ref_rv": 124.4274,
+  "sigma_ed_ref_rv": 63.1358
 }
 ```
 
@@ -166,18 +166,11 @@ One instance in every scenario, enabled, with resting setpoints learned for that
 
 | Scenario | LV σ_es / σ_ed | RV σ_es / σ_ed |
 |---|---|---|
-| term_neonate | 78.1 / 21.6 | 127.4 / 57.0 |
-| fetus_term | 51.0 / 12.7 | 121.2 / 38.7 |
-| fetus_30wk | 28.2 / 8.2 | 57.2 / 21.5 |
-| fetus_25wk | 17.8 / 3.1 | 34.8 / 7.7 |
-| preterm_30wk | 39.6 / 15.8 | 52.8 / 34.5 |
-| preterm_28wk | 30.3 / 11.3 | 56.3 / 24.4 |
-| preterm_25wk | 23.6 / 9.2 | 42.3 / 16.6 |
-| bischoff_no_pda | 21.2 / 7.5 | 34.7 / 18.5 |
-| bischoff_ltr_pda | 27.1 / 14.8 | 52.3 / 21.4 |
-| bischoff_bidir_pda | 21.0 / 6.7 | 66.7 / 18.0 |
+| term_neonate_72h | 77.4 / 26.0 | 124.4 / 63.1 |
 
-`scripts/probe_heartfunction.mjs` exercises it on term_neonate with an afterload and a volume challenge.
+term_neonate_72h's set-points were re-learned in the re-validation (g). The heart changes (valves, AV inertance, RV, coronary flow, blood volume) had raised its resting LV end-diastolic stress ~19 % above the old set-point (21.6), so the LV dilated slowly at rest (eccentric remodelling ~0.07 per simulated day); after the re-learn it stays at 0.
+
+`scripts/probe_heartfunction.mjs` exercises it on term_neonate_72h with an afterload and a volume challenge.
 
 ## References
 

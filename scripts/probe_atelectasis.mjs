@@ -5,7 +5,7 @@
 // holding with PEEP, re-collapsing without it, and no response when recruitable is off. Also checks
 // that a set-and-clear round trip restores the persistent factors. See docs/Respiration.md.
 //
-// Usage: node scripts/probe_atelectasis.mjs [--scenario term_neonate] [--side right] [--verbose]
+// Usage: node scripts/probe_atelectasis.mjs [--scenario term_neonate_72h] [--side right] [--verbose]
 // Exit code 1 when a check fails.
 
 import fs from "node:fs";
@@ -13,7 +13,7 @@ import { createEngine } from "./_harness.mjs";
 
 const argv = process.argv.slice(2);
 const sopt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 const SIDE = sopt("--side", "right");
 const eng = await createEngine();
 const log = eng.log;

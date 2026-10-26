@@ -88,6 +88,7 @@ export class Sle6000 extends Ventilator {
     this.mon_vti = 0.0; // ml, tau 3 breaths
     this.mon_vmin = 0.0; // l/min, expired volume over the last minute
     this.mon_leak = 0.0; // %, 5-breath average then tau 10 breaths
+    this.mon_leak_signed = 0.0; // %, the same average before the display clamp at 0
     this.mon_rr = 0.0; // BPM, total (mechanical + triggered)
     this.mon_trig = 0; // patient-triggered breaths per minute
     this.mon_c = 0.0; // ml/mbar, tau 3 breaths
@@ -806,8 +807,12 @@ export class Sle6000 extends Ventilator {
     if (this._leak_hist.length > 5) this._leak_hist.shift();
     let vi = 0.0, ve = 0.0;
     for (const [i, e] of this._leak_hist) { vi += i; ve += e; }
-    const leak5 = vi > 0.0 ? Math.max(0.0, (100.0 * (vi - ve)) / vi) : 0.0;
-    this.mon_leak = f(this.mon_leak, leak5, 10);
+    // filtered signed and clamped only for display: a window can read negative when the patient
+    // breathes out part of a ventilator breath during its own breaths, and clamping each window
+    // before the filter would turn that scatter into a phantom leak
+    const leak5 = vi > 0.0 ? (100.0 * (vi - ve)) / vi : 0.0;
+    this.mon_leak_signed = f(this.mon_leak_signed, leak5, 10);
+    this.mon_leak = Math.max(0.0, this.mon_leak_signed);
   }
 
   _hfo_cycle_end(f) {
@@ -856,7 +861,7 @@ export class Sle6000 extends Ventilator {
     this._mon_init = false;
     this._leak_hist = [];
     this._vte_hist = [];
-    for (const k of ["mon_pip", "mon_peep", "mon_map", "mon_vte", "mon_vti", "mon_vmin", "mon_leak", "mon_rr", "mon_c", "mon_r", "mon_ti", "mon_te", "mon_ie", "mon_fg_flow", "mon_dp", "mon_dco2", "mon_freq"]) this[k] = 0.0;
+    for (const k of ["mon_pip", "mon_peep", "mon_map", "mon_vte", "mon_vti", "mon_vmin", "mon_leak", "mon_leak_signed", "mon_rr", "mon_c", "mon_r", "mon_ti", "mon_te", "mon_ie", "mon_fg_flow", "mon_dp", "mon_dco2", "mon_freq"]) this[k] = 0.0;
     this.mon_trig = 0;
     this.mon_c20c = null;
   }

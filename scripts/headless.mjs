@@ -10,7 +10,7 @@
 //   node scripts/headless.mjs <scenario> [--seconds N] [--window W] [--no-ans] [--no-autoreg] [--verbose]
 //
 // <scenario> is a file name in model_definitions/ without the .json suffix
-// (e.g. term_neonate, adult_female). Prints the renal calibration panel.
+// (e.g. term_neonate_72h, adult_female). Prints the renal calibration panel.
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -23,7 +23,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 // CLI args
 // ---------------------------------------------------------------------------
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 const flag = (name) => argv.includes(name);
 const opt = (name, def) => {
   const i = argv.indexOf(name);

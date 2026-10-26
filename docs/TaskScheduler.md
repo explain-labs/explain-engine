@@ -61,7 +61,7 @@ Each task carries a numeric `type` that decides how it is applied:
 - `it` — interpolation time in seconds. `it > 0` on a numeric target tweens over that span (one increment per `_task_interval`); `it <= 0` writes instantly (type 1). Booleans/strings always write instantly.
 - `at` — delay in seconds before the task begins; decremented by `_task_interval` each evaluation until it elapses.
 
-**Example** (term_neonate): `add_task({model: "Heart", prop1: "heart_rate_ref", t: 150, it: 10, at: 2})` holds 120.3 for 2 s, then rises ~3 bpm per second and reaches 150 at 12 s. `add_function_call({func: "Breathing.switch_breathing", args: [false], at: 5})` switches breathing off at 5 s. A misspelled property returns `TaskScheduler: property 'Heart.no_such' not found`.
+**Example** (term_neonate_72h): `add_task({model: "Heart", prop1: "heart_rate_ref", t: 150, it: 10, at: 2})` holds 120.3 for 2 s, then rises ~3 bpm per second and reaches 150 at 12 s. `add_function_call({func: "Breathing.switch_breathing", args: [false], at: 5})` switches breathing off at 5 s. A misspelled property returns `TaskScheduler: property 'Heart.no_such' not found`.
 
 ## Interaction with models
 

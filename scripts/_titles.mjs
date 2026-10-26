@@ -3,9 +3,12 @@
 // (72H, DUCT CLOSED)") would otherwise be inherited unchanged. The _make_*.mjs scripts call
 // setDiagramTitle(j, j.name) before writing; scripts/_add_titles.mjs applies the map to the existing
 // files in place (the title is not model state, so no reseed is needed).
-// Hand-authored baselines (term_neonate, adult_female*) keep their own titles and are not listed here.
+// Hand-authored baselines (term_neonate_72h, adult_female*) keep their own titles and are not listed here.
 
 export const TITLES = {
+  term_neonate_1h: "TERM NEONATE (1H, DUCT OPEN)",
+  term_neonate_12h: "TERM NEONATE (12H)",
+  term_neonate_24h: "TERM NEONATE (24H)",
   fetus_term: "TERM FETUS (40 WK, 3.5 KG, IN UTERO)",
   fetus_25wk: "FETUS (25 WK, 0.7 KG, IN UTERO)",
   fetus_30wk: "FETUS (30 WK, 1.5 KG, IN UTERO)",
@@ -18,9 +21,6 @@ export const TITLES = {
   preterm_28wk: "PRETERM NEONATE (28 WK, 1.0 KG, 72 H, CPAP)",
   preterm_25wk: "PRETERM NEONATE (25 WK, 0.7 KG, 72 H, CPAP)",
   preterm_30wk: "PRETERM NEONATE (30 WK, 1.5 KG, 72 H, CPAP)",
-  bischoff_no_pda: "BISCHOFF 2021 NO PDA (25.5 WK, 0.76 KG, 72 H)",
-  bischoff_ltr_pda: "BISCHOFF 2021 L-R PDA (25.8 WK, 0.72 KG, 72 H)",
-  bischoff_bidir_pda: "BISCHOFF 2021 BIDIRECTIONAL PDA (25.1 WK, 0.68 KG, 72 H)",
   bischoff_cohort: "PRETERM COHORT (~25 WK, 0.72 KG, CPAP)",
   term_neonate_cdh: "CONGENITAL DIAPHRAGMATIC HERNIA",
   cdh_severe: "CDH - SEVERE",

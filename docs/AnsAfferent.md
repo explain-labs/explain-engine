@@ -25,7 +25,7 @@ BaseModelClass
 | `max_value` | input unit | 0 | Input at which the firing rate is 1. |
 | `tc` | s | 1.0 | Time constant of the firing rate (0 = instantaneous). |
 | `efferents` | list | `[]` | Efferents that receive the firing rate. |
-| `effect_weight` | – | 1.0 | Weight (and sign) of this afferent in its efferents. Negative for a receptor whose effect opposes its firing, e.g. `CR_PO2` (−0.15): falling pO2 must raise ventilation. |
+| `effect_weight` | – | 1.0 | Weight (and sign) of this afferent in its efferents. Negative for a receptor whose effect opposes its firing, e.g. `CR_PO2` (−0.4): falling pO2 must raise ventilation. |
 | `ans_active` | boolean | `true` | Copied from Ans. The afferent keeps firing; the efferents apply the gate. |
 
 ### Outputs
@@ -49,7 +49,7 @@ Every 15 ms (skipped if `input_model` is missing or the input is not a finite nu
 3. **Time constant:** `firing_rate += 0.015/tc · (rate − firing_rate)`.
 4. **Report** to every efferent: `update_effector(firing_rate, effect_weight, name)`.
 
-**Example**, `BR_MAP` in term_neonate (25 / 57.8 / 100 mmHg, tc 4 s): a MAP of 45 mmHg gives `0.5 − 0.5·12.8/32.8 = 0.30`, so the heart-rate and tone efferents see a firing deficit of 0.2.
+**Example**, `BR_MAP` in term_neonate_72h (25 / 60.6 / 100 mmHg, tc 0.5 s): a MAP of 45 mmHg gives `0.5 − 0.5·15.6/35.6 = 0.28`, so the heart-rate and tone efferents see a firing deficit of 0.22.
 
 ## Factor system
 
@@ -70,7 +70,7 @@ None.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Ans.components.BR_MAP` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Ans.components.BR_MAP` (trimmed to the config props):
 
 ```json
 {
@@ -80,9 +80,9 @@ From `term_neonate.json`, `models.Ans.components.BR_MAP` (trimmed to the config 
   "input_model": "AAR",
   "input_prop": "pres",
   "min_value": 25,
-  "set_value": 57.81,
+  "set_value": 60.56,
   "max_value": 100,
-  "tc": 4,
+  "tc": 0.5,
   "efferents": ["EF_HR", "EF_SVR", "EF_HEART"],
   "effect_weight": 1
 }
@@ -90,7 +90,7 @@ From `term_neonate.json`, `models.Ans.components.BR_MAP` (trimmed to the config 
 
 ## Usage in the scenarios
 
-`BR_MAP`, `CR_PCO2`, `CR_PO2` and `CR_PH` in every scenario; `CR_PO2_HR` in the six preterm and Bischoff scenarios. Their settings are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
+`BR_MAP`, `CR_PCO2`, `CR_PO2` and `CR_PH` in every scenario; `CR_PO2_HR` (hypoxic bradycardia) in none at present (the preterm scenarios that had it were removed on 2026-10-25 to be rebuilt). Their settings are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
 
 ## References
 

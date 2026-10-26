@@ -32,7 +32,7 @@ BaseModelClass
 | `u_vol` | L | 0.0 | Unstressed volume (the end-systolic and end-diastolic relations share it). |
 | `el_min` | mmHg/L | 0.0 | Minimal (diastolic) elastance. |
 | `el_max` | mmHg/L | 0.0 | Maximal (end-systolic) elastance: contractility. |
-| `el_k` | mmHg/L² | 0.0 | Non-linear term of the diastolic relation, above `u_vol` only. The heart chambers of 8 scenarios use a pure quadratic diastolic relation (`el_min` 0, `el_k` > 0); see [HeartChamber](./HeartChamber.md#the-diastolic-relation). |
+| `el_k` | mmHg/L² | 0.0 | Non-linear term of the diastolic relation, above `u_vol` only. The heart chambers of every scenario use a pure quadratic diastolic relation (`el_min` 0, `el_k` > 0); see [HeartChamber](./HeartChamber.md#the-diastolic-relation). |
 | `vol` | L | 0.0 | Volume; the starting volume in a definition. |
 | `u_vol_factor`, `el_min_factor`, `el_max_factor`, `el_k_factor` | – | 1.0 | Non-persistent factors, reset to 1 every step. |
 | `u_vol_factor_ps`, `el_min_factor_ps`, `el_max_factor_ps`, `el_k_factor_ps` | – | 1.0 | Persistent factors. |
@@ -103,7 +103,7 @@ BaseModelClass
 
 ## Example definition (JSON)
 
-No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this class's calculation unchanged; from `term_neonate.json`, `models.Mob.components.COR` (a `BloodTimeVaryingElastance`, trimmed to the props this class defines):
+No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this class's calculation unchanged; from `term_neonate_72h.json`, `models.Mob.components.COR` (a `BloodTimeVaryingElastance`, trimmed to the props this class defines):
 
 ```json
 {
@@ -122,15 +122,15 @@ No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this clas
 
 Six instances in every shipped scenario:
 
-| Instance | Class | Activation | term_neonate `el_min` / `el_k` / `el_max` | `u_vol` (mL) |
+| Instance | Class | Activation | term_neonate_72h `el_min` / `el_k` / `el_max` | `u_vol` (mL) |
 |---|---|---|---|---|
 | `LV` | HeartChamber | `vaf` | 0 / 1.56·10⁵ / 30478 | 0.73 |
-| `RV` | HeartChamber | `rvaf` | 0 / 1.79·10⁵ / 28120 | 4.0 |
+| `RV` | HeartChamber | `rvaf` | 0 / 8.85·10⁴ / 9826 | 1.20 |
 | `LA` | HeartChamber | `aaf` | 0 / 2.11·10⁵ / 2975 | 0 |
 | `RAIVCI`, `RASVC` | HeartChamber | `aaf` | 0 / 9.20·10⁵ / 5947 each | 0 |
 | `COR` | BloodTimeVaryingElastance | `vaf` | 30000 / 0 / 90000 | 0.28 |
 
-(`el_min`, `el_max` in mmHg/L, `el_k` in mmHg/L². preterm_25wk and bischoff_ltr_pda still have linear chambers, `el_k` 0.)
+(`el_min`, `el_max` in mmHg/L, `el_k` in mmHg/L².)
 
 The heart chambers are owned by `Heart`, the coronary bed by `Mob`.
 

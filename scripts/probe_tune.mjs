@@ -5,7 +5,7 @@
 //
 // Usage:
 //   node scripts/probe_tune.mjs [scenario] --co 0.5 --map 45 --blood_volume 0.26
-//   node scripts/probe_tune.mjs term_neonate --co x0.8        (x<frac> = fraction of baseline)
+//   node scripts/probe_tune.mjs term_neonate_72h --co x0.8        (x<frac> = fraction of baseline)
 //   node scripts/probe_tune.mjs path/to/built_patient.json --spo2 80   (a builder output file)
 //
 // Targets: LIVE_TARGETS (map sys dia co hr pap_m pap_s po2 spo2 pco2 be ph blood_volume); sys and
@@ -18,7 +18,7 @@ import { createEngine } from "./_harness.mjs";
 import { buildLiveControllers, runCalibration, measureWindow, liveWarm, LIVE_TARGETS, DEFAULT_TOL } from "../helpers/Calibrator.js";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 const warmArg = (() => { const i = argv.indexOf("--warm"); return i >= 0 ? Number(argv[i + 1]) : null; })(); // s between iterations (default: as the app, liveWarm)
 const READKEY = { co: "lvo", spo2: "spo2_pre", blood_volume: "total_blood_volume" };
 const CONTEXT = ["spo2_pre", "map", "sys", "dia", "pp", "pap_m", "pap_s", "lvo"];

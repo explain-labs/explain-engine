@@ -13,9 +13,14 @@ export class Heart extends BaseModelClass {
     this.heart_rate_ref = 110.0; // reference heart rate (beats/minute)
     this.pq_time = 0.1; // pq time (s)
     this.qrs_time = 0.075; // qrs time (s)
-    this.qt_time = 0.25; // qt time (s)
+    this.qt_time = 0.4; // QT at 60 bpm (s), from QRS onset; rate-corrected each beat (Bazett)
+    this.act_peak = 0.85; // fraction of the QT at which ventricular activation peaks (end-systole)
+    // relaxation after end-systole: the activation decays exponentially with time constant
+    // tau = relax_frac · RR, so relaxation speeds up with heart rate and keeps pace with diastole;
+    // 0 = a raised-cosine fall to zero at the end of the QT
+    this.relax_frac = 0.06;
     this.av_delay = 0.0005; // delay in the AV-node (s)
-    this.rv_delay = 0.0; // RV activation lag behind the LV (s); 0 = both ventricles together
+    this.rv_delay = 0.0; // RV activation lag behind the LV (s); 0 = both ventricles together, < 0 = the LV lags the RV
 
     // -----------------------------------------------
     // conduction / rhythm (default = normal sinus rhythm; all of this is identity at the defaults)
@@ -72,10 +77,10 @@ export class Heart extends BaseModelClass {
     this.ncc_atrial = 0; // atrial contraction counter
     this.cardiac_cycle_running = 0; // signal whether or not the cardiac cycle is running (0 = not, 1 = running)
     this.cardiac_cycle_time = 0.353; // electrical activation time of the last beat: SA firing to end of QT (s), NOT the RR interval
-    this.cqt_time = 0.0; // rate-corrected QT time of the current beat (Bazett, s)
+    this.cqt_time = 0.0; // rate-corrected QT of the current beat (Bazett, s), from QRS onset
     this.aaf = 0.0; // atrial activation factor (0-1)
     this.vaf = 0.0; // ventricular activation factor (0-1)
-    this.rvaf = 0.0; // right-ventricular activation factor (0-1); equals vaf unless rv_delay > 0
+    this.rvaf = 0.0; // right-ventricular activation factor (0-1); equals vaf unless rv_delay != 0
 
     this.lv_edv = this.lv_esv = 0.0
     this.lv_edp = 0.0
@@ -104,12 +109,11 @@ export class Heart extends BaseModelClass {
     // -----------------------------------------------
     // local properties
     // -----------------------------------------------
-    this._kn = 0.579; // constant of the activation curve
     this.prev_cardiac_cycle_running = 0;
     this.prev_cardiac_cycle_state = 0;
     this._temp_cardiac_cycle_time = 0.0;
     this._sa_node_interval = 1.0;
-    this._sa_node_timer = 0.0;
+    this._sa_node_timer = null; // null = not started: the SA node fires on the first step
     this._av_delay_timer = 0.0;
     this._pq_timer = 0.0;
     this._pq_running = false;
@@ -307,7 +311,7 @@ export class Heart extends BaseModelClass {
     } else {
       // single working right ventricle (HLHS / aortic atresia): the ventricle is in systole during its
       // activation window (ncc_ventricular sweeps [0, ventricular_duration) each beat)
-      const ventricular_duration = (this.qrs_time + this.cqt_time) / this._t;
+      const ventricular_duration = this.cqt_time / this._t;
       this._systole_running = this.ncc_ventricular >= 0 && this.ncc_ventricular < ventricular_duration;
     }
 
@@ -341,7 +345,10 @@ export class Heart extends BaseModelClass {
     // would make the SA node fire on every step
     this._sa_node_interval = this.heart_rate > 0.0 ? 60.0 / this.heart_rate : Infinity;
 
-    // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over)
+    // sinus node period check (skipped during sinus arrest → the escape pacemaker takes over). The
+    // timer is not saved: on the first step after a load (null) the node fires at once, instead of
+    // waiting a whole interval, which skipped a beat after every load (term: MAP 61 → 53 for ~2 s)
+    if (this._sa_node_timer === null) this._sa_node_timer = this._sa_node_interval + this._t;
     if (this.sa_node_enabled && this._sa_node_timer > this._sa_node_interval) {
       this._sa_node_timer = 0.0; // reset the timer
       this._pq_running = true; // start the pq-time
@@ -382,7 +389,7 @@ export class Heart extends BaseModelClass {
     }
 
     // qt time period check
-    if (this._qt_timer > this.cqt_time) {
+    if (this._qt_timer > this._st_time()) {
       this._qt_timer = 0.0;
       this._qt_running = false;
       this._ventricle_is_refractory = false; // ventricles leave refractory state
@@ -470,28 +477,19 @@ export class Heart extends BaseModelClass {
     }
 
     // calculate ventricular activation factor
-    let _ventricular_duration = (this.qrs_time + this.cqt_time) / this._t;
-    if (
-      this.ncc_ventricular >= 0 &&
-      this.ncc_ventricular < _ventricular_duration
-    ) {
-      this.vaf =
-        (this.ncc_ventricular / (this._kn * _ventricular_duration)) *
-        Math.sin(Math.PI * (this.ncc_ventricular / _ventricular_duration));
-    } else {
-      this.vaf = 0.0;
-    }
+    // the ventricles contract over the QT (from QRS onset): a raised cosine that rises to its peak at
+    // act_peak of the QT (end-systole), then relaxes exponentially (relax_frac), so ejection lasts most
+    // of the QT and the ventricle is still relaxing as it starts to fill
+    let _ventricular_duration = this.cqt_time / this._t;
+    // rv_delay > 0: the RV pulse lags the LV's; rv_delay < 0: the LV pulse (vaf, also the coronaries)
+    // lags the RV's by |rv_delay|
+    const _lag = Math.abs(this.rv_delay) / this._t;
+    this.vaf = this._activation((this.ncc_ventricular - (this.rv_delay < 0 ? _lag : 0)) / _ventricular_duration);
 
-    // right ventricular activation factor: the same pulse, lagging the LV by rv_delay
-    if (this.rv_delay > 0) {
-      const _ncc_rv = this.ncc_ventricular - this.rv_delay / this._t;
-      if (_ncc_rv >= 0 && _ncc_rv < _ventricular_duration) {
-        this.rvaf =
-          (_ncc_rv / (this._kn * _ventricular_duration)) *
-          Math.sin(Math.PI * (_ncc_rv / _ventricular_duration));
-      } else {
-        this.rvaf = 0.0;
-      }
+    // right ventricular activation factor: the same pulse, shifted by rv_delay
+    if (this.rv_delay !== 0) {
+      const _ncc_rv = this.ncc_ventricular - (this.rv_delay > 0 ? _lag : 0);
+      this.rvaf = this._activation(_ncc_rv / _ventricular_duration);
     } else {
       this.rvaf = this.vaf;
     }
@@ -547,6 +545,26 @@ export class Heart extends BaseModelClass {
 
     // analyze current state
     this.analyze()
+  }
+
+  _activation(x) {
+    // ventricular activation (0-1) at fraction x of the QT: a raised cosine up to act_peak; after it
+    // an exponential relaxation with tau = relax_frac · RR (cut below 0.5 %, and restarted by the next
+    // QRS), or with relax_frac 0 a raised cosine back to zero at the end of the QT
+    if (!(x >= 0.0)) return 0.0;
+    const xp = Math.min(Math.max(this.act_peak, 0.05), 0.95);
+    if (x < xp) return 0.5 * (1.0 - Math.cos((Math.PI * x) / xp));
+    if (this.relax_frac > 0.0) {
+      const tau = this.relax_frac * (60.0 / Math.max(this.heart_rate, 10.0));
+      const a = Math.exp(-((x - xp) * this.cqt_time) / tau);
+      return a > 0.005 ? a : 0.0;
+    }
+    return x < 1.0 ? 0.5 * (1.0 + Math.cos((Math.PI * (x - xp)) / (1.0 - xp))) : 0.0;
+  }
+
+  _st_time() {
+    // the ST-T phase after the QRS: what is left of the QT
+    return Math.max(this.cqt_time - this.qrs_time, 0.0);
   }
 
   calc_qtc(hr) {
@@ -703,7 +721,8 @@ export class Heart extends BaseModelClass {
 
     // T wave during the (corrected) QT interval, after an isoelectric ST segment
     if (this._qt_running) {
-      s += this.gaussian(this._qt_timer, this.t_amp, 0.55 * this.cqt_time, 0.14 * this.cqt_time);
+      const st = this._st_time();
+      s += this.gaussian(this._qt_timer, this.t_amp, 0.55 * st, 0.14 * st);
     }
 
     this.ecg_signal = s;

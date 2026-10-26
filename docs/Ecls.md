@@ -235,7 +235,7 @@ line pressure itself is −36 mmHg: right atrium +2 minus a 37 mmHg drainage-lum
 
 **PediMag H-Q.** No H-Q curve is published. See [Pump device library](#pump-device-library).
 
-**Result, `term_neonate`** (PediMag, Quadrox-i Neonatal, 1 m + 1 m of 1/4″ tubing; 40 s warm-up).
+**Result, `term_neonate_72h`** (PediMag, Quadrox-i Neonatal, 1 m + 1 m of 1/4″ tubing; 40 s warm-up).
 Pressures are line pressures at patient level (`pump_height` 0). With the 30 cm default, every
 displayed circuit pressure reads 23.4 mmHg higher:
 
@@ -358,7 +358,7 @@ CentriMag's 600 turned out to be (measured deadhead 710, ratio 1.18). The curve 
 fit scaled to the PediMag's head (×0.91) and flow range (1.5/10 L/min): `hq_b` 5.2, `hq_c` 15.4, flat
 at neonatal flows like any mag-lev pump. The old `hq_b` 30.3 made the curve steep. It had been tuned
 against the old, far too cheap circuit, and absorbed the missing circuit losses. With the calibrated
-circuit, VA `term_neonate` gives ≈ 0.56 L/min at 2800 rpm, close to the PediVAS operating point
+circuit, VA `term_neonate_72h` gives ≈ 0.56 L/min at 2800 rpm, close to the PediVAS operating point
 (0.6 L/min). The Rotaflow and Bio-Pump `hq_b` predate the circuit calibration and have not been
 re-checked.
 
@@ -435,7 +435,7 @@ directly each tick.
 
 ## Example definition (JSON)
 
-Device-level fields from `term_neonate.json` (the full block nests eleven `ECLS_*` sub-models under
+Device-level fields from `term_neonate_72h.json` (the full block nests eleven `ECLS_*` sub-models under
 `components`):
 
 ```json
@@ -519,15 +519,15 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
 
 - `dl_cannulas` gains the Medtronic Crescent RA jugular dual-lumen catheter, 13 / 15 / 19 Fr, fitted
   to the brochure's pressure-flow chart (see the Circuit calibration table).
-- `term_neonate` VV at 2800 rpm: Crescent RA 13 Fr 0.43 L/min (`p_ven` −11) against Avalon Elite
+- `term_neonate_72h` VV at 2800 rpm: Crescent RA 13 Fr 0.43 L/min (`p_ven` −11) against Avalon Elite
   13 Fr 0.44 (−12); Crescent RA 15 Fr 0.63 (−9); Crescent RA 19 Fr 0.94 (+3).
 
 ### Pump height (2026-10-12)
 
 - `pump_height` (cm below the patient, default 30) adds the hydrostatic column to the measured
   `p_ven`/`p_int`/`p_art`; new read-out `p_hydrostatic`. Read-out only, so flows are unchanged
-  (checked headlessly: `term_neonate` flow identical within run-to-run noise at 0 and 30 cm).
-- `term_neonate` at 2800 rpm: VV 13 Fr `p_ven` −36 → −12 mmHg, VA 12 Fr −17 → +6 mmHg. The user
+  (checked headlessly: `term_neonate_72h` flow identical within run-to-run noise at 0 and 30 cm).
+- `term_neonate_72h` at 2800 rpm: VV 13 Fr `p_ven` −36 → −12 mmHg, VA 12 Fr −17 → +6 mmHg. The user
   sees −10 to −20 mmHg on neonatal VV.
 
 ### Circuit calibration and double-lumen VV cannulation (2026-10-12)
@@ -567,7 +567,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   **split right atrium**. `RAIVCI_RASVC` was closed (`no_flow`) in every scenario, so a `RASVC` cannula
   could only reach SVC return. Postnatal scenarios now merge the halves (see
   [HeartChamber](./HeartChamber.md#the-split-right-atrium)).
-- `term_neonate` VA (RASVC → AAR), PediMag: 4000 rpm → ≈ 1.06 L/min (p_ven ≈ −12 mmHg, was 0.45 at −135);
+- `term_neonate_72h` VA (RASVC → AAR), PediMag: 4000 rpm → ≈ 1.06 L/min (p_ven ≈ −12 mmHg, was 0.45 at −135);
   5500 rpm → ≈ 1.5 L/min. Native LVO falls toward 0 as ECMO takes over the circulation.
 - Follow-up: with the merged atrium, very high rpm now gives implausibly high flows, e.g. `adult_female`
   CentriMag ≈ 11 L/min at 5000 rpm. Neither caval/atrial collapse around the cannula (inflow limitation)
@@ -601,7 +601,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   identical to the class libraries and have been removed, so these scenarios now inherit the library.
 - Effect: in VA mode the centrifugal pump is non-occlusive, so flow reverses (aorta → circuit → RA)
   below the rpm whose zero-flow head equals the arterial–venous pressure difference:
-  rpm_crossover = 1000·√(ΔP / hq_a). In `term_neonate` (ΔP ≈ 57 mmHg) that moved from ≈ 2400 to
+  rpm_crossover = 1000·√(ΔP / hq_a). In `term_neonate_72h` (ΔP ≈ 57 mmHg) that moved from ≈ 2400 to
   ≈ 1750 rpm. (Rotaflow, `hq_a` 28: ≈ 1430 rpm.)
 - Not changed, noted: with drainage from `RASVC`, ECLS flow plateaus around 0.4–0.45 L/min above
   ≈ 2800 rpm. Native output plus ECLS is then at the venous-return limit (RASVC empties, Pra ≈ −3 mmHg).
@@ -613,7 +613,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
 
 - All 39 scenarios now ship `ecls_running: false`. A clamped circuit is inert, and ECLS volume isn't
   counted in `Circulation.calc_blood_volumes`, so patient values are unchanged. Checked headlessly on
-  `term_neonate`: HR, MAP, SaO₂, pH and total blood volume are identical at 60 s.
+  `term_neonate_72h`: HR, MAP, SaO₂, pH and total blood volume are identical at 60 s.
 - The stop branch now resolves its sub-model refs, so the circuit really is disabled from step 1, not
   only after its first run. It also zeroes the circuit resistors' flows on stop (no stale flow for the
   monitor or the diagram animation).

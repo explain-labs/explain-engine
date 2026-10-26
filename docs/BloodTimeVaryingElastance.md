@@ -75,7 +75,7 @@ Inherited unchanged: `u_vol`, `el_min`, `el_max` and `el_k` carry the three laye
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Mob.components.COR` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Mob.components.COR` (trimmed to the config props):
 
 ```json
 {
@@ -92,7 +92,7 @@ From `term_neonate.json`, `models.Mob.components.COR` (trimmed to the config pro
 
 ## Usage in the scenarios
 
-One instance in all 10 scenarios: `COR`, owned by `Mob`, inside the `PERICARDIUM`. It is fed from the ascending aorta by `AA_COR` (implicit flow) and drains into both halves of the right atrium through `COR_RAIVCI` and `COR_RASVC`.
+One instance in term_neonate_72h: `COR`, owned by `Mob`, inside the `PERICARDIUM`. It is fed from the ascending aorta by `AA_COR` (implicit flow) and drains into both halves of the right atrium through `COR_RAIVCI` and `COR_RASVC`.
 
 ## References
 

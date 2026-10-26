@@ -14,7 +14,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? Number(argv[i + 1]) : d; };
 const WARMUP = opt("--seconds", 90);
-const SCENARIO = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const SCENARIO = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 
 let liveModel = null;
 globalThis.self = globalThis;
@@ -74,7 +74,7 @@ function challenge(name, apply) {
 }
 
 // afterload: arterial constriction (lower arterial unstressed volume -> higher arterial pressure).
-// NB: term_neonate has a low-resistance runoff that defeats a pure SVR increase, so we constrict
+// NB: term_neonate_72h has a low-resistance runoff that defeats a pure SVR increase, so we constrict
 // the arterial capacitances; the response is directional but modest in this scenario.
 const afterload = challenge("afterload (art constrict x0.2)", (model) => {
   for (const n of ["AA", "AAR", "AD"]) {

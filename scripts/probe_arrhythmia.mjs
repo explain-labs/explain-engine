@@ -10,7 +10,7 @@
 //   vt                — fast ventricular focus → ventricular tachycardia, low stroke volume
 //   pvc               — a triggered premature ventricular contraction
 //
-// Usage: node scripts/probe_arrhythmia.mjs [--scenario term_neonate] [--verbose]
+// Usage: node scripts/probe_arrhythmia.mjs [--scenario term_neonate_72h] [--verbose]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -19,7 +19,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
 const sopt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 const VERBOSE = flag("--verbose");
 
 let liveModel = null;

@@ -1,4 +1,4 @@
-// SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
+// SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate_72h (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
 // HFOV+CMV), the settings validation, the monitored values (also with unsupported spontaneous breaths),
 // the patient monitor's RR and the leak compensation of the flow trigger and of PSV termination. See docs/Sle6000.md.
@@ -12,7 +12,7 @@ import { createEngine } from "./_harness.mjs";
 const VERBOSE = process.argv.includes("--verbose");
 const eng = await createEngine();
 const log = eng.log;
-const json = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate.json", import.meta.url), "utf8"));
+const json = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate_72h.json", import.meta.url), "utf8"));
 const def = json.model_definition;
 
 const checks = [];
@@ -46,6 +46,18 @@ function count(m, V, seconds) {
       else n.mandatory++;
     }
     if (prev && !V._inspiration) n.ti_max = Math.max(n.ti_max, V.ti_meas);
+    prev = V._inspiration;
+  }
+  // the other window edge: an effort in the last instant triggers its breath ~0.1 s later, after the
+  // window. Follow up to 0.5 s for that breath, stopping at the next effort (which is not counted)
+  for (let i = 0; i < Math.round(0.5 / dt) && n.efforts > n.triggered + n.mandatory; i++) {
+    eng.calc(dt);
+    if (B.ncc_insp === 1) break;
+    if (!prev && V._inspiration) {
+      if (V._ps_breath) n.supported++;
+      if (V.triggered_breath && !V._mandatory_breath) n.triggered++;
+      else n.mandatory++;
+    }
     prev = V._inspiration;
   }
   n.trigger_frac = n.efforts > n.blocked ? n.triggered / (n.efforts - n.blocked) : 0;
@@ -345,30 +357,37 @@ function count(m, V, seconds) {
   check("leak 1.5 mm (> 35 %): auto-triggers", V.mon_rr, 45, 200);
 }
 
-// 15. PSV with a tube leak: the inspiratory flow levels off at the leak flow, so without
-// compensation every breath runs to Ti Max. The automatic leak compensation (10-50 % leak) ends
-// the breath on flow again; above 50 % it runs to Ti Max, as on the device
+// 15. PSV with a tube leak. Ti Max (1.0 s) is set above the patient's own inspiration (~0.7 s
+// in the 72 h term_neonate_72h), so without a leak the breath ends on flow. The leak keeps the
+// inspiratory flow up, so without compensation the breath is held on longer; the automatic leak
+// compensation (10-50 % leak) ends it on flow as without a leak. Above 50 % it runs to Ti Max,
+// as on the device
 {
   const psvLeak = (leak, comp = true) => {
-    const { m, V } = start({ mode: "PSV", rr: 30, ti: 0.6, peep: 4, pip: 15 });
+    const { m, V } = start({ mode: "PSV", rr: 30, ti: 1.0, peep: 4, pip: 15 });
     V.leak_size = leak;
     V.leak_compensation = comp;
     eng.calc(40);
     const dt = m.modeling_stepsize;
-    let prev = V._inspiration, n = 0, timax = 0;
+    let prev = V._inspiration, n = 0, timax = 0, ti = 0;
     for (let i = 0; i < Math.round(30 / dt); i++) {
       eng.calc(dt);
       if (prev && !V._inspiration) {
         n++;
+        ti += V.ti_meas;
         if (V.ti_meas >= V.insp_time - 0.002) timax++;
       }
       prev = V._inspiration;
     }
-    return n ? timax / n : NaN;
+    return n ? { ti: ti / n, timax: timax / n } : { ti: NaN, timax: NaN };
   };
-  check("PSV leak 0.8 mm, compensation off: Ti Max breaths", psvLeak(0.8, false), 0.9, 1.0);
-  check("PSV leak 0.8 mm: flow-cycled (Ti Max fraction)", psvLeak(0.8), 0, 0.1);
-  check("PSV leak 1.2 mm (> 50 %): Ti Max breaths", psvLeak(1.2), 0.9, 1.0);
+  const none = psvLeak(0);
+  check("PSV no leak: flow-cycled (Ti Max fraction)", none.timax, 0, 0.1, `mean Ti ${none.ti.toFixed(2)} s`);
+  const off = psvLeak(0.8, false);
+  check("PSV leak 0.8 mm, compensation off: Ti longer than without leak (s)", off.ti - none.ti, 0.1, 1.0);
+  const on = psvLeak(0.8);
+  check("PSV leak 0.8 mm, compensated: Ti as without leak (s)", Math.abs(on.ti - none.ti), 0, 0.05);
+  check("PSV leak 1.2 mm (> 50 %): Ti Max breaths", psvLeak(1.2).timax, 0.9, 1.0);
 }
 
 const f = (x) => (typeof x === "number" ? x.toFixed(3) : String(x));

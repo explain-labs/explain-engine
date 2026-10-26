@@ -1,8 +1,8 @@
-// One-off recalibration: term_neonate gets a small patent foramen ovale (1.5 mm) at 72 h.
+// One-off recalibration: term_neonate_72h gets a small patent foramen ovale (1.5 mm) at 72 h.
 //
 //   node scripts/_fix_term_fo.mjs [--seconds 240] [--write | --out path.json]
 //
-// Why (docs/TermNeonateReference.md, step 6.7 of the term_neonate validation): the FO was closed
+// Why (docs/TermNeonateReference.md, step 6.7 of the term_neonate_72h validation): the FO was closed
 // (diameter_fo 0 -> no_flow), but a PFO with low-velocity left-to-right flow is the rule in the first
 // days (none closed by day 3 in He 2011; ~70 % of newborns in a large cohort, 95 % closed by 6 months).
 // Both neonatal CMR studies measured RV output slightly above LV output with the duct closed (Jhaveri
@@ -26,7 +26,7 @@ const WRITE = argv.includes("--write");
 const OUT = arg("--out", null);
 const FO_MM = 1.5;
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);
@@ -67,4 +67,4 @@ const text = JSON.stringify(json, null, 2);
 JSON.parse(text);
 if (WRITE) fs.writeFileSync(file, text);
 if (OUT) fs.writeFileSync(OUT, text);
-out(WRITE ? "term_neonate.json written" : OUT ? `written to ${OUT}` : "dry run (pass --write or --out to save)");
+out(WRITE ? "term_neonate_72h.json written" : OUT ? `written to ${OUT}` : "dry run (pass --write or --out to save)");

@@ -18,7 +18,7 @@
 //
 // SPEC schema (all fields optional except `baseline`):
 //   {
-//     "baseline": "term_neonate",          // a name in model_definitions/
+//     "baseline": "term_neonate_72h",          // a name in model_definitions/
 //     "fetal": true,                       // force fetal mode (default: auto-detected from the
 //                                          //   baseline — see "FETAL MODE" below)
 //     "name": "custom_patient",            // output scenario name (metadata)
@@ -88,6 +88,7 @@
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
+import { resolveScenarioName } from "../helpers/ScenarioAliases.js";
 import { measureVitals, selectProfile, rangesFor, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
 import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
@@ -118,7 +119,8 @@ try {
   process.exit(1);
 }
 
-const baseline = spec.baseline || "term_neonate";
+// an old scenario name (helpers/ScenarioAliases.js) resolves to the current one
+const baseline = resolveScenarioName(spec.baseline || "term_neonate_72h");
 // a copy: derived targets (pp, and map from sys/dia) are added below, and the caller's spec must
 // stay what it sent
 const targets = { ...(spec.targets || {}) };
@@ -235,17 +237,15 @@ if (has("sys") || has("dia")) {
   } else {
     targets.pp = round(targets.sys - targets.dia, 2);
     derivedTargets.pp = targets.pp;
-    // Without a measured MAP the resistance lever needs a mean to aim at. The clinical estimate
-    // dia + pp/3 misses the pair: the model's MAP is the true time average, which in a small
-    // infant's waveform sits near dia + 0.46·pp, so a 45/25 target landed at 43/22. So the MAP
-    // target starts at the estimate and is re-derived every measurement from the model's own
-    // waveform, MAP = dia + k·pp with k = (MAP − dia)/pp as measured (measureAll below).
+    // Without a measured MAP the resistance lever needs a mean to aim at: the clinical mean
+    // dia + pp/3, which is also how measureVitals reports MAP, so MAP and pp together fix the pair.
+    // (The baroreflex set-point is aimed at its time-averaged equivalent, in measureAll below.)
     if (!has("map")) {
       targets.map = round(targets.dia + targets.pp / 3, 1);
       derivedTargets.map = targets.map;
       fitDiastolic = true;
     }
-    trace(`derived targets: pulse pressure ${targets.pp}${fitDiastolic ? `, MAP ${derivedTargets.map} to start (dia + pp/3), then re-derived from the model's waveform` : ""}`);
+    trace(`derived targets: pulse pressure ${targets.pp}${fitDiastolic ? `, MAP ${derivedTargets.map} (dia + pp/3)` : ""}`);
   }
 }
 
@@ -275,7 +275,7 @@ if (FETAL_MODE) {
   // and a preterm baseline already carries it, so seeding again would apply prematurity twice
   const baseGa = (baseJson.model_definition || baseJson).gestational_age;
   if (typeof baseGa === "number" && baseGa < 37) {
-    console.error(`build_patient: baseline "${baseline}" is already preterm (${baseGa} wk) and carries the prematurity adjustments; adding gestational_age ${targets.gestational_age} would apply them a second time. Use baseline "term_neonate" with gestational_age, or keep "${baseline}" and leave gestational_age out.`);
+    console.error(`build_patient: baseline "${baseline}" is already preterm (${baseGa} wk) and carries the prematurity adjustments; adding gestational_age ${targets.gestational_age} would apply them a second time. Use baseline "term_neonate_72h" with gestational_age, or keep "${baseline}" and leave gestational_age out.`);
     process.exit(1);
   }
   seed = PRETERM_SEED[nearestGa(targets.gestational_age)];
@@ -313,7 +313,7 @@ if (weightKg != null) {
 // PWV data (x2.5 = 0.57 kg).
 // Neonatal baselines only (the PWV data are neonatal); fetal mode keeps its own seed.
 const ARTERIES = ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"].filter((n) => model.models[n]);
-const TERM_REF_WEIGHT = 3.545; // kg, term_neonate
+const TERM_REF_WEIGHT = 3.545; // kg, term_neonate_72h
 const ARTERIAL_SCALE_MAX = 2.5;
 let arterialScale = model.models.AA?.el_base_factor_scaling_ps ?? 1.0;
 if (!FETAL_MODE) {
@@ -451,6 +451,10 @@ if (model.models.Blood && (has("hb") || has("hb_gdl"))) {
   const hbMmol = has("hb") ? targets.hb : targets.hb_gdl * 0.6206;
   model.models.Blood.set_solute("hemoglobin", hbMmol);
   restoreMaternalPool(); // PL_MAT is the mother's blood — her Hb does not follow the fetus's
+  // the vessel resistances are calibrated at the viscosity of the blood a scenario loads with
+  // (Blood.init_model): re-take that reference at the new Hb, or the patient is calibrated at
+  // viscosity/viscosity_ref != 1 and loads with different resistances (Hb 7: MAP 55 -> 61 on reload)
+  model.models.Blood.calibrate_viscosity_ref();
   trace(`structural: Hb ${round(hbMmol, 2)} mmol/L${!has("hb") && has("hb_gdl") ? ` (converted from ${targets.hb_gdl} g/dL)` : ""}`);
 }
 
@@ -512,7 +516,8 @@ if (has("fio2")) {
   if (model.models.Ventilator?.is_enabled) notes.push("the baseline has an enabled ventilator, which supplies its own FiO2; targets.fio2 only set the ambient gas");
 }
 
-// baroreflex MAP set-point: defend the requested MAP so the ANS doesn't fight it
+// baroreflex MAP set-point: defend the requested MAP so the ANS doesn't fight it (a first guess: the
+// reflex senses the time-averaged pressure, so measureAll moves it to the target's time-averaged equivalent)
 if (has("map") && model.models.BR_MAP) { model.models.BR_MAP.set_value = targets.map; trace(`structural: baroreflex MAP set-point ${targets.map}`); }
 
 // heart-rate reference seed (also an iterated lever below if hr is targeted)
@@ -557,7 +562,7 @@ let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary
 // wiped the baked scaling, so the Bischoff infant fell from 42/19 to 30/14 before any lever had
 // moved. scaleGroup() instead sets each member to base x f, where base is the layer as loaded, so
 // f = 1 is the patient as built. A gestational-age seed is the exception: its svr/pvr are stated
-// against the term reference (term_neonate, fetus_term; a preterm baseline is never seeded, see
+// against the term reference (term_neonate_72h, fetus_term; a preterm baseline is never seeded, see
 // above), so a seeded build keeps the absolute layer (base 1), exactly as before.
 const scaleGroup = (group, absolute) => {
   const cfg = group === "systemic_resistances" ? "blood_systemic" : "blood_pulmonary";
@@ -799,16 +804,20 @@ trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile $
 const measureAll = () => {
   const v = measureVitals(model, eng.send, { window: WINDOW });
   v.pp = v.sys - v.dia; // pulse pressure, the second half of the sys/dia pair
-  // sys/dia without MAP: re-aim the MAP target (and the baroreflex set-point, which defends it) at
-  // dia + k·pp with the waveform's own k. k changes slowly with stiffness and heart rate, so the
-  // target settles within a few iterations; bounded to the physiological range of the form factor
-  if (fitDiastolic && mapController && v.pp > 1 && Number.isFinite(v.map)) {
-    const k = Math.min(0.6, Math.max(0.25, (v.map - v.dia) / v.pp));
-    const m = round(targets.dia + k * targets.pp, 2);
-    mapController.target = m;
-    mapController.tol = tolOf("map");
-    targets.map = m;
-    if (model.models.BR_MAP) model.models.BR_MAP.set_value = m;
+  // the MAP target is a clinical mean (dia + pp/3, as measureVitals reports it), but the baroreflex
+  // senses the time-averaged arch pressure: its set-point is the target's time-averaged equivalent,
+  // dia + k·pp with the waveform's own form factor k (time-averaged mean - dia) / pp. k changes slowly
+  // with stiffness and heart rate, so this settles within a few iterations; bounded to the
+  // physiological range of the form factor. With sys/dia targets the MAP target is dia + pp/3.
+  if (mapController && v.pp > 1 && Number.isFinite(v.map_int)) {
+    const k = Math.min(0.6, Math.max(0.25, (v.map_int - v.dia) / v.pp));
+    if (fitDiastolic) {
+      const m = round(targets.dia + targets.pp / 3, 2);
+      mapController.target = m;
+      mapController.tol = tolOf("map");
+      targets.map = m;
+    }
+    if (model.models.BR_MAP) model.models.BR_MAP.set_value = round(targets.map + (k - 1 / 3) * (fitDiastolic ? targets.pp : v.pp), 2);
   }
   return v;
 };

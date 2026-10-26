@@ -19,7 +19,7 @@ Explain reproduces this sequence with timers and produces the conduction disorde
 - **Ventricular tachycardia.**
 - **Single premature ventricular contractions.**
 
-The **activation signal** is what turns electricity into mechanics. During atrial and ventricular activation, Heart sends each chamber a value between 0 (relaxed) and 1 (fully contracted), which stiffens the chamber (see [TimeVaryingElastance](./TimeVaryingElastance.md)). The ventricles' pulse rises slowly and falls quickly, like the real ventricular pressure. The right ventricle can lag the left by a few milliseconds (`rv_delay`), as in a pressure-loaded RV.
+The **activation signal** is what turns electricity into mechanics. During atrial and ventricular activation, Heart sends each chamber a value between 0 (relaxed) and 1 (fully contracted), which stiffens the chamber (see [TimeVaryingElastance](./TimeVaryingElastance.md)). The ventricles' pulse rises slowly and falls quickly, like the real ventricular pressure. The right ventricle can lag the left by a few milliseconds (`rv_delay` > 0), as in a pressure-loaded RV, or lead it (`rv_delay` < 0: the LV lags), so the pulmonary valve opens first, as in the transitional circulation.
 
 Heart also measures each beat as an echo or catheter study would:
 - end-diastolic and end-systolic volumes and pressures of all four chambers;
@@ -40,12 +40,14 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `heart_rate_ref` | bpm | 110 | Resting (reference) sinus rate. term_neonate 120.33, 25 wk 160, term fetus 136. |
+| `heart_rate_ref` | bpm | 110 | Resting (reference) sinus rate. term_neonate_72h 120.33. |
 | `pq_time` | s | 0.1 | Atrial activation (P wave) and PQ interval. |
 | `av_delay` | s | 0.0005 | AV-node pause after the PQ interval, before the QRS. |
 | `qrs_time` | s | 0.075 | Ventricular depolarisation (QRS). |
-| `qt_time` | s | 0.25 | QT at 60 bpm; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Also sets how long the ventricles contract (see [limitations](#assumptions-and-limitations)). |
-| `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together. `bischoff_bidir_pda` uses 0.008. |
+| `qt_time` | s | 0.4 | QT at 60 bpm (a QTc), from QRS onset; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Sets both the ECG QT and how long the ventricles contract. 0.4 in every scenario (neonatal QTc ~0.40 s). |
+| `act_peak` | – | 0.85 | Fraction of the QT at which ventricular activation peaks (end-systole). |
+| `relax_frac` | – | 0.06 | Relaxation after end-systole: the activation decays with τ = `relax_frac`·RR (30 ms at 120/min). 0 = a raised-cosine fall to zero at the end of the QT. |
+| `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together; negative = the LV (and the coronaries) lag the RV by \|`rv_delay`\|. `term_neonate_1h` uses −0.035 (early systolic right-to-left ductal flow); the removed `bischoff_bidir_pda` used 0.008. |
 
 ### Config: rhythm and conduction
 
@@ -90,7 +92,7 @@ BaseModelClass
 | `hr_mob_factor` | – | 1.0 | `Mob`: myocardial-oxygen-balance effect on rate. |
 | `hr_temp_factor` | – | 1.0 | `Thermoregulation`: temperature effect on rate. |
 | `hr_drug_factor` | – | 1.0 | `Drugs`: chronotropy. |
-| `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent (preterm scenarios): hypoxic bradycardia. |
+| `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent: hypoxic bradycardia (in no shipped scenario at present). |
 
 ### Outputs
 
@@ -137,22 +139,24 @@ BaseModelClass
    ```
    With `hr_override` it is `HR_ref`. It is floored at 0; at 0 the sinus node is silent.
 4. **Conduction timers**:
-   - **SA firing** (every `60/HR` s while `sa_node_enabled`) starts the PQ interval and the atrial activation (`ncc_atrial = −1`).
+   - **SA firing** (every `60/HR` s while `sa_node_enabled`) starts the PQ interval and the atrial activation (`ncc_atrial = −1`). The SA timer is not saved: after a load the node fires on the first step. (It used to wait a whole interval, which skipped one beat after every load: term MAP 61 → 53 mmHg for ~2 s, enough to set the brain autoregulation ringing.)
    - **After PQ**, the AV delay runs.
    - **After the AV delay**, the ventricles are activated if they aren't refractory and `av_block_mode` lets this beat through.
    - **After the QRS** comes the QT; the ventricles are refractory until it ends.
 5. **Escape / ectopic pacemaker.**
    - If the ventricles have been quiet for `60 / vent_escape_rate` (or `60 / vt_rate` in `vt` mode) and aren't refractory, they fire on their own. At normal rates conducted beats always come first, so the escape pacemaker only appears when conduction fails.
    - A pending PVC fires `pvc_coupling` after `trigger_pvc()`.
-6. **ECG** (`calc_ecg`): a sum of Gaussian waves (P in the PQ interval; Q, R, S in the QRS; T in the QT), positioned relative to each phase, so the trace follows the timing settings. Isoelectric baseline 0 mV.
+6. **ECG** (`calc_ecg`): a sum of Gaussian waves (P in the PQ interval; Q, R, S in the QRS; T in the QT), positioned relative to each phase (T in the ST–T phase, which lasts `cqt_time − qrs_time` after the QRS), so the trace follows the timing settings. Isoelectric baseline 0 mV.
 7. **Rate measurement** and the `ncc_*` counters advance.
 8. **Activation** (`calc_varying_elastance`):
    ```
    aaf = sin(π·n_a/N_a)                       N_a = pq_time/dt, while 0 ≤ n_a < N_a
-   vaf = (n_v / (0.579·N_v)) · sin(π·n_v/N_v)  N_v = (qrs_time + cqt_time)/dt
-   rvaf = vaf shifted by rv_delay
+   x = n_v/N_v                                N_v = cqt_time/dt (the QT includes the QRS)
+   vaf = ½(1 − cos(π·x/p))        for x < p   p = act_peak
+       = exp(−(x−p)·cqt_time/τ)  for x ≥ p (cut below 0.005, restarted by the next QRS),  τ = relax_frac·60/HR
+   rvaf = vaf shifted by rv_delay             (rv_delay < 0: vaf is the one shifted, by |rv_delay|)
    ```
-   The factor 0.579 normalises the peak of `vaf` to 1. Heart writes these values to the chambers' `act_factor`:
+   A raised cosine that rises to 1 at end-systole (`act_peak` of the QT), so the ventricles eject for most of the QT, then an exponential relaxation that still runs as the ventricle starts to fill (with `relax_frac` 0 a raised cosine back to zero at the end of the QT instead). Heart writes these values to the chambers' `act_factor`:
    - `aaf` → LA, RA (or RAIVCI/RASVC);
    - `vaf` → LV and COR;
    - `rvaf` → RV.
@@ -189,16 +193,17 @@ Each is applied as a delta to the *shared* persistent layer, so the chamber's fa
 
 ## Assumptions and limitations
 
-- **QT sets both the ECG and the contraction.** `qt_time` 0.25 s gives an ECG QTc of 0.25 s, where the neonatal normal is about 0.40 s. Lengthening it would also lengthen ventricular contraction (`N_v`), which the scenarios are calibrated on. An ECG-only QT is a possible later change.
-- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.25 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
+- **QT sets both the ECG and the contraction.** With `qt_time` 0.40 the ECG QTc is 0.40 s and the ventricles eject for 157–180 ms (LV) in the postnatal and fetal scenarios at rest (term 180 ms at 121/min; fetus_term 166 ms; the fetal reference is 169 ms, Peixoto 2024, doi:10.1017/S1047951124025927). Until the 2026-10 re-validation QT was 0.25 s and the contraction lasted QRS + QT with a late-peaking `x·sin(πx)` pulse: ejection lasted only 118–131 ms, so peak flows and valve gradients were too high, and lengthening QT alone ate into diastolic filling (term mitral inflow 213 → 104 ms per beat). Counting the QT from QRS onset and the raised-cosine pulse keep filling, EF and output (≤1.4 % change).
+- **Relaxation scales with the beat.** τ = `relax_frac`·RR, so relaxation speeds up with heart rate (the frequency-dependent acceleration of relaxation). A fixed τ was rejected: term output peaked at 150/min and fell to below rest at 210/min, while with τ ∝ RR it rises to ~180/min and plateaus. Sympathetic and drug lusitropy act on the passive stiffness only, not on τ. With the AV-valve inertance ([Resistor](./Resistor.md#inertance-inertance)) relax_frac 0.06 gives term mitral E/A 0.61/0.59 m/s (E/A 1.04); the since-removed preterm and fetal scenarios had 0.27–0.91; before the relaxation tail and inertance E/A was 1.8–5.4 everywhere.
+- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.4, `act_peak` 0.85, `relax_frac` 0.06 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
 - **The AV delay is nearly zero.** The PR interval is essentially `pq_time`, and atrial contraction (the `aaf` pulse) spans the whole PQ interval, ending just as the ventricles activate.
-- **`cardiac_cycle_time` is the activation time, not the RR interval** (0.35 s against 0.50 s at term). `Mob` currently uses it as the beat duration when it amortises the stroke-work O2 cost, which overestimates stroke-work MVO2 (×1.4 at term) and flattens its rise with heart rate. To be fixed in the `Mob` pass.
+- **`cardiac_cycle_time` is the activation time, not the RR interval** (≈0.28 s against 0.50 s at term). `Mob` therefore uses its own measured beat interval for the stroke-work O2 cost (since v1.0).
 - **End-diastolic and end-systolic pressures are transmural.** They exclude the pericardial (and thoracic) pressure, which is about −3 to −8 mmHg at term, so they read higher than a catheter's cavity pressure. Transmural is the right quantity for wall stress (`HeartFunction`).
 - **Rate factors add.** Each factor adds `(factor − 1)·HR_ref`; they don't multiply.
 - **Systole timing needs the left-heart valves.** `LA_LV` and an LV outflow valve are assumed present unless the LV has no outflow.
 - **Deterministic rhythm.** No beat-to-beat variability; PVCs are triggered, not random (the engine forbids `Math.random()`).
 
-## Calibration (term_neonate)
+## Calibration (term_neonate_72h)
 
 - `heart_rate_ref` 120.33 gives a resting HR of 120; calm day-3 term infants measure 117–121 (Satoh 2016, He 2011, Agata 1994).
 - LV `el_max` ×1.15 and RV `el_max` ×1.3 make stroke volume and ejection fraction match neonatal CMR (Jhaveri 2023: SV 1.6 mL/kg, EF 63 / 52.5 %) at unchanged output.
@@ -207,7 +212,7 @@ See `scripts/_fix_term_hr_contractility.mjs` and [TermNeonateReference](./TermNe
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Heart` (trimmed to the main config props; `components` holds the chambers, valves and `PERICARDIUM`):
+From `term_neonate_72h.json`, `models.Heart` (trimmed to the main config props; `components` holds the chambers, valves and `PERICARDIUM`):
 
 ```json
 {
@@ -217,7 +222,7 @@ From `term_neonate.json`, `models.Heart` (trimmed to the main config props; `com
   "heart_rate_ref": 120.3333,
   "pq_time": 0.1,
   "qrs_time": 0.075,
-  "qt_time": 0.25,
+  "qt_time": 0.4,
   "av_delay": 0.0005,
   "ans_sens": 1,
   "av_block_mode": "none",
@@ -245,12 +250,11 @@ Scenario differences:
 
 | | `heart_rate_ref` | Contractility / relaxation factors |
 |---|---|---|
-| term_neonate | 120.33 | – |
-| term fetus | 136 | `cont_factor_left` 1.15 |
-| 25 wk preterm | 160 | `relax_factor_*` 1.12 |
-| bischoff_bidir_pda | 160 | `cont_factor_*` 0.4, `relax_factor_*` 1.12, `rv_delay` 0.008 |
+| term_neonate_72h | 120.33 | – |
 
 ## References
 
 - Bazett HC. An analysis of the time-relations of electrocardiograms. *Heart* 1920;7:353–370. (QT rate correction.)
+- Peixoto AB et al. Influence of pre-existing maternal diabetes mellitus on fetal myocardial performance index and systolic-to-diastolic duration ratio. *Cardiol Young* 2025;35:53–59. doi:10.1017/S1047951124025927 (fetal LV ejection time 0.169 s in controls).
+- Zhu F et al. Cardiopulmonary physiological effects of diuretic therapy in preterm infants with chronic pulmonary hypertension. *J Perinatol* 2023;43:1288–1294. doi:10.1038/s41372-023-01742-0 (preterm RV ejection time ≈ 200 ms from RVET:PAAT 5.9 × PAAT 34 ms).
 - Term calibration sources (Satoh 2016, He 2011, Agata 1994, Jhaveri 2023) are listed in [TermNeonateReference](./TermNeonateReference.md).

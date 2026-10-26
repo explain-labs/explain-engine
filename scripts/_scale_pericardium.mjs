@@ -1,6 +1,6 @@
 // Size-scale the pericardial wall stiffness.
 //
-// _fix_pericardium.mjs calibrated term_neonate's pericardium: reserve u_vol = 1.15 x the maximal heart
+// _fix_pericardium.mjs calibrated term_neonate_72h's pericardium: reserve u_vol = 1.15 x the maximal heart
 // volume, and el_k such that the recoil is +10 mmHg at 10 mL beyond the reserve (10 mL = 28 % of the
 // 35.2 mL term reserve). The other scenarios kept that el_k (1e5 mmHg/L^2) with a reserve scaled to their
 // own heart, so a small pericardium was relatively far more compliant: an effusion of 50 % of the reserve
@@ -17,7 +17,7 @@ const WRITE = argv.includes("--write");
 const names = argv.filter((a) => !a.startsWith("--"));
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 
-const term = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate.json", import.meta.url), "utf8"));
+const term = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate_72h.json", import.meta.url), "utf8"));
 const T = term.model_definition.models.Heart.components.PERICARDIUM;
 
 for (const name of names) {

@@ -7,7 +7,7 @@
 // avid tubular sodium retention (FE_Na falls) and ADH drives water retention (urine output falls).
 // (C) volume expansion (large saline load) suppresses RAAS/ADH the opposite way.
 //
-// Usage: node scripts/probe_renal.mjs [--scenario term_neonate] [--bleed 0.15] [--verbose]
+// Usage: node scripts/probe_renal.mjs [--scenario term_neonate_72h] [--bleed 0.15] [--verbose]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -17,7 +17,7 @@ const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const sopt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 const BLEED = opt("--bleed", 0.2);   // fraction of blood volume removed (haemorrhage)
 const VERBOSE = flag("--verbose");
 

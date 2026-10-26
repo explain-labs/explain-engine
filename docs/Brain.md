@@ -6,7 +6,7 @@
 
 The brain keeps its blood flow nearly constant over a range of perfusion pressures by constricting or dilating its arterioles (myogenic autoregulation). In the sick or very preterm newborn that range is narrow and easily lost. The circulation then becomes **pressure-passive**: CBF follows blood pressure, so a surge can cause intraventricular haemorrhage and a fall can cause ischaemia.
 
-The skull holds brain, blood and CSF (Monro–Kellie). Added volume (oedema, haemorrhage, a mass) raises ICP along an exponential pressure–volume curve. It is gentler in the newborn, whose fontanelle and sutures are open. Rising ICP compresses the bridging veins and lowers CPP; autoregulation dilates to compensate until its reserve is gone, then CBF falls.
+The skull holds brain, blood and CSF (Monro–Kellie). Added volume (oedema, haemorrhage, a mass) raises ICP along an exponential pressure–volume curve. It is gentler in the newborn, whose fontanelle and sutures are open. Rising ICP squeezes cerebral blood out and lowers CPP: the cerebral veins cannot drain below ICP, so the driving pressure is MAP − ICP; autoregulation dilates to compensate until its reserve is gone, then CBF falls.
 
 ## Inheritance
 
@@ -27,7 +27,7 @@ BaseModelClass
 | `map_model` | `"AA"` | Arterial pressure source. |
 | `arteriole_resistor`, `cbf_resistor` | `"AA_BR_ART"` | Autoregulation effector, and the resistor whose flow is CBF. |
 | `cerebral_compartments` | `["BR_ART", "BR_CAP", "BR_VEN"]` | Summed for the cerebral blood volume. |
-| `outflow_resistor` | `"BR_VEN_VUB"` | Cerebral venous outflow (ICP compresses it). |
+| `outflow_resistor` | `"BR_VEN_VUB"` | Cerebral venous outflow; the ICP excess is added to its outlet pressure (vascular waterfall). |
 | `oxy_model` | `"BR_CAP"` | Brain oxygenation read-out. |
 
 ### Config: autoregulation
@@ -39,9 +39,9 @@ BaseModelClass
 | `autoreg_leak` | 1/s | 0.05 | Pull of the integrator back to 1, so the baseline stays neutral (gain/leak ≈ 100: strong regulation, small droop). |
 | `cbf_setpoint` | L/min | 0 | Target CBF; ≤ 0 = captured 30 s after build. Stored in every scenario (term 0.106). |
 | `cpp_setpoint` | mmHg | 0 | Baseline CPP (read-out); captured likewise. |
-| `autoreg_tc` | s | 4.0 | Lag on the applied factor. |
+| `autoreg_tc` | s | 1.0 | Lag on the applied factor. |
 | `autoreg_factor_min`, `autoreg_factor_max` | – | 0.15, 6.0 | Maximal dilation and constriction (the autoregulation limits). |
-| `cbf_tc`, `pres_tc` | s | 3.0, 3.0 | Smoothing of CBF and MAP (averages out the pulse). |
+| `cbf_tc`, `pres_tc` | s | 1.0, 3.0 | Smoothing of CBF and MAP (averages out the pulse). |
 
 ### Config: ICP
 
@@ -52,7 +52,6 @@ BaseModelClass
 | `edema_volume` | mL | 0 | Added intracranial volume: oedema, haemorrhage, mass (`set_edema`). |
 | `icp_e0`, `icp_k` | mmHg, 1/mL | 4.0, 0.18 | Exponential pressure–volume curve (compliant neonatal cranium). |
 | `icp_excess_max` | mmHg | 70 | Clamp on the excess ICP. |
-| `icp_outflow_gain`, `icp_outflow_factor_max` | 1/mmHg, – | 0.03, 8 | Rise of the venous outflow resistance per mmHg of excess ICP, and its clamp. |
 
 ### Outputs
 
@@ -63,7 +62,7 @@ BaseModelClass
 | `cpp` | mmHg | MAP − ICP. |
 | `icp`, `icp_excess` | mmHg | ICP and its excess above baseline. |
 | `cerebral_blood_volume` | mL | CBV. |
-| `autoreg_factor` | – | Applied factor on `AA_BR_ART.r_factor_ps` (saved; the integrator resumes from it on load). |
+| `autoreg_factor` | – | Applied factor on `AA_BR_ART.r_factor_ps` (saved; the integrator resumes from it on load, the smoothers from `cbf` and `sensed_map`). |
 | `brain_to2` | mmol/L | `BR_CAP` O2 content (ischaemia read-out). |
 
 ## Calculation
@@ -75,9 +74,13 @@ Every 15 ms:
    ```
    dV = (CBV − cbv0) + edema_volume
    icp_excess = clamp(icp_e0 · (exp(icp_k · dV) − 1), 0, icp_excess_max)
-   BR_VEN_VUB.r_factor_ps = clamp(1 + icp_outflow_gain · icp_excess, 1, icp_outflow_factor_max)
    ```
-   CPP = MAP − ICP. ICP acts through the venous outflow resistance, not as an external pressure (external pressure on a series of compartments doesn't change their steady through-flow).
+   CPP = MAP − ICP.
+5. **ICP as a pressure** (every step, since both are reset after use):
+   - `BR_VEN_VUB.p2_ext += icp_excess`: the outflow pressure rises with ICP (vascular waterfall: the bridging veins cannot drain below ICP), so the driving pressure falls with CPP and perfusion stops as ICP reaches MAP;
+   - `pres_ext += icp_excess` on `BR_ART`, `BR_CAP`, `BR_VEN`: their volume follows the transmural pressure, so raised ICP squeezes cerebral blood out (the Monro–Kellie buffer).
+
+   Only the excess above `icp_baseline` is applied, so the calibrated resting bed is unchanged (`cbv0` is the resting cerebral blood volume).
 3. **Baseline:** if not stored, CBF, CPP and CBV are captured 30 s after build.
 4. **Autoregulation** (leaky integral control on flow):
    ```
@@ -90,34 +93,38 @@ Every 15 ms:
 
 ## Factor system
 
-It owns `AA_BR_ART.r_factor_ps` (inflow) and `BR_VEN_VUB.r_factor_ps` (outflow). Neither is in Circulation's groups; the brain's ANS and SVR tone acts on the `BR_ART` vessel, so the channels compose.
+It owns `AA_BR_ART.r_factor_ps` (inflow), and writes the non-persistent `BR_VEN_VUB.p2_ext` and the cerebral compartments' `pres_ext` (added to, so other writers compose). The inflow channel is not in Circulation's groups; the brain's ANS and SVR tone acts on the `BR_ART` vessel, so the channels compose.
 
 ## Inputs and outputs
 
 - **Reads:** `AA.pres`, `AA_BR_ART.flow`, the cerebral volumes, `BR_CAP.to2`.
-- **Writes:** the two channels above.
+- **Writes:** the channels above.
 - **Written by:** the user (`set_edema`, `autoregulation_gain`, switches).
 - **Read by:** `DataCollector` watchers and the Monitor (read-outs).
 
 ## Assumptions and limitations
 
-- **Behaviour in term_neonate** (2 min after each change, 2026-10-24):
+- **Behaviour in term_neonate_72h** (re-validation (f), 2 min after each oedema step; CBF in mL/min):
 
-  | Change | MAP | ICP | CPP | CBF (mL/min) | Factor |
+  | Oedema (mL) | ICP | CPP | CBF intact (factor) | CBF pressure-passive | `brain_to2` intact / passive |
   |---|---|---|---|---|---|
-  | `svr_factor_art` 0.5, intact | 52.6 | 5.1 | 47.5 | 103 → 105 | 1.24 |
-  | same, pressure-passive | 52.8 | 5.3 | 47.5 | 103 → 114 | 1.00 |
-  | oedema 5 mL | 59.0 | 11.2 | 47.8 | 103 → 108 | 0.96 |
-  | oedema 10 mL, pressure-passive | 58.6 | 26.4 | 32.2 | 103 → 99 | 1.00 |
+  | 0 | 5.0 | 55.7 | 105 (1.00) | 105 | 6.6 / 6.6 |
+  | 5 | 10.5 | 50 | 105 (0.80) | 96 | 6.6 / 6.3 |
+  | 10 | 24 | 37–39 | 104 (0.31) | 74 | 6.6 / 5.4 |
+  | 12 | 32–35 | 27–30 | 91 (0.15, dilation limit) | 59 | 6.2 / 4.1 |
+  | 14 | 45 | 18 | 58 | 39 | 3.8 / 1.6 |
+  | 16 | 60–61 | 2–4 | 16 | 11 | 0.2 / 0.0 |
 
-  - Autoregulation holds CBF against a systemic dilation that also dilates the brain's vessels.
-  - **ICP couples weakly to CBF:** an ICP of 26 mmHg lowers CBF only 4 %. The venous outflow is a small part of the cerebral resistance, so the HIE picture (ICP up → CBF and `brain_to2` down) needs large volumes. This is listed for the re-validation.
-- **Stored state predates v1.0 circulation changes** in several scenarios: the autoregulation factor settles away from its stored value in the first ~30 s after load (fetus_term 1.29 → 1.10). Listed for the re-validation re-bake.
+  - **Pressure-passive** CBF falls in proportion to CPP and stops as ICP reaches MAP. **Intact** autoregulation holds CBF down to a CPP of ~35 mmHg; below ~30 its dilation reserve is exhausted (a lower limit of autoregulation near CPP 30 in the term newborn).
+  - Until the re-validation ICP acted as a rise of the venous outflow resistance (`icp_outflow_gain` 0.03). That resistance is a small part of the cerebral bed, so CBF hardly fell: pressure-passive 92 mL/min with ICP above MAP, intact 104. Venous congestion also raised the cerebral blood volume, feeding ICP.
+- **Neutral at rest.** The set-points dated from before the heart re-validation: term's natural cerebral flow had risen and the controller constricted 12 % at rest (factor 1.12). That was folded into `BR_ART` (`r_for`/`r_back` ×1.1228), so the factor is 1.00 at rest with CBF unchanged (106 mL/min), and `cbv0` was re-seeded to the resting cerebral blood volume (3.784 → 3.990 mL).
+- **Dynamics.** After a step in arterial pressure CBF returns within ~5 s, without ringing (systemic resistance ×0.85: CBF +7 % at 2 s, +1 % at 5 s, then a steady +3 %, the leaky integrator's droop). With the former lags (`cbf_tc` 3 s, `autoreg_tc` 4 s) it rang with a ~22 s period for over a minute.
+- **Resuming after a load.** The integrator restarts from the saved `autoreg_factor`, and the CBF and MAP smoothers from the saved `cbf` and `sensed_map`. Starting the CBF smoother at `cbf_setpoint` (as before the re-validation) zeroed the small standing error that the leaky integrator holds its factor with, so the leak pulled the factor away for the first seconds after every load.
 - **One cerebral bed:** no regional flow, no CO2 reactivity (hypercapnia doesn't dilate the cerebral vessels), no venous haemorrhage model.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defaults):
+From `term_neonate_72h.json`, `models.Brain` (trimmed: wiring and gains are the defaults):
 
 ```json
 {
@@ -130,7 +137,7 @@ From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defa
   "icp_enabled": true,
   "cbf_setpoint": 0.1059,
   "cpp_setpoint": 53.83,
-  "cbv0": 3.784,
+  "cbv0": 3.9899,
   "edema_volume": 0,
   "icp_k": 0.18
 }
@@ -138,7 +145,7 @@ From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defa
 
 ## Usage in the scenarios
 
-One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` ranges from 0.019 L/min (Bischoff) to 0.355 L/min (fetus_term).
+One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` is 0.106 L/min in term_neonate_72h.
 
 ## References
 

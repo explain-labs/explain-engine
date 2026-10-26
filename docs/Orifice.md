@@ -34,11 +34,10 @@ The jet is narrower than the anatomical opening (the *vena contracta*). The *dis
 | `Shunts` | foramen ovale `diameter_fo`, VSD `diameter_vsd` | `discharge_coeff_fo` 0.7, `discharge_coeff_vsd` 0.64 | B is added the same way to the FO and VSD resistors. `velocity_fo_doppler` and `velocity_vsd_doppler` come from `jet_velocity`. |
 
 Shipped settings, for example:
-- **term_neonate:** duct closed (diameter 0), FO 1.5 mm, no VSD.
-- **bischoff_ltr_pda:** duct 2.1 mm with Cd 0.25, FO 0.5 mm.
+- **term_neonate_72h:** duct closed (diameter 0), FO 1.5 mm, no VSD.
 
 ## Notes
 
 - **Only the kinetic term.** `jet_velocity` uses the Bernoulli coefficient and the flow, not the total pressure drop, so the viscous loss along a long duct isn't attributed to the jet. Through an open, non-restrictive duct the jet velocity is low even when the total gradient isn't zero.
 - **Semi-implicit use.** Both callers fold B into the linear resistance using last step's flow (`B·|Q_prev|`), because the old turbulent `r_k` term of `Resistor` was unstable. `Resistor` now solves `r_k` exactly each step, so passing B as `r_k` is an option, to be reviewed with Pda and Shunts.
-- **Cd is a model constant**, not computed from the orifice geometry. The Bischoff scenarios use a low Cd (0.25) as a calibration lever for the ductal flow pattern.
+- **Cd is a model constant**, not computed from the orifice geometry. The removed Bischoff scenarios used a low Cd (0.25) as a calibration lever for the ductal flow pattern; every shipped scenario now uses 0.9.

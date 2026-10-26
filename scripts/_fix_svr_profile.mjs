@@ -1,6 +1,6 @@
-// One-off repair: give term_neonate a physiological systemic pressure profile.
+// One-off repair: give term_neonate_72h a physiological systemic pressure profile.
 //
-// In term_neonate about half (upper body) to 60 % (lower body) of the systemic resistance sat in
+// In term_neonate_72h about half (upper body) to 60 % (lower body) of the systemic resistance sat in
 // the venous-return resistors (VUB/VLB r_for), so organ capillaries and veins ran at 26-40 mmHg.
 // This script redistributes the resistance of each organ bed so that, as a fraction of
 // (source - central venous) pressure above central venous pressure:
@@ -16,14 +16,14 @@
 // same volume as before. Brain autoregulation is held neutral during the solve; it re-seeds itself
 // on every load. Only the touched fields are patched in the JSON.
 //
-//   node scripts/_fix_svr_profile.mjs [scenario=term_neonate] [--write]
+//   node scripts/_fix_svr_profile.mjs [scenario=term_neonate_72h] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate";
+const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate_72h";
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
 const json = JSON.parse(raw);

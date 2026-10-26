@@ -1,4 +1,4 @@
-// One-off repair: give term_neonate's large arteries (AA, AAR, AD) non-linear stiffening.
+// One-off repair: give term_neonate_72h's large arteries (AA, AAR, AD) non-linear stiffening.
 //
 // Their el_k was 0, so the aorta was a linear spring. Pressure in a compartment is
 //   P = el_k * S^2 + el * S,   S = V - U (stressed volume, L)
@@ -11,14 +11,14 @@
 // The vessel holds the same blood at rest; stiffness then rises with pressure (~x1.2 at +50 %, the
 // most a quadratic term can give is stiffness ~ sqrt(P)). Only the touched fields are patched.
 //
-//   node scripts/_fix_artery_elk.mjs [scenario=term_neonate] [--write]
+//   node scripts/_fix_artery_elk.mjs [scenario=term_neonate_72h] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate";
+const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate_72h";
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
 const json = JSON.parse(raw);

@@ -1,9 +1,9 @@
-// One-off recalibration: term_neonate cerebral blood flow and brain O2 use to the neonatal MRI term
+// One-off recalibration: term_neonate_72h cerebral blood flow and brain O2 use to the neonatal MRI term
 // median, keeping the brain's O2 extraction; the flow the brain gives back goes to the upper body.
 //
 //   node scripts/_fix_term_brain_mri.mjs [--seconds 300] [--write]
 //
-// Why (docs/TermNeonateReference.md, step 6.1 of the term_neonate validation): the scenario gave the
+// Why (docs/TermNeonateReference.md, step 6.1 of the term_neonate_72h validation): the scenario gave the
 // brain 143.6 mL/min (40.5 mL/kg/min, 20 % of LVO) and 42 % of the Metabolism VO2 — a Holliday-type
 // split (adult CMRO2 per gram x neonatal brain mass). Neonatal PC-MRA puts term CBF at a median of
 // 106 mL/min (Kooi 2019, n=172 term; ~28.5 mL/kg/min), and MRI CMRO2 is lower still (Liu 2014).
@@ -31,7 +31,7 @@ const WRITE = argv.includes("--write");
 const K_BRAIN = 1.3994, K_RUB = 0.7581, FVO2_BRAIN = 0.31311;
 const ANCHORS = { cbf_setpoint: 0.10592, cpp_setpoint: 53.83, cbv0: 3.784 };
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);
@@ -57,4 +57,4 @@ if (baselineWeight !== undefined) json.model_definition._baseline_weight = basel
 const text = JSON.stringify(json, null, 2);
 JSON.parse(text);
 if (WRITE) fs.writeFileSync(file, text);
-out(WRITE ? "term_neonate.json written" : "dry run (pass --write to save)");
+out(WRITE ? "term_neonate_72h.json written" : "dry run (pass --write to save)");

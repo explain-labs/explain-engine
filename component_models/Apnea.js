@@ -148,9 +148,18 @@ export class Apnea extends BaseModelClass {
   }
 
   _set_obstruction(state) {
-    // occlude (state = true) or open the upper airway; effort continues but no flow moves
+    // occlude (state = true) or open the upper airway; effort continues but no flow moves. An endotracheal
+    // tube bypasses the upper airway, so an intubated patient has no obstructive apnoea, and the Ventilator
+    // owns MOUTH_DS then (closed while the tube is in): opening it at the end of an episode used to leave
+    // the natural airway open beside the tube
+    if (state && this._intubated()) return;
     this.airway_obstructed = state;
-    if (this._airway) this._airway.no_flow = state;
+    if (this._airway && !this._intubated()) this._airway.no_flow = state;
+  }
+
+  _intubated() {
+    const v = this._model_engine.models["Ventilator"];
+    return !!(v && v.is_enabled && v.tube_position !== "extubated");
   }
 
   _restore_ventilation() {

@@ -26,7 +26,7 @@ BaseModelClass
 | `vo2_factor` | – | 1.0 | Persistent user/scenario multiplier; no model writes it. |
 | `vo2_temp_factor` | – | 1.0 | Q10 temperature effect; written by [Thermoregulation](./Thermoregulation.md). |
 | `vo2_bat_factor` | – | 1.0 | O2 cost of brown-fat thermogenesis; written by Thermoregulation. |
-| `resp_q` | – | 0.8 | Respiratory quotient. term 0.8, preterm and fetal 0.92–0.95. |
+| `resp_q` | – | 0.8 | Respiratory quotient. term_neonate_72h 0.8. |
 | `metabolic_active_models` | {name: fraction} | `{}` | The beds and their share of VO2 (summing to 1). |
 
 ### Outputs
@@ -52,7 +52,7 @@ tco2  += resp_q · used / V                    CO2 only from O2 actually used
 o2_deficit += (demand − used) / dt
 ```
 
-STPD conversion as in [Units](./Units.md). Example: with the brain's inflow closed in term_neonate, `BR_CAP` empties of O2 within seconds and `o2_deficit` reads 0.005 mmol/s, the brain's 6.8 mL/min share; its tCO2 stays at ~31 mmol/L. Before v1.0 CO2 kept being added from the missing O2 and reached 225 mmol/L in 2 min.
+STPD conversion as in [Units](./Units.md). Example: with the brain's inflow closed in term_neonate_72h, `BR_CAP` empties of O2 within seconds and `o2_deficit` reads 0.005 mmol/s, the brain's 6.8 mL/min share; its tCO2 stays at ~31 mmol/L. Before v1.0 CO2 kept being added from the missing O2 and reached 225 mmol/L in 2 min.
 
 `set_metabolic_active_model(site, fraction)` changes or adds one bed's share.
 
@@ -75,7 +75,7 @@ Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_ba
 - **The myocardium is separate** ([Mob](./Mob.md)), so lung uptake = Metabolism + Mob (term: 6.14 + ~0.8 = 7.0 mL/kg/min).
 - **The beds stand for whole organs and regions:** `RLB`/`RUB` the lumped lower and upper body, `AA`/`AD` the aortic wall.
 
-### term_neonate calibration (2026-10)
+### term_neonate_72h calibration (2026-10)
 
 - **Whole-body uptake.** `vo2` 6.1396 gives a lung uptake of 7.0 mL/kg/min, slightly above quiet rest. First-week references are 6.26 ± 1.51 at thermoneutral rest and 45–50 kcal/kg/d, ~6.5–7.2 mL/kg/min. Knock-on changes:
   - CO2 production fell, so `Breathing.minute_volume_ref` and the chemoreceptor set-points were re-anchored;
@@ -84,11 +84,11 @@ Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_ba
 
   See `scripts/_fix_term_vo2.mjs`.
 - **Brain share 0.313** (was 0.42–0.45, a Holliday-type estimate from adult CMRO2 per gram). Neonatal MRI finds a term CBF of 106 mL/min (Kooi 2019) and CMRO2 well below adult values (Liu 2014). Brain flow and O2 use were brought down together, keeping its extraction at ~35 %: CBF 144 → 106 mL/min, brain VO2 11.0 → 8.1 mL/min. The other beds took over the rest proportionally. See `scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md).
-- **The fetal scenarios** give the brain 0.65 (see [fetal_circulation](./fetal_circulation.md)).
+- **The since-removed fetal scenarios** gave the brain 0.65 (see [fetal_circulation](./fetal_circulation.md)).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Metabolism` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Metabolism` (trimmed to the config props):
 
 ```json
 {
@@ -113,10 +113,7 @@ One instance in every scenario, with the same eight beds.
 
 | Scenario | `vo2` | `resp_q` | Brain share |
 |---|---|---|---|
-| term_neonate | 6.14 | 0.80 | 0.313 |
-| preterm_30wk | 5.69 | 0.92 | 0.313 |
-| preterm_25wk / 28wk, Bischoff ×3 | 5.19 | 0.95 | 0.313 |
-| fetus_term / 30wk / 25wk | 5.46 / 4.98 / 4.98 | 0.95 | 0.65 |
+| term_neonate_72h | 6.14 | 0.80 | 0.313 |
 
 ## References
 

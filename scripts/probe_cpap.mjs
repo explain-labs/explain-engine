@@ -11,14 +11,14 @@
 // Usage:
 //   node scripts/probe_cpap.mjs <scenario> [--baseline N] [--cpap N] [--window W]
 //                                          [--peep cmH2O] [--flow L/min] [--verbose]
-//   (scenario defaults to term_neonate)
+//   (scenario defaults to term_neonate_72h)
 
 import fs from "node:fs";
 import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const BASELINE = opt("--baseline", 120); // spontaneous warm-up before CPAP (s)

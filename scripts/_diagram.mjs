@@ -1,4 +1,4 @@
-// Shared diagram_definition edits for the scenario generators (_make_*.mjs). The baseline term_neonate
+// Shared diagram_definition edits for the scenario generators (_make_*.mjs). The baseline term_neonate_72h
 // diagram only draws the normal circulation, so a lesion that adds a pathway must add its connector (or
 // its flow is never drawn), and one that closes a structure should hide the connector drawn over it.
 

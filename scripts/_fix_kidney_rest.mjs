@@ -1,4 +1,4 @@
-// One-off repair: give term_neonate a kidney whose two afferent controllers are at rest.
+// One-off repair: give term_neonate_72h a kidney whose two afferent controllers are at rest.
 //
 // After #65 the term kidney's myogenic limb (myogenic_p_set 40, a historical term value) and its
 // TGF limb (tgf_setpoint 582.7, idem) pushed against each other at rest (myogenic ~1.14, TGF ~0.89,
@@ -12,14 +12,14 @@
 //   4. patches ONLY those fields in the scenario JSON, then rebuilds the patched file and prints
 //      the kidney state, renal outputs and vitals before and after.
 //
-//   node scripts/_fix_kidney_rest.mjs [scenario=term_neonate] [--write]
+//   node scripts/_fix_kidney_rest.mjs [scenario=term_neonate_72h] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate";
+const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate_72h";
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
 const json = JSON.parse(raw);

@@ -48,13 +48,12 @@ BaseModelClass
 |---|---|---|---|
 | `setpoint_temp` | °C | 37 | Hypothalamic set-point (fetus 37.5). |
 | `heat_capacity` | J/(kg·K) | 3470 | Specific heat of tissue. |
-| `surface_area_k` | – | 0.05 | Body surface = k · weight^(2/3) m² (Meeh). |
-| `h_radiative`, `h_convective` | W/(m²·K) | 9.6, 7.0 | Heat-transfer coefficients. |
-| `evap_coeff` | W/m² | 6.0 | Evaporative loss per unit dryness (1 − humidity). |
+| `surface_area_k` | – | 0.097 | Body surface = k · weight^(2/3) m² (Meeh); 0.226 m² at 3.545 kg, as Haycock at 50 cm. |
+| `h_radiative`, `h_convective` | W/(m²·K) | 5.2, 4.9 | Heat-transfer coefficients per total surface: radiative 6.7 per exposed skin (Sjörs 1997) × 78 % radiating area, convective under natural convection in an incubator (Apedoh 1999, term mannequin). |
+| `evap_coeff` | W/m² | 6.0 | Skin evaporative loss per unit dryness (1 − humidity); with the respiratory heat metered separately (`Q_resp`), term skin ≈ respiratory loss at 50 %, as measured (Riesenfeld 1995). |
 | `caloric_equiv_o2` | J/mL O2 | 20.1 | Heat per mL O2 consumed. |
 | `blood_density`, `cp_blood` | kg/L, J/(kg·K) | 1.06, 3800 | Blood heat capacity. |
 | `blood_temp_tc` | s | 10 | Perfusion equilibration time constant (match `Blood.blood_temp_tc`). |
-| `blood_volume_per_kg` | L/kg | 0.08 | Circulating volume used for the perfusion coupling mass. |
 | `bat_gain`, `bat_max_per_kg` | W/°C, W/kg | 6, 4.5 | Brown-fat heat per °C below the set-point, and its ceiling (0 in the fetus). |
 | `q10` | – | 2.3 | Metabolic Q10. |
 | `vo2_temp_factor_min`, `vo2_temp_factor_max` | – | 0.5, 2.5 | Clamp on the Q10 factor. |
@@ -86,7 +85,7 @@ Q_prod = vo2 · vo2_factor · vo2_temp_factor · weight / 60 · 20.1  +  brown f
 brown fat = min(bat_gain · max(0, set-point − core), bat_max_per_kg · weight)
 SA     = surface_area_k · weight^(2/3)
 Q_loss = SA·[h_rad·(core − radiant) + h_conv·(core − env)] + SA·evap_coeff·(1 − humidity) + Q_resp + loss_trim
-Q_perf = (blood_volume_per_kg · weight · ρ · cp / blood_temp_tc) · (core − blood_mean)
+Q_perf = (C_blood / blood_temp_tc) · (core − blood_mean)      C_blood = Σ vol·ρ·cp over the blood compartments Blood relaxes
 d core / dt = (Q_prod − Q_loss − Q_perf) / (weight · heat_capacity − C_blood)
 ```
 - **`Q_resp`** is the heat the airway compartments actually spent warming and humidifying gas, metered by [GasCapacitance](./GasCapacitance.md) and drained through [`Gas.drain_respiratory_heat`](./Gas.md), averaged over `resp_window`. It is signed, so heat recovered when expired gas cools in the dead space is credited back. It works the same under mechanical ventilation and in apnoea.
@@ -98,7 +97,7 @@ d core / dt = (Q_prod − Q_loss − Q_perf) / (weight · heat_capacity − C_bl
 - `Heart.hr_temp_factor = 1 + hr_temp_gain · (core − set-point)` (clamped);
 - `Blood.set_perfusion_target(core)` and `Gas.set_body_temperature(core)`.
 
-**Example** (term_neonate, room moved from 32 to 24 °C):
+**Example** (term_neonate_72h, room moved from 32 to 24 °C):
 - after 20 min: core 35.9 °C, brown fat 6.6 W (doubling Metabolism's O2 use, `vo2_bat_factor` 1.97), heart-rate factor 0.89, Q10 factor 0.91;
 - after 40 min: core 35.3 °C.
 
@@ -116,16 +115,23 @@ It owns `Metabolism.vo2_temp_factor`, `vo2_bat_factor` and `Heart.hr_temp_factor
 ## Assumptions and limitations
 
 - **Heat production counts Metabolism only,** not the myocardium (Mob); the trim absorbs it at rest, but a change in cardiac work doesn't change heat.
-- **Respiratory heat is 0.87 W of 9.6 W in term_neonate on room air** (~9 %, mostly latent). A heated humidifier drives it to ~0, but the whole-model thermal gain is only ~0.043 °C/W, so the core rises just ~0.04 °C. Most retained heat goes into `Q_perf`.
-- **`Q_perf` doesn't return to 0 after a perturbation** (≈ 1.2 W sustained after the humidifier step), although the coupling should be energy-neutral at rest. The coupling mass is the circulating volume (0.08 L/kg), while Blood relaxes all compartments (~2.4× that). Worth checking before relying on absolute temperature excursions.
-- **`evap_coeff` still contains the old respiratory loss,** now counted separately by `Q_resp`. Rest is unaffected (the trim absorbs it), but the sensitivity to ambient humidity is overstated.
+- **Heat-loss geometry** (re-validation, term_neonate_72h): until then the surface area was half the real one (`surface_area_k` 0.05 → 0.116 m²) with coefficients above the measured ones (9.6 and 7.0 W/(m²·K)); the errors partly cancelled. Now 0.226 m² with 5.2 and 4.9; the dry-loss sensitivity is SA·(h_rad + h_conv) = 2.28 W/K (was 1.93), and the resting trim is −5.26 W (was −3.23), because the losses are computed from core rather than skin temperature.
+
+  | Ambient step from 32 °C, 60 min | Before | Now |
+  |---|---|---|
+  | to 28 °C | 36.99 → 36.02 (brown fat 5.9 W) | 36.98 → 35.88 (brown fat 6.7 W) |
+  | to 35 °C | 36.99 → 38.38 | 36.98 → 38.54 |
+
+  Skin evaporation is now 0.68 W against ~0.8 W respiratory heat on room air (it was 0.35 W; the earlier note that `evap_coeff` double-counted the respiratory loss was wrong: the skin share was too small).
+- **The perfusion coupling is energy-exact:** its mass is the heat capacity of the relaxed blood compartments (term 1212 J/K, 301 mL), not the former 0.08 L/kg estimate (1142 J/K). `Q_perf` is only the heat the blood takes up while the core moves (0.05–0.07 W while a heated humidifier warms the core) and returns to 0 (0.003 W after 5 h); the 1.2 W "sustained" in the docs pass came from an older state.
+- **Heated humidifier** (inspired gas 37 °C, 100 %): respiratory heat 0.79 → −0.09 W; the core rises slowly (time constant ~2 h; no heat defence such as sweating or vasodilation is modelled): +0.18 °C after 1 h, +0.43 °C after 5 h and levelling off near +0.45 °C (the docs pass reported ~0.04 °C from a short window).
 - **Respiratory water loss** isn't conserved (only its heat is charged).
 - **The inspired air (`MOUTH`, 20 °C) and `env_temp` are independent:** a cold room doesn't cool the inspired gas.
 - **No skin node, no peripheral vasoconstriction:** skin temperature is a fixed offset; the infant's own vasomotor defence is not modelled.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Thermoregulation` (trimmed to the main config):
+From `term_neonate_72h.json`, `models.Thermoregulation` (trimmed to the main config):
 
 ```json
 {
@@ -138,7 +144,7 @@ From `term_neonate.json`, `models.Thermoregulation` (trimmed to the main config)
   "rel_humidity": 0.5,
   "respiratory_heat_loss": true,
   "setpoint_temp": 37,
-  "surface_area_k": 0.05,
+  "surface_area_k": 0.097,
   "bat_gain": 6,
   "bat_max_per_kg": 4.5,
   "q10": 2.3
@@ -151,10 +157,13 @@ One instance in every scenario.
 
 | Scenario | `env_temp` (°C) | Humidity | Set-point | Brown fat | Respiratory heat |
 |---|---|---|---|---|---|
-| term_neonate | 32 | 0.5 | 37 | yes | yes |
-| preterm_30wk / 28wk / 25wk, Bischoff | 34 / 35 / 36 / 36 | 0.6 / 0.7 / 0.8 / 0.8 | 37 | yes | yes |
-| fetal ×3 | 37.3 | 1.0 | 37.5 | no | no |
+| term_neonate_72h | 32 | 0.5 | 37 | yes | yes |
 
 ## References
 
-No literature values; the coefficients are standard heat-transfer estimates, and the trim makes every scenario neutral at its own environment.
+- Sjörs G, Hammarlund K, Sedin G. Thermal balance in term and preterm newborn infants nursed in an incubator equipped with a radiant heat source. *Acta Paediatr* 1997;86:403–9. doi:10.1111/j.1651-2227.1997.tb09031.x (term skin 35.4 °C; radiative loss 32.8 W/m² exposed skin at a 30.5 °C roof)
+- Apedoh A, et al. Mannequin-assessed dry-heat exchanges in the incubator-nursed newborn. *Biomed Instrum Technol* 1999;33:446–54. PMID 10511915 (convective 4.94, radiative 4.77 W/(m²·°C); radiating area 78 %, mattress contact 10 %)
+- Riesenfeld T, Hammarlund K, Sedin G. Respiratory water loss in relation to gestational age in infants on their first day after birth. *Acta Paediatr* 1995;84:1056–9. doi:10.1111/j.1651-2227.1995.tb13824.x (term: respiratory ≈ transepidermal water loss at 50 % humidity)
+- Sedin G, Hammarlund K, Strömberg B. Transepidermal water loss in full-term and pre-term infants. *Acta Paediatr Scand Suppl* 1983;305:27–31. doi:10.1111/j.1651-2227.1983.tb09855.x (skin evaporation falls linearly with ambient humidity)
+
+The loss trim makes every scenario neutral at its own environment.

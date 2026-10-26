@@ -433,7 +433,7 @@ the breath, and the controller then trims the pressure down. `pressure_limited` 
 keeps Vt below target. With a spontaneously breathing patient in PS + VG, the controller withdraws
 support (down to PEEP + 2) as the patient's own effort takes over the volume.
 
-Verified (`term_neonate` unless noted):
+Verified (`term_neonate_72h` unless noted):
 - PC + VG 15 mL converges to 15.3 mL at 8.6 cmH₂O.
 - preterm 28 wk VG 5 mL converges to 5.3 mL at 7.3 cmH₂O.
 - adult VG 450 mL converges to 451 mL at 13.6 cmH₂O.
@@ -447,7 +447,7 @@ Verified (`term_neonate` unless noted):
 `trigger_flow` (L/min) during expiration forces the breath, as a ventilator with a proximal flow
 sensor does. It is armed once the minimal expiratory time (`_min_exp_time`) has passed, so the end
 of the previous breath cannot re-trigger. With the 0.6 L/min default it triggers every effort on
-`term_neonate` and `adult_female` in PS (`validate:resp`, case `flowtrig`). A 28-week preterm's
+`term_neonate_72h` and `adult_female` in PS (`validate:resp`, case `flowtrig`). A 28-week preterm's
 efforts peak at ~0.5 L/min through the tube on PS, so they need a lower threshold; see the
 suite's known failures.
 
@@ -460,7 +460,7 @@ over into the next. Once the integrated volume exceeds `trigger_volume` it force
 (`_exp_time_counter = exp_time + 0.1`) and sets `triggered_breath = true`: at most one trigger per
 effort.
 
-Some efforts are still missed or triggered late, roughly 1 in 10 in PS on `term_neonate`. These all
+Some efforts are still missed or triggered late, roughly 1 in 10 in PS on `term_neonate_72h`. These all
 start early in the ventilator's expiration, while the patient is still exhaling the previous
 supported breath: the effort first has to stop the expiratory flow before any inspiratory flow
 counts. This is the ineffective/delayed triggering seen clinically at high respiratory rates, and it
@@ -576,7 +576,7 @@ R_leak = (K1(leak_size) + K2(leak_size)·|V̇_leak|) · 20/110          (K1 ∝ 
 The leak therefore grows with airway pressure: it is largest at PIP, and smaller but continuous at
 PEEP. Because conductance scales with d⁴, the useful range is narrow:
 
-| leak_size | term_neonate PC 20/5 (3.5 mm tube) | adult_female PC 20/5 (7.5 mm tube) |
+| leak_size | term_neonate_72h PC 20/5 (3.5 mm tube) | adult_female PC 20/5 (7.5 mm tube) |
 |---|---|---|
 | 0.5 mm | 7 % | — |
 | 0.75 mm | 23 % | — |
@@ -590,7 +590,7 @@ PEEP. Because conductance scales with d⁴, the useful range is narrow:
 breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mjs`):
 
 - **PC/PS compensate.** The pressure servo makes up the leaked gas, so the lung Vt barely drops.
-  Vti rises and Vte falls. With term_neonate PC 20/5 at 1 mm: Vti 61, Vte 34, lung 48.5 mL.
+  Vti rises and Vte falls. With term_neonate_72h PC 20/5 at 1 mm: Vti 61, Vte 34, lung 48.5 mL.
 - **Volume guarantee over-delivers.** It regulates on Vte, so once the leak passes ~30 % it drives
   the pressure to its limit. The lung then gets *more* than the target (18 mL against 15), bounded
   only by the 130 % inspired-volume guard. This is the clinical reason VG is unreliable with large
@@ -608,7 +608,7 @@ breath. Behaviour that comes out of the model (`scripts/probe_ventilator_leak.mj
 During expiration the circuit keeps resupplying the leak through the tube to hold PEEP, so the tube
 flow sensor reads a steady *inspiratory* flow equal to the leak flow at PEEP. Uncompensated, that
 flow crosses `trigger_flow` and every breath auto-triggers once the minimal expiratory time has
-passed: term_neonate in SLE PTV 15/4/30, apnoeic, with a 1 mm leak was cycled at 58/min.
+passed: term_neonate_72h in SLE PTV 15/4/30, apnoeic, with a 1 mm leak was cycled at 58/min.
 
 Neonatal ventilators compensate for this, and so does the model. It learns the leak the way the
 device can, from its own sensor only (it never reads `VENT_LEAK`): over a whole breath the lung
@@ -681,7 +681,7 @@ restores the circuit exactly. The tube's own ends (`VENT_GASCIRCUIT`, `DS`) are 
 
 | Event | Routing | What it shows |
 |---|---|---|
-| `tube_position = "right_main"` | sets [`Respiration.airway_obstructed_left`](./Respiration.md#bronchus-obstruction-and-resorption): `DS_ALL` closed | All the tidal volume goes to the right lung, so the measured C falls (term_neonate CMV 20/5: 3.1 → 1.9 ml/mbar) and SpO₂ falls. The left lung collapses by resorption, faster on oxygen. Pulling back leaves the collapse for recruitment. |
+| `tube_position = "right_main"` | sets [`Respiration.airway_obstructed_left`](./Respiration.md#bronchus-obstruction-and-resorption): `DS_ALL` closed | All the tidal volume goes to the right lung, so the measured C falls (term_neonate_72h CMV 20/5: 3.1 → 1.9 ml/mbar) and SpO₂ falls. The left lung collapses by resorption, faster on oxygen. Pulling back leaves the collapse for recruitment. |
 | `tube_position = "extubated"` | `VENT_ETTUBE → MOUTH`; `MOUTH_DS` open; leak and tube dead space off | The ventilator blows into the room, so Vte is 0 and the leak 100 %. The patient breathes through the natural airway without PEEP. An apnoeic patient desaturates (60 % after 1 min). |
 | `circuit_connected = false` | `VENT_ETTUBE` from `MOUTH`; `VENT_DISCONNECT` open | Circuit pressure falls to about 2 cmH₂O. The proximal flow sensor stays on the tube and reads only the patient's own breaths. No PEEP. |
 
@@ -774,7 +774,7 @@ the factor layers on `VENT_INSP_VALVE` / `VENT_ETTUBE` / `VENT_EXP_VALVE` are ge
 
 ## Example definition (JSON)
 
-A typical neonatal ventilator block (from `term_neonate.json`), trimmed to the device-level fields —
+A typical neonatal ventilator block (from `term_neonate_72h.json`), trimmed to the device-level fields —
 the full definition also nests the six `VENT_*` sub-models under `components`:
 
 ```json

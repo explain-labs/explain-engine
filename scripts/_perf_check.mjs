@@ -3,7 +3,7 @@
 //   node scripts/_perf_check.mjs --save  <file.json>   measure and store a baseline
 //   node scripts/_perf_check.mjs --check <file.json>   measure and compare against a baseline
 //   node scripts/_perf_check.mjs --bench               benchmark only
-//   options: --scenario term_neonate  --seconds 30 (benchmark span)  --cases rest,hypoxia,...
+//   options: --scenario term_neonate_72h  --seconds 30 (benchmark span)  --cases rest,hypoxia,...
 //
 // Benchmark: wall time for --seconds of simulated time on the scenario (after a 5 s warm-up),
 // median of 3 runs in one process (JIT warm).
@@ -18,7 +18,7 @@ import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = opt("--scenario", "term_neonate");
+const SCENARIO = opt("--scenario", "term_neonate_72h");
 const SECONDS = Number(opt("--seconds", 30));
 const SAVE = opt("--save", null);
 const CHECK = opt("--check", null);

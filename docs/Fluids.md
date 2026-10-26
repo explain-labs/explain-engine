@@ -31,7 +31,7 @@ BaseModelClass
 |---|---|---|---|
 | `fluids` | {name: {solute: value}} | `{}` | The fluid library (see the table below). |
 | `fluids_temp` | °C | 37 | Temperature of given fluids. |
-| `maintenance_rate` | mL/kg/h | 0 | Continuous maintenance intake. term 1.35, preterm and fetal 3. |
+| `maintenance_rate` | mL/kg/h | 0 | Continuous maintenance intake. term_neonate_72h 1.35. |
 | `maintenance_fluid` | – | `"maintenance"` | Its composition (a key in `fluids`; missing = water). |
 | `maintenance_site` | – | `"IVCI"` | Compartment receiving it. |
 
@@ -60,7 +60,7 @@ BaseModelClass
 1. Finished entries are dropped. For each running entry, `site.volume_in(delta, fluid)` mixes the increment in, then `time_left` counts down. A missing site is skipped.
 2. **Maintenance:** `maintenance_rate · weight / 1000 · Δt / 3600` L of the maintenance fluid into `maintenance_site`.
 
-**Effects** (term_neonate, 20 mL/kg over 10 min, read 1 min later):
+**Effects** (term_neonate_72h, 20 mL/kg over 10 min, read 1 min later):
 
 | Fluid | Hb (mmol/L) | Albumin (g/L) | Na | Lactate | BE | MAP |
 |---|---|---|---|---|---|---|
@@ -91,7 +91,7 @@ None.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Fluids` (trimmed to two fluids):
+From `term_neonate_72h.json`, `models.Fluids` (trimmed to two fluids):
 
 ```json
 {
@@ -111,7 +111,7 @@ From `term_neonate.json`, `models.Fluids` (trimmed to two fluids):
 
 ## Usage in the scenarios
 
-One instance in every scenario with the library above; maintenance 1.35 mL/kg/h (term, fetus_term) or 3 mL/kg/h (preterm, Bischoff, fetal 25/30 wk), each matching its resting urine output.
+One instance in every scenario with the library above; maintenance 1.35 mL/kg/h in term_neonate_72h, matching its resting urine output.
 
 ## References
 

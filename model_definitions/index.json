@@ -1,12 +1,6 @@
 [
-  "fetus_25wk",
-  "fetus_30wk",
-  "preterm_25wk",
-  "preterm_28wk",
-  "preterm_30wk",
-  "bischoff_no_pda",
-  "bischoff_ltr_pda",
-  "bischoff_bidir_pda",
-  "fetus_term",
-  "term_neonate"
+  "term_neonate_72h",
+  "term_neonate_1h",
+  "term_neonate_12h",
+  "term_neonate_24h"
 ]

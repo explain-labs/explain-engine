@@ -12,7 +12,7 @@ import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "adult_female";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const SECONDS = opt("--seconds", 60);
@@ -99,8 +99,8 @@ const add = (k, v) => { acc[k] = (acc[k] || 0) + (v ?? 0); };
 for (let i = 0; i < N; i++) {
   send("POST", "calc", SLICE);
   add("hr", M.heart_rate); add("rr", M.resp_rate);
-  add("sys", M.minmax?.abp_pre_pres_max); add("dia", M.minmax?.abp_pre_pres_min); add("map", M.minmax?.abp_pre_pres_mean);
-  add("pap_s", M.minmax?.pap_pres_max); add("pap_d", M.minmax?.pap_pres_min); add("pap_m", M.minmax?.pap_pres_mean);
+  add("sys", M.minmax?.abp_pre_pres_max); add("dia", M.minmax?.abp_pre_pres_min); add("map", M.minmax?.abp_pre_pres_mean); add("map_int", M.minmax?.abp_pre_pres_mean_int);
+  add("pap_s", M.minmax?.pap_pres_max); add("pap_d", M.minmax?.pap_pres_min); add("pap_m", M.minmax?.pap_pres_mean); add("pap_m_int", M.minmax?.pap_pres_mean_int);
   add("cvp", M.minmax?.cvp_pres_mean);
   add("spo2_pre", M.sao2_pre); add("spo2_post", M.sao2_post); add("svo2", M.svo2); // mixed-venous (PA) saturation, already in %
   add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
@@ -111,7 +111,8 @@ for (let i = 0; i < N; i++) {
 for (const k in acc) acc[k] /= N;
 
 // normal resting ranges by profile; [low, high]. Auto-selected from body weight (term neonate ≈ 3.5 kg)
-// unless overridden with --profile adult|neonate.
+// (neonate_1h for a term baby under 6 h old, neonate_12h from 6 to under 18 h, neonate_24h from 18 to
+// under 48 h) unless overridden with --profile adult|neonate|neonate_1h|neonate_12h|neonate_24h.
 const RANGES = {
   adult: {
     hr: [60, 100], rr: [12, 20], sys: [90, 130], dia: [60, 85], map: [70, 100],
@@ -119,12 +120,39 @@ const RANGES = {
     spo2_pre: [95, 100], svo2: [65, 75], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.35, 7.45], pco2: [35, 45], po2: [80, 100], hco3: [22, 26], be: [-2, 2],
   },
-  // term newborn (first days of life), resting/awake
+  // the healthy term neonate at ~72 h: the ranges of docs/TermNeonateReference.md
+  // (scripts/reference/term_neonate_72h.json) where it gives one; SpO2 mean - 2 SD; pap_* stay the
+  // age-dependent table below (rangesFor); hco3 and etco2 have no reference range
   neonate: {
-    hr: [100, 160], rr: [30, 60], sys: [55, 90], dia: [30, 55], map: [40, 60],
+    hr: [91, 145], rr: [32, 57], sys: [60, 89], dia: [31, 61], map: [45, 72],
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
-    spo2_pre: [93, 100], svo2: [60, 80], temp: [36.5, 37.5], etco2: [35, 45],
-    ph: [7.30, 7.42], pco2: [35, 45], po2: [50, 85], hco3: [18, 24], be: [-6, 2],
+    spo2_pre: [94.5, 100], svo2: [80, 86], temp: [36.5, 37.5], etco2: [35, 45],
+    ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
+  },
+  // the healthy term neonate at ~1 h (vaginal birth, delayed cord clamping): the ranges of
+  // docs/TermTransitionReference.md (scripts/reference/term_neonate_1h.json); SpO2 mean - 2 SD;
+  // pap_s, pap_d and etco2 have no 1 h range
+  neonate_1h: {
+    hr: [102, 162], rr: [32, 57], sys: [52, 83], dia: [25, 49], map: [36, 59],
+    pap_m: [38, 56], cvp: [-3, 4],
+    spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
+    ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],
+  },
+  // the healthy term neonate at ~12 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_12h.json); pap_d and etco2 have no 12 h range
+  neonate_12h: {
+    hr: [97, 152], rr: [32, 57], sys: [54, 85], dia: [28, 53], map: [39, 62],
+    pap_s: [34, 71], pap_m: [32, 50], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
+    ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
+  },
+  // the healthy term neonate at ~24 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_24h.json); pap_d and etco2 have no 24 h range
+  neonate_24h: {
+    hr: [99, 143], rr: [32, 57], sys: [58, 84], dia: [29, 53], map: [41, 61],
+    pap_s: [28, 60], pap_m: [24, 44], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [81, 87], temp: [36.5, 37.5],
+    ph: [7.32, 7.42], pco2: [30, 41], po2: [60, 90], hco3: [18, 23], be: [-5.5, -1.5],
   },
   // preterm neonates with RDS, first days of life. MAP target ~ GA in mmHg; faster HR/RR, lower
   // SpO2/PO2 and mild respiratory acidosis are expected with surfactant deficiency. Ranges loosen
@@ -178,7 +206,8 @@ const RANGES = {
   },
 };
 const profileArg = (() => { const i = argv.indexOf("--profile"); return i >= 0 ? argv[i + 1] : null; })();
-const profile = profileArg || (weight < 10 ? "neonate" : "adult");
+const ageHours = (model.age ?? 1) * 24 * 365;
+const profile = profileArg || (weight < 10 ? (ageHours < 6 ? "neonate_1h" : ageHours < 18 ? "neonate_12h" : ageHours < 48 ? "neonate_24h" : "neonate") : "adult");
 const ranges = RANGES[profile] || RANGES.adult;
 const flagOf = (k, v) => { const r = ranges[k]; if (!r || typeof v !== "number") return ""; return v < r[0] ? " LOW" : v > r[1] ? " HIGH" : " ok"; };
 const bsa = Math.sqrt((heightCm * weight) / 3600); // Mosteller
@@ -191,11 +220,13 @@ console.log("-- Hemodynamics --");
 console.log(line("Heart rate", "hr", "bpm"));
 console.log(line("ABP systolic", "sys", "mmHg"));
 console.log(line("ABP diastolic", "dia", "mmHg"));
-console.log(line("ABP mean", "map", "mmHg"));
+console.log(line("ABP mean (dia + PP/3)", "map", "mmHg"));
+console.log(line("ABP mean (time avg)", "map_int", "mmHg"));
 console.log(line("CVP (mean)", "cvp", "mmHg"));
 console.log(line("PAP systolic", "pap_s", "mmHg"));
 console.log(line("PAP diastolic", "pap_d", "mmHg"));
-console.log(line("PAP mean", "pap_m", "mmHg"));
+console.log(line("PAP mean (dia + PP/3)", "pap_m", "mmHg"));
+console.log(line("PAP mean (time avg)", "pap_m_int", "mmHg"));
 console.log(`${"LV output (CO)".padEnd(22)} ${String(round(acc.lvo)).padStart(8)} L/min`);
 console.log(`${"RV output".padEnd(22)} ${String(round(acc.rvo)).padStart(8)} L/min`);
 if (ci) console.log(`${"Cardiac index ~".padEnd(22)} ${String(round(ci)).padStart(8)} L/min/m2`);

@@ -22,9 +22,11 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
 
   ICP (Monro-Kellie, exponential intracranial compliance). CBV = BR_ART + BR_CAP + BR_VEN volume;
   dV = (CBV - cbv0) + edema_volume (mL), icp_excess = icp_e0 * (exp(icp_k * dV) - 1), ICP =
-  icp_baseline + icp_excess. The excess compresses the bridging veins: it raises the venous outflow
-  resistance BR_VEN_VUB.r_factor_ps (1 + icp_outflow_gain * excess), so CBF falls; autoregulation
-  defends it by dilating until its reserve is exhausted. CPP = MAP - ICP is a read-out.
+  icp_baseline + icp_excess. The excess acts as a pressure (_apply_icp_pressures): on the venous
+  outflow (BR_VEN_VUB.p2_ext, the vascular waterfall: the bridging veins cannot drain below ICP), so the
+  driving pressure falls with CPP = MAP - ICP and perfusion stops as ICP reaches MAP; and around the
+  cerebral vessels (their pres_ext), so raised ICP squeezes cerebral blood out. Autoregulation defends
+  CBF by dilating until its reserve is exhausted (term: down to a CPP of ~30 mmHg).
 */
 
 export class Brain extends BaseModelClass {
@@ -46,10 +48,8 @@ export class Brain extends BaseModelClass {
     this.arteriole_resistor = "AA_BR_ART"; // cerebral arteriole feeding resistor (autoregulation effector)
     this.cbf_resistor = "AA_BR_ART"; // resistor whose flow == CBF
     this.cerebral_compartments = ["BR_ART", "BR_CAP", "BR_VEN"]; // summed for cerebral blood volume (ICP)
-    this.outflow_resistor = "BR_VEN_VUB"; // cerebral venous OUTFLOW resistor — ICP compresses the
-                        // bridging veins (vascular waterfall), raising this resistance → CBF falls.
-                        // (Modelling ICP as a resistance, not pres_ext: external pressure on a series of
-                        // compartments does not change their steady-state through-flow.)
+    this.outflow_resistor = "BR_VEN_VUB"; // cerebral venous OUTFLOW resistor — the ICP excess is added to
+                        // its outlet pressure (vascular waterfall: the bridging veins cannot drain below ICP)
     this.oxy_model = "BR_CAP"; // brain oxygenation read-out
 
     // -----------------------------------------------
@@ -67,10 +67,11 @@ export class Brain extends BaseModelClass {
     this.cbf_setpoint = 0.0; // L/min — baseline CBF (the autoregulation target); <= 0 → auto-seeded after the warm-up
     this.cpp_setpoint = 0.0; // mmHg — baseline CPP (read-out); <= 0 → auto-seeded after the warm-up
     this.cbv0 = 0.0; // mL — baseline cerebral blood volume (ICP reference); <= 0 → auto-seeded after the warm-up
-    this.autoreg_tc = 4.0; // s — first-order lag on the applied factor (anti-oscillation)
+    this.autoreg_tc = 1.0; // s — first-order lag on the applied factor
     this.autoreg_factor_min = 0.15; // max cerebral vasoDILATION (lower autoregulation limit)
     this.autoreg_factor_max = 6.0; // max cerebral vasoCONSTRICTION (upper autoregulation limit)
-    this.cbf_tc = 3.0; // s — smoothing of the (pulsatile) cerebral blood flow
+    this.cbf_tc = 1.0; // s — smoothing of the (pulsatile) cerebral blood flow (with autoreg_tc: longer
+                       // lags made the loop ring for over a minute after a pressure step)
     this.pres_tc = 3.0; // s — smoothing of the sensed arterial pressure (averages out the cardiac pulse,
                         // so CPP tracks MEAN arterial pressure, not the instantaneous value)
 
@@ -81,16 +82,13 @@ export class Brain extends BaseModelClass {
     this.icp_e0 = 4.0; // mmHg — scale of the exponential pressure-volume curve
     this.icp_k = 0.18; // 1/mL — stiffness (neonatal open fontanelle → relatively compliant)
     this.icp_excess_max = 70.0; // mmHg — clamp on the excess intracranial pressure
-    this.icp_outflow_gain = 0.03; // fractional rise in cerebral outflow resistance per mmHg of ICP excess
-                                  // (kept low so the ICP→venous-congestion→CBV→ICP loop gain stays < 1)
-    this.icp_outflow_factor_max = 8.0; // clamp on the outflow-resistance factor
 
     // -----------------------------------------------
     // dependent properties (read-outs)
     this.cbf = 0.0; // cerebral blood flow (L/min)
     this.cpp = 0.0; // cerebral perfusion pressure (mmHg)
     this.icp = 5.0; // intracranial pressure (mmHg)
-    this.icp_excess = 0.0; // ICP above baseline, drives the venous outflow resistance (mmHg)
+    this.icp_excess = 0.0; // ICP above baseline, applied as a pressure on the venous outflow and the cerebral vessels (mmHg)
     this.cerebral_blood_volume = 0.0; // CBV (mL)
     this.brain_to2 = 0.0; // BR_CAP oxygen content (mmol/L) — ischaemia read-out
     this.autoreg_factor = 1.0; // applied → AA_BR_ART.r_factor_ps
@@ -121,9 +119,12 @@ export class Brain extends BaseModelClass {
     // a scenario that stores its baseline (cbf_setpoint, cbv0) is neutral from the first step, without
     // a warm-up re-seed whose result depends on when the scenario was loaded
     this._seeded = this.cbf_setpoint > 0.0 && this.cbv0 > 0.0;
-    // start the flow smoother at the stored baseline, not at one pulsatile sample (which would kick
-    // the integrator at the first step)
-    if (this._seeded) this._cbf_smooth = this.cbf_setpoint;
+    // start the smoothers where the saved state left them (cbf and sensed_map are the smoothed values),
+    // not at one pulsatile sample, and not at cbf_setpoint: the leaky integrator holds its factor with a
+    // small standing flow error, so starting the error at 0 let the leak pull the factor toward 1 for
+    // the first seconds after every load (term: 1.12 -> 1.04, back after ~5 min)
+    if (this._seeded) this._cbf_smooth = this.cbf > 0.0 ? this.cbf : this.cbf_setpoint;
+    if (this.sensed_map > 0.0) this._map_smooth = this.sensed_map;
     // resume the autoregulation integrator where the saved state left it (it is _-prefixed and not
     // saved; restarting it at 1.0 swings the cerebral resistance for ~30 s after every load)
     if (this._seeded && this.autoregulation_gain > 0) {
@@ -147,7 +148,23 @@ export class Brain extends BaseModelClass {
       this._update_counter = 0.0;
       this._update_brain(u);
     }
+    // the ICP pressures are non-persistent (reset by their owners after use), so they are applied every step
+    if (this.icp_enabled) this._apply_icp_pressures();
     this._was_active = true;
+  }
+
+  // ICP above baseline acts as a pressure, not as a resistance:
+  // - on the cerebral venous outflow (BR_VEN_VUB.p2_ext): the bridging veins cannot drain below the
+  //   intracranial pressure (vascular waterfall), so the outflow pressure rises with ICP and the driving
+  //   pressure falls with it; as ICP approaches MAP, cerebral perfusion stops (circulatory arrest);
+  // - around the cerebral vessels (pres_ext of BR_ART, BR_CAP, BR_VEN): their volume follows the
+  //   transmural pressure, so raised ICP squeezes cerebral blood out (the Monro-Kellie buffer).
+  // Only the excess is applied, so the calibrated resting bed is unchanged.
+  _apply_icp_pressures() {
+    const excess = this.icp_excess;
+    if (!(excess > 0.0)) return;
+    if (this._outflow) this._outflow.p2_ext += excess;
+    if (this._comps) for (const c of this._comps) if (c) c.pres_ext += excess;
   }
 
   _resolve_refs() {
@@ -190,11 +207,8 @@ export class Brain extends BaseModelClass {
       this.icp_excess = 0.0;
       this.icp = this.icp_baseline;
     }
-    // ICP compresses the cerebral bridging veins → raises the venous outflow resistance → CBF falls
-    // (the closed-loop autoregulation below then defends CBF by dilating the inflow, until exhausted)
-    if (this._outflow) {
-      this._outflow.r_factor_ps = this._clamp(1.0 + this.icp_outflow_gain * this.icp_excess, 1.0, this.icp_outflow_factor_max);
-    }
+    // the excess acts as a pressure on the outflow and the cerebral vessels (_apply_icp_pressures, every
+    // step); the closed-loop autoregulation below defends CBF by dilating the inflow, until exhausted
 
     // --- cerebral perfusion pressure ---
     this.cpp = this.sensed_map - this.icp;
@@ -234,7 +248,6 @@ export class Brain extends BaseModelClass {
     this.icp_excess = 0.0;
     this.icp = this.icp_baseline;
     if (this._arteriole) this._arteriole.r_factor_ps = 1.0;
-    if (this._outflow) this._outflow.r_factor_ps = 1.0;
   }
 
   // settable lever for HIE oedema / mass / haemorrhage (mL of added intracranial volume)

@@ -40,7 +40,7 @@ For each lesion: the **dependency**, the **mechanism**, and the **engine levers*
 - Foramen ovale → `Shunts.diameter_fo` (LA↔RA via the split resistors `LA_RAIVCI` / `LA_RASVC`, with flap-valve asymmetry `fo_lr_factor`); restrictive/intact = `diameter_fo → 0`.
 - VSD → `Shunts.diameter_vsd` (LV↔RV). Intrapulmonary shunt → `Shunts.ips_res`. See [`Shunts.js`](../component_models/Shunts.js).
 - Valves are `HeartValve`s (a `Resistor` subclass) in `Heart.components`: `LA_LV` (mitral), `RV_PA` (pulmonary), `LV_AA` (aortic). The **tricuspid is split** into two resistors `RAIVCI_RV` + `RASVC_RV` (there is no single `RA_RV` valve model — `RA_RV` is only a diagram connector grouping the two). **Atresia** = `no_flow: true`; **stenosis** = raise `r_for` (set on both halves of the tricuspid).
-- **TGA outflow tracts are pre-wired but disabled** in `term_neonate.json`: `RV_AA` (RV→AA, `is_enabled: false`) and `LV_PA` (LV→PA, `is_enabled: false`), alongside the normal `RV_PA` and `LV_AA`.
+- **TGA outflow tracts are pre-wired but disabled** in `term_neonate_72h.json`: `RV_AA` (RV→AA, `is_enabled: false`) and `LV_PA` (LV→PA, `is_enabled: false`), alongside the normal `RV_PA` and `LV_AA`.
 
 ### A. Duct-dependent pulmonary blood flow
 
@@ -64,7 +64,7 @@ In these lesions the right-heart outflow to the lungs is obstructed or absent, s
 
 - **A5 — Tetralogy of Fallot with pulmonary atresia / severe RVOT obstruction.** Large VSD with an overriding aorta; in the pulmonary-atresia form, pulmonary flow is duct- (±MAPCA-) dependent (Miller AATS consensus 2022 [#18]; Bailliard 2009 [#19]).
   *Engine:* large `Shunts.diameter_vsd`; `RV_PA` high `r_for` (or `no_flow` for atresia); `Pda`; the aortic override via the pre-wired `RV_AA` valve (RV→AA) enabled alongside `LV_AA`.
-  **✅ BUILT** as a four-phenotype family — `tof_pink`, `tof` (headline), `tof_severe`, `tof_pa` — term neonate **24 h old, 3.3 kg** (term_neonate allometrically scaled from 3.545 kg with `weight_scale`, volumes only). `scripts/archive/_make_tof.mjs` → `reseed_tof.mjs` → `probe_tof.mjs`. Shared levers: `diameter_vsd: 5` (RV/LV peaks equalise in every variant — non-restrictive), `RV_AA` enabled so both ventricles eject into the aorta (RV share of aortic inflow ≈ 33–35%, 15% in `tof_pink`), `Heart.cont_factor_left/right` 0.7 (0.75 pink) to normalise the two-into-one-outlet output (as `pa_vsd`), `diameter_fo: 1.5` (small PFO). **No extra RV hypertrophy** — RVH develops postnatally under systemic loading (Alipour Symakani 2023), so the RV chamber keeps baseline stiffness on day 1. Calibrated operating points (ANS on, after reseed):
+  **✅ BUILT** as a four-phenotype family — `tof_pink`, `tof` (headline), `tof_severe`, `tof_pa` — term neonate **24 h old, 3.3 kg** (term_neonate_72h allometrically scaled from 3.545 kg with `weight_scale`, volumes only). `scripts/archive/_make_tof.mjs` → `reseed_tof.mjs` → `probe_tof.mjs`. Shared levers: `diameter_vsd: 5` (RV/LV peaks equalise in every variant — non-restrictive), `RV_AA` enabled so both ventricles eject into the aorta (RV share of aortic inflow ≈ 33–35%, 15% in `tof_pink`), `Heart.cont_factor_left/right` 0.7 (0.75 pink) to normalise the two-into-one-outlet output (as `pa_vsd`), `diameter_fo: 1.5` (small PFO). **No extra RV hypertrophy** — RVH develops postnatally under systemic loading (Alipour Symakani 2023), so the RV chamber keeps baseline stiffness on day 1. Calibrated operating points (ANS on, after reseed):
 
   | scenario | `RV_PA.r_for` | duct (`diameter_relative`, max) | RVOT gradient | VSD net | Qp:Qs | SpO₂ | MAP | Qs mL/kg/min |
   |---|---|---|---|---|---|---|---|---|
@@ -103,7 +103,7 @@ Here the left-heart outflow to the body is obstructed or absent, so systemic per
 ### C. Duct- and FO-dependent mixing
 
 - **C1 — d-Transposition of the great arteries (d-TGA).** The aorta arises from the RV and the pulmonary artery from the LV, creating **two circulations in parallel** rather than in series. Survival is impossible without mixing — at the atrial level (FO/ASD), through the duct, and/or via a VSD. Cyanosis is inversely proportional to the amount of mixing. The classic neonatal rescue is PGE1 plus balloon atrial septostomy (Rashkind), pending the arterial switch (Martins 2008 [#16]; Rashkind 1966 [#17]; Cucerea 2024 [#33]; Beitzke 1983 [#35]).
-  *Engine:* enable `RV_AA` + `LV_PA` and disable `RV_PA` + `LV_AA` (**all four already pre-wired in `term_neonate.json`**); mixing via `Shunts.diameter_fo` + `Pda` (+ optional `diameter_vsd`). A septostomy is demonstrable by ramping `diameter_fo` via the event scheduler.
+  *Engine:* enable `RV_AA` + `LV_PA` and disable `RV_PA` + `LV_AA` (**all four already pre-wired in `term_neonate_72h.json`**); mixing via `Shunts.diameter_fo` + `Pda` (+ optional `diameter_vsd`). A septostomy is demonstrable by ramping `diameter_fo` via the event scheduler.
   **✅ BUILT** as `dtga` (intact ventricular septum) — `scripts/archive/_make_dtga.mjs` → `reseed_dtga.mjs` → `probe_dtga.mjs`. Calibrated to a stable parallel circulation (Qp:Qs ≈ 1, balanced ~0.8 L/min outputs) with cyanosis (SpO₂ ≈ 59%, pO₂ ≈ 25 mmHg). Mixing levers: `diameter_fo: 6`, `fo_lr_factor: 1` (a true ASD/septostomy hole is symmetric — a high flap factor would throttle the LA→RA flow that oxygenates the systemic circuit), `Pda.diameter_relative: 1.0`, `diameter_vsd: 0`. *Note:* FO ≥ ~7 mm at `fo_lr_factor 1` makes the Hagen-Poiseuille atrial resistance so low the explicit solver oscillates — keep septostomy demos at/below 6 mm or raise `atrial_septal_width`. One small engine generalization was needed: `Heart.calc_model` now detects end-systole from whichever LV outflow valve is active (`LV_AA` if enabled, else `LV_PA`), so the cardiac-cycle analysis and `HeartFunction` wall-stress inputs stay valid with the great arteries transposed (identity for normal anatomy).
 
 ### D. Foramen-ovale / atrial-septum-dependent
@@ -150,7 +150,7 @@ These lesions depend on an **obligatory atrial-level shunt**; a restrictive or i
 
 ## 4. Build roadmap
 
-Each scenario follows the established workflow used for the CDH and PDA families: a `_make_*.mjs` deriver (load `term_neonate.json`, apply a lever table, write JSON) → a `reseed_*.mjs` warm-to-steady-state pass → a `probe_*.mjs` validator. Tiering is by engine friction × clinical importance × reuse of existing assets.
+Each scenario follows the established workflow used for the CDH and PDA families: a `_make_*.mjs` deriver (load `term_neonate_72h.json`, apply a lever table, write JSON) → a `reseed_*.mjs` warm-to-steady-state pass → a `probe_*.mjs` validator. Tiering is by engine friction × clinical importance × reuse of existing assets.
 
 **Tier 1 — build first (JSON-only, highest yield):**
 - **d-TGA** (C1) — ✅ **built** (`dtga`); outflow swap pre-wired; flagship.

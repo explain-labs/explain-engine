@@ -90,10 +90,11 @@ export class Thermoregulation extends BaseModelClass {
     // body thermal geometry / constants
     this.setpoint_temp = 37.0; // hypothalamic set-point (degC)
     this.heat_capacity = 3470.0; // specific heat of body tissue (J/kg/K)
-    this.surface_area_k = 0.05; // Meeh constant: SA = k * weight^(2/3)  (m^2)
-    this.h_radiative = 9.6; // radiative heat-transfer coefficient (W/m^2/K)
-    this.h_convective = 7.0; // convective heat-transfer coefficient (W/m^2/K)
-    this.evap_coeff = 6.0; // evaporative/respiratory loss coefficient (W/m^2 per (1-humidity))
+    this.surface_area_k = 0.097; // Meeh constant: SA = k * weight^(2/3)  (m^2); 0.226 m2 at 3.545 kg (Haycock, 50 cm)
+    this.h_radiative = 5.2; // radiative heat-transfer coefficient per total surface (W/m^2/K): term infants 6.7 per exposed skin
+                            // (32.8 W/m2 at a 4.9 K gradient, Sjors 1997) x 78 % radiating area (term mannequin, Apedoh 1999)
+    this.h_convective = 4.9; // convective heat-transfer coefficient (W/m^2/K): term mannequin in an incubator, natural convection (Apedoh 1999)
+    this.evap_coeff = 6.0; // skin evaporative loss coefficient (W/m^2 per (1-humidity)); term: about the respiratory loss at 50 % (Riesenfeld 1995)
     this.caloric_equiv_o2 = 20.1; // heat released per mL O2 consumed (J/mL)
 
     // two-node coupling: the tissue node (this model) exchanges heat with the distributed blood
@@ -101,10 +102,6 @@ export class Thermoregulation extends BaseModelClass {
     this.blood_density = 1.06; // blood density (kg/L)
     this.cp_blood = 3800.0; // blood specific heat (J/kg/K)
     this.blood_temp_tc = 10.0; // perfusion equilibration time constant (s); sets G_perf = C_blood / tc
-    this.blood_volume_per_kg = 0.08; // circulating blood volume (L/kg) used for the core-coupling mass.
-    // The model's blood compartments sum to ~2.4x this (they include organ vascular beds), so using the
-    // physiological circulating volume for the perfusion heat exchange keeps the loss coefficients
-    // physical. The blood temperature field itself (blood_mean) still comes from all compartments.
 
     // non-shivering (brown-fat) thermogenesis
     this.bat_gain = 6.0; // extra heat per degC below set-point (W/degC)
@@ -281,13 +278,10 @@ export class Thermoregulation extends BaseModelClass {
     let c_tissue = weight * this.heat_capacity; // J/K (whole-body mass; blood share removed below)
     this.q_perfusion = 0.0;
     if (this._blood && this.blood_temp_tc > 0.0) {
-      // blood_mean is the actual heat-capacity-weighted temperature over ALL blood compartments, but
-      // the coupling MASS is the physiological circulating blood volume (the compartment sum overstates
-      // it ~2.4x because it includes vascular beds). Using the real volume keeps the loss coefficients
-      // physical; the resulting transient energy inexactness is small and zero at rest.
-      const { t_mean } = this._blood.get_thermal_state(this.blood_density, this.cp_blood);
+      // the coupling mass is the heat capacity of the blood compartments Blood relaxes (the same set it
+      // averages), so the heat the tissue node gives up is exactly the heat the blood takes up
+      const { c_blood, t_mean } = this._blood.get_thermal_state(this.blood_density, this.cp_blood);
       this.blood_temp_mean = t_mean;
-      const c_blood = this.blood_volume_per_kg * weight * this.blood_density * this.cp_blood; // J/K
       c_tissue = weight * this.heat_capacity - c_blood;
       const g_perf = c_blood / this.blood_temp_tc; // W/K
       this.q_perfusion = g_perf * (this.core_temp - t_mean);

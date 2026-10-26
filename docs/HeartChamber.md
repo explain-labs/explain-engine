@@ -123,13 +123,19 @@ The scaling layers are written by `ModelScaler`, and the `Calibrator` also write
 
 - **Additive composition.** Large simultaneous effects add linearly. Several large negative terms together can only be stopped by the floor at 0.
 - **One ANS signal, all chambers.** The atria and both ventricles get the same `ans_activity` and `ans_sens`.
-- **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law. Two scenarios still use linear chambers.
+- **Quadratic diastolic relation** (see [The diastolic relation](#the-diastolic-relation)): steeper than linear but less steep than the measured power law.
 - **One unstressed volume** for the diastolic and systolic relations (inherited).
-- **Right-ventricle unstressed volume.** The postnatal scenarios give the RV a `u_vol` 5.5× the LV's (term 4.0 vs 0.73 mL, since the first commit). `u_vol` is also the volume intercept of the end-systolic relation, so the RV's end-systolic elastance comes out at 28 mmHg/mL, about the LV's 30, where real RVs are typically ~⅓–½ of the LV. Term RV volumes and EF (52 %) match CMR, but the RV is too insensitive to afterload. With the fetal ratio (1.64×, already used by the fetal scenarios) and `el_max` rescaled, pulmonary arterioles ×2 lower RV stroke volume 6.1 % instead of 3.5 %. To be re-parameterised in the scenario re-validation session (it shifts the PDA patients' `cont_factor_right` calibrations).
+- **Right-ventricle unstressed volume: 1.64× the LV's in every scenario.** `u_vol` is also the volume intercept of the end-systolic relation, so it sets how stiff the contracting RV is. Until the re-validation the postnatal scenarios had 5.46× (term 4.0 vs 0.73 mL), which made the RV's end-systolic elastance about the LV's (term 28 vs 30 mmHg/mL), where real RVs have roughly ⅓–½ of it, and left the RV almost insensitive to afterload. They now use the fetal scenarios' ratio, with `el_max` and `el_k` refitted (`scripts/_fix_rv_unstressed.mjs`) so the resting RV end-diastolic and end-systolic volumes are unchanged:
+
+  | Scenario | RV `u_vol` (mL) | RV / LV `el_max` (mmHg/mL) | Pulmonary arterioles ×2, RV SV (reflexes off) |
+  |---|---|---|---|
+  | term_neonate_72h | 4.0 → 1.20 | 9.8 / 30.5 (was 28.1) | −5.7 % (was −3.4 %) |
+
+  The resting state moved ≤0.5 %. An open duct offloads the pulmonary artery, so in the PDA patients of the (since removed) Bischoff scenarios the RV felt less of a pulmonary resistance rise (−2 to −3 %).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Heart.components.LV` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Heart.components.LV` (trimmed to the config props):
 
 ```json
 {
@@ -149,12 +155,12 @@ From `term_neonate.json`, `models.Heart.components.LV` (trimmed to the config pr
 
 Normal hearts stiffen steeply as they fill. Volume-normalised end-diastolic pressure–volume curves share one shape across human, dog and rat hearts, `EDP ∝ V^2.79` (Klotz 2006). The engine's diastolic term is `el_min·S + el_k·S²` (`S = vol − u_vol`). The closest it gets is a **pure quadratic**, `el_min` 0 with all the stiffness in `el_k`: local stiffness at rest is then 2× the average, against 2.8× for the power law.
 
-In 8 scenarios all five chambers use the pure quadratic, with `el_k` fitted by `scripts/_fix_chamber_edpvr.mjs`:
+In every scenario all five chambers use the pure quadratic, with `el_k` from `scripts/_fix_chamber_edpvr.mjs`:
 - **Fit:** the resting end-diastolic (ventricles) and mean (atria) volumes are unchanged, and so are the resting vitals.
 - **Right atrium:** the two halves share one `el_k`, and their connector `RAIVCI_RASVC` is `implicit`. With stiffening atria the explicit scheme of that low-resistance connector oscillated.
-- **Effect:** in term_neonate with the reflexes off, +30 mL of blood raises stroke volume +17 % (linear: +34 %) and LV EDP +5.6 mmHg (linear: +3.6). That is the limited preload reserve of the newborn heart.
+- **Effect:** in term_neonate_72h with the reflexes off, +30 mL of blood raises stroke volume +17 % (linear: +34 %) and LV EDP +5.6 mmHg (linear: +3.6). That is the limited preload reserve of the newborn heart.
 
-`preterm_25wk` and `bischoff_ltr_pda` still use linear chambers. These small left-to-right-duct patients respond to the curve shape itself (HR +4/+9 bpm, SvO2 −1.3 %), so they are converted only when they are re-validated against their reference values.
+The since-removed `preterm_25wk` and `bischoff_ltr_pda`, small babies with a left-to-right duct, were not fitted. Their resting atrial pressures and ventricular volumes are set by the circulation around the heart and hardly respond to chamber stiffness, so fitting the atria on volume drove the LA soft until its pressure collapsed (preterm_25wk LA 3.2 → −1.4 mmHg). They use the unfitted start, `el_k = el_min_old / S₀` (`--iter 1 --force`), within 2–4 % of every resting volume and pressure. Against their reference pages nothing moves more than 1.5 % (HR, MAP, SpO2, SvO2, outputs), preterm_25wk's foramen ovale flow returns to left-to-right (−0.9 → +2.4 mL/kg/min) and mitral E/A rises from 0.35/0.42 to 0.69.
 
 ## Usage in the scenarios
 
@@ -170,8 +176,8 @@ Each has its own tricuspid half (`RAIVCI_RV`, `RASVC_RV`, both `HeartValve`s) an
 
 | Scenarios | `RAIVCI_RASVC` | Effect |
 |---|---|---|
-| Fetal (`fetus_term`, `fetus_30wk`, `fetus_25wk`) | `no_flow: true` (sealed; `mix_flow` inactive) | Preferential streaming: ductus venosus/IVC blood → foramen ovale → LA; SVC blood → RV. |
-| Postnatal (term, preterm, Bischoff) | open both ways, `r_for`/`r_back` 13 mmHg·s/L, `mix_flow` 0.01 L/s | One atrium in pressure (the halves within ≈ 0.01 mmHg) but only **partly mixed**, as IVC/SVC streaming is in a real atrium. `mix_flow` was chosen in the engine review to bring the RA SO2 gap between the halves from 6.1 to 1.5 %. |
+| Fetal (no shipped scenario at present) | `no_flow: true` (sealed; `mix_flow` inactive) | Preferential streaming: ductus venosus/IVC blood → foramen ovale → LA; SVC blood → RV. |
+| Postnatal (term_neonate_72h) | open both ways, `r_for`/`r_back` 13 mmHg·s/L, `mix_flow` 0.01 L/s | One atrium in pressure (the halves within ≈ 0.01 mmHg) but only **partly mixed**, as IVC/SVC streaming is in a real atrium. `mix_flow` was chosen in the engine review to bring the RA SO2 gap between the halves from 6.1 to 1.5 %. |
 
 Constraints on the resistance and mixing:
 - **Stable resistance.** The postnatal resistance follows `R = max(1, ⌈2·dt·(E₁max + E₂max)⌉)`. R must stay above `dt·(E₁ + E₂)`, about 6 at dt 0.0005, or the explicit integration oscillates; the factor 2 covers ANS-raised elastance.

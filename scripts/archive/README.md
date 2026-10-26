@@ -8,6 +8,6 @@ and older preterm/fetal sets. They were moved here in the v1.0 documentation pas
   the canonical folder), so running one cannot overwrite a current scenario.
 - They predate parts of the current engine and the v1.0 bake; their output is not validated.
   `term_neonate_cdh.json` no longer exists, so the CDH pair fails on a missing file.
-- The current scenarios are made by `scripts/_make_preterm_validated.mjs` and
-  `scripts/_make_fetus_validated.mjs` (`--profile`), and `term_neonate` is reseeded by
-  `scripts/reseed_term_neonate.mjs`. See [`docs/TESTING.md`](../../docs/TESTING.md).
+- The only shipped scenario is `term_neonate`, reseeded by `scripts/reseed_term_neonate.mjs`. The validated
+  preterm and fetal generators were removed with their scenarios on 2026-10-25, to be rebuilt. See
+  [`docs/TESTING.md`](../../docs/TESTING.md).

@@ -15,7 +15,7 @@ const VERBOSE = process.argv.includes("--verbose");
 const eng = await createEngine();
 const log = eng.log;
 const load = (name) => JSON.parse(fs.readFileSync(new URL(`../model_definitions/${name}.json`, import.meta.url), "utf8")).model_definition;
-const TERM = load("term_neonate");
+const TERM = load("term_neonate_72h");
 const PRETERM = load("preterm_26wk");
 
 const checks = [];

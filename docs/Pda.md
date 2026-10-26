@@ -27,9 +27,9 @@ BaseModelClass
 |---|---|---|---|
 | `diameter_ao_max` | mm | 3.0 | Fully open diameter at the aortic end. |
 | `diameter_pa_max` | mm | 2.0 | Fully open diameter at the pulmonary (narrowest) end. **Equal to `diameter_ao_max` in every shipped scenario**, so the duct is a cylinder there. |
-| `diameter_relative` | – | 0.0 | Patency fraction 0–1, scaling both ends together; 0 = closed. term 0, preterm 0.27–0.33, Bischoff L→R 0.7, fetal 1. |
-| `length` | mm | 20 | Length of the duct (the Poiseuille term). A restrictive jet needs a short throat (~1–2 mm). term 14, fetus 25 wk 7.9. |
-| `discharge_coeff` | – | 0.9 | Vena-contracta coefficient of the pulmonary-end orifice; lower = tighter jet. Bischoff patients 0.25 (calibration lever). |
+| `diameter_relative` | – | 0.0 | Patency fraction 0–1, scaling both ends together; 0 = closed. term 0, preterm 0.27–0.33, fetal 1. |
+| `length` | mm | 20 | Length of the duct (the Poiseuille term). A restrictive jet needs a short throat (~1–2 mm). term_neonate_72h 14. |
+| `discharge_coeff` | – | 0.9 | Vena-contracta coefficient of the pulmonary-end orifice; lower = tighter jet. 0.9 in every shipped scenario. |
 
 ### Set by other models
 
@@ -99,13 +99,13 @@ None of its own. It writes the **base** `r_for`/`r_back`/`r_k`/`no_flow` of `AAR
 
 - **No closure physiology.** Constriction by oxygen and falling PGE2, closure from the pulmonary end first, and the wall's passive and active elastance aren't computed. The duct's size is a scenario or user setting.
 - **Symmetric patency.** `diameter_relative` scales both ends together. The shipped scenarios also set both ends equal, so the duct is a cylinder.
-- **Absolute millimetres.** The diameters and `length` aren't scaled with body size; each scenario sets them (the fetal scenarios use Szpinda's gestational regressions, see [fetal_circulation](./fetal_circulation.md)).
+- **Absolute millimetres.** The diameters and `length` aren't scaled with body size; each scenario sets them (the since-removed fetal scenarios used Szpinda's gestational regressions, see [fetal_circulation](./fetal_circulation.md)).
 - **PGE1 cannot reopen a closed duct** (`diameter_relative` 0 is a hard stop).
 - **Reopening transient.** On the first step after reopening, the Bernoulli term is 0 (no previous flow), so flow briefly overshoots for one step.
 
 ## Example definition (JSON)
 
-From `bischoff_ltr_pda.json`, `models.Pda` (trimmed to the config props; `components` holds `AAR_DA`):
+From `term_neonate_72h.json`, `models.Pda` (trimmed to the config props; `components` holds `AAR_DA`):
 
 ```json
 {
@@ -114,9 +114,9 @@ From `bischoff_ltr_pda.json`, `models.Pda` (trimmed to the config props; `compon
   "is_enabled": true,
   "diameter_ao_max": 3,
   "diameter_pa_max": 3,
-  "diameter_relative": 0.7,
+  "diameter_relative": 0,
   "length": 14,
-  "discharge_coeff": 0.25,
+  "discharge_coeff": 0.9,
   "diameter_drug_factor": 1
 }
 ```
@@ -127,10 +127,7 @@ One instance in every scenario, owning `AAR_DA` (`AAR` → `PA`, implicit):
 
 | Scenario | `diameter_relative` × max (mm) | `length` (mm) | `discharge_coeff` | Duct |
 |---|---|---|---|---|
-| term_neonate, bischoff_no_pda | 0 | 14 | 0.9 | closed |
-| preterm_25wk / 28wk / 30wk | 0.27 / 0.33 / 0.3 × 3 | 14 | 0.9 | small, open |
-| bischoff_ltr_pda / bidir_pda | 0.7 / 0.57 × 3 | 14 | 0.25 | haemodynamically significant (2.1 / 1.7 mm) |
-| fetus_25wk / 30wk / term | 1 × 3.9 / 4.6 / 6 | 7.9 / 10.1 / 14.4 | 0.9 | fetal, wide open |
+| term_neonate_72h | 0 | 14 | 0.9 | closed |
 
 The archived `pda_restrictive_ltr` uses a short throat (`length` 1.5 mm, `discharge_coeff` 0.35, `diameter_relative` 0.13) for a restrictive jet.
 
@@ -138,4 +135,4 @@ The archived `pda_restrictive_ltr` uses a short throat (`length` 1.5 mm, `discha
 
 - Szpinda M. Morphometric study of the ductus arteriosus during human development. 2007 (fetal diameter and length regressions).
 
-The orifice constant is derived in [Orifice](./Orifice.md). The Bischoff calibration is in [BischoffLtrPdaReference](./BischoffLtrPdaReference.md).
+The orifice constant is derived in [Orifice](./Orifice.md).

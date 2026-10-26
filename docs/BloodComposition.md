@@ -81,7 +81,7 @@ equals the compartment's `to2`. It is bracketed at the last pO2 ± 10 mmHg; if t
 
 **Order and lag.** The acid-base solve runs first with the previous SO2 (Haldane); then the O2 solve uses the new pH and pCO2 (Bohr). The O2↔CO2 coupling therefore lags by one call and converges at steady state.
 
-## Behaviour (bench test, term_neonate composition, Hb 10 mmol/L)
+## Behaviour (bench test, term_neonate_72h composition, Hb 10 mmol/L)
 
 | Change | Result |
 |---|---|

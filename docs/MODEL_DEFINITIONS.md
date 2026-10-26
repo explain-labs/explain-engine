@@ -4,26 +4,18 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
-> **Since 2026-10-16 only `term_neonate` is maintained**, joined on 2026-10-18 by `preterm_28wk`
-> (28 wk, 1 kg, 72 h on nasal CPAP 6) and on 2026-10-19 by `preterm_25wk` (25 wk, 0.7 kg, 72 h on nasal
-> CPAP 7) and `preterm_30wk` (30 wk, 1.5 kg, 72 h on nasal CPAP 5 in room air). All three are generated
-> from `term_neonate` by `scripts/_make_preterm_validated.mjs --profile 28|25|30` (lever profiles in
-> `scripts/_preterm_profiles.mjs`) and validated against [Preterm28wkReference](./Preterm28wkReference.md),
-> [Preterm25wkReference](./Preterm25wkReference.md) and [Preterm30wkReference](./Preterm30wkReference.md).
-> On 2026-10-19 the fetus `fetus_30wk` (30 wk, 1.5 kg, in utero, not in labour) was rebuilt the same way, from
-> `term_neonate` by `scripts/_make_fetus_validated.mjs --profile 30` (levers in `scripts/_fetal_profiles.mjs`),
-> and validated against [Fetus30wkReference](./Fetus30wkReference.md); it replaces the archived version. The term
-> fetus `fetus_term` (40 wk, 3.545 kg) followed the same day (`--profile 40`, [TermFetusReference](./TermFetusReference.md)), and the 25-week fetus
-> `fetus_25wk` (0.7 kg) on 2026-10-20 (`--profile 25`, [Fetus25wkReference](./Fetus25wkReference.md)).
-> On 2026-10-22 `bischoff_no_pda` (the no-PDA group of Bischoff et al. 2021: 25.5 wk, 0.764 kg, 72 h, room air,
-> duct closed) joined as a further `_make_preterm_validated.mjs` profile (`--profile bischoff_no_pda`), validated
-> against [BischoffNoPdaReference](./BischoffNoPdaReference.md).
-> The same day `bischoff_ltr_pda` (the left-to-right PDA group: 25.8 wk, 0.72 kg, 72 h, FiO₂ 0.26, unrestrictive
-> PDA 2.1 mm) followed as `--profile bischoff_ltr_pda`, validated against [BischoffLtrPdaReference](./BischoffLtrPdaReference.md).
+> **Only the term neonate is shipped** (since 2026-10-25). The 72 h baby was `term_neonate` until 2026-10-26; `Model.load` and `build_patient.mjs` still accept that name (`helpers/ScenarioAliases.js`). `term_neonate_72h` is the literature-validated healthy term
+> neonate at 72 h ([TermNeonateReference](./TermNeonateReference.md)) and the root every other patient is
+> built from. `term_neonate_1h` is the same baby 1 h after a vaginal birth with delayed cord clamping (open
+> bidirectional duct, near-systemic pulmonary pressure, high output), `term_neonate_12h` the same baby at
+> 12 h (closing left-to-right duct, PAP 41) and `term_neonate_24h` at 24 h (small restrictive duct, PAP 34),
+> all generated from it by `scripts/_make_term_transition.mjs --age 1|12|24` ([TermTransitionReference](./TermTransitionReference.md)). The preterm scenarios (`preterm_25wk`, `preterm_28wk`, `preterm_30wk`, 2026-10-18/19), the
+> fetal scenarios (`fetus_25wk`, `fetus_30wk`, `fetus_term`, 2026-10-19/20) and the three Bischoff 2021
+> scenarios (2026-10-22/23) were removed on 2026-10-25, during the re-validation, together with their
+> generators (`_make_preterm_validated.mjs`, `_make_fetus_validated.mjs`), lever profiles, reference pages and
+> probe targets: term is finished first, then they are rebuilt from scratch. Git history holds them.
 > The frozen set that the P1 companion and the ToF lesson used (`bischoff_cohort`, `p1_baseline`,
-> `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20: the P1
-> experiments are to be re-run on the current engine, and the ToF lesson is offline until a ToF
-> scenario is rebuilt. Everything else
+> `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20. Everything else
 > is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
 > the fixed term baby.
 >
@@ -80,7 +72,7 @@ This is the object the engine builds from. `build()` copies every key **except `
 
 ## `models` entry shape
 
-`models` is a map keyed by instance name. Each entry is one model instance. The reference `term_neonate.json` has 68 top-level entries (1 each of the high-level systems — `Heart`, `Breathing`, `Ans`, `Circulation`, `Respiration`, `Blood`, `Gas`, `Metabolism`, `Pda`, `Shunts`, devices, …) plus 43 `Resistor` entries wiring compartments together. Composite models (e.g. `Circulation`) carry their own sub-network under `components`.
+`models` is a map keyed by instance name. Each entry is one model instance. The reference `term_neonate_72h.json` has 68 top-level entries (1 each of the high-level systems — `Heart`, `Breathing`, `Ans`, `Circulation`, `Respiration`, `Blood`, `Gas`, `Metabolism`, `Pda`, `Shunts`, devices, …) plus 43 `Resistor` entries wiring compartments together. Composite models (e.g. `Circulation`) carry their own sub-network under `components`.
 
 ### Envelope keys (every entry)
 
@@ -109,7 +101,7 @@ Core physics params (`el_base`, `u_vol`, `el_k`, `r_for`, `r_back`, `r_k`, …) 
 
 This is the most important thing to understand about the format. A `models` entry is **not** a clean config block — it is a serialized dump of the live object, including computed outputs: `*_eff` effective values, `vol`, `pres`/`pres_in`, `flow`/`flow_forward`/`flow_backward`, and the full blood composition (`to2`, `tco2`, `ph`, `pco2`, `po2`, `so2`, `hco3`, `be`, `solutes`, `drugs`, `temp`, `viscosity`). `init_model` re-seeds these computed fields straight from the entry, which is why `model_time_total` is non-zero and a loaded scenario **resumes mid-run** at a settled steady state rather than starting from a transient. Authoring a scenario by hand means setting these consistently (or accepting a startup transient); the normal workflow is to let the engine settle, then save the snapshot.
 
-### Example — a `Resistor` entry (verbatim from `term_neonate.json`)
+### Example — a `Resistor` entry (verbatim from `term_neonate_72h.json`)
 
 ```json
 {
@@ -145,7 +137,7 @@ This is the most important thing to understand about the format. A `models` entr
 
 ### Example — a blood compartment (abbreviated, `Circulation.components.AA`)
 
-In `term_neonate.json` the blood compartments are `BloodVessel` (a `BloodCapacitance` subclass that adds resistance/flow) living inside `Circulation.components`; a standalone `BloodCapacitance` has the same capacitance + composition shape minus the resistor fields. Abbreviated:
+In `term_neonate_72h.json` the blood compartments are `BloodVessel` (a `BloodCapacitance` subclass that adds resistance/flow) living inside `Circulation.components`; a standalone `BloodCapacitance` has the same capacitance + composition shape minus the resistor fields. Abbreviated:
 
 ```json
 {
@@ -193,7 +185,7 @@ The load → build path, in brief (full step-by-step in [ARCHITECTURE](./ARCHITE
 
 ## `scaler_config`
 
-`scaler_config` is engine-consumed, but only via `ModelScaler` — it is never read by `build()` itself beyond being copied onto the live `model`. Its shape is `group → { param → [componentNames] }` (or, for the container groups, `group → [componentNames]`). The group keys present in `term_neonate.json`:
+`scaler_config` is engine-consumed, but only via `ModelScaler` — it is never read by `build()` itself beyond being copied onto the live `model`. Its shape is `group → { param → [componentNames] }` (or, for the container groups, `group → [componentNames]`). The group keys present in `term_neonate_72h.json`:
 
 ```
 blood, blood_pulmonary, blood_systemic,
@@ -206,9 +198,9 @@ Each group lists the component names that a given `scale_*` method touches, and 
 
 ## `configuration` and events
 
-`configuration` is **UI/store-only state** — the engine never reads it in `build()`. In `term_neonate.json` it holds `diagram_speed`, `diagram_scale`, `chart_hires`, `default_tabs`, `tabs`, `presets`, `monitors`, `controllers`.
+`configuration` is **UI/store-only state** — the engine never reads it in `build()`. In `term_neonate_72h.json` it holds `diagram_speed`, `diagram_scale`, `chart_hires`, `default_tabs`, `tabs`, `presets`, `monitors`, `controllers`.
 
-It may also carry an optional `configuration.events` array (absent in `term_neonate.json`). Events are named, reusable bundles of timed property changes. They reach the engine **only** indirectly: the events store mirrors `configuration.events` in memory and, when an event fires, pushes each change through `Model.setPropValue` / `callModelFunction`, which the engine's [TaskScheduler](./TaskScheduler.md) applies. The shapes (explain-ui's `src/stores/events.ts`):
+It may also carry an optional `configuration.events` array (absent in `term_neonate_72h.json`). Events are named, reusable bundles of timed property changes. They reach the engine **only** indirectly: the events store mirrors `configuration.events` in memory and, when an event fires, pushes each change through `Model.setPropValue` / `callModelFunction`, which the engine's [TaskScheduler](./TaskScheduler.md) applies. The shapes (explain-ui's `src/stores/events.ts`):
 
 ```ts
 interface ScheduledEvent {
@@ -238,7 +230,7 @@ Both are `{ settings, components }` objects. `settings` holds canvas-level optio
 A flat JSON array of scenario filename stems, e.g.:
 
 ```json
-["fetus_25wk", "preterm_25wk", "preterm_28wk", "term_neonate", "..."]
+["fetus_25wk", "preterm_25wk", "preterm_28wk", "term_neonate_72h", "..."]
 ```
 
 Each entry `X` maps to `model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in consuming apps. (In explain-ui, `sync-scenarios.mjs` rebuilds its served `index.json` as the union of the canonical set and any local snapshots.)

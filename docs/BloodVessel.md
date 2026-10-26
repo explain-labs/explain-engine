@@ -150,7 +150,7 @@ The vessel's `r_for_eff` doesn't show these.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Circulation.components.KID_ART` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Circulation.components.KID_ART` (trimmed to the config props):
 
 ```json
 {
@@ -173,7 +173,7 @@ From `term_neonate.json`, `models.Circulation.components.KID_ART` (trimmed to th
 
 ## Usage in the scenarios
 
-Term_neonate has 39 vessels (the same layout in all 10 scenarios):
+term_neonate_72h has 39 vessels:
 
 | Bed | Vessels | α | `ans_sens` | `u_vol_ans_sens` |
 |---|---|---|---|---|

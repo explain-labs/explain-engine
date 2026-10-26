@@ -82,21 +82,8 @@ export class Blood extends BaseModelClass {
       }
     }
 
-    // the scenario's resistances are calibrated at the blood it was built with: take the reference
-    // viscosity from the volume-weighted Hb of the circulating blood (falls back to solutes.hemoglobin)
-    let hb_vol = 0.0;
-    let vol = 0.0;
-    this._blood_components.forEach((model) => {
-      if (model.is_enabled && model.vol > 0.0 && model.solutes["hemoglobin"] !== undefined) {
-        hb_vol += model.solutes["hemoglobin"] * model.vol;
-        vol += model.vol;
-      }
-    });
-    this.viscosity_ref = this.calc_viscosity(vol > 0.0 ? hb_vol / vol : this.solutes["hemoglobin"]);
-    this.viscosity = this.viscosity_ref;
-    this._blood_components.forEach((model) => {
-      model.viscosity_ref = this.viscosity_ref;
-    });
+    // the scenario's resistances are calibrated at the blood it was built with
+    this.calibrate_viscosity_ref();
 
         // get the components where we measure the bloodgases
     this._ascending_aorta = this._model_engine.models["AA"];
@@ -210,6 +197,26 @@ export class Blood extends BaseModelClass {
     });
     const t_mean = c_blood > 0.0 ? ct / c_blood : this.temp;
     return { c_blood, t_mean };
+  }
+
+  // take the reference viscosity, at which the vessel resistances are calibrated, from the
+  // volume-weighted Hb of the circulating blood (falls back to solutes.hemoglobin). init_model does this
+  // on load; a tool that changes the Hb of a scenario it will save (the patient builder, the scenario
+  // generators) calls it after the change, so it calibrates the resistances the saved scenario loads with.
+  calibrate_viscosity_ref() {
+    let hb_vol = 0.0;
+    let vol = 0.0;
+    this._blood_components.forEach((model) => {
+      if (model.is_enabled && model.vol > 0.0 && model.solutes["hemoglobin"] !== undefined) {
+        hb_vol += model.solutes["hemoglobin"] * model.vol;
+        vol += model.vol;
+      }
+    });
+    this.viscosity_ref = this.calc_viscosity(vol > 0.0 ? hb_vol / vol : this.solutes["hemoglobin"]);
+    this.viscosity = this.viscosity_ref;
+    this._blood_components.forEach((model) => {
+      model.viscosity_ref = this.viscosity_ref;
+    });
   }
 
   // blood viscosity (cP) from the haemoglobin concentration (mmol/L)

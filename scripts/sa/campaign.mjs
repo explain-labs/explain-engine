@@ -6,10 +6,10 @@
 //   node scripts/sa/campaign.mjs --quick    # tiny sizes, plumbing only
 //
 // Stages (per the approved plan):
-//   Tier 0  OAT (reduced)     at term_neonate, pphn, cdh_severe, dtga, hlhs   (cheap)
-//   Tier 1  Morris (expanded) at term_neonate, pphn, cdh_severe               (screening)
-//   Tier 2  Sobol (reduced)   at term_neonate(N=512), pphn(N=256), cdh_severe(N=256)
-//   Tier 3  PRCC (reduced)    at term_neonate, pphn, cdh_severe               (monotone cross-check)
+//   Tier 0  OAT (reduced)     at term_neonate_72h, pphn, cdh_severe, dtga, hlhs   (cheap)
+//   Tier 1  Morris (expanded) at term_neonate_72h, pphn, cdh_severe               (screening)
+//   Tier 2  Sobol (reduced)   at term_neonate_72h(N=512), pphn(N=256), cdh_severe(N=256)
+//   Tier 3  PRCC (reduced)    at term_neonate_72h, pphn, cdh_severe               (monotone cross-check)
 // term/pphn/cdh_severe keep all clinical outputs interpretable; dtga/hlhs are OAT-only
 // (transposition/single-ventricle make the systemic-CO output ill-defined — documented caveat).
 
@@ -19,18 +19,18 @@ import fs from "node:fs";
 const RUN = new URL("./run_sa.mjs", import.meta.url).pathname;
 const quick = process.argv.includes("--quick");
 
-const FULL = ["term_neonate", "pphn", "cdh_severe"];
+const FULL = ["term_neonate_72h", "pphn", "cdh_severe"];
 const stages = quick ? [
-  { tier: "oat", set: "reduced", pts: ["term_neonate"] },
-  { tier: "morris", set: "reduced", pts: ["term_neonate"], extra: ["--r", "3"] },
-  { tier: "sobol", set: "reduced", pts: ["term_neonate"], extra: ["--N", "16"] },
-  { tier: "prcc", set: "reduced", pts: ["term_neonate"], extra: ["--N", "16"] },
+  { tier: "oat", set: "reduced", pts: ["term_neonate_72h"] },
+  { tier: "morris", set: "reduced", pts: ["term_neonate_72h"], extra: ["--r", "3"] },
+  { tier: "sobol", set: "reduced", pts: ["term_neonate_72h"], extra: ["--N", "16"] },
+  { tier: "prcc", set: "reduced", pts: ["term_neonate_72h"], extra: ["--N", "16"] },
 ] : [
-  { tier: "oat", set: "reduced", pts: ["term_neonate", "pphn", "cdh_severe", "dtga", "hlhs"] },
+  { tier: "oat", set: "reduced", pts: ["term_neonate_72h", "pphn", "cdh_severe", "dtga", "hlhs"] },
   { tier: "morris", set: "expanded", pts: FULL, extra: ["--r", "20"] },
   { tier: "prcc", set: "reduced", pts: FULL, extra: ["--N", "768"] },
   // Sobol last (longest); term at full N, disease states at reduced N
-  { tier: "sobol", set: "reduced", pts: ["term_neonate"], extra: ["--N", "512"] },
+  { tier: "sobol", set: "reduced", pts: ["term_neonate_72h"], extra: ["--N", "512"] },
   { tier: "sobol", set: "reduced", pts: ["pphn"], extra: ["--N", "256"] },
   { tier: "sobol", set: "reduced", pts: ["cdh_severe"], extra: ["--N", "256"] },
 ];

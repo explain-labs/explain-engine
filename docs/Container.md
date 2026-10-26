@@ -114,7 +114,7 @@ The only model that writes a factor is `Heart`: its `pc_el_factor` (pericardial 
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Heart.components.PERICARDIUM` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Heart.components.PERICARDIUM` (trimmed to the config props):
 
 ```json
 {
@@ -131,7 +131,7 @@ From `term_neonate.json`, `models.Heart.components.PERICARDIUM` (trimmed to the 
 
 ## Usage in the scenarios
 
-All 10 shipped scenarios have the same two containers:
+term_neonate_72h has two containers:
 
 | Instance | Owner | Contains | Role |
 |---|---|---|---|

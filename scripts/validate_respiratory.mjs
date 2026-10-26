@@ -24,7 +24,8 @@
 //
 // Usage:
 //   node scripts/validate_respiratory.mjs [scenario ...] [--json] [--quick] [--only case,case]
-//   (default scenarios: preterm_28wk term_neonate, run in parallel child processes; adult_female is archived)
+//   (default scenarios: term_neonate_72h, term_neonate_1h, term_neonate_12h, term_neonate_24h. The preterm and fetal scenarios were removed on 2026-10-25 to be rebuilt;
+//   until then the preterm-class checks, HFOV among them, do not run. adult_female is archived)
 // Exit code 1 when a check fails that is not in KNOWN_FAILURES.
 
 import fs from "node:fs";
@@ -39,7 +40,7 @@ const QUICK = flag("--quick");
 const ONLY = optStr("--only")?.split(",");
 const CHILD = optStr("--child");
 const scenarios = argv.filter((a, i) => !a.startsWith("-") && !(argv[i - 1] ?? "").startsWith("--"));
-const DEFAULT_SCENARIOS = ["preterm_28wk", "term_neonate"];
+const DEFAULT_SCENARIOS = ["term_neonate_72h", "term_neonate_1h", "term_neonate_12h", "term_neonate_24h"];
 
 const MMHG_TO_CMH2O = 1.35951;
 const SETTLE = QUICK ? 60 : 120;   // s after a change before measuring

@@ -1,4 +1,4 @@
-// One-off repair: give term_neonate a physiological anatomical dead space.
+// One-off repair: give term_neonate_72h a physiological anatomical dead space.
 //
 // The conducting airways (DS) held 5.1 mL = 1.44 mL/kg; infants and children have ~2.2 mL/kg
 // (Numa & Newth 1996). A larger dead space at the same tidal volume would raise pCO2, so the breathing
@@ -9,14 +9,14 @@
 //     iterated with the chemoreflex live.
 // Only those three fields are patched.
 //
-//   node scripts/_fix_dead_space.mjs [scenario=term_neonate] [--ds 2.2] [--write]
+//   node scripts/_fix_dead_space.mjs [scenario=term_neonate_72h] [--ds 2.2] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a, i) => !a.startsWith("--") && argv[i - 1] !== "--ds") ?? "term_neonate";
+const name = argv.find((a, i) => !a.startsWith("--") && argv[i - 1] !== "--ds") ?? "term_neonate_72h";
 const DS_ML_KG = argv.includes("--ds") ? Number(argv[argv.indexOf("--ds") + 1]) : 2.2;
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
