@@ -108,6 +108,31 @@ const PROFILES = {
     BR_MAP_INIT: 56, CR_PCO2_INIT: 35, CR_PH_INIT: 7.36,
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
+  24: {
+    description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth with delayed cord clamping (~1 min): " +
+      "small closing left-to-right duct, pulmonary pressure halfway down, output still above the 72 h level, haematocrit 57 %; room air, dressed",
+    // duct: 1.89 mm at the pulmonary end (Kang 2016, 24 h; closed in 38 %), left-to-right; the constricted
+    // pulmonary end as at 12 h
+    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.378, PDA_CD: 0.3,
+    // pulmonary pressure halfway between 12 h and 72 h (Kang 2016: mean 34, systolic 43.8)
+    PVR: 1.3,
+    RV_DELAY: 0, PA_EL: 1,
+    // output 258 (Agata 1991/1994: 245 +/- 56, 272 +/- 48), BP 71.3/41.2 (51.2) (Taiwo 2022), HR 121
+    SVR: 0.75, HEART_EL_MAX: 1.35, HR_REF: 1.025,
+    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
+    // GFR still the day-1 value (Smeets 2022)
+    KF: 0.8,
+    // blood as at 12 h: Hct 57 %, ~77 mL/kg
+    BLOOD_VOLUME: 77 / 85, HCT: 0.57,
+    // gases and metabolites (textbook, C): pH 7.37, pCO2 35, BE ~-3.5; lactate 1.8 (GLOW, interpolated),
+    // glucose 3.3 (GLOW plateau)
+    LACT: 1.8, UMA_DELTA: 0.9, MV_REF: 1.12, GLUCOSE: 3.3,
+    // the last lung liquid: FRC 24.9 at 24 h (Lee 1999)
+    LUNG_U_VOL: 0.96, LUNG_EL: 1.02,
+    // the baroreflex senses the time-averaged arch pressure: a clinical MAP of 51.2 is a time-averaged ~57
+    BR_MAP_INIT: 57, CR_PCO2_INIT: 35, CR_PH_INIT: 7.37,
+    ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
+  },
 };
 const P = PROFILES[AGE] && { ...PROFILES[AGE], ...SET };
 if (!P) { out(`usage: _make_term_transition.mjs --age <${Object.keys(PROFILES).join("|")}> [--seconds S] [--write]`); process.exit(1); }
