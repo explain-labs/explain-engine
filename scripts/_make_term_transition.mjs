@@ -89,7 +89,7 @@ const PROFILES = {
     RV_DELAY: 0, PA_EL: 1,
     // output past the surge but still high (Agata: ~290 at 12 h vs 245-272 at 24 h); BP 69.8/40.4 (50.2)
     // (Taiwo 2022); HR 121 (Tveiten 2021)
-    SVR: 0.65, HEART_EL_MAX: 1.35, HR_REF: 1.025,
+    SVR: 0.65, HEART_EL_MAX: 1.5, HR_REF: 1.025,
     SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
     // GFR still ~20 on day 1 (Smeets 2022)
     KF: 0.8,
@@ -99,7 +99,9 @@ const PROFILES = {
     LACT: 2.0, UMA_DELTA: 1.6, MV_REF: 1.11, GLUCOSE: 3.2,
     // lung liquid mostly cleared: FRC ~24 (Lee 1999, between 4-6 h and 24 h)
     LUNG_U_VOL: 0.92, LUNG_EL: 1.05,
-    BR_MAP_INIT: 50, CR_PCO2_INIT: 35, CR_PH_INIT: 7.36,
+    // the baroreflex senses the time-averaged arch pressure: a clinical MAP (dia + PP/3) of 50 is a
+    // time-averaged ~56 with this waveform (form factor ~0.5)
+    BR_MAP_INIT: 56, CR_PCO2_INIT: 35, CR_PH_INIT: 7.36,
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
 };
