@@ -80,11 +80,13 @@ const PROFILES = {
       "closing left-to-right duct, pulmonary pressure falling, output still high, haematocrit 57 %; room air, dressed",
     // duct: 2.47 mm at the pulmonary end (Kang 2016, 12 h), left-to-right only in 88 %. It constricts from
     // the pulmonary end, so that end is a sharp, irregular narrowing rather than a smooth nozzle:
-    // discharge coefficient 0.45 (0.9 passes ~52 mL/kg/min L->R at 2.47 mm, above the 5-40 estimate)
-    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.494, PDA_CD: 0.45,
+    // discharge coefficient 0.3 (0.9 passes ~52 mL/kg/min L->R at 2.47 mm; 0.3 with PVR x1.5 gives ~31, in
+    // the 5-40 estimate, with a 2.0 m/s left-to-right jet)
+    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.494, PDA_CD: 0.3,
     // pulmonary pressure falling (Kang 2016: mean 41, systolic 52.5); a narrower duct passes less of the
-    // aortic pressure, so PVR stays above the 72 h value (x1.6 left a late-diastolic R->L flow, 13 %)
-    PVR: 1.4,
+    // aortic pressure, so PVR stays above the 72 h value (x1.6 with the open 0.9 duct left a late-diastolic
+    // R->L flow, 13 %; with the tighter duct x1.5 holds PAP at 41)
+    PVR: 1.5,
     // no transitional Doppler timing: the flow is left-to-right throughout the cycle
     RV_DELAY: 0, PA_EL: 1,
     // output past the surge but still high (Agata: ~290 at 12 h vs 245-272 at 24 h); BP 69.8/40.4 (50.2)
