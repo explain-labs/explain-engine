@@ -6,8 +6,9 @@ uncomplicated **vaginal birth with delayed cord clamping (~1 min)**, breathing r
 `term_neonate` set ([TermNeonateReference](./TermNeonateReference.md)); the earlier ages describe what
 changes on the way there. Compiled 2026-10-25 from PubMed.
 
-The machine-readable sets are [`term_neonate_1h.json`](../scripts/reference/term_neonate_1h.json)
-(and, when those scenarios are built, `term_neonate_12h.json` and `term_neonate_24h.json`), in the
+The machine-readable sets are [`term_neonate_1h.json`](../scripts/reference/term_neonate_1h.json),
+[`term_neonate_12h.json`](../scripts/reference/term_neonate_12h.json) (and, when it is built,
+`term_neonate_24h.json`), in the
 same format as [`term_neonate_72h.json`](../scripts/reference/term_neonate_72h.json). Variables without
 data at an age are reference-only there (no numbers) or carry the 72 h range, marked C.
 
@@ -170,7 +171,7 @@ for 10 min. The 72 h baby (`rv_delay` 0) is unchanged.
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
 | Heart rate (bpm) | 126 (P2–P98 102–162) at 2 h | 120–122 | 120–122; 121 ± 11 | 118 | A at 2/24 h | Tveiten 2021; Agata 1991 |
-| SBP/DBP/MAP (mmHg) | 65/45/48–52 (day 1) | day 1 | day 1 | 74/46/58 | B (no hourly data) | Kent 2007; He 2011 (66/33/44 → 71/38/49, day 1 → 3) |
+| SBP/DBP/MAP (mmHg) | 65/45/48–52 (day 1); 67/37/47 at birth | **69.8/40.4/50.2** (SD 7.8/6.4/5.8) | 71.3/41.2/51.2 | 74/46/58 | B at 1 h; A at 12/24 h | Kent 2007; He 2011 (66/33/44 → 71/38/49, day 1 → 3); Taiwo 2022 (healthy term, at birth, 6, 12, 24, 36, 48 h) |
 | LV output (mL/kg/min) | **327 ± 66; 365 ± 69** | ~290 (301 at 4–8 h) | 245 ± 56; 272 ± 48 | 196 (MRI) / 258 (echo, 96 h) | A | Agata 1991, 1994 |
 | LV stroke volume (mL/kg) | 2.25 ± 0.37 | – | 2.02 ± 0.42 | 1.6 | A | Agata 1991 |
 | SVC flow (mL/kg/min) | 99 (day 1) | 99 | 99 | 77–83 | B | Lee 2009 |
@@ -186,7 +187,7 @@ for 10 min. The 72 h baby (`rv_delay` 0) is unchanged.
 | Ductal diameter (mm) | 4.60 ± 0.59 (2 h) | 2.47 ± 0.49 | 1.89 ± 0.41 | 1.20 ± 0.24 | A | Kang 2016 |
 | Duct closed | 0 % | 0 % | 38 % (Lim 1992: 20 % day 1) | 95 % (Lim: 96 % day 3) | A | Kang 2016; Lim 1992 |
 | Ductal direction | bidirectional in 100 % (2 h) | L→R only in 88 % | L→R | closed | A | Kang 2016 |
-| Ductal L→R flow (mL/kg/min) | 62 (95 % CI 43–82) shortly after birth | falling fast | small | unmeasurable by 48 h | B (n = 10) | Drayton 1987 |
+| Ductal L→R flow (mL/kg/min) | 62 (95 % CI 43–82) shortly after birth | falling fast; ~5–40 (derived from the diameter) | small | unmeasurable by 48 h | B (n = 10) | Drayton 1987 |
 | Foramen ovale | shunt in 92 % at ~40 min, mostly L→R, small diastolic R→L in 64 % | – | patent in 22/37 | shunt in 47 % (days 4–5), R→L in 19 % | A | Hiraishi 1991; Lim 1989 (patency) |
 
 ## Lungs and breathing
@@ -204,11 +205,11 @@ for 10 min. The 72 h baby (`rv_delay` 0) is unchanged.
 
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
-| pH / pCO2 / BE | 7.32 / 36 / −5 | – | – | 7.395 / 38.7 / −4..2 | C at 1 h | textbook; cord UA P10 pH 7.21, BD 5.9 (Dudenhausen 1997) |
+| pH / pCO2 / BE | 7.32 / 36 / −5 | 7.36 / 35 / −4 | – | 7.395 / 38.7 / −4..2 | C at 1 and 12 h | textbook; cord UA P10 pH 7.21, BD 5.9 (Dudenhausen 1997) |
 | Lactate (mmol/L) | 2.2 (1.1–6.2), 0–12 h | 2.2 | – | 1.4 (0.8–3.3) | A | GLOW 2021 |
-| Glucose (mmol/L) | ~3.3; 1 h not lower than later | rising | 3.3 ± 0.6 plateau | 3.3–4.6 (day 4: 4.6) | A/B | GLOW 2020; Hoseth 2000 |
+| Glucose (mmol/L) | ~3.3; 1 h not lower than later | ~3.2, rising to the plateau by 18 h | 3.3 ± 0.6 plateau | 3.3–4.6 (day 4: 4.6) | A/B | GLOW 2020; Hoseth 2000 |
 | VO2 (mL/kg/min) | 7.0 (decision) | 7.0 | 7.0 | 6.3–7.0 | B | Hill & Robinson 1968 (~5 < 12 h, LBW) |
-| Temperature (°C) | 36.8 (skin-to-skin rewarms 36.3 → 37.0 in 1 h) | – | rectal lower on day 1 than day 2 | 37.0 | B | Karlsson 1996; Fransson 2005 |
+| Temperature (°C) | 36.8 (skin-to-skin rewarms 36.3 → 37.0 in 1 h) | 36.9 | rectal lower on day 1 than day 2 | 37.0 | B | Karlsson 1996; Fransson 2005 |
 | Catecholamines | raised plateau to 3 h | adult resting level | resting | resting | B (no numbers) | Eliot 1980 |
 
 ## Blood and kidneys
@@ -216,7 +217,7 @@ for 10 min. The 72 h baby (`rv_delay` 0) is unchanged.
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
 | Haematocrit (%) | ~55 (1-min DCC; 57.0 at 6 h) | ~57 | 56–59 (3-min DCC) | 49.5 (mixed clamping) | A/B | Ceriani Cernadas 2006; Linderkamp 1992; Nelle 1993; Jopling 2009 |
-| Blood volume (mL/kg) | ~80 (75–85) | – | – | 80–90 | B (derived) at 1 h | Linderkamp 1992; Nelle 1995 |
+| Blood volume (mL/kg) | ~80 (75–85) | ~77 (red cell mass 44 at Hct 57) | – | 80–90 | B (derived) at 1 h | Linderkamp 1992; Nelle 1995 |
 | First void | none yet (42 % by 6 h) | 76 % voided | 95 % | – | A | Ogala 1986 |
 | Urine production (mL/kg/h) | low before the diuresis (0.5–1.5) | diuresis starts (7–22 h) | – | 1–3 (textbook) | C | Hogg 1977; Lorenz 1995 |
 | GFR (mL/min/1.73 m²) | 19.6 (day 1) | – | 19.6 (day 1) | ~30 (day 3) | A/B | Smeets 2022 |
@@ -227,6 +228,7 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 
 - Agata Y 1991, J Pediatr 119:441 ([doi](https://doi.org/10.1016/s0022-3476(05)82060-8)); Agata Y 1994, Pediatr Res 36:805 ([doi](https://doi.org/10.1203/00006450-199412000-00022))
 - Tveiten L 2021, Arch Dis Child Fetal Neonatal Ed ([doi](https://doi.org/10.1136/archdischild-2020-320761))
+- Taiwo AB 2022, Glob Pediatr Health 9:2333794X221099263, blood pressure at birth, 6, 12, 24, 36 and 48 h in 123 healthy term controls ([doi](https://doi.org/10.1177/2333794X221099263))
 - Kent AL 2007, Pediatr Nephrol 22:1335 ([doi](https://doi.org/10.1007/s00467-007-0480-8)); He 2011, Chin Med J 124:2284 (PMID 21933558)
 - Kang C 2016, Medicine 95:e2599 ([doi](https://doi.org/10.1097/MD.0000000000002599)); Lim MK 1992, Arch Dis Child ([doi](https://doi.org/10.1136/adc.67.10_spec_no.1217))
 - Drayton MR 1987, Arch Dis Child 62:1030 ([doi](https://doi.org/10.1136/adc.62.10.1030)); Skinner JR 1991, Arch Dis Child 66:386 ([doi](https://doi.org/10.1136/adc.66.4_spec_no.386))
@@ -249,7 +251,7 @@ All found through PubMed; full citations, DOIs and PMIDs are in the JSON sets.
 ## Gaps
 
 - Blood gases (pH, pCO2, pO2, BE) at 1, 12 and 24 h: the classic series need full text.
-- Hourly blood pressure in the first day (Kitterman 1969, Versmold 1981: no abstracts).
+- Hourly blood pressure in the first hours (Kitterman 1969, Versmold 1981: no abstracts); Taiwo 2022 gives 6-hourly values from birth.
 - Respiratory rate, tidal volume and compliance values in the first hours (direction only).
 - Plasma catecholamine levels by hour (Eliot 1980 full text).
 - Measured blood volume after 1-min clamping (Yao 1969 not in PubMed); the 1 h value is derived.
