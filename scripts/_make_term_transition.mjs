@@ -111,9 +111,9 @@ const PROFILES = {
   24: {
     description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth with delayed cord clamping (~1 min): " +
       "small closing left-to-right duct, pulmonary pressure halfway down, output still above the 72 h level, haematocrit 57 %; room air, dressed",
-    // duct: 1.89 mm at the pulmonary end (Kang 2016, 24 h; closed in 38 %), left-to-right; the constricted
-    // pulmonary end as at 12 h
-    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.378, PDA_CD: 0.3,
+    // duct: 1.89 mm at the pulmonary end (Kang 2016, 24 h; closed in 38 %), left-to-right; the pulmonary
+    // end constricted a little further than at 12 h (Cd 0.3 gave 26.6 mL/kg/min, 0.25 gives 23)
+    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.378, PDA_CD: 0.25,
     // pulmonary pressure halfway between 12 h and 72 h (Kang 2016: mean 34, systolic 43.8)
     PVR: 1.3,
     RV_DELAY: 0, PA_EL: 1,

@@ -89,6 +89,14 @@ export const RANGES = {
     spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
     ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
   },
+  // the healthy term neonate at ~24 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_24h.json); pap_d and etco2 have no 24 h range
+  neonate_24h: {
+    hr: [99, 143], rr: [32, 57], sys: [58, 84], dia: [29, 53], map: [41, 61],
+    pap_s: [28, 60], pap_m: [24, 44], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [81, 87], temp: [36.5, 37.5],
+    ph: [7.32, 7.42], pco2: [30, 41], po2: [60, 90], hco3: [18, 23], be: [-5.5, -1.5],
+  },
   preterm_36: {
     hr: [115, 170], rr: [38, 62], sys: [48, 80], dia: [27, 52], map: [38, 54],
     pap_s: [20, 43], pap_d: [6, 21], pap_m: [13, 31], cvp: [1, 8],
@@ -166,7 +174,8 @@ export const RANGES = {
 
 // pick a normal-range profile from body weight (term neonate ≈ 3.5 kg) unless
 // overridden; gestational age narrows preterm babies onto the matching table, and a term baby
-// younger than 6 h (ageHours) gets the transitional neonate_1h table, 6 to under 18 h neonate_12h.
+// younger than 6 h (ageHours) gets the transitional neonate_1h table, 6 to under 18 h neonate_12h and
+// 18 to under 48 h neonate_24h.
 // Is this a fetus in utero? Verified unambiguous across the shipped scenario library: only
 // fetus_term / fetus_*wk have the placenta running with the cord unclamped; every neonatal and
 // adult scenario has placenta_running=false, umb_clamped=true. Takes either a live model or a
@@ -196,6 +205,7 @@ export function selectProfile({ weight, gestational_age, profile, fetal = false,
   if (typeof weight === "number" && weight < 10) {
     if (typeof ageHours === "number" && ageHours < 6) return "neonate_1h";
     if (typeof ageHours === "number" && ageHours < 18) return "neonate_12h";
+    if (typeof ageHours === "number" && ageHours < 48) return "neonate_24h";
     return "neonate";
   }
   return "adult";

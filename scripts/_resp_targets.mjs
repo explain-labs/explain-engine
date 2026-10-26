@@ -18,6 +18,7 @@ export const SCENARIO_CLASS = {
   term_neonate: "term",
   term_neonate_1h: "term_1h",
   term_neonate_12h: "term_12h",
+  term_neonate_24h: "term_24h",
   adult_female: "adult",
 };
 
@@ -75,6 +76,18 @@ export const TARGETS = {
     spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
     ppl_swing: [2, 8],       // [Bhutani]
     cstat_kg: [0.85, 2.0],   // as at 1 h: Crs lower on day 0 than from day 1 (Lodrup Carlsen 1993)
+    co2_gain: [0.10, 0.40],  // [Rigatto]
+  },
+  // the term baby at 24 h: acidosis corrected, lung liquid cleared (compliance higher from day 1)
+  term_24h: {
+    rr: [30, 60],            // [Rennie]
+    vt_kg: [4.5, 7.5],       // [Polgar]
+    mv_kg: [0.15, 0.35],     // [Polgar]
+    paco2: [30, 41],         // 24 h reference (textbook, C)
+    ph: [7.32, 7.42],        // 24 h reference: BE ~-3.5 (textbook, C)
+    spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
+    ppl_swing: [2, 8],       // [Bhutani]
+    cstat_kg: [1.0, 2.0],    // the term range [Polgar]
     co2_gain: [0.10, 0.40],  // [Rigatto]
   },
   adult: {

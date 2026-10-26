@@ -111,8 +111,8 @@ for (let i = 0; i < N; i++) {
 for (const k in acc) acc[k] /= N;
 
 // normal resting ranges by profile; [low, high]. Auto-selected from body weight (term neonate ≈ 3.5 kg)
-// (neonate_1h for a term baby under 6 h old, neonate_12h from 6 to under 18 h) unless overridden with
-// --profile adult|neonate|neonate_1h|neonate_12h.
+// (neonate_1h for a term baby under 6 h old, neonate_12h from 6 to under 18 h, neonate_24h from 18 to
+// under 48 h) unless overridden with --profile adult|neonate|neonate_1h|neonate_12h|neonate_24h.
 const RANGES = {
   adult: {
     hr: [60, 100], rr: [12, 20], sys: [90, 130], dia: [60, 85], map: [70, 100],
@@ -145,6 +145,14 @@ const RANGES = {
     pap_s: [34, 71], pap_m: [32, 50], cvp: [-3, 4],
     spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
     ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
+  },
+  // the healthy term neonate at ~24 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_24h.json); pap_d and etco2 have no 24 h range
+  neonate_24h: {
+    hr: [99, 143], rr: [32, 57], sys: [58, 84], dia: [29, 53], map: [41, 61],
+    pap_s: [28, 60], pap_m: [24, 44], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [81, 87], temp: [36.5, 37.5],
+    ph: [7.32, 7.42], pco2: [30, 41], po2: [60, 90], hco3: [18, 23], be: [-5.5, -1.5],
   },
   // preterm neonates with RDS, first days of life. MAP target ~ GA in mmHg; faster HR/RR, lower
   // SpO2/PO2 and mild respiratory acidosis are expected with surfactant deficiency. Ranges loosen
@@ -199,7 +207,7 @@ const RANGES = {
 };
 const profileArg = (() => { const i = argv.indexOf("--profile"); return i >= 0 ? argv[i + 1] : null; })();
 const ageHours = (model.age ?? 1) * 24 * 365;
-const profile = profileArg || (weight < 10 ? (ageHours < 6 ? "neonate_1h" : ageHours < 18 ? "neonate_12h" : "neonate") : "adult");
+const profile = profileArg || (weight < 10 ? (ageHours < 6 ? "neonate_1h" : ageHours < 18 ? "neonate_12h" : ageHours < 48 ? "neonate_24h" : "neonate") : "adult");
 const ranges = RANGES[profile] || RANGES.adult;
 const flagOf = (k, v) => { const r = ranges[k]; if (!r || typeof v !== "number") return ""; return v < r[0] ? " LOW" : v > r[1] ? " HIGH" : " ok"; };
 const bsa = Math.sqrt((heightCm * weight) / 3600); // Mosteller
