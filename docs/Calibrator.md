@@ -43,7 +43,7 @@ The live levers built by `buildLiveControllers` deliberately use the persistent 
 
 | Target | Lever | Notes |
 |---|---|---|
-| `map` | `r_factor_ps` on every resistor in `scaler_config.blood_systemic.resistance` (delta-accumulating), plus `BR_MAP.set_value` = target | systemic resistance; ↑ raises MAP. A delta on the same `r_factor_ps` Circulation's channels (user SVR, Drugs, Hormones) add to, over the whole systemic set rather than only Circulation's arterioles (which alone have weak MAP authority). The baroreflex set-point is moved to the target so the ANS defends the new operating point. |
+| `map` | `r_factor_ps` on every resistor in `scaler_config.blood_systemic.resistance` (delta-accumulating), plus `BR_MAP.set_value` = the target's time-averaged equivalent | systemic resistance; ↑ raises MAP. A delta on the same `r_factor_ps` Circulation's channels (user SVR, Drugs, Hormones) add to, over the whole systemic set rather than only Circulation's arterioles (which alone have weak MAP authority). The target is the clinical mean (`abp_pre_pres_mean`, dia + pp/3); the baroreflex senses the time-averaged pressure, so its set-point is moved to the target plus the current gap `abp_pre_pres_mean_int − abp_pre_pres_mean`, and the ANS defends the new operating point. |
 | `co` | `LV.el_max_factor_ps` and `RV.el_max_factor_ps` | ventricular contractility; reads `lvo` |
 | `hr` | `Heart.heart_rate_ref` | HR reference setpoint |
 | `po2` / `spo2` | `GASEX_LL/RL.dif_o2_factor_ps`, below `DIF_O2_FLOOR` `Shunts.ips_res` | the builder's continuous oxygen lever: alveolar O2 diffusion down to ×0.1, then the intrapulmonary shunt opens in proportion, to a tenth of its value at the start of the tune; one controller, reads `po2` or `spo2_pre` |

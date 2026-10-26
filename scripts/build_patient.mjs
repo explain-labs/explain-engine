@@ -235,17 +235,15 @@ if (has("sys") || has("dia")) {
   } else {
     targets.pp = round(targets.sys - targets.dia, 2);
     derivedTargets.pp = targets.pp;
-    // Without a measured MAP the resistance lever needs a mean to aim at. The clinical estimate
-    // dia + pp/3 misses the pair: the model's MAP is the true time average, which in a small
-    // infant's waveform sits near dia + 0.46·pp, so a 45/25 target landed at 43/22. So the MAP
-    // target starts at the estimate and is re-derived every measurement from the model's own
-    // waveform, MAP = dia + k·pp with k = (MAP − dia)/pp as measured (measureAll below).
+    // Without a measured MAP the resistance lever needs a mean to aim at: the clinical mean
+    // dia + pp/3, which is also how measureVitals reports MAP, so MAP and pp together fix the pair.
+    // (The baroreflex set-point is aimed at its time-averaged equivalent, in measureAll below.)
     if (!has("map")) {
       targets.map = round(targets.dia + targets.pp / 3, 1);
       derivedTargets.map = targets.map;
       fitDiastolic = true;
     }
-    trace(`derived targets: pulse pressure ${targets.pp}${fitDiastolic ? `, MAP ${derivedTargets.map} to start (dia + pp/3), then re-derived from the model's waveform` : ""}`);
+    trace(`derived targets: pulse pressure ${targets.pp}${fitDiastolic ? `, MAP ${derivedTargets.map} (dia + pp/3)` : ""}`);
   }
 }
 
@@ -512,7 +510,8 @@ if (has("fio2")) {
   if (model.models.Ventilator?.is_enabled) notes.push("the baseline has an enabled ventilator, which supplies its own FiO2; targets.fio2 only set the ambient gas");
 }
 
-// baroreflex MAP set-point: defend the requested MAP so the ANS doesn't fight it
+// baroreflex MAP set-point: defend the requested MAP so the ANS doesn't fight it (a first guess: the
+// reflex senses the time-averaged pressure, so measureAll moves it to the target's time-averaged equivalent)
 if (has("map") && model.models.BR_MAP) { model.models.BR_MAP.set_value = targets.map; trace(`structural: baroreflex MAP set-point ${targets.map}`); }
 
 // heart-rate reference seed (also an iterated lever below if hr is targeted)
@@ -799,16 +798,20 @@ trace(`\ncalibrating "${spec.name || baseline}" (baseline ${baseline}, profile $
 const measureAll = () => {
   const v = measureVitals(model, eng.send, { window: WINDOW });
   v.pp = v.sys - v.dia; // pulse pressure, the second half of the sys/dia pair
-  // sys/dia without MAP: re-aim the MAP target (and the baroreflex set-point, which defends it) at
-  // dia + k·pp with the waveform's own k. k changes slowly with stiffness and heart rate, so the
-  // target settles within a few iterations; bounded to the physiological range of the form factor
-  if (fitDiastolic && mapController && v.pp > 1 && Number.isFinite(v.map)) {
-    const k = Math.min(0.6, Math.max(0.25, (v.map - v.dia) / v.pp));
-    const m = round(targets.dia + k * targets.pp, 2);
-    mapController.target = m;
-    mapController.tol = tolOf("map");
-    targets.map = m;
-    if (model.models.BR_MAP) model.models.BR_MAP.set_value = m;
+  // the MAP target is a clinical mean (dia + pp/3, as measureVitals reports it), but the baroreflex
+  // senses the time-averaged arch pressure: its set-point is the target's time-averaged equivalent,
+  // dia + k·pp with the waveform's own form factor k (time-averaged mean - dia) / pp. k changes slowly
+  // with stiffness and heart rate, so this settles within a few iterations; bounded to the
+  // physiological range of the form factor. With sys/dia targets the MAP target is dia + pp/3.
+  if (mapController && v.pp > 1 && Number.isFinite(v.map_int)) {
+    const k = Math.min(0.6, Math.max(0.25, (v.map_int - v.dia) / v.pp));
+    if (fitDiastolic) {
+      const m = round(targets.dia + targets.pp / 3, 2);
+      mapController.target = m;
+      mapController.tol = tolOf("map");
+      targets.map = m;
+    }
+    if (model.models.BR_MAP) model.models.BR_MAP.set_value = round(targets.map + (k - 1 / 3) * (fitDiastolic ? targets.pp : v.pp), 2);
   }
   return v;
 };

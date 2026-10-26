@@ -105,7 +105,8 @@ Published as **flat** keys under `Monitor.minmax`, reset every beat:
 | Key | Unit | Source |
 |---|---|---|
 | `<name>_pres_min`, `<name>_pres_max` | mmHg | compartment `pres` (total pressure) |
-| `<name>_pres_mean` | mmHg | **true time-averaged mean** over the beat (`Σpres / n`), not the arterial `(2·min+max)/3` estimate — that approximation badly underestimates atrial/venous means (CVP) whose a/c/v waves dip well below diastole, so an integral mean is used and is correct for all waveforms |
+| `<name>_pres_mean` | mmHg | for the arterial targets in `arterial_mean_targets` (default `abp_pre`, `abp`, `pap`): the **clinical mean** `min + (max − min)/3`, as the reference literature reports MAP and mean PAP; for all other targets the true time-averaged mean. The arterial estimate badly underestimates atrial/venous means (CVP), whose a/c/v waves dip well below diastole |
+| `<name>_pres_mean_int` | mmHg | **true time-averaged mean** over the beat (`Σpres / n`), every target. The model's central arterial waveforms have a form factor (mean − min)/(max − min) of about 0.5, so for `abp_pre` this sits ~5–7 mmHg above the clinical mean |
 | `<name>_vol_min`, `<name>_vol_max` | mL | compartment `vol` (× 1000) |
 
 Watch e.g. `Monitor.minmax.left_ventricle_pres_max`. The keys are **flat** (not a nested object)
@@ -153,6 +154,7 @@ it does not follow redistribution between the kidneys and the rest of the lower 
 | `asystole_time` | s | 6 | No beat for this long reads as asystole. |
 | `etco2_source` | – | `"DS"` | Airway gas compartment for the spontaneous end-tidal CO2. |
 | `flow_targets`, `minmax_targets`, `signal_targets` | lists | `[]` | The configurable read-outs (above). |
+| `arterial_mean_targets` | list | `["abp_pre", "abp", "pap"]` | `minmax_targets` names whose `_pres_mean` is the clinical mean, diastolic + pulse pressure / 3. |
 
 | Property | Unit | Description |
 |---|---|---|

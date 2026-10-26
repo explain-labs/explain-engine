@@ -249,8 +249,13 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
     // operating point instead of dragging MAP back toward the loaded baseline (mirrors the offline
     // builder's BR_MAP.set_value = target.map). Without this the arteriolar lever below is opposed
     // each step by the baroreflex and MAP only partly moves.
+    // The target is the clinical mean (dia + pp/3, as Monitor publishes abp_pre_pres_mean) but the
+    // reflex senses the time-averaged pressure, so it gets the target's time-averaged equivalent,
+    // shifted by the current gap between the two means.
     if (model.models.BR_MAP && typeof model.models.BR_MAP.set_value === "number") {
-      model.models.BR_MAP.set_value = targets.map;
+      const mm = model.models.Monitor?.minmax;
+      const gap = Number.isFinite(mm?.abp_pre_pres_mean_int) && Number.isFinite(mm?.abp_pre_pres_mean) ? mm.abp_pre_pres_mean_int - mm.abp_pre_pres_mean : 0;
+      model.models.BR_MAP.set_value = targets.map + gap;
     }
     // Use the SAME broad systemic-resistance vessel set the offline builder scales
     // (scaler_config.blood_systemic.resistance: the whole systemic tree, not just the four organ

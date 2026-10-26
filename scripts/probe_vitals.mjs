@@ -99,8 +99,8 @@ const add = (k, v) => { acc[k] = (acc[k] || 0) + (v ?? 0); };
 for (let i = 0; i < N; i++) {
   send("POST", "calc", SLICE);
   add("hr", M.heart_rate); add("rr", M.resp_rate);
-  add("sys", M.minmax?.abp_pre_pres_max); add("dia", M.minmax?.abp_pre_pres_min); add("map", M.minmax?.abp_pre_pres_mean);
-  add("pap_s", M.minmax?.pap_pres_max); add("pap_d", M.minmax?.pap_pres_min); add("pap_m", M.minmax?.pap_pres_mean);
+  add("sys", M.minmax?.abp_pre_pres_max); add("dia", M.minmax?.abp_pre_pres_min); add("map", M.minmax?.abp_pre_pres_mean); add("map_int", M.minmax?.abp_pre_pres_mean_int);
+  add("pap_s", M.minmax?.pap_pres_max); add("pap_d", M.minmax?.pap_pres_min); add("pap_m", M.minmax?.pap_pres_mean); add("pap_m_int", M.minmax?.pap_pres_mean_int);
   add("cvp", M.minmax?.cvp_pres_mean);
   add("spo2_pre", M.sao2_pre); add("spo2_post", M.sao2_post); add("svo2", M.svo2); // mixed-venous (PA) saturation, already in %
   add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
@@ -203,11 +203,13 @@ console.log("-- Hemodynamics --");
 console.log(line("Heart rate", "hr", "bpm"));
 console.log(line("ABP systolic", "sys", "mmHg"));
 console.log(line("ABP diastolic", "dia", "mmHg"));
-console.log(line("ABP mean", "map", "mmHg"));
+console.log(line("ABP mean (dia + PP/3)", "map", "mmHg"));
+console.log(line("ABP mean (time avg)", "map_int", "mmHg"));
 console.log(line("CVP (mean)", "cvp", "mmHg"));
 console.log(line("PAP systolic", "pap_s", "mmHg"));
 console.log(line("PAP diastolic", "pap_d", "mmHg"));
-console.log(line("PAP mean", "pap_m", "mmHg"));
+console.log(line("PAP mean (dia + PP/3)", "pap_m", "mmHg"));
+console.log(line("PAP mean (time avg)", "pap_m_int", "mmHg"));
 console.log(`${"LV output (CO)".padEnd(22)} ${String(round(acc.lvo)).padStart(8)} L/min`);
 console.log(`${"RV output".padEnd(22)} ${String(round(acc.rvo)).padStart(8)} L/min`);
 if (ci) console.log(`${"Cardiac index ~".padEnd(22)} ${String(round(ci)).padStart(8)} L/min/m2`);

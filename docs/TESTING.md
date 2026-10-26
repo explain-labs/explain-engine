@@ -78,6 +78,8 @@ A probe is a self-contained `.mjs` that boots the engine, runs a scripted physio
    for (const k in acc) acc[k] /= N;
    ```
 
+   The systemic and pulmonary arterial means (`map`, `pap_m`) are the clinical estimate diastolic + pulse pressure / 3, as in the reference literature; the Monitor publishes them that way (`Monitor.arterial_mean_targets`). The model's central arterial waveforms have a form factor (mean − diastolic) / pulse pressure of about 0.5, so their time-averaged means, reported as `map_int` and `pap_m_int`, are higher (about 5–7 mmHg systemic). CVP stays time-averaged. The builder aims the baroreflex set-point, which senses the time-averaged arch pressure, at the time-averaged equivalent of its MAP target.
+
    Reads come off the live [Monitor](./Monitor.md) (hemodynamics: `heart_rate`, `minmax.*`, `flows.*`, `sao2_*`, `etco2`, `temp`) and component models (e.g. `AA` for the arterial blood gas, `IVCI` for a mixed-venous proxy, `Pda.flow_pa` for the ductal shunt).
 6. **Perturb (optional)** — apply an insult between phases (e.g. remove a volume fraction from every blood compartment for a haemorrhage, then `calc` again and re-measure) to compare baseline vs perturbed.
 7. **Report** — print a labelled table with normal-range flags (`ok` / `LOW` / `HIGH`).

@@ -26,10 +26,12 @@ export function measureVitals(model, send, { window = 20 } = {}) {
     add("rr", M.resp_rate);
     add("sys", M.minmax?.abp_pre_pres_max);
     add("dia", M.minmax?.abp_pre_pres_min);
-    add("map", M.minmax?.abp_pre_pres_mean);
+    add("map", M.minmax?.abp_pre_pres_mean); // clinical mean, dia + pp/3 (Monitor.arterial_mean_targets)
+    add("map_int", M.minmax?.abp_pre_pres_mean_int); // true time-averaged mean over the beat
     add("pap_s", M.minmax?.pap_pres_max);
     add("pap_d", M.minmax?.pap_pres_min);
     add("pap_m", M.minmax?.pap_pres_mean);
+    add("pap_m_int", M.minmax?.pap_pres_mean_int);
     add("cvp", M.minmax?.cvp_pres_mean);
     add("spo2_pre", M.sao2_pre);
     add("spo2_post", M.sao2_post);

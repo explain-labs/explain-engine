@@ -24,6 +24,11 @@ export class Monitor extends BaseModelClass {
     // JSON-configurable per-beat min/max read-outs: a list of { name, model } where model is a
     // compartment name. Each is reported as { pres_min, pres_max, vol_min, vol_max } under minmax[name].
     this.minmax_targets = [];
+    // minmax target names whose <name>_pres_mean is the clinical arterial mean, diastolic + pulse
+    // pressure / 3, as the reference literature reports it (cuff and line MAPs are mostly calculated
+    // this way). All other targets (chambers, atria, CVP) publish the time-averaged mean, and every
+    // target also publishes it as <name>_pres_mean_int.
+    this.arterial_mean_targets = ["abp_pre", "abp", "pap"];
 
     // JSON-configurable raw-signal read-outs: a list of { name, model } where model is a
     // "ModelName.prop" dot-path. The raw value is published unprocessed every step under signals[name].
@@ -114,6 +119,7 @@ export class Monitor extends BaseModelClass {
       this.minmax[t.name + "_pres_min"] = 0.0;
       this.minmax[t.name + "_pres_max"] = 0.0;
       this.minmax[t.name + "_pres_mean"] = 0.0;
+      this.minmax[t.name + "_pres_mean_int"] = 0.0;
       this.minmax[t.name + "_vol_min"] = 0.0;
       this.minmax[t.name + "_vol_max"] = 0.0;
     });
@@ -262,10 +268,16 @@ export class Monitor extends BaseModelClass {
       if (t.pres_n > 0) {
         this.minmax[t.name + "_pres_min"] = t.pres_min;
         this.minmax[t.name + "_pres_max"] = t.pres_max;
-        // true time-averaged mean over the beat. The arterial estimate (2·min+max)/3 is only
-        // valid for arterial waveforms; it badly underestimates atrial/venous means (CVP), whose
-        // a/c/v waves dip well below the diastolic value. A real integral mean is correct for all.
-        this.minmax[t.name + "_pres_mean"] = t.pres_sum / t.pres_n;
+        // true time-averaged mean over the beat; the published mean of an arterial target is the
+        // clinical estimate (2·min+max)/3 instead. That estimate is only valid for arterial waveforms:
+        // it badly underestimates atrial/venous means (CVP), whose a/c/v waves dip well below the
+        // diastolic value. (The model's central arterial waveforms have a form factor of ~0.5, so
+        // their time-averaged mean sits above the clinical one.)
+        const mean_int = t.pres_sum / t.pres_n;
+        this.minmax[t.name + "_pres_mean_int"] = mean_int;
+        this.minmax[t.name + "_pres_mean"] = this.arterial_mean_targets.includes(t.name)
+          ? t.pres_min + (t.pres_max - t.pres_min) / 3.0
+          : mean_int;
       }
       if (t.vol_max >= t.vol_min) {
         this.minmax[t.name + "_vol_min"] = t.vol_min * 1000.0;
