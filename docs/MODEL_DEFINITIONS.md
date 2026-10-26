@@ -7,8 +7,9 @@ A scenario file is a single JSON document that describes one complete patient/ex
 > **Only the term neonate is shipped** (since 2026-10-25). `term_neonate` is the literature-validated healthy term
 > neonate at 72 h ([TermNeonateReference](./TermNeonateReference.md)) and the root every other patient is
 > built from. `term_neonate_1h` is the same baby 1 h after a vaginal birth with delayed cord clamping (open
-> bidirectional duct, near-systemic pulmonary pressure, high output), generated from it by
-> `scripts/_make_term_transition.mjs --age 1` ([TermTransitionReference](./TermTransitionReference.md)). The preterm scenarios (`preterm_25wk`, `preterm_28wk`, `preterm_30wk`, 2026-10-18/19), the
+> bidirectional duct, near-systemic pulmonary pressure, high output), and `term_neonate_12h` the same baby at
+> 12 h (closing left-to-right duct, PAP 41), both generated from it by
+> `scripts/_make_term_transition.mjs --age 1|12` ([TermTransitionReference](./TermTransitionReference.md)). The preterm scenarios (`preterm_25wk`, `preterm_28wk`, `preterm_30wk`, 2026-10-18/19), the
 > fetal scenarios (`fetus_25wk`, `fetus_30wk`, `fetus_term`, 2026-10-19/20) and the three Bischoff 2021
 > scenarios (2026-10-22/23) were removed on 2026-10-25, during the re-validation, together with their
 > generators (`_make_preterm_validated.mjs`, `_make_fetus_validated.mjs`), lever profiles, reference pages and

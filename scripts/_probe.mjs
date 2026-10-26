@@ -81,6 +81,14 @@ export const RANGES = {
     spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
     ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],
   },
+  // the healthy term neonate at ~12 h: the ranges of docs/TermTransitionReference.md
+  // (scripts/reference/term_neonate_12h.json); pap_d and etco2 have no 12 h range
+  neonate_12h: {
+    hr: [97, 152], rr: [32, 57], sys: [54, 85], dia: [28, 53], map: [39, 62],
+    pap_s: [34, 71], pap_m: [32, 50], cvp: [-3, 4],
+    spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
+    ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
+  },
   preterm_36: {
     hr: [115, 170], rr: [38, 62], sys: [48, 80], dia: [27, 52], map: [38, 54],
     pap_s: [20, 43], pap_d: [6, 21], pap_m: [13, 31], cvp: [1, 8],
@@ -158,7 +166,7 @@ export const RANGES = {
 
 // pick a normal-range profile from body weight (term neonate ≈ 3.5 kg) unless
 // overridden; gestational age narrows preterm babies onto the matching table, and a term baby
-// younger than 6 h (ageHours) gets the transitional neonate_1h table.
+// younger than 6 h (ageHours) gets the transitional neonate_1h table, 6 to under 18 h neonate_12h.
 // Is this a fetus in utero? Verified unambiguous across the shipped scenario library: only
 // fetus_term / fetus_*wk have the placenta running with the cord unclamped; every neonatal and
 // adult scenario has placenta_running=false, umb_clamped=true. Takes either a live model or a
@@ -185,7 +193,11 @@ export function selectProfile({ weight, gestational_age, profile, fetal = false,
     const nearest = defined.reduce((a, b) => (Math.abs(b - ga) < Math.abs(a - ga) ? b : a));
     if (RANGES[`preterm_${nearest}`]) return `preterm_${nearest}`;
   }
-  if (typeof weight === "number" && weight < 10) return typeof ageHours === "number" && ageHours < 6 ? "neonate_1h" : "neonate";
+  if (typeof weight === "number" && weight < 10) {
+    if (typeof ageHours === "number" && ageHours < 6) return "neonate_1h";
+    if (typeof ageHours === "number" && ageHours < 18) return "neonate_12h";
+    return "neonate";
+  }
   return "adult";
 }
 
