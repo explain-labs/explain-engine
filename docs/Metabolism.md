@@ -28,6 +28,7 @@ BaseModelClass
 | `vo2_bat_factor` | – | 1.0 | O2 cost of brown-fat thermogenesis; written by Thermoregulation. |
 | `resp_q` | – | 0.8 | Respiratory quotient. term_neonate_72h 0.8. |
 | `metabolic_active_models` | {name: fraction} | `{}` | The beds and their share of VO2 (summing to 1). |
+| `bat_site` | name | `"RUB"` | The blood compartment that carries the brown-fat O2 cost: brown fat lies in the neck, between the shoulder blades and in the axillae, i.e. the upper body. `""` (or a name the scenario lacks) spreads it over the beds like the rest of the VO2. |
 
 ### Outputs
 
@@ -40,17 +41,20 @@ BaseModelClass
 Each step (nothing while `met_active` is off):
 
 ```
-vo2_step = vo2 · vo2_factor · vo2_temp_factor · vo2_bat_factor · weight / 60 · dt / 22.414      (mmol)
+vo2_step = vo2 · vo2_factor · vo2_temp_factor · weight / 60 · dt / 22.414      (mmol)
+bat_step = vo2_step · (vo2_bat_factor − 1)                                       brown fat's O2 cost
 ```
 
 For each bed with fraction f (a missing or empty bed is skipped):
 ```
-demand = vo2_step · f
+demand = vo2_step · f              (+ bat_step · f when there is no usable bat_site)
 used   = min(demand, to2 · V)                 never more O2 than the bed holds
 to2   −= used / V
 tco2  += resp_q · used / V                    CO2 only from O2 actually used
 o2_deficit += (demand − used) / dt
 ```
+
+The brown-fat cost `bat_step` is then taken, the same way, from `bat_site` alone. Spread over the beds it would also lower the brain's and the gut's venous saturation, which non-shivering thermogenesis does not; taken where the brown fat is, it raises the extraction of the upper body, whose blood flow rises with it (2026-10-26).
 
 STPD conversion as in [Units](./Units.md). Example: with the brain's inflow closed in term_neonate_72h, `BR_CAP` empties of O2 within seconds and `o2_deficit` reads 0.005 mmol/s, the brain's 6.8 mL/min share; its tCO2 stays at ~31 mmol/L. Before v1.0 CO2 kept being added from the missing O2 and reached 225 mmol/L in 2 min.
 
@@ -58,7 +62,7 @@ STPD conversion as in [Units](./Units.md). Example: with the brain's inflow clos
 
 ## Factor system
 
-Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_bat_factor` (Thermoregulation). They multiply.
+Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_bat_factor` (Thermoregulation). They multiply; the part `vo2_bat_factor` adds is used at `bat_site`.
 
 ## Inputs and outputs
 
