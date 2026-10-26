@@ -76,7 +76,7 @@ export const RANGES = {
   // docs/TermTransitionReference.md (scripts/reference/term_neonate_1h.json); SpO2 mean - 2 SD;
   // pap_s, pap_d and etco2 have no 1 h range
   neonate_1h: {
-    hr: [102, 162], rr: [32, 57], sys: [51, 79], dia: [31, 59], map: [38, 62],
+    hr: [102, 162], rr: [32, 57], sys: [52, 83], dia: [25, 49], map: [36, 59],
     pap_m: [38, 56], cvp: [-3, 4],
     spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
     ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],

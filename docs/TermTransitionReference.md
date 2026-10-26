@@ -215,7 +215,7 @@ battery 24/24 (class `term_12h`), `probe_vitals` clean (profile `neonate_12h`).
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
 | Heart rate (bpm) | 126 (P2–P98 102–162) at 2 h | 120–122 | 120–122; 121 ± 11 | 118 | A at 2/24 h | Tveiten 2021; Agata 1991 |
-| SBP/DBP/MAP (mmHg) | 65/45/48–52 (day 1); 67/37/47 at birth | **69.8/40.4/50.2** (SD 7.8/6.4/5.8) | 71.3/41.2/51.2 | 74/46/58 | B at 1 h; A at 12/24 h | Kent 2007; He 2011 (66/33/44 → 71/38/49, day 1 → 3); Taiwo 2022 (healthy term, at birth, 6, 12, 24, 36, 48 h) |
+| SBP/DBP/MAP (mmHg) | **67.4/37.1/47.2** (SD 7.9/6.1/5.8) within 1 h of birth | **69.8/40.4/50.2** (SD 7.8/6.4/5.8) | 71.3/41.2/51.2 | 74/46/58 | A at 1/12/24 h | Taiwo 2022 (healthy term, at birth, 6, 12, 24, 36, 48 h; MAP = dia + PP/3); Kent 2007 (day-1 median 65/45/50, superseded); He 2011 (66/33/44 → 71/38/49, day 1 → 3) |
 | LV output (mL/kg/min) | **327 ± 66; 365 ± 69** | ~290 (301 at 4–8 h) | 245 ± 56; 272 ± 48 | 196 (MRI) / 258 (echo, 96 h) | A | Agata 1991, 1994 |
 | LV stroke volume (mL/kg) | 2.25 ± 0.37 | – | 2.02 ± 0.42 | 1.6 | A | Agata 1991 |
 | SVC flow (mL/kg/min) | 99 (day 1) | 99 | 99 | 77–83 | B | Lee 2009 |

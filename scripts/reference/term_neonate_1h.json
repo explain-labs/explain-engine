@@ -293,6 +293,11 @@
     "lorenz1995": {
       "cite": "Lorenz JM et al. Phases of fluid and electrolyte homeostasis in the extremely low birth weight infant. Pediatrics 1995;96:484-9",
       "pmid": "7651782"
+    },
+    "taiwo2022": {
+      "cite": "Taiwo AB et al. Blood pressure profile and trends in the neonatal transitioning period: term asphyxiated and healthy newborns. Glob Pediatr Health 2022;9:2333794X221099263",
+      "doi": "10.1177/2333794X221099263",
+      "pmid": "35592790"
     }
   },
   "variables": [
@@ -321,80 +326,80 @@
       "group": "hemodynamics",
       "label": "Systolic BP",
       "unit": "mmHg",
-      "mean": 65,
-      "sd": null,
-      "low": 51,
-      "high": 79,
-      "range_type": "median +/- 14 (72 h spread)",
-      "method": "oscillometric, postnatal ward",
-      "age": "day 1",
-      "n": 406,
+      "mean": 67.4,
+      "sd": 7.9,
+      "low": 52,
+      "high": 83,
+      "range_type": "mean +/- 2SD",
+      "method": "oscillometric, healthy term controls, within 1 h of birth",
+      "age": "within 1 h",
+      "n": 123,
       "sources": [
-        "kent2007"
+        "taiwo2022"
       ],
-      "grade": "B",
+      "grade": "A",
       "model_readout": "Monitor.minmax.abp_pre_pres_max",
-      "notes": "No hourly first-day BP found (Kitterman 1969 / Versmold 1981 lack abstracts). Day-1 median; day 4 70."
+      "notes": "Healthy controls: 67.4 at birth, 69.2 at 6 h, 69.8 at 12 h (Taiwo 2022). Replaces the Kent 2007 day-1 median (65), 2026-10-26."
     },
     {
       "key": "dbp",
       "group": "hemodynamics",
       "label": "Diastolic BP",
       "unit": "mmHg",
-      "mean": 45,
-      "sd": null,
-      "low": 31,
-      "high": 59,
-      "range_type": "median +/- 14 (72 h spread)",
-      "method": "oscillometric",
-      "age": "day 1",
-      "n": 406,
+      "mean": 37.1,
+      "sd": 6.1,
+      "low": 25,
+      "high": 49,
+      "range_type": "mean +/- 2SD",
+      "method": "oscillometric, healthy term controls, within 1 h of birth",
+      "age": "within 1 h",
+      "n": 123,
       "sources": [
-        "kent2007"
+        "taiwo2022"
       ],
-      "grade": "B",
+      "grade": "A",
       "model_readout": "Monitor.minmax.abp_pre_pres_min",
-      "notes": "Day 4 46."
+      "notes": "37.1 at birth, 38.0 at 6 h (Taiwo 2022). The Kent day-1 median (45) was higher than every Taiwo first-day value."
     },
     {
       "key": "map",
       "group": "hemodynamics",
       "label": "Mean arterial pressure",
       "unit": "mmHg",
-      "mean": 50,
-      "sd": null,
-      "low": 38,
-      "high": 62,
-      "range_type": "median +/- 12",
-      "method": "oscillometric",
-      "age": "day 1",
-      "n": 406,
+      "mean": 47.2,
+      "sd": 5.8,
+      "low": 36,
+      "high": 59,
+      "range_type": "mean +/- 2SD",
+      "method": "oscillometric, healthy term controls, within 1 h of birth",
+      "age": "within 1 h",
+      "n": 123,
       "sources": [
-        "kent2007"
+        "taiwo2022"
       ],
-      "grade": "B",
+      "grade": "A",
       "model_readout": "Monitor.minmax.abp_pre_pres_mean",
-      "notes": "Kent reports oscillometric mean 48 (65/45 gives 52 calculated); 50 between. Day 4 54."
+      "notes": "Clinical mean dia + PP/3 (Taiwo computes it so at every time point); the model reports MAP the same way."
     },
     {
       "key": "pp",
       "group": "hemodynamics",
       "label": "Pulse pressure",
       "unit": "mmHg",
-      "mean": 20,
+      "mean": 30.3,
       "sd": null,
       "low": null,
       "high": null,
       "range_type": null,
       "method": "from sbp - dbp",
-      "age": "day 1",
+      "age": "within 1 h",
       "n": null,
       "sources": [
-        "kent2007"
+        "taiwo2022"
       ],
       "grade": "B",
       "model_readout": "sbp - dbp",
-      "notes": "Derived."
+      "notes": "SBP - DBP of the Taiwo means."
     },
     {
       "key": "cvp",
