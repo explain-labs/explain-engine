@@ -75,6 +75,31 @@ const PROFILES = {
     // dressed / skin-to-skin at room temperature
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
+  12: {
+    description: "healthy term neonate (3.545 kg) 12 h after a vaginal birth with delayed cord clamping (~1 min): " +
+      "closing left-to-right duct, pulmonary pressure falling, output still high, haematocrit 57 %; room air, dressed",
+    // duct: 2.47 mm at the pulmonary end (Kang 2016, 12 h), left-to-right only in 88 %
+    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.494,
+    // pulmonary pressure falling (Kang 2016: mean 41, systolic 52.5); a narrower duct passes less of the
+    // aortic pressure, so PVR stays above the 72 h value
+    PVR: 1.6,
+    // no transitional Doppler timing: the flow is left-to-right throughout the cycle
+    RV_DELAY: 0, PA_EL: 1,
+    // output past the surge but still high (Agata: ~290 at 12 h vs 245-272 at 24 h); BP 69.8/40.4 (50.2)
+    // (Taiwo 2022); HR 121 (Tveiten 2021)
+    SVR: 0.65, HEART_EL_MAX: 1.35, HR_REF: 1.025,
+    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
+    // GFR still ~20 on day 1 (Smeets 2022)
+    KF: 0.8,
+    // blood: Hct 57 % with the red cell mass of the 1 h baby (44 mL/kg) -> ~77 mL/kg
+    BLOOD_VOLUME: 77 / 85, HCT: 0.57,
+    // gases and metabolites (textbook, C): pH 7.36, pCO2 35, BE ~-4; lactate 2.0, glucose 3.2 (GLOW)
+    LACT: 2.0, UMA_DELTA: 1.6, MV_REF: 1.11, GLUCOSE: 3.2,
+    // lung liquid mostly cleared: FRC ~24 (Lee 1999, between 4-6 h and 24 h)
+    LUNG_U_VOL: 0.92, LUNG_EL: 1.05,
+    BR_MAP_INIT: 50, CR_PCO2_INIT: 35, CR_PH_INIT: 7.36,
+    ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
+  },
 };
 const P = PROFILES[AGE] && { ...PROFILES[AGE], ...SET };
 if (!P) { out(`usage: _make_term_transition.mjs --age <${Object.keys(PROFILES).join("|")}> [--seconds S] [--write]`); process.exit(1); }
