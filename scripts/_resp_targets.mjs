@@ -87,7 +87,9 @@ export const TARGETS = {
     ph: [7.32, 7.42],        // 24 h reference: BE ~-3.5 (textbook, C)
     spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
     ppl_swing: [2, 8],       // [Bhutani]
-    cstat_kg: [1.0, 2.0],    // the term range [Polgar]
+    cstat_kg: [0.95, 2.0],   // between the transitional floor (0.85) and the term range (1.0, Polgar): 24 h is the end
+                             // of day 0, when Crs is still lower than from day 1 (Lodrup Carlsen 1993, direction only);
+                             // the model reads 0.94 / 0.975 / 0.998 / 1.014 at 1 / 12 / 24 / 72 h
     co2_gain: [0.10, 0.40],  // [Rigatto]
   },
   adult: {
