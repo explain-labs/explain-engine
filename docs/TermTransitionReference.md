@@ -7,8 +7,8 @@ uncomplicated **vaginal birth with delayed cord clamping (~1 min)**, breathing r
 changes on the way there. Compiled 2026-10-25 from PubMed.
 
 The machine-readable sets are [`term_neonate_1h.json`](../scripts/reference/term_neonate_1h.json),
-[`term_neonate_12h.json`](../scripts/reference/term_neonate_12h.json) (and, when it is built,
-`term_neonate_24h.json`), in the
+[`term_neonate_12h.json`](../scripts/reference/term_neonate_12h.json) and
+[`term_neonate_24h.json`](../scripts/reference/term_neonate_24h.json), in the
 same format as [`term_neonate_72h.json`](../scripts/reference/term_neonate_72h.json). Variables without
 data at an age are reference-only there (no numbers) or carry the 72 h range, marked C.
 
@@ -242,7 +242,7 @@ battery 24/24 (class `term_12h`), `probe_vitals` clean (profile `neonate_12h`).
 | Ductal diameter (mm) | 4.60 ± 0.59 (2 h) | 2.47 ± 0.49 | 1.89 ± 0.41 | 1.20 ± 0.24 | A | Kang 2016 |
 | Duct closed | 0 % | 0 % | 38 % (Lim 1992: 20 % day 1) | 95 % (Lim: 96 % day 3) | A | Kang 2016; Lim 1992 |
 | Ductal direction | bidirectional in 100 % (2 h) | L→R only in 88 % | L→R | closed | A | Kang 2016 |
-| Ductal L→R flow (mL/kg/min) | 62 (95 % CI 43–82) shortly after birth | falling fast; ~5–40 (derived from the diameter) | small | unmeasurable by 48 h | B (n = 10) | Drayton 1987 |
+| Ductal L→R flow (mL/kg/min) | 62 (95 % CI 43–82) shortly after birth | falling fast; ~5–40 (derived from the diameter) | small; ~0–25 (derived) | unmeasurable by 48 h | B (n = 10) | Drayton 1987 |
 | Foramen ovale | shunt in 92 % at ~40 min, mostly L→R, small diastolic R→L in 64 % | – | patent in 22/37 | shunt in 47 % (days 4–5), R→L in 19 % | A | Hiraishi 1991; Lim 1989 (patency) |
 
 ## Lungs and breathing
@@ -260,8 +260,8 @@ battery 24/24 (class `term_12h`), `probe_vitals` clean (profile `neonate_12h`).
 
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
-| pH / pCO2 / BE | 7.32 / 36 / −5 | 7.36 / 35 / −4 | – | 7.395 / 38.7 / −4..2 | C at 1 and 12 h | textbook; cord UA P10 pH 7.21, BD 5.9 (Dudenhausen 1997) |
-| Lactate (mmol/L) | 2.2 (1.1–6.2), 0–12 h | 2.2 | – | 1.4 (0.8–3.3) | A | GLOW 2021 |
+| pH / pCO2 / BE | 7.32 / 36 / −5 | 7.36 / 35 / −4 | 7.37 / 35 / −3.5 | 7.395 / 38.7 / −4..2 | C at 1, 12 and 24 h | textbook; cord UA P10 pH 7.21, BD 5.9 (Dudenhausen 1997) |
+| Lactate (mmol/L) | 2.2 (1.1–6.2), 0–12 h | 2.0 | ~1.8 (interpolated) | 1.4 (0.8–3.3) | A | GLOW 2021 |
 | Glucose (mmol/L) | ~3.3; 1 h not lower than later | ~3.2, rising to the plateau by 18 h | 3.3 ± 0.6 plateau | 3.3–4.6 (day 4: 4.6) | A/B | GLOW 2020; Hoseth 2000 |
 | VO2 (mL/kg/min) | 7.0 (decision) | 7.0 | 7.0 | 6.3–7.0 | B | Hill & Robinson 1968 (~5 < 12 h, LBW) |
 | Temperature (°C) | 36.8 (skin-to-skin rewarms 36.3 → 37.0 in 1 h) | 36.9 | rectal lower on day 1 than day 2 | 37.0 | B | Karlsson 1996; Fransson 2005 |
@@ -272,9 +272,9 @@ battery 24/24 (class `term_12h`), `probe_vitals` clean (profile `neonate_12h`).
 | Variable | 1 h | 12 h | 24 h | 72 h | Grade | Source |
 |---|---|---|---|---|---|---|
 | Haematocrit (%) | ~55 (1-min DCC; 57.0 at 6 h) | ~57 | 56–59 (3-min DCC) | 49.5 (mixed clamping) | A/B | Ceriani Cernadas 2006; Linderkamp 1992; Nelle 1993; Jopling 2009 |
-| Blood volume (mL/kg) | ~80 (75–85) | ~77 (red cell mass 44 at Hct 57) | – | 80–90 | B (derived) at 1 h | Linderkamp 1992; Nelle 1995 |
+| Blood volume (mL/kg) | ~80 (75–85) | ~77 (red cell mass 44 at Hct 57) | ~77 | 80–90 | B (derived) at 1 h | Linderkamp 1992; Nelle 1995 |
 | First void | none yet (42 % by 6 h) | 76 % voided | 95 % | – | A | Ogala 1986 |
-| Urine production (mL/kg/h) | low before the diuresis (0.5–1.5) | diuresis starts (7–22 h) | – | 1–3 (textbook) | C | Hogg 1977; Lorenz 1995 |
+| Urine production (mL/kg/h) | low before the diuresis (0.5–1.5) | diuresis starts (7–22 h) | in the diuresis (1–3) | 1–3 (textbook) | C | Hogg 1977; Lorenz 1995 |
 | GFR (mL/min/1.73 m²) | 19.6 (day 1) | – | 19.6 (day 1) | ~30 (day 3) | A/B | Smeets 2022 |
 
 ## Sources
