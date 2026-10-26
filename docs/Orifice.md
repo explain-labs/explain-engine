@@ -34,7 +34,7 @@ The jet is narrower than the anatomical opening (the *vena contracta*). The *dis
 | `Shunts` | foramen ovale `diameter_fo`, VSD `diameter_vsd` | `discharge_coeff_fo` 0.7, `discharge_coeff_vsd` 0.64 | B is added the same way to the FO and VSD resistors. `velocity_fo_doppler` and `velocity_vsd_doppler` come from `jet_velocity`. |
 
 Shipped settings, for example:
-- **term_neonate:** duct closed (diameter 0), FO 1.5 mm, no VSD.
+- **term_neonate_72h:** duct closed (diameter 0), FO 1.5 mm, no VSD.
 
 ## Notes
 

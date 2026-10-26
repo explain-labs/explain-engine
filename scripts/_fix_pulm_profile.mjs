@@ -1,6 +1,6 @@
-// One-off repair: give term_neonate a physiological pulmonary pressure profile.
+// One-off repair: give term_neonate_72h a physiological pulmonary pressure profile.
 //
-// In term_neonate 37 % of the pulmonary vascular resistance sat between the main and the branch
+// In term_neonate_72h 37 % of the pulmonary vascular resistance sat between the main and the branch
 // pulmonary arteries (PA -> PAAL/PAAR) and the capillaries ran at 8.5 mmHg, only 22 % of the PA-LA
 // drop above LA. This script redistributes the resistance along each lung path
 //   PA -> PAAL -> LL_ART -> LL_CAP -> LL_VEN -> PV -> LA      (and the same for the right lung)
@@ -12,14 +12,14 @@
 // shunt fraction stays the same. The unstressed volumes of the lung compartments are adjusted so
 // every compartment holds the same blood as before. Only the touched fields are patched in the JSON.
 //
-//   node scripts/_fix_pulm_profile.mjs [scenario=term_neonate] [--write]
+//   node scripts/_fix_pulm_profile.mjs [scenario=term_neonate_72h] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate";
+const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate_72h";
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
 const json = JSON.parse(raw);

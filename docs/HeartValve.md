@@ -66,7 +66,7 @@ Exactly [`Resistor`'s](./Resistor.md#calculation): forward flow `Δp / r_for_eff
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Heart.components.LV_AA` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Heart.components.LV_AA` (trimmed to the config props):
 
 ```json
 {
@@ -86,7 +86,7 @@ From `term_neonate.json`, `models.Heart.components.LV_AA` (trimmed to the config
 
 ## Usage in the scenarios
 
-Seven valves in term_neonate, all owned by `Heart`:
+Seven valves in term_neonate_72h, all owned by `Heart`:
 
 | Valve | Connection | State |
 |---|---|---|

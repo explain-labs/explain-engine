@@ -1,7 +1,7 @@
 // Verification probe for the Drugs (pharmacology) model — covers Milestones 1–3.
 //
 // Drives the engine headless through the same { type, message, payload } envelope as Model.js,
-// doses a drug into the term_neonate circuit, and traces the full PK/PD loop:
+// doses a drug into the term_neonate_72h circuit, and traces the full PK/PD loop:
 //   injection-site conc → effect-site conc → (optional biophase) → HR / inotropy / SVR → pressure → washout.
 //
 // Usage:
@@ -28,7 +28,7 @@ const THROTTLE = opt("--throttle-organ", 0.0); // >0 sets r_factor_ps on organ-f
 const ORGAN_ONLY = flag("--organ-only"); // zero the diffuse clearance → isolate organ clearance
 const NO_ANS = flag("--no-ans");
 const VERBOSE = flag("--verbose");
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 
 let liveModel = null;
 globalThis.self = globalThis;

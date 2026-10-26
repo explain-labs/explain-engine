@@ -7,7 +7,7 @@
 //   C. ICP — intracranial oedema raises ICP, lowers cerebral perfusion pressure (CPP = MAP − ICP) and
 //      cerebral blood flow, and drives brain hypoxia.
 //
-// Usage: node scripts/probe_brain.mjs [--scenario term_neonate] [--bleed 0.3] [--edema 6] [--verbose]
+// Usage: node scripts/probe_brain.mjs [--scenario term_neonate_72h] [--bleed 0.3] [--edema 6] [--verbose]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -17,7 +17,7 @@ const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const sopt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 const BLEED = opt("--bleed", 0.15);  // fraction of blood volume removed (moderate haemorrhage)
 const EDEMA = opt("--edema", 12.0);  // mL of intracranial oedema for the ICP test
 const VERBOSE = flag("--verbose");

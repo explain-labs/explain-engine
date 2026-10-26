@@ -29,7 +29,7 @@ A valve's one-way behaviour comes from `no_back_flow: true` in its definition, n
 - `p1_ext`, `p2_ext`;
 - `is_enabled`.
 
-So set those on the vessel, not on the connector: a value written on the connector is overwritten. `implicit`, `mix_flow`, `no_flow_ext` and the connector's own factor layers are **not** overwritten. In term_neonate 42 of the 75 resistors are vessel-owned and 33 stand alone (valves, shunts, airways, devices).
+So set those on the vessel, not on the connector: a value written on the connector is overwritten. `implicit`, `mix_flow`, `no_flow_ext` and the connector's own factor layers are **not** overwritten. In term_neonate_72h 42 of the 75 resistors are vessel-owned and 33 stand alone (valves, shunts, airways, devices).
 
 ## Properties
 
@@ -149,7 +149,7 @@ Explicit integration of two capacitances joined by a small resistance is stable 
 | ×3 | unstable | 21.4–39.8 | 21.5–39.6 |
 | ×5 | unstable | 18.4–44.7 | 18.2–44.4 |
 
-term_neonate sets it on 13 resistors: the outflow valves (`LV_AA`, `RV_AA`), the aortic chain (`AA_AAR`, `AAR_AD`) and the aortic branches (`AA_COR`, `AA_BR_ART`, `AA_RUB`, `AAR_DA`, `AD_LS_ART`, `AD_KID_ART`, `AD_INT_ART`, `AD_RLB`, `AD_PL_UMB_ART`). The 8 scenarios with quadratic heart chambers also set it on `RAIVCI_RASVC`, the low-resistance (13 mmHg·s/L) link between the two right-atrial halves: their stiffness grows with filling, and the explicit scheme then flipped the flow's sign every step. The patient builder and the live tuner set it the same way on the aorta.
+term_neonate_72h sets it on 13 resistors: the outflow valves (`LV_AA`, `RV_AA`), the aortic chain (`AA_AAR`, `AAR_AD`) and the aortic branches (`AA_COR`, `AA_BR_ART`, `AA_RUB`, `AAR_DA`, `AD_LS_ART`, `AD_KID_ART`, `AD_INT_ART`, `AD_RLB`, `AD_PL_UMB_ART`). The 8 scenarios with quadratic heart chambers also set it on `RAIVCI_RASVC`, the low-resistance (13 mmHg·s/L) link between the two right-atrial halves: their stiffness grows with filling, and the explicit scheme then flipped the flow's sign every step. The patient builder and the live tuner set it the same way on the aorta.
 
 ## Mixing without net flow (`mix_flow`)
 
@@ -171,11 +171,11 @@ Further rules:
 - A closed connection doesn't exchange.
 - The equilibration time constant is about `V_a·V_b / ((V_a + V_b)·mix_flow)`.
 
-Shipped values (term_neonate): `RAIVCI_RASVC` 0.01 L/s (right-atrial halves), `DS_ALL` and `DS_ALR` 0.001 L/s (dead space to alveoli).
+Shipped values (term_neonate_72h): `RAIVCI_RASVC` 0.01 L/s (right-atrial halves), `DS_ALL` and `DS_ALR` 0.001 L/s (dead space to alveoli).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Circulation.components.PV_LA` (trimmed). The pulmonary venous inflow to the left atrium has a backward resistance 10× the forward one:
+From `term_neonate_72h.json`, `models.Circulation.components.PV_LA` (trimmed). The pulmonary venous inflow to the left atrium has a backward resistance 10× the forward one:
 
 ```json
 {

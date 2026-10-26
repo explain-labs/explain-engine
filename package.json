@@ -44,7 +44,7 @@
     "./ModelEngine.js"
   ],
   "scripts": {
-    "probe": "node scripts/probe_vitals.mjs term_neonate",
+    "probe": "node scripts/probe_vitals.mjs term_neonate_72h",
     "validate:resp": "node scripts/validate_respiratory.mjs"
   },
   "dependencies": {},

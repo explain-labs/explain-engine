@@ -4,7 +4,7 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
-> **Only the term neonate is shipped** (since 2026-10-25). `term_neonate` is the literature-validated healthy term
+> **Only the term neonate is shipped** (since 2026-10-25). The 72 h baby was `term_neonate` until 2026-10-26; `Model.load` and `build_patient.mjs` still accept that name (`helpers/ScenarioAliases.js`). `term_neonate_72h` is the literature-validated healthy term
 > neonate at 72 h ([TermNeonateReference](./TermNeonateReference.md)) and the root every other patient is
 > built from. `term_neonate_1h` is the same baby 1 h after a vaginal birth with delayed cord clamping (open
 > bidirectional duct, near-systemic pulmonary pressure, high output), `term_neonate_12h` the same baby at
@@ -72,7 +72,7 @@ This is the object the engine builds from. `build()` copies every key **except `
 
 ## `models` entry shape
 
-`models` is a map keyed by instance name. Each entry is one model instance. The reference `term_neonate.json` has 68 top-level entries (1 each of the high-level systems — `Heart`, `Breathing`, `Ans`, `Circulation`, `Respiration`, `Blood`, `Gas`, `Metabolism`, `Pda`, `Shunts`, devices, …) plus 43 `Resistor` entries wiring compartments together. Composite models (e.g. `Circulation`) carry their own sub-network under `components`.
+`models` is a map keyed by instance name. Each entry is one model instance. The reference `term_neonate_72h.json` has 68 top-level entries (1 each of the high-level systems — `Heart`, `Breathing`, `Ans`, `Circulation`, `Respiration`, `Blood`, `Gas`, `Metabolism`, `Pda`, `Shunts`, devices, …) plus 43 `Resistor` entries wiring compartments together. Composite models (e.g. `Circulation`) carry their own sub-network under `components`.
 
 ### Envelope keys (every entry)
 
@@ -101,7 +101,7 @@ Core physics params (`el_base`, `u_vol`, `el_k`, `r_for`, `r_back`, `r_k`, …) 
 
 This is the most important thing to understand about the format. A `models` entry is **not** a clean config block — it is a serialized dump of the live object, including computed outputs: `*_eff` effective values, `vol`, `pres`/`pres_in`, `flow`/`flow_forward`/`flow_backward`, and the full blood composition (`to2`, `tco2`, `ph`, `pco2`, `po2`, `so2`, `hco3`, `be`, `solutes`, `drugs`, `temp`, `viscosity`). `init_model` re-seeds these computed fields straight from the entry, which is why `model_time_total` is non-zero and a loaded scenario **resumes mid-run** at a settled steady state rather than starting from a transient. Authoring a scenario by hand means setting these consistently (or accepting a startup transient); the normal workflow is to let the engine settle, then save the snapshot.
 
-### Example — a `Resistor` entry (verbatim from `term_neonate.json`)
+### Example — a `Resistor` entry (verbatim from `term_neonate_72h.json`)
 
 ```json
 {
@@ -137,7 +137,7 @@ This is the most important thing to understand about the format. A `models` entr
 
 ### Example — a blood compartment (abbreviated, `Circulation.components.AA`)
 
-In `term_neonate.json` the blood compartments are `BloodVessel` (a `BloodCapacitance` subclass that adds resistance/flow) living inside `Circulation.components`; a standalone `BloodCapacitance` has the same capacitance + composition shape minus the resistor fields. Abbreviated:
+In `term_neonate_72h.json` the blood compartments are `BloodVessel` (a `BloodCapacitance` subclass that adds resistance/flow) living inside `Circulation.components`; a standalone `BloodCapacitance` has the same capacitance + composition shape minus the resistor fields. Abbreviated:
 
 ```json
 {
@@ -185,7 +185,7 @@ The load → build path, in brief (full step-by-step in [ARCHITECTURE](./ARCHITE
 
 ## `scaler_config`
 
-`scaler_config` is engine-consumed, but only via `ModelScaler` — it is never read by `build()` itself beyond being copied onto the live `model`. Its shape is `group → { param → [componentNames] }` (or, for the container groups, `group → [componentNames]`). The group keys present in `term_neonate.json`:
+`scaler_config` is engine-consumed, but only via `ModelScaler` — it is never read by `build()` itself beyond being copied onto the live `model`. Its shape is `group → { param → [componentNames] }` (or, for the container groups, `group → [componentNames]`). The group keys present in `term_neonate_72h.json`:
 
 ```
 blood, blood_pulmonary, blood_systemic,
@@ -198,9 +198,9 @@ Each group lists the component names that a given `scale_*` method touches, and 
 
 ## `configuration` and events
 
-`configuration` is **UI/store-only state** — the engine never reads it in `build()`. In `term_neonate.json` it holds `diagram_speed`, `diagram_scale`, `chart_hires`, `default_tabs`, `tabs`, `presets`, `monitors`, `controllers`.
+`configuration` is **UI/store-only state** — the engine never reads it in `build()`. In `term_neonate_72h.json` it holds `diagram_speed`, `diagram_scale`, `chart_hires`, `default_tabs`, `tabs`, `presets`, `monitors`, `controllers`.
 
-It may also carry an optional `configuration.events` array (absent in `term_neonate.json`). Events are named, reusable bundles of timed property changes. They reach the engine **only** indirectly: the events store mirrors `configuration.events` in memory and, when an event fires, pushes each change through `Model.setPropValue` / `callModelFunction`, which the engine's [TaskScheduler](./TaskScheduler.md) applies. The shapes (explain-ui's `src/stores/events.ts`):
+It may also carry an optional `configuration.events` array (absent in `term_neonate_72h.json`). Events are named, reusable bundles of timed property changes. They reach the engine **only** indirectly: the events store mirrors `configuration.events` in memory and, when an event fires, pushes each change through `Model.setPropValue` / `callModelFunction`, which the engine's [TaskScheduler](./TaskScheduler.md) applies. The shapes (explain-ui's `src/stores/events.ts`):
 
 ```ts
 interface ScheduledEvent {
@@ -230,7 +230,7 @@ Both are `{ settings, components }` objects. `settings` holds canvas-level optio
 A flat JSON array of scenario filename stems, e.g.:
 
 ```json
-["fetus_25wk", "preterm_25wk", "preterm_28wk", "term_neonate", "..."]
+["fetus_25wk", "preterm_25wk", "preterm_28wk", "term_neonate_72h", "..."]
 ```
 
 Each entry `X` maps to `model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in consuming apps. (In explain-ui, `sync-scenarios.mjs` rebuilds its served `index.json` as the union of the canonical set and any local snapshots.)

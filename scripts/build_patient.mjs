@@ -18,7 +18,7 @@
 //
 // SPEC schema (all fields optional except `baseline`):
 //   {
-//     "baseline": "term_neonate",          // a name in model_definitions/
+//     "baseline": "term_neonate_72h",          // a name in model_definitions/
 //     "fetal": true,                       // force fetal mode (default: auto-detected from the
 //                                          //   baseline — see "FETAL MODE" below)
 //     "name": "custom_patient",            // output scenario name (metadata)
@@ -88,6 +88,7 @@
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
+import { resolveScenarioName } from "../helpers/ScenarioAliases.js";
 import { measureVitals, selectProfile, rangesFor, flagOf, isFetal } from "./_probe.mjs";
 import { FETAL, nearestFetalGa } from "./_ga_tables.mjs";
 import { scaleHormoneReferences, describeHormoneReferences } from "./_reference.mjs";
@@ -118,7 +119,8 @@ try {
   process.exit(1);
 }
 
-const baseline = spec.baseline || "term_neonate";
+// an old scenario name (helpers/ScenarioAliases.js) resolves to the current one
+const baseline = resolveScenarioName(spec.baseline || "term_neonate_72h");
 // a copy: derived targets (pp, and map from sys/dia) are added below, and the caller's spec must
 // stay what it sent
 const targets = { ...(spec.targets || {}) };
@@ -273,7 +275,7 @@ if (FETAL_MODE) {
   // and a preterm baseline already carries it, so seeding again would apply prematurity twice
   const baseGa = (baseJson.model_definition || baseJson).gestational_age;
   if (typeof baseGa === "number" && baseGa < 37) {
-    console.error(`build_patient: baseline "${baseline}" is already preterm (${baseGa} wk) and carries the prematurity adjustments; adding gestational_age ${targets.gestational_age} would apply them a second time. Use baseline "term_neonate" with gestational_age, or keep "${baseline}" and leave gestational_age out.`);
+    console.error(`build_patient: baseline "${baseline}" is already preterm (${baseGa} wk) and carries the prematurity adjustments; adding gestational_age ${targets.gestational_age} would apply them a second time. Use baseline "term_neonate_72h" with gestational_age, or keep "${baseline}" and leave gestational_age out.`);
     process.exit(1);
   }
   seed = PRETERM_SEED[nearestGa(targets.gestational_age)];
@@ -311,7 +313,7 @@ if (weightKg != null) {
 // PWV data (x2.5 = 0.57 kg).
 // Neonatal baselines only (the PWV data are neonatal); fetal mode keeps its own seed.
 const ARTERIES = ["AA", "AAR", "AD", "RLB", "RUB", "INT_ART", "KID_ART", "LS_ART", "BR_ART"].filter((n) => model.models[n]);
-const TERM_REF_WEIGHT = 3.545; // kg, term_neonate
+const TERM_REF_WEIGHT = 3.545; // kg, term_neonate_72h
 const ARTERIAL_SCALE_MAX = 2.5;
 let arterialScale = model.models.AA?.el_base_factor_scaling_ps ?? 1.0;
 if (!FETAL_MODE) {
@@ -556,7 +558,7 @@ let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary
 // wiped the baked scaling, so the Bischoff infant fell from 42/19 to 30/14 before any lever had
 // moved. scaleGroup() instead sets each member to base x f, where base is the layer as loaded, so
 // f = 1 is the patient as built. A gestational-age seed is the exception: its svr/pvr are stated
-// against the term reference (term_neonate, fetus_term; a preterm baseline is never seeded, see
+// against the term reference (term_neonate_72h, fetus_term; a preterm baseline is never seeded, see
 // above), so a seeded build keeps the absolute layer (base 1), exactly as before.
 const scaleGroup = (group, absolute) => {
   const cfg = group === "systemic_resistances" ? "blood_systemic" : "blood_pulmonary";

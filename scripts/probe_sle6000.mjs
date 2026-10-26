@@ -1,4 +1,4 @@
-// SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate (CPAP, CMV, PTV,
+// SLE6000 device model: pass/fail checks of the phase-1 modes on term_neonate_72h (CPAP, CMV, PTV,
 // PSV, SIMV with VTV), the phase-2 oscillatory modes (HFOV with VTV, sighs and oscillation pause;
 // HFOV+CMV), the settings validation, the monitored values (also with unsupported spontaneous breaths),
 // the patient monitor's RR and the leak compensation of the flow trigger and of PSV termination. See docs/Sle6000.md.
@@ -12,7 +12,7 @@ import { createEngine } from "./_harness.mjs";
 const VERBOSE = process.argv.includes("--verbose");
 const eng = await createEngine();
 const log = eng.log;
-const json = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate.json", import.meta.url), "utf8"));
+const json = JSON.parse(fs.readFileSync(new URL("../model_definitions/term_neonate_72h.json", import.meta.url), "utf8"));
 const def = json.model_definition;
 
 const checks = [];
@@ -358,7 +358,7 @@ function count(m, V, seconds) {
 }
 
 // 15. PSV with a tube leak. Ti Max (1.0 s) is set above the patient's own inspiration (~0.7 s
-// in the 72 h term_neonate), so without a leak the breath ends on flow. The leak keeps the
+// in the 72 h term_neonate_72h), so without a leak the breath ends on flow. The leak keeps the
 // inspiratory flow up, so without compensation the breath is held on longer; the automatic leak
 // compensation (10-50 % leak) ends it on flow as without a leak. Above 50 % it runs to Ti Max,
 // as on the device

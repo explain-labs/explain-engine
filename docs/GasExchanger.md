@@ -78,13 +78,13 @@ Additive layers, as in [Capacitance](./Capacitance.md#factor-system), with a flo
 
 - **Fick diffusion between two well-mixed compartments.** No capillary transit time, no end-capillary equilibration profile, no diffusion limitation that appears only at high cardiac output. Ventilation–perfusion mismatch comes from the network (intrapulmonary shunts, two lungs), not from inside the exchanger.
 - **The CO2/O2 capacity ratio is 6 in every scenario,** a calibration value (`scripts/reseed_term_neonate.mjs` raised CO2 sixfold), not the physical ~20.
-- **Diffusing capacities are per scenario,** set by the generators: term_neonate 0.001 / 0.006 per lung. As a lung DLO2 that is ~2.7 mL/(min·mmHg) at term (0.76 per kg).
+- **Diffusing capacities are per scenario,** set by the generators: term_neonate_72h 0.001 / 0.006 per lung. As a lung DLO2 that is ~2.7 mL/(min·mmHg) at term (0.76 per kg).
 - **The fetal lungs exchange nothing** (`dif_o2` = `dif_co2` = 0), but the exchangers still run their blood solve.
 - **No water vapour or nitrogen crosses the membrane** (no N2 washout into blood, no absorption atelectasis from N2).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Respiration.components.GASEX_LL` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Respiration.components.GASEX_LL` (trimmed to the config props):
 
 ```json
 {
@@ -103,7 +103,7 @@ From `term_neonate.json`, `models.Respiration.components.GASEX_LL` (trimmed to t
 
 ## Usage in the scenarios
 
-Three instances in term_neonate:
+Three instances in term_neonate_72h:
 
 | Exchanger | Blood ↔ gas | State |
 |---|---|---|
@@ -112,7 +112,7 @@ Three instances in term_neonate:
 
 | Scenario | `dif_o2` | `dif_co2` |
 |---|---|---|
-| term_neonate | 0.001 | 0.006 |
+| term_neonate_72h | 0.001 | 0.006 |
 
 ## References
 

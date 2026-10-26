@@ -16,7 +16,7 @@
 //   node scripts/doc_audit.mjs [Class ...] [--registry <path to registry.ts>] [--scenario <name>]
 //                              [--summary] [--json]
 //
-// --scenario takes a comma-separated list (default term_neonate; until a fetal scenario is rebuilt the
+// --scenario takes a comma-separated list (default term_neonate_72h; until a fetal scenario is rebuilt the
 // placenta compartments' injected props are not seen running).
 //
 // With no class names it audits everything. --registry defaults to ../src/model-interface/registry.ts
@@ -33,7 +33,7 @@ const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
 const SUMMARY = argv.includes("--summary");
 const AS_JSON = argv.includes("--json");
-const SCENARIOS = opt("--scenario", "term_neonate").split(",");
+const SCENARIOS = opt("--scenario", "term_neonate_72h").split(",");
 const REGISTRY = path.resolve(ROOT, opt("--registry", "../src/model-interface/registry.ts"));
 const valued = new Set(["--registry", "--scenario"]);
 const ONLY = argv.filter((a, i) => !a.startsWith("--") && !valued.has(argv[i - 1]));

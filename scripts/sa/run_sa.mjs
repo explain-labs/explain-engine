@@ -1,9 +1,9 @@
 // Sensitivity-analysis orchestrator (parallel, pure-JS).
 //
-//   node scripts/sa/run_sa.mjs --scenario term_neonate --tier oat    --set reduced
-//   node scripts/sa/run_sa.mjs --scenario term_neonate --tier morris --set expanded --r 30
+//   node scripts/sa/run_sa.mjs --scenario term_neonate_72h --tier oat    --set reduced
+//   node scripts/sa/run_sa.mjs --scenario term_neonate_72h --tier morris --set expanded --r 30
 //   node scripts/sa/run_sa.mjs --scenario pphn         --tier sobol  --set reduced --N 512
-//   node scripts/sa/run_sa.mjs --scenario term_neonate --tier prcc   --set reduced --N 800
+//   node scripts/sa/run_sa.mjs --scenario term_neonate_72h --tier prcc   --set reduced --N 800
 //
 // Generates the design in the unit cube (_sa_sampling), maps to physical param vectors,
 // shards the rows across `os.cpus()-2` forked worker processes (each runs _sa_eval.mjs on
@@ -27,7 +27,7 @@ const EVAL = new URL("./_sa_eval.mjs", import.meta.url).pathname;
 // ---------- args ----------
 const argv = process.argv.slice(2);
 const arg = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
-const scenario = arg("--scenario", "term_neonate");
+const scenario = arg("--scenario", "term_neonate_72h");
 const tier = arg("--tier", "oat");
 const paramSet = arg("--set", "reduced");
 const warm = Number(arg("--warm", "60"));

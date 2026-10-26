@@ -1,7 +1,7 @@
 // Re-learn HeartFunction's resting wall-stress setpoints for one or more scenarios.
 //
 // HeartFunction keeps a setpoint given (> 0) in the definition and only learns the others, during
-// the first setpoint_warmup seconds. Scenarios derived from term_neonate inherited its setpoints,
+// the first setpoint_warmup seconds. Scenarios derived from term_neonate_72h inherited its setpoints,
 // which are far above a preterm or fetal heart's resting stress, so the load response never
 // triggered there. This tool loads each scenario, lets it settle, clears the four setpoints, lets
 // HeartFunction learn them at rest (same procedure as _fix_term_hr_contractility.mjs) and, with

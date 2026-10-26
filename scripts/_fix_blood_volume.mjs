@@ -7,7 +7,7 @@
 // component in scaler_config.blood.volume are multiplied by F (stressed and unstressed volume together).
 // Hormones.volume_setpoint is the resting Circulation.total_blood_volume; left alone, the larger volume
 // would read as overload (renin and ADH down, diuresis), so it is set to the new resting value.
-// term_neonate (2026-10-25): the heart re-validation left CVP at 1.93 mmHg (reference 2-8) with blood
+// term_neonate_72h (2026-10-25): the heart re-validation left CVP at 1.93 mmHg (reference 2-8) with blood
 // volume at the bottom of its reference (80.6 mL/kg, 80-90); x1.06 gives ~85 mL/kg and CVP ~2.5.
 // Only vol/u_vol of those components and volume_setpoint change; the rest of the file stays byte-identical.
 import fs from "node:fs";

@@ -25,7 +25,7 @@ const DEFAULT_HALDANE_COEFF = 1.0; // default Haldane coefficient (0 = effect of
 // exchanges with, so Hb buffers at its effective ECF concentration: a fraction of the blood Hb (the
 // basis of the standard base excess, Hb_eff ~3 mmol/L at a blood Hb of ~9). Buffer value per mmol/L
 // of Hb: 2.3 mmol/L per pH unit (Van Slyke). The acute in vivo response (~+1 mmol/L HCO3 per
-// 10 mmHg pCO2) is then approximated: ~0.8 mmol/L per 10 mmHg on the term_neonate composition.
+// 10 mmHg pCO2) is then approximated: ~0.8 mmol/L per 10 mmHg on the term_neonate_72h composition.
 const DEFAULT_HB_BUFFER_FRACTION = 1.0 / 3.0;
 const HB_BUFFER_SLOPE = 2.3; // mmol/L per pH unit per mmol/L Hb
 

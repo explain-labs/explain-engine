@@ -104,7 +104,7 @@ None of its own; it writes `BloodVessel.r_factor_ps` (see [BloodVessel → Facto
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Circulation` (trimmed; `components` holds the vessels and connectors):
+From `term_neonate_72h.json`, `models.Circulation` (trimmed; `components` holds the vessels and connectors):
 
 ```json
 {

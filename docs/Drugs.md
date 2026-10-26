@@ -94,7 +94,7 @@ It owns the drug channels above: `hr_drug_factor`, `el_max_drug_factor`, `el_min
 
 ## Assumptions and limitations
 
-- **Catecholamine calibration** (re-validation (j), term_neonate, 20-min infusions, closed loop with the reflexes):
+- **Catecholamine calibration** (re-validation (j), term_neonate_72h, 20-min infusions, closed loop with the reflexes):
 
   | Infusion (mcg/kg/min) | Arterial conc (ng/mL) | HR | MAP | LV output |
   |---|---|---|---|---|
@@ -113,7 +113,7 @@ It owns the drug channels above: `hr_drug_factor`, `el_max_drug_factor`, `el_min
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Drugs` (trimmed to one drug):
+From `term_neonate_72h.json`, `models.Drugs` (trimmed to one drug):
 
 ```json
 {

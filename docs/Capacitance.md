@@ -75,7 +75,7 @@ BaseModelClass
    pres    = pres_in + pres_ext
    pres_ext = 0
    ```
-   The non-linear term acts only above the unstressed volume. `S²` is also positive below it, where it would push against the linear term and bend the curve back up. For example, the term_neonate aorta (`el_k` 1.5·10⁶) emptied 6 mL below `u_vol` would read about +13 mmHg instead of −41 mmHg. Both terms are 0 and flat at `S = 0`, so the curve is smooth there.
+   The non-linear term acts only above the unstressed volume. `S²` is also positive below it, where it would push against the linear term and bend the curve back up. For example, the term_neonate_72h aorta (`el_k` 1.5·10⁶) emptied 6 mL below `u_vol` would read about +13 mmHg instead of −41 mmHg. Both terms are 0 and flat at `S = 0`, so the curve is smooth there.
 
 **Volume transfer.** The connected resistors call these after computing a flow:
 
@@ -112,7 +112,7 @@ BaseModelClass
 
 ## Example definition (JSON)
 
-No scenario uses a plain `Capacitance`; every compartment is a subclass. These are the props this class contributes, from `term_neonate.json`, `models.PV` (a `BloodVessel`, trimmed to the Capacitance props):
+No scenario uses a plain `Capacitance`; every compartment is a subclass. These are the props this class contributes, from `term_neonate_72h.json`, `models.PV` (a `BloodVessel`, trimmed to the Capacitance props):
 
 ```json
 {
@@ -128,7 +128,7 @@ No scenario uses a plain `Capacitance`; every compartment is a subclass. These a
 
 ## Usage in the scenarios
 
-Through its subclasses it is every compartment that holds blood or gas: in term_neonate 39 `BloodVessel`s, 10 `GasCapacitance`s and 3 `BloodCapacitance`s. Six of these are `fixed_composition` reservoirs:
+Through its subclasses it is every compartment that holds blood or gas: in term_neonate_72h 39 `BloodVessel`s, 10 `GasCapacitance`s and 3 `BloodCapacitance`s. Six of these are `fixed_composition` reservoirs:
 - `MOUTH` (room air);
 - `VENT_GASIN` and `VENT_GASOUT` (ventilator supply and exhaust);
 - `ECLS_GAS_SOURCE` and `ECLS_GAS_OUT` (sweep gas);

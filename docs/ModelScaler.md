@@ -88,7 +88,7 @@ Volume scaling and `add_volume` change the base volumes instead.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `model_definition.scaler_config` (trimmed):
+From `term_neonate_72h.json`, `model_definition.scaler_config` (trimmed):
 
 ```json
 {

@@ -4,7 +4,7 @@
 //
 // Why (re-validation item (h)): AA_COR gave every scenario about the same coronary flow per kg body
 // weight (10.5-11.4 mL/kg/min, ~5 % of LV output), so the resting myocardial O2 extraction ranged from
-// 30 % (term_neonate, 164 mL/min/100 g, ~2x human neonatal estimates: Aburawi 2012 LAD flow 8.2 mL/min,
+// 30 % (term_neonate_72h, 164 mL/min/100 g, ~2x human neonatal estimates: Aburawi 2012 LAD flow 8.2 mL/min,
 // doi:10.1016/j.echo.2011.11.019) to 70 % (fetus_term). Coronary flow is matched to myocardial O2 demand,
 // so the resistance is set to give a common resting extraction (agreed with the model's author): 55 %
 // postnatal (between newborn lambs, ~50 %, and adults, ~70 %) and 50 % in the fetus (fetal lamb
@@ -16,7 +16,7 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 
 const WRITE = process.argv.includes("--write");
-const ALL = ["term_neonate"]; // the other scenarios were removed on 2026-10-25
+const ALL = ["term_neonate_72h"]; // the other scenarios were removed on 2026-10-25
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const names = args.length ? args : ALL;
 const target = (n) => (n.startsWith("fetus") ? 0.5 : 0.55);

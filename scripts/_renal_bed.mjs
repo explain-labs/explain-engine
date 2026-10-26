@@ -37,7 +37,7 @@ export function measureRenal(eng, M, seconds = 5) {
   return s;
 }
 
-// term reference the rules scale from (term_neonate's own kidney at rest)
+// term reference the rules scale from (term_neonate_72h's own kidney at rest)
 export function measureTermReference(eng, termDef, brMap) {
   const model = eng.build(termDef);
   eng.calc(60);

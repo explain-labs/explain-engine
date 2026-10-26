@@ -53,7 +53,7 @@ In the shipped scenarios the only blood `mix_flow` is `RAIVCI_RASVC` (0.01 L/s),
   - `Blood` seeds the solutes at build (including `lact`);
   - `Drugs` adds its drug keys and `Glucose` its `glucose` key to every circulating compartment.
 
-  In term_neonate all 47 circulating blood compartments carry the same 11 solutes and 3 drugs. A new solute or drug must be seeded the same way.
+  In term_neonate_72h all 47 circulating blood compartments carry the same 11 solutes and 3 drugs. A new solute or drug must be seeded the same way.
 - **Hot path.** `mix_blood_in` runs about 45 times per step, so it uses plain `for…in` loops and allocates nothing.
 - **Well-mixed compartments.** Both functions assume each compartment is instantly and completely mixed. Streaming inside a compartment is represented by splitting it and choosing `mix_flow`.
 - The gas counterpart for `mix_flow` is [`helpers/GasMixing.js`](../helpers/GasMixing.js) `exchange_gas`. Gas mixing on inflow lives in `GasCapacitance.volume_in`.

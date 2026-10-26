@@ -40,7 +40,7 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `heart_rate_ref` | bpm | 110 | Resting (reference) sinus rate. term_neonate 120.33. |
+| `heart_rate_ref` | bpm | 110 | Resting (reference) sinus rate. term_neonate_72h 120.33. |
 | `pq_time` | s | 0.1 | Atrial activation (P wave) and PQ interval. |
 | `av_delay` | s | 0.0005 | AV-node pause after the PQ interval, before the QRS. |
 | `qrs_time` | s | 0.075 | Ventricular depolarisation (QRS). |
@@ -203,7 +203,7 @@ Each is applied as a delta to the *shared* persistent layer, so the chamber's fa
 - **Systole timing needs the left-heart valves.** `LA_LV` and an LV outflow valve are assumed present unless the LV has no outflow.
 - **Deterministic rhythm.** No beat-to-beat variability; PVCs are triggered, not random (the engine forbids `Math.random()`).
 
-## Calibration (term_neonate)
+## Calibration (term_neonate_72h)
 
 - `heart_rate_ref` 120.33 gives a resting HR of 120; calm day-3 term infants measure 117–121 (Satoh 2016, He 2011, Agata 1994).
 - LV `el_max` ×1.15 and RV `el_max` ×1.3 make stroke volume and ejection fraction match neonatal CMR (Jhaveri 2023: SV 1.6 mL/kg, EF 63 / 52.5 %) at unchanged output.
@@ -212,7 +212,7 @@ See `scripts/_fix_term_hr_contractility.mjs` and [TermNeonateReference](./TermNe
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Heart` (trimmed to the main config props; `components` holds the chambers, valves and `PERICARDIUM`):
+From `term_neonate_72h.json`, `models.Heart` (trimmed to the main config props; `components` holds the chambers, valves and `PERICARDIUM`):
 
 ```json
 {
@@ -250,7 +250,7 @@ Scenario differences:
 
 | | `heart_rate_ref` | Contractility / relaxation factors |
 |---|---|---|
-| term_neonate | 120.33 | – |
+| term_neonate_72h | 120.33 | – |
 
 ## References
 

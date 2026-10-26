@@ -1,7 +1,7 @@
 // Non-linear diastolic pressure-volume relation (EDPVR) for the heart chambers.
 //
 // All chambers had a linear diastolic relation (el_k = 0): filling pressure rose linearly with volume,
-// so a volume load raised stroke volume without limit (term_neonate, +30 mL with the reflexes off:
+// so a volume load raised stroke volume without limit (term_neonate_72h, +30 mL with the reflexes off:
 // SV +34 %). Volume-normalised EDPVRs share a steep power-law shape, EDP ~ V^2.79 (Klotz 2006); the
 // engine's diastolic term is el_min*S + el_k*S^2 (S = V - u_vol), so the closest it gets is a pure
 // quadratic. Per scenario this tool:

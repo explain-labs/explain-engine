@@ -1,8 +1,8 @@
-// One-off recalibration: term_neonate resting lactate 1.0 -> 1.5 mmol/L at an unchanged acid-base state.
+// One-off recalibration: term_neonate_72h resting lactate 1.0 -> 1.5 mmol/L at an unchanged acid-base state.
 //
 //   node scripts/_fix_term_lactate.mjs [--seconds 120] [--write | --out path.json]
 //
-// Why (docs/TermNeonateReference.md, step 6.6 of the term_neonate validation): healthy term infants
+// Why (docs/TermNeonateReference.md, step 6.6 of the term_neonate_72h validation): healthy term infants
 // after 48 h have a plasma lactate of 1.4 (0.8-3.3) mmol/L (GLOW 2021) and a capillary whole-blood
 // lactate of 2.6 +/- 0.7 (1.4-4.1) at 48 +/- 12 h (Cousineau 2005); 1.5 lies inside both.
 //   1. Lactate.lact_baseline 1.0 -> 1.5 (the value clearance relaxes every compartment back to).
@@ -22,7 +22,7 @@ const WRITE = argv.includes("--write");
 const OUT = arg("--out", null);
 const LACT = 1.5;
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);
@@ -50,4 +50,4 @@ const text = JSON.stringify(json, null, 2);
 JSON.parse(text);
 if (WRITE) fs.writeFileSync(file, text);
 if (OUT) fs.writeFileSync(OUT, text);
-out(WRITE ? "term_neonate.json written" : OUT ? `written to ${OUT}` : "dry run (pass --write or --out to save)");
+out(WRITE ? "term_neonate_72h.json written" : OUT ? `written to ${OUT}` : "dry run (pass --write or --out to save)");

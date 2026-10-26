@@ -39,7 +39,7 @@ The reflexes run in the components: each afferent turns its input into a firing 
 
 ## The reflex network in the scenarios
 
-Every scenario (term_neonate values; the set-points are re-anchored per scenario to its calibrated rest):
+Every scenario (term_neonate_72h values; the set-points are re-anchored per scenario to its calibrated rest):
 
 | Afferent | Input | min / set / max | → Efferent(s) |
 |---|---|---|---|
@@ -72,7 +72,7 @@ None of its own; the efferents write the targets' ANS inputs (`ans_activity`, `a
 
 ## Assumptions and limitations
 
-- **Reflex responses of term_neonate** (re-validation (l), `BR_MAP` and `EF_HR` time constants 4 and 2 s → 0.5 s, `CR_PO2` weight −0.15 → −0.4, baroreflex set-point re-anchored to the resting arch pressure so it is neutral at rest):
+- **Reflex responses of term_neonate_72h** (re-validation (l), `BR_MAP` and `EF_HR` time constants 4 and 2 s → 0.5 s, `CR_PO2` weight −0.15 → −0.4, baroreflex set-point re-anchored to the resting arch pressure so it is neutral at rest):
   - **Baroreflex sensitivity** (transfer gain from systolic pressure to RR interval at 0.1 Hz, systemic resistance modulated ±5 %): 6.0 ms/mmHg (was 1.5; 0 with the ANS off). Term infants: ~15 ms/mmHg in the first days (Andriessen 2005, LF transfer gain), 6.4 at 2–4 weeks (Yiallourou 2010). The static strength was already ~7 ms/mmHg; the slow receptor smoothing (4 s) and HR efferent (2 s) passed only ~23 % of it at 0.1 Hz, where the real vagal arm acts within about a second.
   - **Hypoxic ventilatory response** (FiO₂ 0.21 → 0.15): minute ventilation +16 % at 30 s, +19 % at 1 min, then +11 % by 5 min as PaCO₂ falls (39.6 → 34.9 mmHg); SaO₂ 97 → 93.4 %. Term newborns: an early rise (~+17 %, Rigatto 1982) then a late fall of ~14 % from the peak (De Boeck 1984). With the central **hypoxic ventilatory depression** ([Breathing](./Breathing.md#hypoxic-ventilatory-depression)) the late fall is 12 % from the peak (+18 % at 1 min, +4 % at 5 min); before it, the hypocapnic brake alone gave ~8 % and severe hypoxia stayed alkalotic.
   - **Hypercapnic response:** gain 0.25 (fractional rise in ventilation per mmHg PaCO₂; neonatal 0.10–0.40, `validate_respiratory.mjs`).
@@ -85,7 +85,7 @@ None of its own; the efferents write the targets' ANS inputs (`ans_activity`, `a
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Ans` (trimmed; `components` holds the eight sub-models above):
+From `term_neonate_72h.json`, `models.Ans` (trimmed; `components` holds the eight sub-models above):
 
 ```json
 {

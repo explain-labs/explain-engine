@@ -48,7 +48,7 @@ BaseModelClass
 | `set_fio2(fio2, sites = ["OUT", "MOUTH"])` | Rebuilds each named site's composition at `fio2`; stores `fio2`. Absent sites are skipped (no scenario has `OUT`). Room-air FiO2 is set on MOUTH. |
 | `set_temperature(t, sites = ["OUT", "MOUTH"])` | Adds the sites to `temp_settings` and re-applies all of them (`temp`, `target_temp`). Fixed sources are rebuilt with their **own** dry FiO2 (their water content follows the new temperature). |
 | `set_humidity(h, sites = ["OUT", "MOUTH"])` | Same for humidity. Airway compartments relax to the new humidity on their own; fixed sources are rebuilt with their own FiO2. |
-| `set_atmospheric_pressure(p)` | `pres_atm` on every gas compartment. In term_neonate, 760 → 600 mmHg lowers mouth pO2 from 158 to 125 mmHg, alveolar pO2 105 → 76 and post-ductal pO2 73 → 57 mmHg (SO2 96.7 → 94.7 %) within 2 min. |
+| `set_atmospheric_pressure(p)` | `pres_atm` on every gas compartment. In term_neonate_72h, 760 → 600 mmHg lowers mouth pO2 from 158 to 125 mmHg, alveolar pO2 105 → 76 and post-ductal pO2 73 → 57 mmHg (SO2 96.7 → 94.7 %) within 2 min. |
 | `set_body_temperature(core)` | Called by Thermoregulation: `target_temp` of each body-warmed compartment = core + its stored offset, so fever and hypothermia reach the alveoli (and the dead space stays 5 °C below). Neutral at rest. |
 | `drain_respiratory_heat()` | Called by Thermoregulation: returns and clears the heat (J, sensible + latent) the body-warmed compartments gave to the gas since the last call. |
 
@@ -73,7 +73,7 @@ None.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Gas` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Gas` (trimmed to the config props):
 
 ```json
 {
@@ -93,7 +93,7 @@ From `term_neonate.json`, `models.Gas` (trimmed to the config props):
 
 ## Usage in the scenarios
 
-One instance in every scenario, with the settings above. `fio2` 0.21 in term_neonate.
+One instance in every scenario, with the settings above. `fio2` 0.21 in term_neonate_72h.
 
 ## References
 

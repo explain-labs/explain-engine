@@ -125,7 +125,7 @@ Calibration when it was introduced (`scripts/probe_dead_space.mjs`, preterm_28wk
 ## Assumptions and limitations
 
 - **The airway wall is an unlimited water source.** Water loss isn't tracked; the heat is (metered for Thermoregulation). Condensate leaves the system.
-- **Brief supersaturation on expiration is real.** Condensation lags (`h2o_tc`), so the dead space can sit slightly above 100 % RH while warm alveolar gas flows into it. In term_neonate it swings between ~68 % and 102 % RH over a breath (22–35 °C). Sample a full cycle.
+- **Brief supersaturation on expiration is real.** Condensation lags (`h2o_tc`), so the dead space can sit slightly above 100 % RH while warm alveolar gas flows into it. In term_neonate_72h it swings between ~68 % and 102 % RH over a breath (22–35 °C). Sample a full cycle.
 - **Humidifying inspired gas barely changes alveolar gas,** correctly: MOUTH 50 → 100 % RH moves alveolar pH2O ~0.2 mmHg, because the airway saturates the gas anyway. The clinical benefit of a humidifier (sparing the mucosa) has nothing to attach to, since the wall has no water debt.
 - **Fixed-composition compartments don't self-correct.** Their temperature and humidity change only through `Gas.set_temperature` / `set_humidity`, which rebuild the composition.
 - **No water or heat crosses the blood–gas barrier.**
@@ -134,7 +134,7 @@ Calibration when it was introduced (`scripts/probe_dead_space.mjs`, preterm_28wk
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Respiration.components.ALL` (trimmed to the config props; `target_temp` rounded):
+From `term_neonate_72h.json`, `models.Respiration.components.ALL` (trimmed to the config props; `target_temp` rounded):
 
 ```json
 {

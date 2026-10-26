@@ -3,7 +3,7 @@
   "user": "timothy",
   "description": "healthy term neonate (3.545 kg) 1 h after a vaginal birth with delayed cord clamping (~1 min): large bidirectional duct, near-systemic pulmonary pressure, high output, haematocrit 55 %, mild metabolic acidosis; room air, skin-to-skin",
   "provenance": "generated",
-  "provenance_note": "generated from term_neonate by scripts/_make_term_transition.mjs --age 1; reference docs/TermTransitionReference.md",
+  "provenance_note": "generated from term_neonate_72h by scripts/_make_term_transition.mjs --age 1; reference docs/TermTransitionReference.md",
   "diagram_definition": {
     "settings": {
       "name": "baseline_neonate_diagram_exp",

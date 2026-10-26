@@ -81,7 +81,7 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
 
   | Scenario | Heart weight | MVO2 | Coronary flow (per 100 g), before → after | Extraction |
   |---|---|---|---|---|
-  | term_neonate | 23.0 g | 10.6 | 37.4 (163) → 18.1 (79 per 100 g) | 30 → 55 % |
+  | term_neonate_72h | 23.0 g | 10.6 | 37.4 (163) → 18.1 (79 per 100 g) | 30 → 55 % |
 
   The term flow (18 mL/min) is close to the ~20–25 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests; the since-removed fetal scenarios got 105–195 per 100 g at 50 %, in the range of fetal-lamb microsphere data (Smolich 1996, Dalshaug 2002), and the preterm ones 59–64 at 55 %. The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
 - **The hypoxia effects start only at a very low `COR.to2`** (0.2 mmol/L, ~2 % saturation). At rest they are inactive, and they engage only in profound coronary hypoxia.
@@ -95,7 +95,7 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Mob` (trimmed to the config props; `components` holds `COR`, `AA_COR`, `COR_RAIVCI`, `COR_RASVC`):
+From `term_neonate_72h.json`, `models.Mob` (trimmed to the config props; `components` holds `COR`, `AA_COR`, `COR_RAIVCI`, `COR_RASVC`):
 
 ```json
 {

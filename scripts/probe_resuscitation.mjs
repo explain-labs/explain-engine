@@ -31,7 +31,7 @@ import { register } from "node:module";
 register("./resolve-extensionless.mjs", import.meta.url);
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate";
+const scenario = argv.find((a) => !a.startsWith("-")) || "term_neonate_72h";
 const flag = (n) => argv.includes(n);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? Number(argv[i + 1]) : d; };
 const WARMUP = opt("--warmup", 60);

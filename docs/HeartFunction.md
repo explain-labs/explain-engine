@@ -125,7 +125,7 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
 
 ## Assumptions and limitations
 
-- **The dead-band keeps normal loading out.** The response starts only above 1.5 × the resting stress. Without it, any preload rise above rest depressed contractility; the depressed ventricle dilated, which raised the stress further, and a normal +8 % volume load ran away to `cont_floor`. In term_neonate (reflexes off), 1.5 × is reached at:
+- **The dead-band keeps normal loading out.** The response starts only above 1.5 × the resting stress. Without it, any preload rise above rest depressed contractility; the depressed ventricle dilated, which raised the stress further, and a normal +8 % volume load ran away to `cont_floor`. In term_neonate_72h (reflexes off), 1.5 × is reached at:
   - a MAP of ~80 mmHg (LV afterload);
   - LA ~9 mmHg (LV over-dilation);
   - a doubled PVR (RV).
@@ -142,7 +142,7 @@ None of its own. It writes four of [`HeartChamber`'s](./HeartChamber.md#set-by-o
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.HeartFunction` (trimmed to the main config props):
+From `term_neonate_72h.json`, `models.HeartFunction` (trimmed to the main config props):
 
 ```json
 {
@@ -166,11 +166,11 @@ One instance in every scenario, enabled, with resting setpoints learned for that
 
 | Scenario | LV σ_es / σ_ed | RV σ_es / σ_ed |
 |---|---|---|
-| term_neonate | 77.4 / 26.0 | 124.4 / 63.1 |
+| term_neonate_72h | 77.4 / 26.0 | 124.4 / 63.1 |
 
-term_neonate's set-points were re-learned in the re-validation (g). The heart changes (valves, AV inertance, RV, coronary flow, blood volume) had raised its resting LV end-diastolic stress ~19 % above the old set-point (21.6), so the LV dilated slowly at rest (eccentric remodelling ~0.07 per simulated day); after the re-learn it stays at 0.
+term_neonate_72h's set-points were re-learned in the re-validation (g). The heart changes (valves, AV inertance, RV, coronary flow, blood volume) had raised its resting LV end-diastolic stress ~19 % above the old set-point (21.6), so the LV dilated slowly at rest (eccentric remodelling ~0.07 per simulated day); after the re-learn it stays at 0.
 
-`scripts/probe_heartfunction.mjs` exercises it on term_neonate with an afterload and a volume challenge.
+`scripts/probe_heartfunction.mjs` exercises it on term_neonate_72h with an afterload and a volume challenge.
 
 ## References
 

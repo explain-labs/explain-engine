@@ -1,4 +1,4 @@
-// Re-bake term_neonate.json at its steady state: build it, let it settle, and serialize the live model
+// Re-bake term_neonate_72h.json at its steady state: build it, let it settle, and serialize the live model
 // back into model_definition the way the app's save-state does (Model._processModelState, via
 // _serialize_state.mjs). No parameter changes: only the state (volumes, pressures, contents, controller
 // states such as Brain.autoreg_factor, the renal autoregulation factors, the ANS firing rates, the hormone
@@ -23,7 +23,7 @@ const SECONDS = (() => { const i = argv.indexOf("--seconds"); return i >= 0 ? Nu
 const WRITE = argv.includes("--write");
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);

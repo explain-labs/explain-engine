@@ -1,6 +1,6 @@
 # Term neonate at 72 h: literature reference values
 
-Reference values for validating the `term_neonate` scenario: a healthy term neonate of about 3.5 kg
+Reference values for validating the `term_neonate_72h` scenario: a healthy term neonate of about 3.5 kg
 at about 72 h postnatal age, in a calm, mixed sleep/awake state. Compiled 2026-10-18 from three
 reference PDFs (kept out of the repository) and a PubMed search.
 

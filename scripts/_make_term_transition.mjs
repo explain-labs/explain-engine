@@ -1,4 +1,4 @@
-// Generate a transitional term neonate (term_neonate_<age>h) from the 72 h term_neonate.
+// Generate a transitional term neonate (term_neonate_<age>h) from the 72 h term_neonate_72h.
 //
 //   node scripts/_make_term_transition.mjs --age 1 [--seconds 300] [--write]
 //   prototyping: [--set '<json profile overrides>'] [--out <file>] (writes the dry run there)
@@ -34,7 +34,7 @@ const SET = JSON.parse(sopt("--set") ?? "{}");
 const OUT = sopt("--out");
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 
-// Lever profiles per postnatal age (h). Factors are relative to the 72 h term_neonate.
+// Lever profiles per postnatal age (h). Factors are relative to the 72 h term_neonate_72h.
 const PROFILES = {
   1: {
     description: "healthy term neonate (3.545 kg) 1 h after a vaginal birth with delayed cord clamping (~1 min): " +
@@ -143,7 +143,7 @@ const SVR_BED_VESSELS = {
 };
 
 const eng = await createEngine();
-const src = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const src = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const dst = new URL(`../model_definitions/${NAME}.json`, import.meta.url);
 const j = JSON.parse(fs.readFileSync(src, "utf8"));
 const baselineWeight = j.model_definition._baseline_weight;
@@ -250,7 +250,7 @@ for (let i = 0; i < 400; i++) {
 j.name = NAME;
 j.description = P.description;
 j.provenance = "generated";
-j.provenance_note = `generated from term_neonate by scripts/_make_term_transition.mjs --age ${AGE}; reference docs/TermTransitionReference.md`;
+j.provenance_note = `generated from term_neonate_72h by scripts/_make_term_transition.mjs --age ${AGE}; reference docs/TermTransitionReference.md`;
 setDiagramTitle(j, NAME);
 const da = j.diagram_definition?.components?.DA;
 if (da?.layout) { da.label = "PDA"; da.layout.label = { ...da.layout.label, visible: true, at: 0.72, pos_x: 0, pos_y: -10, size: 11 }; }

@@ -104,7 +104,7 @@ It owns `AA_BR_ART.r_factor_ps` (inflow), and writes the non-persistent `BR_VEN_
 
 ## Assumptions and limitations
 
-- **Behaviour in term_neonate** (re-validation (f), 2 min after each oedema step; CBF in mL/min):
+- **Behaviour in term_neonate_72h** (re-validation (f), 2 min after each oedema step; CBF in mL/min):
 
   | Oedema (mL) | ICP | CPP | CBF intact (factor) | CBF pressure-passive | `brain_to2` intact / passive |
   |---|---|---|---|---|---|
@@ -124,7 +124,7 @@ It owns `AA_BR_ART.r_factor_ps` (inflow), and writes the non-persistent `BR_VEN_
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defaults):
+From `term_neonate_72h.json`, `models.Brain` (trimmed: wiring and gains are the defaults):
 
 ```json
 {
@@ -145,7 +145,7 @@ From `term_neonate.json`, `models.Brain` (trimmed: wiring and gains are the defa
 
 ## Usage in the scenarios
 
-One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` is 0.106 L/min in term_neonate.
+One instance in every scenario, running with intact autoregulation and the baseline stored. `cbf_setpoint` is 0.106 L/min in term_neonate_72h.
 
 ## References
 

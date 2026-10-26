@@ -97,7 +97,7 @@ d core / dt = (Q_prod − Q_loss − Q_perf) / (weight · heat_capacity − C_bl
 - `Heart.hr_temp_factor = 1 + hr_temp_gain · (core − set-point)` (clamped);
 - `Blood.set_perfusion_target(core)` and `Gas.set_body_temperature(core)`.
 
-**Example** (term_neonate, room moved from 32 to 24 °C):
+**Example** (term_neonate_72h, room moved from 32 to 24 °C):
 - after 20 min: core 35.9 °C, brown fat 6.6 W (doubling Metabolism's O2 use, `vo2_bat_factor` 1.97), heart-rate factor 0.89, Q10 factor 0.91;
 - after 40 min: core 35.3 °C.
 
@@ -115,7 +115,7 @@ It owns `Metabolism.vo2_temp_factor`, `vo2_bat_factor` and `Heart.hr_temp_factor
 ## Assumptions and limitations
 
 - **Heat production counts Metabolism only,** not the myocardium (Mob); the trim absorbs it at rest, but a change in cardiac work doesn't change heat.
-- **Heat-loss geometry** (re-validation, term_neonate): until then the surface area was half the real one (`surface_area_k` 0.05 → 0.116 m²) with coefficients above the measured ones (9.6 and 7.0 W/(m²·K)); the errors partly cancelled. Now 0.226 m² with 5.2 and 4.9; the dry-loss sensitivity is SA·(h_rad + h_conv) = 2.28 W/K (was 1.93), and the resting trim is −5.26 W (was −3.23), because the losses are computed from core rather than skin temperature.
+- **Heat-loss geometry** (re-validation, term_neonate_72h): until then the surface area was half the real one (`surface_area_k` 0.05 → 0.116 m²) with coefficients above the measured ones (9.6 and 7.0 W/(m²·K)); the errors partly cancelled. Now 0.226 m² with 5.2 and 4.9; the dry-loss sensitivity is SA·(h_rad + h_conv) = 2.28 W/K (was 1.93), and the resting trim is −5.26 W (was −3.23), because the losses are computed from core rather than skin temperature.
 
   | Ambient step from 32 °C, 60 min | Before | Now |
   |---|---|---|
@@ -131,7 +131,7 @@ It owns `Metabolism.vo2_temp_factor`, `vo2_bat_factor` and `Heart.hr_temp_factor
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Thermoregulation` (trimmed to the main config):
+From `term_neonate_72h.json`, `models.Thermoregulation` (trimmed to the main config):
 
 ```json
 {
@@ -157,7 +157,7 @@ One instance in every scenario.
 
 | Scenario | `env_temp` (°C) | Humidity | Set-point | Brown fat | Respiratory heat |
 |---|---|---|---|---|---|
-| term_neonate | 32 | 0.5 | 37 | yes | yes |
+| term_neonate_72h | 32 | 0.5 | 37 | yes | yes |
 
 ## References
 

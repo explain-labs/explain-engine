@@ -17,7 +17,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
-const scenario = argv.find((a, i) => !a.startsWith("-") && !/^\d/.test(a) && !argv[i - 1]?.startsWith("--")) || "term_neonate";
+const scenario = argv.find((a, i) => !a.startsWith("-") && !/^\d/.test(a) && !argv[i - 1]?.startsWith("--")) || "term_neonate_72h";
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
 const SETTLE = Number(opt("--settle", 180));
 const WINDOW = Number(opt("--window", 20));

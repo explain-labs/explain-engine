@@ -49,7 +49,7 @@ Every 15 ms (skipped if `input_model` is missing or the input is not a finite nu
 3. **Time constant:** `firing_rate += 0.015/tc · (rate − firing_rate)`.
 4. **Report** to every efferent: `update_effector(firing_rate, effect_weight, name)`.
 
-**Example**, `BR_MAP` in term_neonate (25 / 60.6 / 100 mmHg, tc 0.5 s): a MAP of 45 mmHg gives `0.5 − 0.5·15.6/35.6 = 0.28`, so the heart-rate and tone efferents see a firing deficit of 0.22.
+**Example**, `BR_MAP` in term_neonate_72h (25 / 60.6 / 100 mmHg, tc 0.5 s): a MAP of 45 mmHg gives `0.5 − 0.5·15.6/35.6 = 0.28`, so the heart-rate and tone efferents see a firing deficit of 0.22.
 
 ## Factor system
 
@@ -70,7 +70,7 @@ None.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Ans.components.BR_MAP` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Ans.components.BR_MAP` (trimmed to the config props):
 
 ```json
 {

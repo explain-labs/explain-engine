@@ -72,7 +72,7 @@ A neonatal Hb of 10 mmol/L gives Hct 0.49 and ~6 cP. [BloodVessel](./BloodVessel
 | `set_P50(p50)` | Every compartment and `P50_0`. |
 | `set_haldane_coeff(k)` | Every compartment and `haldane_coeff`. |
 | `set_viscosity(cP)` | Scales `viscosity_plasma` so the viscosity at the current reference becomes `cP` (plasma proteins, cold agglutinins); resistances follow. |
-| `set_temperature(t, site = "")` | A **cold or warm blood bolus**: stamps `temp` on all compartments (or one), which then relax back to `body_temp`. 37 → 34 °C in term_neonate is back to 36.6 °C within 30 s and cools the core 0.3 °C. Lasting changes go through Thermoregulation. |
+| `set_temperature(t, site = "")` | A **cold or warm blood bolus**: stamps `temp` on all compartments (or one), which then relax back to `body_temp`. 37 → 34 °C in term_neonate_72h is back to 36.6 °C within 30 s and cools the core 0.3 °C. Lasting changes go through Thermoregulation. |
 | `set_perfusion_target(core)` | Called by Thermoregulation: `body_temp` of every compartment not under device control (`temp_ext_override`). |
 | `get_thermal_state(density, cp)` | Heat capacity and mean temperature of the enabled, non-fixed blood, for Thermoregulation's heat balance. |
 | `calc_viscosity(hb)` | The viscosity law above. |
@@ -101,7 +101,7 @@ None. Viscosity reaches the resistances through `BloodVessel`'s viscosity term.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Blood` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Blood` (trimmed to the config props):
 
 ```json
 {
@@ -129,7 +129,7 @@ One instance in every scenario.
 
 | Scenario | `P50_0` (mmHg) | Hb (mmol/L) |
 |---|---|---|
-| term_neonate | 20 | 10 |
+| term_neonate_72h | 20 | 10 |
 
 ## References
 

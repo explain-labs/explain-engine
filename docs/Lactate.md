@@ -56,7 +56,7 @@ Every 1 s:
    ```
 3. **Clearance:** every blood compartment's `lact` relaxes toward `lact_baseline` by `lact_clearance · Δt`.
 
-**Example** (term_neonate, FiO2 0.08): after 3 min SaO2 is 48 %, the worst bed is 42 % anaerobic and lactate 1.6 mmol/L; 3 min later it is 3.2 mmol/L with the worst bed fully anaerobic.
+**Example** (term_neonate_72h, FiO2 0.08): after 3 min SaO2 is 48 %, the worst bed is 42 % anaerobic and lactate 1.6 mmol/L; 3 min later it is 3.2 mmol/L with the worst bed fully anaerobic.
 
 ## Factor system
 
@@ -79,7 +79,7 @@ None.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Lactate` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Lactate` (trimmed to the config props):
 
 ```json
 {

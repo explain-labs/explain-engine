@@ -1,5 +1,6 @@
 import ModelEmitter from "./ModelEmitter";
 import { RT_MSG } from "./helpers/RealtimeChannels.js";
+import { SCENARIO_ALIASES } from "./helpers/ScenarioAliases.js";
 
 /**
  * Model manages lifecycle, messaging, and state synchronization between the UI
@@ -61,6 +62,12 @@ export default class Model extends ModelEmitter {
    * @param {string} definition_name File stem inside /model_definitions.
    */
   load(definition_name) {
+    // a renamed scenario still loads under its old name (saved links, lessons, snapshots)
+    const renamed = SCENARIO_ALIASES[definition_name];
+    if (renamed) {
+      console.log(`Model: '${definition_name}' was renamed '${renamed}'; loading that.`);
+      definition_name = renamed;
+    }
     console.log(`Model: Loading modeling definition: '${definition_name}'.`)
     const url = "/model_definitions/" + definition_name + ".json";
 

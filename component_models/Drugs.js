@@ -70,7 +70,7 @@ export class Drugs extends BaseModelClass {
         clearance: { global: 0.003828, sites: { KID_CAP: 0.1044, LS_CAP: 0.1566, INT_CAP: 0.0696 } },
         ke0: 0.0, // biophase off by default
         // PD — EC50s from Oualha 2014 (heart rate 5.7 ng/mL; the SV·SVR product 18 ng/mL); Emax values
-        // fitted so term_neonate's closed-loop response matches that model (0.1 mcg/kg/min: HR +15 %,
+        // fitted so term_neonate_72h's closed-loop response matches that model (0.1 mcg/kg/min: HR +15 %,
         // MAP +24 %). Heart rate (β1 chronotropy)
         hr_ec50: 5.7, hr_emax: 0.9, hr_hill: 1.0,
         // PD — contractility / inotropy (β1)
@@ -87,7 +87,7 @@ export class Drugs extends BaseModelClass {
         ke0: 0.0,
         // PD — predominantly α1 vasoconstriction, modest β1 inotropy, little chronotropy; fitted to the
         // neonatal cohorts (MAP +15-20 % at 0.1-0.5 mcg/kg/min, heart rate unchanged or lower):
-        // term_neonate 0.3 mcg/kg/min MAP +18 %, HR -3 %
+        // term_neonate_72h 0.3 mcg/kg/min MAP +18 %, HR -3 %
         hr_ec50: 5.7, hr_emax: 0.2, hr_hill: 1.0,
         cont_ec50: 18.0, cont_emax: 0.56, cont_hill: 1.0,
         // PD — modest β1 lusitropy (negative emax → better relaxation)

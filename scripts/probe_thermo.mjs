@@ -6,7 +6,7 @@
 // engages + vo2_temp_factor < 1; radiant warmer → fever + tachycardia. Also checks the blood
 // temperature tracks the core (feeds the acid-base solver).
 //
-// Usage: node scripts/probe_thermo.mjs [--scenario term_neonate] [--no-ans] [--verbose]
+// Usage: node scripts/probe_thermo.mjs [--scenario term_neonate_72h] [--no-ans] [--verbose]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -15,7 +15,7 @@ register("./resolve-extensionless.mjs", import.meta.url);
 const argv = process.argv.slice(2);
 const flag = (n) => argv.includes(n);
 const sopt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 const NO_ANS = flag("--no-ans");
 const VERBOSE = flag("--verbose");
 

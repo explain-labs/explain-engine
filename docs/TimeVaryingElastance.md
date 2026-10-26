@@ -103,7 +103,7 @@ BaseModelClass
 
 ## Example definition (JSON)
 
-No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this class's calculation unchanged; from `term_neonate.json`, `models.Mob.components.COR` (a `BloodTimeVaryingElastance`, trimmed to the props this class defines):
+No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this class's calculation unchanged; from `term_neonate_72h.json`, `models.Mob.components.COR` (a `BloodTimeVaryingElastance`, trimmed to the props this class defines):
 
 ```json
 {
@@ -122,7 +122,7 @@ No scenario uses a plain `TimeVaryingElastance`. The coronary bed uses this clas
 
 Six instances in every shipped scenario:
 
-| Instance | Class | Activation | term_neonate `el_min` / `el_k` / `el_max` | `u_vol` (mL) |
+| Instance | Class | Activation | term_neonate_72h `el_min` / `el_k` / `el_max` | `u_vol` (mL) |
 |---|---|---|---|---|
 | `LV` | HeartChamber | `vaf` | 0 / 1.56·10⁵ / 30478 | 0.73 |
 | `RV` | HeartChamber | `rvaf` | 0 / 8.85·10⁴ / 9826 | 1.20 |

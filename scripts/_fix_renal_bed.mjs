@@ -29,12 +29,12 @@ const flatten = (models) => {
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 const eng = await createEngine();
-const termMd = read("term_neonate").model_definition;
+const termMd = read("term_neonate_72h").model_definition;
 const termBrMap = flatten(termMd.models).BR_MAP.set_value;
 // --check-term re-measures the term kidney the constant TERM_RENAL was taken from
 if (argv.includes("--check-term")) {
   const t = measureTermReference(eng, termMd, termBrMap);
-  out(`term_neonate now: GFR ${t.gfr.toFixed(2)} mL/min, RBF ${t.rbf.toFixed(1)} mL/min (RBF/GFR ${t.rbfPerGfr.toFixed(1)}), kf ${t.kf.toExponential(2)} — TERM_RENAL: RBF/GFR ${TERM_RENAL.rbfPerGfr}, kf ${TERM_RENAL.kf}`);
+  out(`term_neonate_72h now: GFR ${t.gfr.toFixed(2)} mL/min, RBF ${t.rbf.toFixed(1)} mL/min (RBF/GFR ${t.rbfPerGfr.toFixed(1)}), kf ${t.kf.toExponential(2)} — TERM_RENAL: RBF/GFR ${TERM_RENAL.rbfPerGfr}, kf ${TERM_RENAL.kf}`);
 }
 const TERM = TERM_RENAL;
 

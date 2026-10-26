@@ -8,7 +8,7 @@ How to exercise and verify the Explain engine **headlessly** — build a scenari
 >
 > ```bash
 > git clone git@github.com:explain-labs/explain-engine.git && cd explain-engine
-> node scripts/probe_vitals.mjs term_neonate   # no npm install needed
+> node scripts/probe_vitals.mjs term_neonate_72h   # no npm install needed
 > ```
 >
 > This repo has **zero dependencies and zero devDependencies**, so a bare clone runs a full
@@ -89,9 +89,9 @@ A probe is a self-contained `.mjs` that boots the engine, runs a scripted physio
 ### Run examples
 
 ```bash
-node scripts/probe_vitals.mjs term_neonate
-node scripts/probe_vitals.mjs term_neonate --no-ans --seconds 90
-node scripts/probe_brain.mjs --scenario term_neonate --bleed 0.3
+node scripts/probe_vitals.mjs term_neonate_72h
+node scripts/probe_vitals.mjs term_neonate_72h --no-ans --seconds 90
+node scripts/probe_brain.mjs --scenario term_neonate_72h --bleed 0.3
 node scripts/probe_pda.mjs <scenario with an open duct> --beats 6
 ```
 
@@ -104,7 +104,7 @@ Probes are **interactive verification tools, not pass/fail test cases.** They pr
 ## The respiratory validation suite
 
 `npm run validate:resp` (`scripts/validate_respiratory.mjs`) **is** a pass/fail gate: it exits `1` when a
-check fails. It runs a fixed battery on term_neonate, term_neonate_1h, term_neonate_12h and term_neonate_24h (classes `term_1h`, `term_12h` and `term_24h`: the age's pH, PaCO2, SpO2 and, at 1 and 12 h, a static compliance floor 15 % lower for residual lung liquid; preterm_28wk was removed on 2026-10-25 to be rebuilt, so the preterm-class checks, HFOV among them, wait for the rebuild; adult_female is archived), one child process per
+check fails. It runs a fixed battery on term_neonate_72h, term_neonate_1h, term_neonate_12h and term_neonate_24h (classes `term_1h`, `term_12h` and `term_24h`: the age's pH, PaCO2, SpO2 and, at 1 and 12 h, a static compliance floor 15 % lower for residual lung liquid; preterm_28wk was removed on 2026-10-25 to be rebuilt, so the preterm-class checks, HFOV among them, wait for the rebuild; adult_female is archived), one child process per
 scenario, and checks each result against clinical ranges per patient class in
 `scripts/_resp_targets.mjs` (each range carries its literature source; the ranges are not fitted to the
 model). The battery:
@@ -144,7 +144,7 @@ fail the run. One that starts passing reports `XPASS`: remove its entry. Options
 | `probe_pda.mjs`, `probe_cdh.mjs` | PDA Doppler envelope classification; congenital diaphragmatic hernia phenotypes. |
 | **CHD family** | `probe_as.mjs`, `probe_coarc.mjs`, `probe_dtga.mjs`, `probe_hlhs.mjs`, `probe_paivs.mjs`, `probe_pavsd.mjs`, `probe_ps.mjs`, `probe_ta.mjs`, `probe_tapvc.mjs`, `probe_tof.mjs` | Duct/FO-dependent congenital heart disease scenarios (aortic stenosis, coarctation, d-TGA, HLHS, PA-IVS, PA-VSD, pulmonary stenosis, tricuspid atresia, TAPVC, tetralogy of Fallot). |
 
-> Every probe defaults to `term_neonate`. Until the preterm and fetal scenarios are rebuilt, `probe_apnea`, `probe_surfactant` and `probe_derecruitment` (they need an Apnea or Surfactant model) `probe_fetus`/`probe_placenta` (they need a running placenta), `probe_oxygenie` (it titrates a hypoxaemic preterm, `preterm_26wk`) and `probe_pge1` (it needs a duct-dependent lesion, `pa_ivs`) have no shipped scenario to run on. `probe_tune` takes the scenario first: `probe_tune.mjs term_neonate --map 50 --co x0.8`. Check the script's `Usage:` header.
+> Every probe defaults to `term_neonate_72h`. Until the preterm and fetal scenarios are rebuilt, `probe_apnea`, `probe_surfactant` and `probe_derecruitment` (they need an Apnea or Surfactant model) `probe_fetus`/`probe_placenta` (they need a running placenta), `probe_oxygenie` (it titrates a hypoxaemic preterm, `preterm_26wk`) and `probe_pge1` (it needs a duct-dependent lesion, `pa_ivs`) have no shipped scenario to run on. `probe_tune` takes the scenario first: `probe_tune.mjs term_neonate_72h --map 50 --co x0.8`. Check the script's `Usage:` header.
 
 ## Other engine-dev tooling
 
@@ -154,7 +154,7 @@ The remaining `scripts/*.mjs` support calibration, scenario authoring, and stead
 |---|---|---|
 | **Calibration** | `build_patient.mjs`, `probe_build_patient.mjs`, `probe_tune.mjs` | Closed-loop calibration via [`helpers/Calibrator.js`](../helpers/Calibrator.js) (see [Calibrator](./Calibrator.md)) — `build_patient.mjs` builds a new calibrated patient from target vitals; `probe_build_patient.mjs` runs it on a few SPECs, reloads each emitted scenario in a fresh engine and checks it against its own `build_report` (targets still within tolerance, FiO2 persisted, desaturation in room air, derived blood-pressure targets, solutes held after reload) and prints levers that ended on a bound; `probe_tune.mjs` exercises the same live tuner headlessly. |
 | **Reseeding** | `reseed_*.mjs` (e.g. `reseed_term_neonate`) | Warm a scenario to steady state and serialize it back into `model_definition` (baking equilibrium seeds, clearing startup transients). `reseed_term_neonate` changes no parameter: it settles 600 s, steps to a sinus-node firing (the phase a loaded heart restarts in) and serializes; it used to re-apply old calibration deltas first, which would now undo later calibrations. Each shares `_serialize_state.mjs` (replicates `Model._processModelState`). **Default is a dry run to `/tmp`**; pass `--write` to overwrite the scenario file in place. Only `reseed_term_neonate` remains here; the reseeders of the archived scenarios are in `scripts/archive/` (see below). |
-| **Archived generators** | `scripts/archive/` (`_make_preterm`, `_make_fetus`, `_make_cdh_phenotypes`, `_make_dtga`, `_make_pda_patterns`, …, and their `reseed_*`) | The scripts of the archived scenarios: they derive a scenario from `term_neonate` by phenotype-specific lever edits and read and write `model_definitions/archive/` only. Unvalidated against the current engine; see their README. New scenario titles still go in `_titles.mjs` (`setDiagramTitle`). |
+| **Archived generators** | `scripts/archive/` (`_make_preterm`, `_make_fetus`, `_make_cdh_phenotypes`, `_make_dtga`, `_make_pda_patterns`, …, and their `reseed_*`) | The scripts of the archived scenarios: they derive a scenario from `term_neonate_72h` by phenotype-specific lever edits and read and write `model_definitions/archive/` only. Unvalidated against the current engine; see their README. New scenario titles still go in `_titles.mjs` (`setDiagramTitle`). |
 | **Gestational-age tables** | `scripts/_ga_tables.mjs` | The per-GA seed levers used by `build_patient.mjs`. (The validated preterm/fetal generators and their profiles were removed on 2026-10-25 to be rebuilt.) |
 | **Feature patchers** | `_add_neonatal_core.mjs`, `_add_brain.mjs`, `_add_surfactant.mjs`, `_add_titles.mjs` | Patch a model/feature into many existing scenario JSONs at once (without reseeding, to preserve calibration). `_add_titles.mjs` re-applies the `_titles.mjs` diagram titles in place. |
 | **Shared internals** | `_harness.mjs`, `_probe.mjs`, `_serialize_state.mjs`, `_titles.mjs`, `resolve-extensionless.mjs` | `createEngine`; `measureVitals`/`RANGES`/`selectProfile`/`flagOf`; the `serializeState` baker; the scenario diagram-title map; the ESM `.js`-retry resolve hook. |

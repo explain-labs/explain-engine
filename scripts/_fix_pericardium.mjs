@@ -1,4 +1,4 @@
-// One-off repair: give term_neonate's pericardium a J-shaped pressure-volume curve.
+// One-off repair: give term_neonate_72h's pericardium a J-shaped pressure-volume curve.
 //
 // The pericardium (a Container around RAIVCI/RASVC/RV/LA/LV/COR) had u_vol 0, el_base 10 and
 // el_k 1 mmHg/L^2: its recoil was ~0.25 mmHg and it never constrained the heart, however full.
@@ -12,7 +12,7 @@
 // the builder's CVP+CO lever pair: venous tone (central-vein u_vol) and RV diastolic stiffness
 // (RV el_min).
 //
-//   node scripts/_fix_pericardium.mjs [scenario=term_neonate] [--write]
+//   node scripts/_fix_pericardium.mjs [scenario=term_neonate_72h] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
@@ -21,7 +21,7 @@ const RESERVE = 0.15, STEEP_ML = 10, STEEP_MMHG = 10;
 const CENTRAL = ["VUB", "VLB", "SVC", "IVCI"];
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate";
+const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate_72h";
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
 const json = JSON.parse(raw);
@@ -49,7 +49,7 @@ out(`${name}: end-diastolic heart volume ${(vmax * 1000).toFixed(2)} mL -> PERIC
 jP.u_vol = u_vol; jP.el_k = el_k; jP.el_base = 0;
 
 // 3. restore resting CVP and CO with venous tone + RV diastolic stiffness (Newton on log factors;
-//    sensitivities measured on term_neonate: d(CVP, CO%)/d ln(u_vol) = (-13.1, -166),
+//    sensitivities measured on term_neonate_72h: d(CVP, CO%)/d ln(u_vol) = (-13.1, -166),
 //    d(CVP, CO%)/d ln(el_min) = (2.96, -26.4))
 const rest = (def) => { const m = eng.build(structuredClone(def)); eng.calc(180); return measureVitals(m, send, { window: 30 }); };
 const ref = rest(JSON.parse(raw).model_definition);

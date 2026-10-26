@@ -155,7 +155,7 @@ at every load).
 
 ## Example definition (JSON)
 
-From `term_neonate.json`:
+From `term_neonate_72h.json`:
 
 ```json
 {
@@ -225,8 +225,8 @@ chamber activation factors so the ventricles are flaccid), then runs CPR via `sw
 prints a labelled `ok`/`FAIL` table:
 
 ```bash
-node scripts/probe_resuscitation.mjs term_neonate
-node scripts/probe_resuscitation.mjs term_neonate --cpr-seconds 60 --no-ans
+node scripts/probe_resuscitation.mjs term_neonate_72h
+node scripts/probe_resuscitation.mjs term_neonate_72h --cpr-seconds 60 --no-ans
 ```
 
 It checks: the compression waveform sweeps 0 → `chest_comp_max_pres` → 0; the paused branch forces

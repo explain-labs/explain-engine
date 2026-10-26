@@ -1,6 +1,6 @@
-// One-off repair: give term_neonate a baroreflex that is neutral at rest.
+// One-off repair: give term_neonate_72h a baroreflex that is neutral at rest.
 //
-// term_neonate's BR_MAP set_value (50 mmHg) sat ~9 mmHg below its resting AAR pressure, so the
+// term_neonate_72h's BR_MAP set_value (50 mmHg) sat ~9 mmHg below its resting AAR pressure, so the
 // baroreflex braked permanently at rest (EF_HR 0.90, EF_SVR 0.91, EF_HEART 0.97). Any lever then
 // acted on top of a reflex that a healthy baby at rest should not have running. This script:
 //   1. warms the scenario and measures the resting effector values;
@@ -12,14 +12,14 @@
 //      the patched file and prints vitals + reflexes before and after.
 // The BR_MAP min/max window (25-100) is left as is.
 //
-//   node scripts/_fix_baro_setpoint.mjs [scenario=term_neonate] [--write]
+//   node scripts/_fix_baro_setpoint.mjs [scenario=term_neonate_72h] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate";
+const name = argv.find((a) => !a.startsWith("--")) ?? "term_neonate_72h";
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");
 const json = JSON.parse(raw);

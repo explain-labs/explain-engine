@@ -4,7 +4,7 @@
 // (apnoeic and breathing), a bronchial plug without the ventilator, and switching the ventilator off
 // mid-event. Pass/fail checks; see docs/Ventilator.md and docs/Respiration.md.
 //
-// Usage: node scripts/probe_airway_events.mjs [--scenario term_neonate] [--verbose]
+// Usage: node scripts/probe_airway_events.mjs [--scenario term_neonate_72h] [--verbose]
 // Exit code 1 when a check fails.
 
 import fs from "node:fs";
@@ -12,7 +12,7 @@ import { createEngine } from "./_harness.mjs";
 
 const argv = process.argv.slice(2);
 const sopt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
-const SCENARIO = sopt("--scenario", "term_neonate");
+const SCENARIO = sopt("--scenario", "term_neonate_72h");
 const VERBOSE = argv.includes("--verbose");
 const eng = await createEngine();
 const log = eng.log;

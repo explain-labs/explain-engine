@@ -26,7 +26,7 @@ BaseModelClass
 
 | Property | Unit | Default | Description |
 |---|---|---|---|
-| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate 1.5. |
+| `diameter_fo` | mm | 2.0 | Foramen ovale diameter; 0 = closed. term_neonate_72h 1.5. |
 | `diameter_fo_max` | mm | 10.0 | Upper clamp. |
 | `atrial_septal_width` | mm | 3.0 | Length of the FO channel in the Poiseuille law. |
 | `fo_lr_factor` | – | 10.0 | Left-to-right resistance multiplier (flap valve). **1 in every shipped scenario.** |
@@ -36,7 +36,7 @@ BaseModelClass
 | `diameter_vsd_max` | mm | 10.0 | Upper clamp. |
 | `ventricular_septal_width` | mm | 5.0 | Length of the VSD channel. |
 | `discharge_coeff_vsd` | – | 0.64 | Discharge coefficient of the VSD (sharp-edged hole). |
-| `ips_res` | mmHg·s/L | 5000 | Base resistance of each intrapulmonary shunt resistor. term_neonate 20 400; 10⁸ (closed) in a fetus. |
+| `ips_res` | mmHg·s/L | 5000 | Base resistance of each intrapulmonary shunt resistor. term_neonate_72h 20 400; 10⁸ (closed) in a fetus. |
 
 ### Outputs
 
@@ -104,7 +104,7 @@ None of its own. It writes the **base** `r_for`/`r_back` of its resistors every 
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Shunts` (trimmed to the config props; `components` holds the five resistors):
+From `term_neonate_72h.json`, `models.Shunts` (trimmed to the config props; `components` holds the five resistors):
 
 ```json
 {
@@ -127,7 +127,7 @@ From `term_neonate.json`, `models.Shunts` (trimmed to the config props; `compone
 
 One instance in every scenario. It owns `LA_RAIVCI`, `LA_RASVC` (LA → right-atrial halves), `VSD` (LV → RV), `IPSL` (`LL_ART` → `LL_VEN`) and `IPSR` (`RL_ART` → `RL_VEN`).
 
-**term_neonate calibration (2026-10):**
+**term_neonate_72h calibration (2026-10):**
 - **Foramen:** `diameter_fo` 1.5 mm, a small left-to-right PFO of ~6 mL/kg/min (Qp:Qs ~1.03). Basis: no PFO has closed by day 3 (He 2011), and neonatal CMR finds RV output a few mL/kg/min above LV output with the duct closed (Jhaveri 2023, Groves 2011). It also lets the scenario shunt right-to-left at atrial level when right-sided pressures rise. See `scripts/_fix_term_fo.mjs` and [TermNeonateReference](./TermNeonateReference.md).
 - **Fetal scenarios:** `fo_svc_fraction` 0, the crista dividens. Before that, a third of the foramen flow came from the SVC half, and the aorta was only 0.9 saturation points above the pulmonary artery; with it the gap is 6.0 points (reference ~8). They also close the intrapulmonary shunts (`ips_res` 10⁸).
 

@@ -35,8 +35,8 @@ BaseModelClass
 | `kf` | L/(s·mmHg) | 6.6e-6 | Filtration coefficient. term 6.0e-6, preterm 2.1–3.4e-6 (scaled by body surface). |
 | `p_bowman` | mmHg | 8 | Bowman's capsule pressure (preterm lower, scaled by the gestation's MAP). |
 | `oncotic_base`, `albumin_ref` | mmHg, g/L | 18, 25 | Plasma oncotic pressure at the reference albumin (preterm 15). |
-| `reabsorption_fraction` | – | 0.985 | Water reabsorption fraction. term_neonate 0.98. |
-| `reabsorption_fractions` | {solute: fraction} | `{}` | Per-solute fractions; absent = the water fraction (iso-osmotic). term_neonate Na 0.99. |
+| `reabsorption_fraction` | – | 0.985 | Water reabsorption fraction. term_neonate_72h 0.98. |
+| `reabsorption_fractions` | {solute: fraction} | `{}` | Per-solute fractions; absent = the water fraction (iso-osmotic). term_neonate_72h Na 0.99. |
 | `filterable_solutes` | list | `na, k, ca, cl, lact, mg, phosphates, uma` | Solutes that pass the glomerulus. Everything else stays in the blood. |
 | `kf_factor`, `kf_factor_ps`, `kf_factor_scaling_ps` | – | 1.0 | Additive layers on `kf` (the first reset each step). |
 | `reabs_factor`, `reabs_factor_ps`, `reabs_factor_scaling_ps` | – | 1.0 | Multiplicative layers on the water fraction (the first reset each step). |
@@ -50,7 +50,7 @@ BaseModelClass
 | `autoregulation_enabled` | boolean | `false` | On in every scenario. |
 | `aff_resistor_name` | – | `"AD_KID_ART"` | The afferent's inflow resistor (the effector). |
 | `myogenic_input_model`, `myogenic_input_prop` | – | `"KID_ART"`, `"pres"` | Pressure the myogenic limb senses. |
-| `myogenic_p_set` | mmHg | 35 | Set-point: each scenario's resting `KID_ART.pres` (term_neonate 40.9). |
+| `myogenic_p_set` | mmHg | 35 | Set-point: each scenario's resting `KID_ART.pres` (term_neonate_72h 40.9). |
 | `myogenic_p_min`, `myogenic_p_max` | mmHg | 25, 55 | Autoregulatory window (term 25–65). |
 | `myogenic_gain_up`, `myogenic_gain_down` | 1/mmHg | 0.06 | Resistance gain above and below the set-point (scenarios 0.18). |
 | `myogenic_tc` | s | 4 | Myogenic time constant. |
@@ -138,7 +138,7 @@ Each step (nothing while off; skipped if `KID_CAP` or `URINE` is missing):
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Kidneys` (trimmed to the main config; `components` holds `URINE`):
+From `term_neonate_72h.json`, `models.Kidneys` (trimmed to the main config; `components` holds `URINE`):
 
 ```json
 {
@@ -170,7 +170,7 @@ One instance in every scenario, with autoregulation on. Stored values at rest:
 
 | Scenario | `kf` (×1e-6) | Water reabs. | GFR (mL/min) | Urine (mL/kg/h) |
 |---|---|---|---|---|
-| term_neonate | 6.0 | 0.98 | 4.75 | 1.6 |
+| term_neonate_72h | 6.0 | 0.98 | 4.75 | 1.6 |
 
 ## References
 

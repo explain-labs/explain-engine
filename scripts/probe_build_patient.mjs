@@ -43,12 +43,12 @@ const READKEY = { co: "lvo", spo2: "spo2_pre" };
 const CASES = [
   {
     name: "term_room_air",
-    spec: { baseline: "term_neonate", name: "probe_term", targets: { hr: 140, map: 48, spo2: 96, pco2: 42, be: -1 } },
+    spec: { baseline: "term_neonate_72h", name: "probe_term", targets: { hr: 140, map: 48, spo2: 96, pco2: 42, be: -1 } },
   },
   {
     name: "preterm_fio2",
     spec: {
-      baseline: "term_neonate", name: "probe_preterm_fio2", max_iters: 10,
+      baseline: "term_neonate_72h", name: "probe_preterm_fio2", max_iters: 10,
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, hb: 9.0, fio2: 0.3, not_a_target: 1 },
     },
     expectIgnored: ["not_a_target"],
@@ -59,7 +59,7 @@ const CASES = [
   {
     // MAP derived from sys/dia; pulse pressure and respiratory rate calibrated
     name: "term_bp_rr",
-    spec: { baseline: "term_neonate", name: "probe_term_bp_rr", targets: { hr: 140, sys: 68, dia: 40, spo2: 96, pco2: 42, rr: 52 } },
+    spec: { baseline: "term_neonate_72h", name: "probe_term_bp_rr", targets: { hr: 140, sys: 68, dia: 40, spo2: 96, pco2: 42, rr: 52 } },
     expectDerived: { pp: 28, map: 49.3 }, expectDia: true,
   },
   {
@@ -67,7 +67,7 @@ const CASES = [
     // anions left over after Na/K/Cl/lactate/albumin
     name: "term_lactate_electrolytes",
     spec: {
-      baseline: "term_neonate", name: "probe_term_lact",
+      baseline: "term_neonate_72h", name: "probe_term_lact",
       targets: { hr: 150, map: 45, spo2: 95, pco2: 40, be: -7, na: 134, k: 4.8, cl: 104, lactate: 4.5, glucose: 3.2, albumin: 24 },
     },
     expectSolutes: true,
@@ -76,7 +76,7 @@ const CASES = [
     // echo inputs: a measured duct diameter and a TR-jet systolic PA pressure
     name: "preterm_echo",
     spec: {
-      baseline: "term_neonate", name: "probe_preterm_echo", max_iters: 10,
+      baseline: "term_neonate_72h", name: "probe_preterm_echo", max_iters: 10,
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, pda_mm: 2.2, pap_s: 32 },
     },
     expectPdaMm: 2.2,
@@ -85,7 +85,7 @@ const CASES = [
     // echo inputs: a measured foramen ovale and a poor LV ejection fraction
     name: "term_echo_fo_ef",
     spec: {
-      baseline: "term_neonate", name: "probe_term_fo_ef",
+      baseline: "term_neonate_72h", name: "probe_term_fo_ef",
       targets: { hr: 145, map: 45, spo2: 95, ef: 42, fo_mm: 3 },
     },
     expectFoMm: 3,
@@ -93,7 +93,7 @@ const CASES = [
   {
     // postnatal age picks the term PAP range: systolic 45 is normal on day 1 (28-60) but HIGH on day 7
     name: "term_day7_pap_flag",
-    spec: { baseline: "term_neonate", name: "probe_term_day7", postnatal_age_days: 7, targets: { pap_s: 45 } },
+    spec: { baseline: "term_neonate_72h", name: "probe_term_day7", postnatal_age_days: 7, targets: { pap_s: 45 } },
     expectAgeDays: 7,
     expectFlags: { pap_s: "HIGH" },
     expectDay1Ok: ["pap_s"],
@@ -101,7 +101,7 @@ const CASES = [
   {
     // co and ef share the contractility lever: co keeps it and ef is reported as superseded
     name: "term_co_ef",
-    spec: { baseline: "term_neonate", name: "probe_term_co_ef", targets: { hr: 145, map: 45, co: 0.6, ef: 42 } },
+    spec: { baseline: "term_neonate_72h", name: "probe_term_co_ef", targets: { hr: 145, map: 45, co: 0.6, ef: 42 } },
     expectSuperseded: [{ key: "ef", by: "co" }],
   },
   {
@@ -109,7 +109,7 @@ const CASES = [
     // continue into the intrapulmonary shunt
     name: "preterm_high_fio2_shunt",
     spec: {
-      baseline: "term_neonate", name: "probe_preterm_shunt", max_iters: 10,
+      baseline: "term_neonate_72h", name: "probe_preterm_shunt", max_iters: 10,
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 85, pco2: 51, be: -4.5, fio2: 0.4 },
     },
     expectNote: /intrapulmonary shunt was opened/,
@@ -119,7 +119,7 @@ const CASES = [
     // the shunt's share of pulmonary flow stays near the seed's (33 % here; 46 % when it did not)
     name: "preterm_raised_pap",
     spec: {
-      baseline: "term_neonate", name: "probe_preterm_pap", max_iters: 10,
+      baseline: "term_neonate_72h", name: "probe_preterm_pap", max_iters: 10,
       targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, pco2: 51, be: -4.5, fio2: 0.3, pap_s: 36 },
     },
     expectMaxShuntFraction: 0.37,
@@ -127,7 +127,7 @@ const CASES = [
   {
     // structural targets only: nothing to iterate, but the patient is settled, measured and emitted
     name: "structural_only",
-    spec: { baseline: "term_neonate", name: "probe_structural", targets: { weight: 1.35, gestational_age: 30 } },
+    spec: { baseline: "term_neonate_72h", name: "probe_structural", targets: { weight: 1.35, gestational_age: 30 } },
     expectNote: /no iterated targets/,
     expectNoTargets: true,
   },

@@ -1,7 +1,7 @@
 // Systolic coronary inflow resistance.
 //
 // The coronary bed COR was squeezed only by its own time-varying elastance, which left 61 % of the
-// coronary inflow (term_neonate) in diastole; left-coronary inflow is mostly diastolic because the
+// coronary inflow (term_neonate_72h) in diastole; left-coronary inflow is mostly diastolic because the
 // contracting myocardium compresses the intramural vessels and raises the coronary resistance.
 // Heart.cor_r_systolic_factor (c) multiplies the inflow resistance AA_COR by (1 + c·vaf). Per scenario
 // this tool:

@@ -25,7 +25,7 @@ const TERM = { LV_AA: g(0.9), RV_PA: g(0.8) };
 const PRETERM = { LV_AA: g(0.7), RV_PA: g(0.6) };
 // the preterm and fetal scenarios (PRETERM; fetus 25 wk 0.6/0.55, 30 wk 0.75/0.65, term as TERM) and the
 // three Bischoff ones (preterm_25wk's values) were removed on 2026-10-25
-const TUNE = { term_neonate: TERM };
+const TUNE = { term_neonate_72h: TERM };
 const COPY = {};
 
 const eng = await createEngine();

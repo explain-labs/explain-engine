@@ -93,7 +93,7 @@ None. The factor/effective-value layers start at [`Capacitance`](./Capacitance.m
 
 ## Example definition (JSON)
 
-`BaseModelClass` has no definition of its own. Every definition carries its shared fields next to the class's own parameters. From `term_neonate.json`, `models.PA_PAAL` (trimmed):
+`BaseModelClass` has no definition of its own. Every definition carries its shared fields next to the class's own parameters. From `term_neonate_72h.json`, `models.PA_PAAL` (trimmed):
 
 ```json
 {

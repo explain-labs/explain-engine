@@ -4,7 +4,7 @@
 // conserved and no volume moves. A series dead space (GasCapacitance sub-tanks) exchanges through the
 // sub-tank at the end that faces the neighbour; a fixed-composition compartment keeps its
 // composition (an infinite reservoir). dv is clamped to half the smaller end volume.
-// scratch buffers: the hot path allocates nothing (two calls per step in term_neonate)
+// scratch buffers: the hot path allocates nothing (two calls per step in term_neonate_72h)
 const _ca = [0, 0, 0, 0, 0];
 const _cb = [0, 0, 0, 0, 0];
 const _dn = [0, 0, 0, 0, 0];

@@ -1,6 +1,6 @@
 // Consolidate SA campaign results into the thesis tables. Tolerant of missing files
 // (the campaign writes results incrementally) — reports whatever is present.
-//   node scripts/sa/summarize.mjs [--set reduced] [--points term_neonate,pphn,cdh_severe]
+//   node scripts/sa/summarize.mjs [--set reduced] [--points term_neonate_72h,pphn,cdh_severe]
 //
 // Emits, per operating point:
 //   - one-lever DOMINANCE (OAT top influence vs designated lever)
@@ -15,7 +15,7 @@ import { DESIGNATED, OUTPUTS } from "./_sa_params.mjs";
 
 const arg = (n, d) => { const i = process.argv.indexOf(n); return i >= 0 ? process.argv[i + 1] : d; };
 const set = arg("--set", "reduced");
-const points = arg("--points", "term_neonate,pphn,cdh_severe,dtga,hlhs").split(",");
+const points = arg("--points", "term_neonate_72h,pphn,cdh_severe,dtga,hlhs").split(",");
 const R = (s, t) => new URL(`./results/${s}_${t}_${set}.json`, import.meta.url).pathname;
 const load = (p) => (fs.existsSync(p) ? JSON.parse(fs.readFileSync(p, "utf8")) : null);
 const targets = Object.keys(DESIGNATED);

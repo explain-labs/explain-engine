@@ -1,9 +1,9 @@
-// One-off recalibration: term_neonate breathing pattern — inspiratory time fraction 0.40 and a resting
+// One-off recalibration: term_neonate_72h breathing pattern — inspiratory time fraction 0.40 and a resting
 // rate of 40/min at an unchanged PaCO2.
 //
 //   node scripts/_fix_term_breathing_pattern.mjs [--seconds 240] [--write | --out path.json]
 //
-// Why (docs/TermNeonateReference.md, step 6.5 of the term_neonate validation): minute ventilation
+// Why (docs/TermNeonateReference.md, step 6.5 of the term_neonate_72h validation): minute ventilation
 // matched (207 vs 215 +/- 52 mL/kg/min) but the breath shape did not. Healthy term infants breathe in
 // for 0.65 +/- 0.14 s of a 1.63 s cycle (Ti/Ttot 0.40; Schmalisch 2005, flow-through, day 7) and the
 // scenario for 0.30 (Breathing.ie_ratio is Ti/Ttot), which gave a peaked inspiratory flow (0.91 vs
@@ -27,7 +27,7 @@ const WRITE = argv.includes("--write");
 const OUT = arg("--out", null);
 const IE = 0.40, RR_TARGET = 40.0;
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);
@@ -65,4 +65,4 @@ const text = JSON.stringify(json, null, 2);
 JSON.parse(text);
 if (WRITE) fs.writeFileSync(file, text);
 if (OUT) fs.writeFileSync(OUT, text);
-out(WRITE ? "term_neonate.json written" : OUT ? `written to ${OUT}` : "dry run (pass --write or --out to save)");
+out(WRITE ? "term_neonate_72h.json written" : OUT ? `written to ${OUT}` : "dry run (pass --write or --out to save)");

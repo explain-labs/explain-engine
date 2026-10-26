@@ -83,7 +83,7 @@ None; its own uptake and production factors.
 
 ## Assumptions and limitations
 
-- **Behaviour in term_neonate** (re-validation (i)):
+- **Behaviour in term_neonate_72h** (re-validation (i)):
 
   | Test | Glucose (mmol/L) |
   |---|---|
@@ -98,7 +98,7 @@ None; its own uptake and production factors.
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Glucose` (trimmed to the config props; gains are the defaults):
+From `term_neonate_72h.json`, `models.Glucose` (trimmed to the config props; gains are the defaults):
 
 ```json
 {

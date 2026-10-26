@@ -1,18 +1,18 @@
 // One-off re-balance after hemoglobin became a blood buffer (BloodComposition, this PR).
 //
-// The extra buffer shifts term_neonate's resting acid-base slightly (pH 7.368 -> 7.380). This script
+// The extra buffer shifts term_neonate_72h's resting acid-base slightly (pH 7.368 -> 7.380). This script
 // moves the unmeasured anions (uma, the residual acid-base lever) until the arterial pH is back at
 // the scenario's own value, then patches ONLY the uma values in the JSON (every blood compartment
 // stores its own solutes) and prints the arterial gas before and after.
 //
-//   node scripts/_fix_term_acidbase.mjs [scenario=term_neonate] [--ph 7.368] [--write]
+//   node scripts/_fix_term_acidbase.mjs [scenario=term_neonate_72h] [--ph 7.368] [--write]
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { measureVitals } from "./_probe.mjs";
 
 const argv = process.argv.slice(2);
 const WRITE = argv.includes("--write");
-const name = argv.find((a, i) => !a.startsWith("--") && argv[i - 1] !== "--ph") ?? "term_neonate";
+const name = argv.find((a, i) => !a.startsWith("--") && argv[i - 1] !== "--ph") ?? "term_neonate_72h";
 const PH = argv.includes("--ph") ? Number(argv[argv.indexOf("--ph") + 1]) : 7.368;
 const file = new URL(`../model_definitions/${name}.json`, import.meta.url);
 const raw = fs.readFileSync(file, "utf8");

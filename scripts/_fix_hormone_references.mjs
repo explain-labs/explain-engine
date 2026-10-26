@@ -3,7 +3,7 @@
 //
 //   node scripts/_fix_hormone_references.mjs <scenario> [<scenario> ...] [--seconds 300] [--write]
 //
-// The problem: these scenarios were derived from term_neonate and kept its Hormones set-points
+// The problem: these scenarios were derived from term_neonate_72h and kept its Hormones set-points
 // (volume_setpoint 0.286 L, perfusion_setpoint 40 mmHg). A 0.72-2.7 kg infant read as hypovolaemic
 // and hypoperfused at rest, so RAAS ran at angiotensin x1.75-5 and its effectors had constricted the
 // systemic arterioles (Circulation.svr_factor_art up to x2.25), the venules and the renal efferent
@@ -49,7 +49,7 @@ const flatten = (models) => {
 };
 
 // the term reference everything is scaled from
-const termMd = read("term_neonate").model_definition;
+const termMd = read("term_neonate_72h").model_definition;
 const termFlat = flatten(termMd.models);
 const TERM = { weight: termMd.weight, brMap: termFlat.BR_MAP.set_value, volume: termFlat.Hormones.volume_setpoint, perfusion: termFlat.Hormones.perfusion_setpoint };
 

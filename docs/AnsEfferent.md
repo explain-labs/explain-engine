@@ -51,7 +51,7 @@ BaseModelClass
 4. **Time constant:** `effector += 0.015/tc · (effect − effector)`.
 5. **Write** `target_model.target_prop = effector` (skipped if the target is missing), and clear the accumulators.
 
-**Example**, `EF_HR` in term_neonate (effect 1.5 at firing 0, 0.43 at firing 1, tc 0.5 s): the baroreceptor firing 0.28 at a MAP of 45 mmHg gives an effect of `1.5 + (1 − 1.5) · 0.28/0.5 = 1.22`, so within about a second Heart adds `0.22 · heart_rate_ref · ans_sens` to its rate.
+**Example**, `EF_HR` in term_neonate_72h (effect 1.5 at firing 0, 0.43 at firing 1, tc 0.5 s): the baroreceptor firing 0.28 at a MAP of 45 mmHg gives an effect of `1.5 + (1 − 1.5) · 0.28/0.5 = 1.22`, so within about a second Heart adds `0.22 · heart_rate_ref · ans_sens` to its rate.
 
 ## Factor system
 
@@ -72,7 +72,7 @@ None of its own. What the target does with the value is the target's business: H
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Ans.components.EF_HR` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Ans.components.EF_HR` (trimmed to the config props):
 
 ```json
 {

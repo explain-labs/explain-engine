@@ -119,7 +119,7 @@ Each shunt resistor is scaled by `G_ips / (s'·G_tot')` and each capillary resis
 set from conductance ratios, the shunt share does not depend on the scenario's `Shunts.ips_res`
 (preterm 1600–4200, term 5000). With `c = 0` nothing is written.
 
-On `term_neonate`, right lung, room air (`scripts/probe_atelectasis.mjs`, measured when atelectasis was introduced, 2026-10):
+On `term_neonate_72h`, right lung, room air (`scripts/probe_atelectasis.mjs`, measured when atelectasis was introduced, 2026-10):
 
 | c | SaO₂ | PaO₂ | lung Qs | Qs/Qt | ALR ml | CMV 20/5: Vte | C (ml/mbar) |
 |---|---|---|---|---|---|---|---|
@@ -155,7 +155,7 @@ an HFOV sigh opens more than brief breaths at the same peak. Every change of `c`
 persistent-layer deltas as a user change, and the perfusion follows it every step.
 
 **Calibration.** At end-expiration the pleural pressure in this model is about −4.5 cmH₂O, so the
-distending pressure sits roughly 5 cmH₂O above the set PEEP. On `term_neonate`, the collapsed lung's
+distending pressure sits roughly 5 cmH₂O above the set PEEP. On `term_neonate_72h`, the collapsed lung's
 distending pressure in cmH₂O, min–max:
 
 | | range |
@@ -173,7 +173,7 @@ re-collapses most of it.
 The opening pressure is 25 cmH₂O (sd 3), the range of a neonatal sustained inflation. CMV 20/5
 recruits only a little (its peak sits in the tail), while PIP 28 or a sigh of 27 mbar opens most of it.
 
-Trace on `term_neonate`, right lung, set to 0.6 on SLE CMV 20/5 (`scripts/probe_atelectasis.mjs`, 2026-10):
+Trace on `term_neonate_72h`, right lung, set to 0.6 on SLE CMV 20/5 (`scripts/probe_atelectasis.mjs`, 2026-10):
 
 | phase | c | SaO₂ | lung Qs | ALR ml |
 |---|---|---|---|---|
@@ -217,7 +217,7 @@ trapped lung at its captured recoil pressure, so it deflates instead of pressuri
 The collapsed units join the unstable region. While obstructed, pressure recruitment of that lung
 pauses. Once the bronchus is open again, pressure recruits it and PEEP keeps it open.
 
-On term_neonate with a right-mainstem tube on CMV 20/5, the left lung's collapse after 10 minutes is
+On term_neonate_72h with a right-mainstem tube on CMV 20/5, the left lung's collapse after 10 minutes is
 0.26 on air and 0.67 on oxygen. A right bronchial plug in a spontaneously breathing baby takes SaO₂
 from 96 to 76 % in 5 minutes.
 
@@ -248,7 +248,7 @@ None of its own. It writes:
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Respiration` (trimmed: groups and atelectasis defaults left out):
+From `term_neonate_72h.json`, `models.Respiration` (trimmed: groups and atelectasis defaults left out):
 
 ```json
 {
@@ -272,7 +272,7 @@ From `term_neonate.json`, `models.Respiration` (trimmed: groups and atelectasis 
 
 ## Usage in the scenarios
 
-One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. term_neonate uses the defaults above for every lever (1) and for atelectasis (0); disease (in the since-removed preterm scenarios) is carried by the compartments' own values and by Surfactant (enabled there).
+One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. term_neonate_72h uses the defaults above for every lever (1) and for atelectasis (0); disease (in the since-removed preterm scenarios) is carried by the compartments' own values and by Surfactant (enabled there).
 
 ## References
 

@@ -1,9 +1,9 @@
-// One-off recalibration: term_neonate resting heart rate 120 bpm with ventricular contractility so
+// One-off recalibration: term_neonate_72h resting heart rate 120 bpm with ventricular contractility so
 // stroke volume and ejection fraction match neonatal CMR, at unchanged cardiac output.
 //
 //   node scripts/_fix_term_hr_contractility.mjs [--seconds 300] [--write]
 //
-// Why (docs/TermNeonateReference.md, step 6.3 of the term_neonate validation): HR was 131 against
+// Why (docs/TermNeonateReference.md, step 6.3 of the term_neonate_72h validation): HR was 131 against
 // ~117-121 in calm term infants on day 3 (Satoh 2016, He 2011, Agata 1994), and while the filled
 // volumes matched CMR (LV EDV 2.52 vs 2.5, RV 3.15 vs 3.1 mL/kg; Jhaveri 2023) the ventricles emptied
 // too little (ESV 1.01 vs 0.9 and 1.65 vs 1.5), so SV (1.51 vs 1.6) and EF (59.9 vs 63.2, 47.8 vs
@@ -28,7 +28,7 @@ const WRITE = argv.includes("--write");
 
 const HR_REF = 120.3333, K_LV = 1.15, K_RV = 1.3;
 
-const file = new URL("../model_definitions/term_neonate.json", import.meta.url);
+const file = new URL("../model_definitions/term_neonate_72h.json", import.meta.url);
 const json = JSON.parse(fs.readFileSync(file, "utf8"));
 const eng = await createEngine();
 const model = eng.build(json.model_definition);
@@ -69,4 +69,4 @@ if (baselineWeight !== undefined) json.model_definition._baseline_weight = basel
 const text = JSON.stringify(json, null, 2);
 JSON.parse(text);
 if (WRITE) fs.writeFileSync(file, text);
-out(WRITE ? "term_neonate.json written" : "dry run (pass --write to save)");
+out(WRITE ? "term_neonate_72h.json written" : "dry run (pass --write to save)");

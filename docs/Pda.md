@@ -28,7 +28,7 @@ BaseModelClass
 | `diameter_ao_max` | mm | 3.0 | Fully open diameter at the aortic end. |
 | `diameter_pa_max` | mm | 2.0 | Fully open diameter at the pulmonary (narrowest) end. **Equal to `diameter_ao_max` in every shipped scenario**, so the duct is a cylinder there. |
 | `diameter_relative` | – | 0.0 | Patency fraction 0–1, scaling both ends together; 0 = closed. term 0, preterm 0.27–0.33, fetal 1. |
-| `length` | mm | 20 | Length of the duct (the Poiseuille term). A restrictive jet needs a short throat (~1–2 mm). term_neonate 14. |
+| `length` | mm | 20 | Length of the duct (the Poiseuille term). A restrictive jet needs a short throat (~1–2 mm). term_neonate_72h 14. |
 | `discharge_coeff` | – | 0.9 | Vena-contracta coefficient of the pulmonary-end orifice; lower = tighter jet. 0.9 in every shipped scenario. |
 
 ### Set by other models
@@ -105,7 +105,7 @@ None of its own. It writes the **base** `r_for`/`r_back`/`r_k`/`no_flow` of `AAR
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Pda` (trimmed to the config props; `components` holds `AAR_DA`):
+From `term_neonate_72h.json`, `models.Pda` (trimmed to the config props; `components` holds `AAR_DA`):
 
 ```json
 {
@@ -127,7 +127,7 @@ One instance in every scenario, owning `AAR_DA` (`AAR` → `PA`, implicit):
 
 | Scenario | `diameter_relative` × max (mm) | `length` (mm) | `discharge_coeff` | Duct |
 |---|---|---|---|---|
-| term_neonate | 0 | 14 | 0.9 | closed |
+| term_neonate_72h | 0 | 14 | 0.9 | closed |
 
 The archived `pda_restrictive_ltr` uses a short throat (`length` 1.5 mm, `discharge_coeff` 0.35, `diameter_relative` 0.13) for a restrictive jet.
 

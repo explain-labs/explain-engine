@@ -80,7 +80,7 @@ Additive layers (as Capacitance and Resistor), on `dif_o2`, `dif_co2` and one sh
 
 ## Example definition (JSON)
 
-From `term_neonate.json`, `models.Placenta.components.PL_GASEX` (trimmed to the config props):
+From `term_neonate_72h.json`, `models.Placenta.components.PL_GASEX` (trimmed to the config props):
 
 ```json
 {
@@ -97,11 +97,11 @@ From `term_neonate.json`, `models.Placenta.components.PL_GASEX` (trimmed to the 
 
 ## Usage in the scenarios
 
-One instance, `PL_GASEX`, owned by `Placenta`, disabled in term_neonate (it runs only in a fetus with the placenta running; the fetal scenarios were removed on 2026-10-25 to be rebuilt).
+One instance, `PL_GASEX`, owned by `Placenta`, disabled in term_neonate_72h (it runs only in a fetus with the placenta running; the fetal scenarios were removed on 2026-10-25 to be rebuilt).
 
 | Scenario | `dif_o2` | `dif_co2` |
 |---|---|---|
-| term_neonate (disabled) | 0.01 | 0.01 |
+| term_neonate_72h (disabled) | 0.01 | 0.01 |
 
 ## References
 
