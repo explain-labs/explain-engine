@@ -78,11 +78,13 @@ const PROFILES = {
   12: {
     description: "healthy term neonate (3.545 kg) 12 h after a vaginal birth with delayed cord clamping (~1 min): " +
       "closing left-to-right duct, pulmonary pressure falling, output still high, haematocrit 57 %; room air, dressed",
-    // duct: 2.47 mm at the pulmonary end (Kang 2016, 12 h), left-to-right only in 88 %
-    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.494,
+    // duct: 2.47 mm at the pulmonary end (Kang 2016, 12 h), left-to-right only in 88 %. It constricts from
+    // the pulmonary end, so that end is a sharp, irregular narrowing rather than a smooth nozzle:
+    // discharge coefficient 0.45 (0.9 passes ~52 mL/kg/min L->R at 2.47 mm, above the 5-40 estimate)
+    PDA_AO_MAX: 5.5, PDA_PA_MAX: 5.0, PDA_REL: 0.494, PDA_CD: 0.45,
     // pulmonary pressure falling (Kang 2016: mean 41, systolic 52.5); a narrower duct passes less of the
-    // aortic pressure, so PVR stays above the 72 h value
-    PVR: 1.6,
+    // aortic pressure, so PVR stays above the 72 h value (x1.6 left a late-diastolic R->L flow, 13 %)
+    PVR: 1.4,
     // no transitional Doppler timing: the flow is left-to-right throughout the cycle
     RV_DELAY: 0, PA_EL: 1,
     // output past the surge but still high (Agata: ~290 at 12 h vs 245-272 at 24 h); BP 69.8/40.4 (50.2)
@@ -120,6 +122,9 @@ const log = [];
 
 // 1. duct and pulmonary circulation
 M.Pda.diameter_ao_max = P.PDA_AO_MAX; M.Pda.diameter_pa_max = P.PDA_PA_MAX; M.Pda.diameter_relative = P.PDA_REL;
+// optional: the constricting duct's length (mm) and pulmonary-end discharge coefficient
+if (P.PDA_LEN) M.Pda.length = P.PDA_LEN;
+if (P.PDA_CD) M.Pda.discharge_coeff = P.PDA_CD;
 eng.scale("pulmonary_resistances", P.PVR);
 M.Shunts.ips_res *= P.PVR;
 // optional: stiffer main/branch pulmonary arteries (sharper systolic PA pressure peak) and an RV
