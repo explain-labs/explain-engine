@@ -70,8 +70,10 @@ const PROFILES = {
     // ALL/ALR) -> FRC ~-10 % (Lee 1999: vaginal FRC 23.1 at 4-6 h vs 24.9 at 24 h), Crs ~-8 % (Lødrup
     // Carlsen 1993: Crs lower on day 0; direction only), specific compliance about constant
     LUNG_U_VOL: 0.85, LUNG_EL: 1.11,
-    // reflex set-points at the targets while the levers settle (re-anchored to the result afterwards)
-    BR_MAP_INIT: 50, CR_PCO2_INIT: 36, CR_PH_INIT: 7.33,
+    // reflex set-points at the targets while the levers settle (re-anchored to the result afterwards); the
+    // baroreflex senses the time-averaged arch pressure: a clinical MAP (dia + PP/3) of 47.2 (Taiwo 2022,
+    // at birth) is a time-averaged ~53.5 with this waveform
+    BR_MAP_INIT: 53.5, CR_PCO2_INIT: 36, CR_PH_INIT: 7.33,
     // dressed / skin-to-skin at room temperature
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
