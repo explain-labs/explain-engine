@@ -184,9 +184,7 @@ for (const m of patientBlood) if (typeof m.to2 === "number") m.to2 *= hbNew / hb
 // the resistances are calibrated at the loaded blood (Blood.init_model takes viscosity_ref from the Hb
 // on load), so take the reference at the new Hb now: otherwise the levers settle and the controllers
 // re-anchor at ~21 % higher resistance than the saved scenario has when it is loaded
-const viscRef = M.Blood.calc_viscosity(hbNew);
-M.Blood.viscosity_ref = viscRef; M.Blood.viscosity = viscRef;
-for (const m of Object.values(M)) if (m !== M.Blood && typeof m.viscosity_ref === "number" && m.viscosity_ref > 0) m.viscosity_ref = viscRef;
+M.Blood.calibrate_viscosity_ref();
 log.push(`blood volume x${P.BLOOD_VOLUME.toFixed(4)}; Hb ${hbOld} -> ${hbNew.toFixed(3)} mmol/L (Hct ${P.HCT})`);
 
 // 4. lactate, unmeasured anions, glucose

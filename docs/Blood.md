@@ -52,7 +52,7 @@ BaseModelClass
 - a fresh compartment (empty `solutes`) gets `to2`, `tco2`, `solutes`, `temp` and `viscosity`. A loaded state keeps its own composition;
 - the thermal fields are added if missing: `body_temp` (= its temperature), `blood_temp_tc`, `temp_ext_override` (false).
 
-Then `viscosity_ref` is computed from the volume-weighted Hb of the enabled compartments and copied to all.
+Then `viscosity_ref` is computed from the volume-weighted Hb of the enabled compartments and copied to all (`calibrate_viscosity_ref`).
 
 **Every step**, for every compartment except `fixed_composition` ones:
 ```
@@ -76,6 +76,7 @@ A neonatal Hb of 10 mmol/L gives Hct 0.49 and ~6 cP. [BloodVessel](./BloodVessel
 | `set_perfusion_target(core)` | Called by Thermoregulation: `body_temp` of every compartment not under device control (`temp_ext_override`). |
 | `get_thermal_state(density, cp)` | Heat capacity and mean temperature of the enabled, non-fixed blood, for Thermoregulation's heat balance. |
 | `calc_viscosity(hb)` | The viscosity law above. |
+| `calibrate_viscosity_ref()` | Re-takes `viscosity_ref` from the volume-weighted Hb of the circulating blood and copies it to every compartment (what `init_model` does at build). For tools that change the Hb of a scenario they then save (`build_patient.mjs`, `_make_term_transition.mjs`): otherwise they calibrate at viscosity / viscosity_ref ≠ 1 and the saved scenario loads with different resistances. A live Hb change (bleeding, transfusion) must not call it, since that is when the resistances should follow the viscosity. |
 
 ## Factor system
 

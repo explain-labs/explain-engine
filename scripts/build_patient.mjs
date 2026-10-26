@@ -451,6 +451,10 @@ if (model.models.Blood && (has("hb") || has("hb_gdl"))) {
   const hbMmol = has("hb") ? targets.hb : targets.hb_gdl * 0.6206;
   model.models.Blood.set_solute("hemoglobin", hbMmol);
   restoreMaternalPool(); // PL_MAT is the mother's blood — her Hb does not follow the fetus's
+  // the vessel resistances are calibrated at the viscosity of the blood a scenario loads with
+  // (Blood.init_model): re-take that reference at the new Hb, or the patient is calibrated at
+  // viscosity/viscosity_ref != 1 and loads with different resistances (Hb 7: MAP 55 -> 61 on reload)
+  model.models.Blood.calibrate_viscosity_ref();
   trace(`structural: Hb ${round(hbMmol, 2)} mmol/L${!has("hb") && has("hb_gdl") ? ` (converted from ${targets.hb_gdl} g/dL)` : ""}`);
 }
 
