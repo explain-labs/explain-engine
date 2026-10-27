@@ -4769,6 +4769,133 @@
           }
         ]
       },
+      "metabolism": {
+        "title": "Metabolism",
+        "enabled": true,
+        "collapsed": true,
+        "parameters": [
+          {
+            "label": "Core temp",
+            "unit": "°C",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Thermoregulation.core_temp"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Skin temp",
+            "unit": "°C",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Thermoregulation.skin_temp"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Heat prod",
+            "unit": "W",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Thermoregulation.heat_production"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Heat loss",
+            "unit": "W",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Thermoregulation.heat_loss"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Brown fat",
+            "unit": "W",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Thermoregulation.brown_fat_heat"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "VO2 base",
+            "unit": "ml/kg/min",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Metabolism.vo2"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "VO2 temp",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Metabolism.vo2_temp_factor"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Glucose",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Glucose.glucose"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Insulin",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Glucose.insulin"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Counterreg",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Glucose.counterreg"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Lactate",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Lactate.arterial_lactate"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Anaerobic",
+            "unit": "0-1",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Lactate.anaerobic_fraction_max"
+            ],
+            "weight_based": false
+          }
+        ]
+      },
       "respiration": {
         "title": "Respiration",
         "enabled": true,
