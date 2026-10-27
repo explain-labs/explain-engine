@@ -4455,25 +4455,113 @@
           },
           {
             "label": "Na",
-            "unit": "mmol",
+            "unit": "mmol/l",
             "factor": 1,
             "rounding": 0,
             "props": [
-              "AA.solutes.na"
+              "AD.solutes.na"
             ],
-            "weight_based": false,
-            "value": "138"
+            "weight_based": false
+          },
+          {
+            "label": "K",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "AD.solutes.k"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "iCa",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "AD.solutes.ca"
+            ],
+            "weight_based": false
           },
           {
             "label": "Cl",
-            "unit": "mmol",
+            "unit": "mmol/l",
             "factor": 1,
             "rounding": 0,
             "props": [
-              "AA.solutes.cl"
+              "AD.solutes.cl"
             ],
-            "weight_based": false,
-            "value": "106"
+            "weight_based": false
+          },
+          {
+            "label": "Mg",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "AD.solutes.mg"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Phos",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "AD.solutes.phosphates"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Lactate",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "AD.solutes.lact"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Glucose",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "AD.solutes.glucose"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Hb",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "AD.solutes.hemoglobin"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Albumin",
+            "unit": "g/l",
+            "factor": 1,
+            "rounding": 0,
+            "props": [
+              "AD.solutes.albumin"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "UMA",
+            "unit": "mmol/l",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "AD.solutes.uma"
+            ],
+            "weight_based": false
           }
         ]
       },
