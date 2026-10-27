@@ -4381,771 +4381,6 @@
             "value": "20.9"
           }
         ]
-      },
-      "lab": {
-        "title": "Labs",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "pH",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "AA.ph"
-            ],
-            "weight_based": false,
-            "value": "7.39"
-          },
-          {
-            "label": "pO2",
-            "unit": "kPa",
-            "factor": 0.1333,
-            "rounding": 1,
-            "props": [
-              "AA.po2"
-            ],
-            "weight_based": false,
-            "value": "12.9"
-          },
-          {
-            "label": "pCO2",
-            "unit": "kPa",
-            "factor": 0.1333,
-            "rounding": 1,
-            "props": [
-              "AA.pco2"
-            ],
-            "weight_based": false,
-            "value": "5.4"
-          },
-          {
-            "label": "HCO3",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "AA.hco3"
-            ],
-            "weight_based": false,
-            "value": "24"
-          },
-          {
-            "label": "BE",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "AA.be"
-            ],
-            "weight_based": false,
-            "value": "-0.9"
-          },
-          {
-            "label": "SO2",
-            "unit": "%",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "AA.so2"
-            ],
-            "weight_based": false,
-            "value": "99"
-          },
-          {
-            "label": "Na",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "AD.solutes.na"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "K",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "AD.solutes.k"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "iCa",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "AD.solutes.ca"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Cl",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "AD.solutes.cl"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Mg",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "AD.solutes.mg"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Phos",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "AD.solutes.phosphates"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Lactate",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "AD.solutes.lact"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Glucose",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "AD.solutes.glucose"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Hb",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "AD.solutes.hemoglobin"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Albumin",
-            "unit": "g/l",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "AD.solutes.albumin"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "UMA",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "AD.solutes.uma"
-            ],
-            "weight_based": false
-          }
-        ]
-      },
-      "renal": {
-        "title": "Renal",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "GFR",
-            "unit": "ml/min",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Kidneys.gfr"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Urine",
-            "unit": "ml/kg/h",
-            "factor": 60,
-            "rounding": 1,
-            "props": [
-              "Kidneys.urine_flow"
-            ],
-            "weight_based": true
-          },
-          {
-            "label": "Urine vol",
-            "unit": "ml",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Kidneys.urine_volume"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "FENa",
-            "unit": "%",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Kidneys.fe_na"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "RBF",
-            "unit": "ml/kg/min",
-            "factor": 1000,
-            "rounding": 1,
-            "props": [
-              "Monitor.flows.kid_flow"
-            ],
-            "weight_based": true
-          },
-          {
-            "label": "Renal art",
-            "unit": "mmHg",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "KID_ART.pres"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "NFP",
-            "unit": "mmHg",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Kidneys.nfp"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Afferent",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Kidneys.afferent_factor"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Angiotensin",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Hormones.angiotensin"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Aldosterone",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Hormones.aldosterone"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "ADH",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Hormones.adh"
-            ],
-            "weight_based": false
-          }
-        ]
-      },
-      "ans": {
-        "title": "ANS",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "Baro",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "BR_MAP.firing_rate"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Chemo pCO2",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "CR_PCO2.firing_rate"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Chemo pO2",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "CR_PO2.firing_rate"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Chemo pH",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "CR_PH.firing_rate"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "HR effect",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "EF_HR.effector"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "SVR effect",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "EF_SVR.effector"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Contr effect",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "EF_HEART.effector"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Vent effect",
-            "unit": "",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "EF_MV.effector"
-            ],
-            "weight_based": false
-          }
-        ]
-      },
-      "metabolism": {
-        "title": "Metabolism",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "Core temp",
-            "unit": "°C",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Thermoregulation.core_temp"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Skin temp",
-            "unit": "°C",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Thermoregulation.skin_temp"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Heat prod",
-            "unit": "W",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Thermoregulation.heat_production"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Heat loss",
-            "unit": "W",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Thermoregulation.heat_loss"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Brown fat",
-            "unit": "W",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Thermoregulation.brown_fat_heat"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "VO2 base",
-            "unit": "ml/kg/min",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Metabolism.vo2"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "VO2 temp",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Metabolism.vo2_temp_factor"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Glucose",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Glucose.glucose"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Insulin",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Glucose.insulin"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Counterreg",
-            "unit": "x",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Glucose.counterreg"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Lactate",
-            "unit": "mmol/l",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Lactate.arterial_lactate"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Anaerobic",
-            "unit": "0-1",
-            "factor": 1,
-            "rounding": 2,
-            "props": [
-              "Lactate.anaerobic_fraction_max"
-            ],
-            "weight_based": false
-          }
-        ]
-      },
-      "respiration": {
-        "title": "Respiration",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "Resp rate",
-            "unit": "/min",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "Breathing.resp_rate_measured"
-            ],
-            "weight_based": false,
-            "value": "36",
-            "visible": true,
-            "props_processed": []
-          },
-          {
-            "label": "Tv",
-            "unit": "ml/kg",
-            "factor": 1000,
-            "rounding": 1,
-            "props": [
-              "Breathing.exp_tidal_volume"
-            ],
-            "weight_based": true,
-            "value": "5.0",
-            "visible": false,
-            "props_processed": []
-          },
-          {
-            "label": "Mv",
-            "unit": "ml/kg/min",
-            "factor": 1000,
-            "rounding": 0,
-            "props": [
-              "Breathing.minute_volume"
-            ],
-            "weight_based": true,
-            "value": "215",
-            "visible": false,
-            "props_processed": []
-          }
-        ],
-        "name": "respiration"
-      },
-      "ecls": {
-        "title": "Ecls",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "Flow",
-            "unit": "l/min",
-            "factor": 1,
-            "rounding": 3,
-            "props": [
-              "Ecls.blood_flow"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Ven pres",
-            "unit": "mmHg",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ecls.p_ven"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Pre pres",
-            "unit": "mmHg",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ecls.p_int"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Post pres",
-            "unit": "mmHg",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ecls.p_art"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Tmp",
-            "unit": "mmHg",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ecls.p_tmp"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "SvO2",
-            "unit": "%",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ecls.pre_oxy_so2"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Pre po2",
-            "unit": "kPa",
-            "factor": 0.133,
-            "rounding": 1,
-            "props": [
-              "Ecls.pre_oxy_po2"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Pre pco2",
-            "unit": "kPa",
-            "factor": 0.133,
-            "rounding": 1,
-            "props": [
-              "Ecls.pre_oxy_pco2"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "SaO2",
-            "unit": "%",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ecls.post_oxy_so2"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Post po2",
-            "unit": "kPa",
-            "factor": 0.133,
-            "rounding": 1,
-            "props": [
-              "Ecls.post_oxy_po2"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Post pco2",
-            "unit": "kPa",
-            "factor": 0.133,
-            "rounding": 1,
-            "props": [
-              "Ecls.post_oxy_pco2"
-            ],
-            "weight_based": false
-          }
-        ]
-      },
-      "ventilator": {
-        "title": "Ventilator",
-        "enabled": true,
-        "collapsed": true,
-        "parameters": [
-          {
-            "label": "Pip",
-            "unit": "cmh2o",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "Ventilator.p_peak"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Peep",
-            "unit": "cmh2o",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "Ventilator.peep_cmh2o"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Freq",
-            "unit": "/min",
-            "factor": 1,
-            "rounding": 0,
-            "props": [
-              "Ventilator.vent_rate"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Tv",
-            "unit": "ml/kg",
-            "factor": 1000,
-            "rounding": 1,
-            "props": [
-              "Ventilator.exp_tidal_volume"
-            ],
-            "weight_based": true
-          },
-          {
-            "label": "Mv",
-            "unit": "ml/kg/min",
-            "factor": 1000,
-            "rounding": 0,
-            "props": [
-              "Ventilator.minute_volume"
-            ],
-            "weight_based": true
-          },
-          {
-            "label": "Comp",
-            "unit": "ml/cmh2o",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ventilator.compliance"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Res",
-            "unit": "cmh2o/(l/s)",
-            "factor": 1,
-            "rounding": 1,
-            "props": [
-              "Ventilator.resistance"
-            ],
-            "weight_based": false
-          },
-          {
-            "label": "Etco2",
-            "unit": "kPa",
-            "factor": 0.1333,
-            "rounding": 1,
-            "props": [
-              "Ventilator.etco2"
-            ],
-            "weight_based": false
-          }
-        ]
       }
     },
     "controllers": [
@@ -5239,6 +4474,1239 @@
           "value": "Ecls"
         }
       ]
+    ],
+    "monitor_dashboards": [
+      {
+        "id": "haemo",
+        "name": "Haemodynamics",
+        "monitors": {
+          "vitals": {
+            "title": "Vitals",
+            "enabled": true,
+            "collapsed": false,
+            "parameters": [
+              {
+                "label": "HR",
+                "unit": "bpm",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.heart_rate"
+                ],
+                "weight_based": false,
+                "value": "115"
+              },
+              {
+                "label": "SaO2(pre)",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.sao2_pre"
+                ],
+                "weight_based": false,
+                "value": "95"
+              },
+              {
+                "label": "SaO2(post)",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.sao2_post"
+                ],
+                "weight_based": false,
+                "value": "95"
+              },
+              {
+                "label": "Abp",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.minmax.abp_pres_max",
+                  "Monitor.minmax.abp_pres_min"
+                ],
+                "weight_based": false,
+                "value": "75/48"
+              },
+              {
+                "label": "RR",
+                "unit": "bpm",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.resp_rate"
+                ],
+                "weight_based": false,
+                "value": "45"
+              },
+              {
+                "label": "EtCO2",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.etco2"
+                ],
+                "weight_based": false,
+                "value": "0"
+              }
+            ]
+          },
+          "add_vitals": {
+            "title": "Additional Vitals",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Abp PRE",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.minmax.abp_pre_pres_max",
+                  "Monitor.minmax.abp_pre_pres_min"
+                ],
+                "weight_based": false,
+                "value": "75/48"
+              },
+              {
+                "label": "Pap",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.minmax.pap_pres_max",
+                  "Monitor.minmax.pap_pres_min"
+                ],
+                "weight_based": false,
+                "value": "43/19"
+              },
+              {
+                "label": "Cvp",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.minmax.cvp_pres_mean"
+                ],
+                "weight_based": false,
+                "value": "5"
+              },
+              {
+                "label": "EtCO2",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.etco2"
+                ],
+                "weight_based": false,
+                "value": "0"
+              },
+              {
+                "label": "SvO2(ivc)",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "IVCI.so2"
+                ],
+                "weight_based": false,
+                "value": "72"
+              },
+              {
+                "label": "SvO2(svc)",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "SVC.so2"
+                ],
+                "weight_based": false,
+                "value": "62"
+              }
+            ]
+          },
+          "heart": {
+            "title": "Heart",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Heartrate",
+                "unit": "/min",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Monitor.heart_rate"
+                ],
+                "weight_based": false,
+                "value": "116"
+              },
+              {
+                "label": "LVP",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Heart.lv_edp",
+                  "Heart.lv_esp"
+                ],
+                "weight_based": false,
+                "value": "10.3/78.2"
+              },
+              {
+                "label": "LVV",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Heart.lv_edv",
+                  "Heart.lv_esv"
+                ],
+                "weight_based": true,
+                "value": "2.7/1.0"
+              },
+              {
+                "label": "LV_SV",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Heart.lv_sv"
+                ],
+                "weight_based": true,
+                "value": "1.7"
+              },
+              {
+                "label": "RVP",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Heart.rv_edp",
+                  "Heart.rv_esp"
+                ],
+                "weight_based": false,
+                "value": "8.5/39.5"
+              },
+              {
+                "label": "RVV",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Heart.rv_esv",
+                  "Heart.rv_edv"
+                ],
+                "weight_based": true,
+                "value": "1.6/3.3"
+              },
+              {
+                "label": "RV_SV",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Heart.rv_sv"
+                ],
+                "weight_based": true,
+                "value": "1.7"
+              }
+            ]
+          },
+          "circulation": {
+            "title": "Circulation",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Diurese",
+                "unit": "ml/kg/h",
+                "factor": 60,
+                "rounding": 1,
+                "props": [
+                  "Kidneys.urine_flow"
+                ],
+                "weight_based": true,
+                "value": "0.0"
+              },
+              {
+                "label": "LVO",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.lvo"
+                ],
+                "weight_based": true,
+                "value": "186.1"
+              },
+              {
+                "label": "RVO",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.rvo"
+                ],
+                "weight_based": true,
+                "value": "185.8"
+              },
+              {
+                "label": "fCOR",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.cor_flow"
+                ],
+                "weight_based": true,
+                "value": "11.6"
+              },
+              {
+                "label": "fSVC",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.svc_flow"
+                ],
+                "weight_based": true,
+                "value": "77.5"
+              },
+              {
+                "label": "fIVC",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.ivc_flow"
+                ],
+                "weight_based": true,
+                "value": "99.2"
+              },
+              {
+                "label": "fPda",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.da_flow"
+                ],
+                "weight_based": true,
+                "value": "0.0"
+              },
+              {
+                "label": "fFo",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.fo_flow"
+                ],
+                "weight_based": true,
+                "value": "0.0"
+              },
+              {
+                "label": "fBR",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.brain_flow"
+                ],
+                "weight_based": true,
+                "value": "38.0"
+              },
+              {
+                "label": "fKID",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.kid_flow"
+                ],
+                "weight_based": true,
+                "value": "24.6"
+              },
+              {
+                "label": "fUA",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.ua_flow"
+                ],
+                "weight_based": true,
+                "value": "0.0"
+              },
+              {
+                "label": "fUV",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.uv_flow"
+                ],
+                "weight_based": true,
+                "value": "0.0"
+              },
+              {
+                "label": "Blood vol",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Circulation.total_blood_volume"
+                ],
+                "weight_based": true,
+                "value": "80.7"
+              },
+              {
+                "label": "Syst vol",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Circulation.syst_blood_volume_perc"
+                ],
+                "weight_based": false,
+                "value": "82.22"
+              },
+              {
+                "label": "Heart vol",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Circulation.heart_blood_volume_perc"
+                ],
+                "weight_based": false,
+                "value": "8.00"
+              },
+              {
+                "label": "Pulm vol",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Circulation.pulm_blood_volume_perc"
+                ],
+                "weight_based": false,
+                "value": "9.78"
+              },
+              {
+                "label": "DO2_lb",
+                "unit": "mlO2/min",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Monitor.do2_lb"
+                ],
+                "weight_based": false,
+                "value": "53.9"
+              },
+              {
+                "label": "DO2_br",
+                "unit": "mlO2/min",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Monitor.do2_br"
+                ],
+                "weight_based": false,
+                "value": "20.9"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "resp",
+        "name": "Respiratory",
+        "monitors": {
+          "respiration": {
+            "title": "Respiration",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Resp rate",
+                "unit": "/min",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Breathing.resp_rate_measured"
+                ],
+                "weight_based": false,
+                "value": "36",
+                "visible": true,
+                "props_processed": []
+              },
+              {
+                "label": "Tv",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Breathing.exp_tidal_volume"
+                ],
+                "weight_based": true,
+                "value": "5.0",
+                "visible": false,
+                "props_processed": []
+              },
+              {
+                "label": "Mv",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 0,
+                "props": [
+                  "Breathing.minute_volume"
+                ],
+                "weight_based": true,
+                "value": "215",
+                "visible": false,
+                "props_processed": []
+              }
+            ],
+            "name": "respiration"
+          },
+          "ventilator": {
+            "title": "Ventilator",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Pip",
+                "unit": "cmh2o",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Ventilator.p_peak"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Peep",
+                "unit": "cmh2o",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Ventilator.peep_cmh2o"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Freq",
+                "unit": "/min",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "Ventilator.vent_rate"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Tv",
+                "unit": "ml/kg",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Ventilator.exp_tidal_volume"
+                ],
+                "weight_based": true
+              },
+              {
+                "label": "Mv",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 0,
+                "props": [
+                  "Ventilator.minute_volume"
+                ],
+                "weight_based": true
+              },
+              {
+                "label": "Comp",
+                "unit": "ml/cmh2o",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ventilator.compliance"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Res",
+                "unit": "cmh2o/(l/s)",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ventilator.resistance"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Etco2",
+                "unit": "kPa",
+                "factor": 0.1333,
+                "rounding": 1,
+                "props": [
+                  "Ventilator.etco2"
+                ],
+                "weight_based": false
+              }
+            ]
+          },
+          "ecls": {
+            "title": "Ecls",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Flow",
+                "unit": "l/min",
+                "factor": 1,
+                "rounding": 3,
+                "props": [
+                  "Ecls.blood_flow"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Ven pres",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ecls.p_ven"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Pre pres",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ecls.p_int"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Post pres",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ecls.p_art"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Tmp",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ecls.p_tmp"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "SvO2",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ecls.pre_oxy_so2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Pre po2",
+                "unit": "kPa",
+                "factor": 0.133,
+                "rounding": 1,
+                "props": [
+                  "Ecls.pre_oxy_po2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Pre pco2",
+                "unit": "kPa",
+                "factor": 0.133,
+                "rounding": 1,
+                "props": [
+                  "Ecls.pre_oxy_pco2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "SaO2",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Ecls.post_oxy_so2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Post po2",
+                "unit": "kPa",
+                "factor": 0.133,
+                "rounding": 1,
+                "props": [
+                  "Ecls.post_oxy_po2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Post pco2",
+                "unit": "kPa",
+                "factor": 0.133,
+                "rounding": 1,
+                "props": [
+                  "Ecls.post_oxy_pco2"
+                ],
+                "weight_based": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "labs",
+        "name": "Labs",
+        "monitors": {
+          "lab": {
+            "title": "Labs",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "pH",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "AA.ph"
+                ],
+                "weight_based": false,
+                "value": "7.39"
+              },
+              {
+                "label": "pO2",
+                "unit": "kPa",
+                "factor": 0.1333,
+                "rounding": 1,
+                "props": [
+                  "AA.po2"
+                ],
+                "weight_based": false,
+                "value": "12.9"
+              },
+              {
+                "label": "pCO2",
+                "unit": "kPa",
+                "factor": 0.1333,
+                "rounding": 1,
+                "props": [
+                  "AA.pco2"
+                ],
+                "weight_based": false,
+                "value": "5.4"
+              },
+              {
+                "label": "HCO3",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "AA.hco3"
+                ],
+                "weight_based": false,
+                "value": "24"
+              },
+              {
+                "label": "BE",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "AA.be"
+                ],
+                "weight_based": false,
+                "value": "-0.9"
+              },
+              {
+                "label": "SO2",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "AA.so2"
+                ],
+                "weight_based": false,
+                "value": "99"
+              },
+              {
+                "label": "Na",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "AD.solutes.na"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "K",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "AD.solutes.k"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "iCa",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "AD.solutes.ca"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Cl",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "AD.solutes.cl"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Mg",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "AD.solutes.mg"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Phos",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "AD.solutes.phosphates"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Lactate",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "AD.solutes.lact"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Glucose",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "AD.solutes.glucose"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Hb",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "AD.solutes.hemoglobin"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Albumin",
+                "unit": "g/l",
+                "factor": 1,
+                "rounding": 0,
+                "props": [
+                  "AD.solutes.albumin"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "UMA",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "AD.solutes.uma"
+                ],
+                "weight_based": false
+              }
+            ]
+          },
+          "renal": {
+            "title": "Renal",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "GFR",
+                "unit": "ml/min",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Kidneys.gfr"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Urine",
+                "unit": "ml/kg/h",
+                "factor": 60,
+                "rounding": 1,
+                "props": [
+                  "Kidneys.urine_flow"
+                ],
+                "weight_based": true
+              },
+              {
+                "label": "Urine vol",
+                "unit": "ml",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Kidneys.urine_volume"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "FENa",
+                "unit": "%",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Kidneys.fe_na"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "RBF",
+                "unit": "ml/kg/min",
+                "factor": 1000,
+                "rounding": 1,
+                "props": [
+                  "Monitor.flows.kid_flow"
+                ],
+                "weight_based": true
+              },
+              {
+                "label": "Renal art",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "KID_ART.pres"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "NFP",
+                "unit": "mmHg",
+                "factor": 1,
+                "rounding": 1,
+                "props": [
+                  "Kidneys.nfp"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Afferent",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Kidneys.afferent_factor"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Angiotensin",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Hormones.angiotensin"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Aldosterone",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Hormones.aldosterone"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "ADH",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Hormones.adh"
+                ],
+                "weight_based": false
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "regulation",
+        "name": "Regulation",
+        "monitors": {
+          "ans": {
+            "title": "ANS",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Baro",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "BR_MAP.firing_rate"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Chemo pCO2",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "CR_PCO2.firing_rate"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Chemo pO2",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "CR_PO2.firing_rate"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Chemo pH",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "CR_PH.firing_rate"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "HR effect",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "EF_HR.effector"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "SVR effect",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "EF_SVR.effector"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Contr effect",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "EF_HEART.effector"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Vent effect",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "EF_MV.effector"
+                ],
+                "weight_based": false
+              }
+            ]
+          },
+          "metabolism": {
+            "title": "Metabolism",
+            "enabled": true,
+            "collapsed": true,
+            "parameters": [
+              {
+                "label": "Core temp",
+                "unit": "°C",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Thermoregulation.core_temp"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Skin temp",
+                "unit": "°C",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Thermoregulation.skin_temp"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Heat prod",
+                "unit": "W",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Thermoregulation.heat_production"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Heat loss",
+                "unit": "W",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Thermoregulation.heat_loss"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Brown fat",
+                "unit": "W",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Thermoregulation.brown_fat_heat"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "VO2 base",
+                "unit": "ml/kg/min",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Metabolism.vo2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "VO2 temp",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Metabolism.vo2_temp_factor"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Glucose",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Glucose.glucose"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Insulin",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Glucose.insulin"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Counterreg",
+                "unit": "x",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Glucose.counterreg"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Lactate",
+                "unit": "mmol/l",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Lactate.arterial_lactate"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Anaerobic",
+                "unit": "0-1",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Lactate.anaerobic_fraction_max"
+                ],
+                "weight_based": false
+              }
+            ]
+          }
+        }
+      }
     ]
   },
   "model_definition": {
