@@ -12,6 +12,8 @@
 // 2002 doi:10.1152/ajpheart.00686.2001). Myocardial VO2 (Mob) is unchanged, so the flow follows it:
 // extraction = MVO2 / (Q·CaO2), and R is scaled by target/extraction until it matches.
 // Only r_for/r_back of AA_COR change; the definitions are edited in place.
+// 2026-10-27: scripts/_fix_term_mvo2.mjs raised the term baby's myocardial O2 use and re-fitted AA_COR to the
+// same 55 % extraction (coronary flow 18.5 -> 25.9 mL/min).
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 

@@ -58,7 +58,7 @@ send("POST", "calc", SETTLE);
 const vit = measureVitals(model, send, { window: WINDOW });
 
 // second window, stepped directly so per-step values (heart volumes, flows, gas uptake, FRC) are sampled
-const flowNames = ["LV_AA", "RV_PA", "AA_BR_ART", "AA_RUB", "AAR_AD", "AD_LS_ART", "AD_KID_ART", "AD_INT_ART", "SVC_RASVC", "AAR_DA", "LA_RAIVCI", "LA_RASVC"];
+const flowNames = ["LV_AA", "RV_PA", "AA_BR_ART", "AA_RUB", "AAR_AD", "AD_LS_ART", "AD_KID_ART", "AD_INT_ART", "SVC_RASVC", "AAR_DA", "LA_RAIVCI", "LA_RASVC", "AA_COR"];
 const acc = {};
 const add = (k, v) => { acc[k] = (acc[k] || 0) + (Number.isFinite(v) ? v : 0); };
 let frcMin = Infinity;
@@ -142,6 +142,8 @@ const model_values = {
   hb, hct: hb / MCHC * 100, blood_volume: toKgMl(bloodVol),
   gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,
   pda: perKgMin(acc.AAR_DA), fo: perKgMin(acc.LA_RAIVCI + acc.LA_RASVC),
+  // coronary inflow (mL/min, whole heart) and myocardial O2 use (mL/100 g/min)
+  cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // used by the preterm set
   lvo_rvo: acc.LV_AA / acc.RV_PA, pda_diam: (M.Pda?.diameter_relative ?? NaN) * (M.Pda?.diameter_pa_max ?? NaN),
   cl: (lungC * 1000) / MMHG_TO_CMH2O / W, ccw: (chestC * 1000) / MMHG_TO_CMH2O / W, vd_vt: acc.ds_vol / acc.vt,

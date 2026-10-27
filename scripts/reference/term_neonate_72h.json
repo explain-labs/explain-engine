@@ -194,6 +194,21 @@
       "cite": "Zoppi G et al. Respiratory quotient changes in full term newborn infants within 30 hours from birth before start of milk feeding. Eur J Clin Nutr 1998;52:360-2",
       "doi": "10.1038/sj.ejcn.1600564",
       "pmid": "9630387"
+    },
+    "aburawi2012": {
+      "cite": "Aburawi EH et al. Coronary flow in neonates with impaired intrauterine growth. J Am Soc Echocardiogr 2012;25:313-8",
+      "doi": "10.1016/j.echo.2011.11.019",
+      "pmid": "22177908"
+    },
+    "yasuoka2002": {
+      "cite": "Yasuoka K et al. Left anterior descending coronary artery flow and its relation to age in children. J Am Soc Echocardiogr 2002;15:69-75",
+      "doi": "10.1067/mje.2002.115537",
+      "pmid": "11781557"
+    },
+    "smolich1996": {
+      "cite": "Smolich JJ, Berger PJ, Walker AM. Interrelation between ventricular function, myocardial blood flow, and O2 consumption changes at birth in lambs. Am J Physiol 1996;270:H741-9",
+      "doi": "10.1152/ajpheart.1996.270.2.H741",
+      "pmid": "8779852"
     }
   },
   "variables": [
@@ -711,6 +726,47 @@
       "grade": "C",
       "model_readout": "AD_LS_ART.flow / weight",
       "notes": "Agata 1994 Fig 2: coeliac ~75 (24 h), ~72 (96 h) mL/kg/min. Same absolute-overestimation caveat; coeliac also feeds the stomach and spleen."
+    },
+    {
+      "key": "cor_flow",
+      "group": "flows",
+      "label": "Coronary flow (whole heart)",
+      "unit": "mL/min",
+      "mean": 22,
+      "sd": null,
+      "low": 18,
+      "high": 28,
+      "range_type": "derived",
+      "method": "LAD volume flow by transthoracic Doppler (healthy controls, 1 week), scaled to the whole heart",
+      "age": "1 week",
+      "n": 15,
+      "sources": [
+        "aburawi2012",
+        "yasuoka2002"
+      ],
+      "grade": "C",
+      "model_readout": "AA_COR flow",
+      "notes": "LAD 8.2 +/- 3.0 mL/min (Aburawi 2012); the LAD carries ~35-45 % of the total, so ~18-23 mL/min; LAD flow per gram of LV is highest in young infants (Yasuoka 2002). Added 2026-10-27."
+    },
+    {
+      "key": "mvo2",
+      "group": "flows",
+      "label": "Myocardial O2 use",
+      "unit": "mL/100 g/min",
+      "mean": 14,
+      "sd": null,
+      "low": 10,
+      "high": 19,
+      "range_type": "derived",
+      "method": "between adult resting values and newborn lambs",
+      "age": "-",
+      "n": null,
+      "sources": [
+        "smolich1996"
+      ],
+      "grade": "C",
+      "model_readout": "Mob.mob_vo2 / Mob.hw",
+      "notes": "Newborn lambs (1 h): LV 18.9 mL/100 g/min, mechanical efficiency 31-35 % (Smolich 1996); adult rest ~8-10. Added 2026-10-27."
     },
     {
       "key": "rr",
