@@ -24,7 +24,7 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `mob_active` | boolean | `true` | Switch. |
-| `bm_vo2_per_g` | mmol O2/g/s | 3.7e-5 | Basal O2 use per gram of heart. |
+| `bm_vo2_per_g` | mmol O2/g/s | 3.7e-5 | Basal O2 use per gram of heart. term_neonate_72h 6.1716e-5 (2026-10-27): with the stroke-work part, a myocardial VO2 of 14 mL/100 g/min, between adult rest (~8–10) and newborn lambs (18.9; Smolich 1996). |
 | `hw_intercept`, `hw_slope` | g, g/g | 7.799, 0.004296 | Heart weight = intercept + slope · body weight (g): 23 g at 3.5 kg, 10.8 g at 0.7 kg. |
 | `mech_efficiency` | – | 0.35 | Incremental (contractile) efficiency: stroke work / O2 energy. With the basal part included, whole-heart efficiency is the textbook ~15–20 %. |
 | `caloric_equiv_o2` | J/mL O2 | 20.1 | Energy per mL O2 (STPD). |
@@ -77,13 +77,13 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
 
 ## Assumptions and limitations
 
-- **Coronary flow is set by a resting O2 extraction** (re-validation, `scripts/_fix_coronary_extraction.mjs`): `AA_COR`'s resistance gives 55 % extraction in the postnatal scenarios (between newborn lambs, ~50 %, and adults, ~70 %) and 50 % in the fetal ones. Before, every scenario had about the same flow per kg body weight (10.5–11.4 mL/kg/min), so extraction ranged from 30 % (term, ~2× Aburawi's estimate) to 70 % (fetus_term). Values at rest (10 s averages after 2 min; MVO2 in mL O2/min/100 g, flow in mL/min):
+- **Coronary flow is set by a resting O2 extraction** (re-validation, `scripts/_fix_coronary_extraction.mjs`): `AA_COR`'s resistance gives 55 % extraction in term_neonate_72h (between newborn lambs, ~50 %, and adults, ~70 %). Before, the flow was set per kg body weight, so the term extraction was 30 % (~2× Aburawi's estimate). Values at rest (10 s averages after 2 min; MVO2 in mL O2/min/100 g, flow in mL/min):
 
   | Scenario | Heart weight | MVO2 | Coronary flow (per 100 g), before → after | Extraction |
   |---|---|---|---|---|
   | term_neonate_72h | 23.0 g | 10.6 | 37.4 (163) → 18.1 (79 per 100 g) | 30 → 55 % |
 
-  The term flow (18 mL/min) is close to the ~20–25 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests; the since-removed fetal scenarios got 105–195 per 100 g at 50 %, in the range of fetal-lamb microsphere data (Smolich 1996, Dalshaug 2002), and the preterm ones 59–64 at 55 %. The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
+  The term flow (25.9 mL/min since the MVO2 raise of 2026-10-27, `scripts/_fix_term_mvo2.mjs`) sits at the upper end of the ~18–26 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests. The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
 - **The hypoxia effects start only at a very low `COR.to2`** (0.2 mmol/L, ~2 % saturation). At rest they are inactive, and they engage only in profound coronary hypoxia.
 - **Contractility is depressed twice** under hypoxia: `cont_factor` lowers `el_max`, and `ans_activity_factor` lowers the sympathetic inotropy. Their combined strength is set by `cont_factor_min` and `ans_factor_min`.
 - **Heart weight follows body weight only** (no hypertrophy).
@@ -119,10 +119,16 @@ From `term_neonate_72h.json`, `models.Mob` (trimmed to the config props; `compon
 
 ## Usage in the scenarios
 
-One instance in every scenario, with the defaults above, owning the coronary bed (`AA` → `AA_COR` → `COR` → right atrium).
+One instance in every scenario, owning the coronary bed (`AA` → `AA_COR` → `COR` → right atrium).
+
+| Scenario | `bm_vo2_per_g` | Myocardial VO2 (mL/100 g/min) | Coronary flow | Extraction |
+|---|---|---|---|---|
+| term_neonate_72h | 6.1716e-5 | 14.0 (basal 8.3 + stroke work 5.7) | 25.9 mL/min (113 mL/100 g/min, 3.6 % of LVO) | 0.55 |
+
+Until 2026-10-27 the term baby had the default (3.7e-5): 10.7 mL/100 g/min, an adult-like 80 mL/100 g/min and 2.6 % of LVO. The basal part was raised and the inflow resistance `AA_COR` re-fitted to the same 55 % extraction (`scripts/_fix_term_mvo2.mjs`; the extraction target is re-validation item (h), `scripts/_fix_coronary_extraction.mjs`). Healthy 1-week-old controls have an LAD flow of 8.2 ± 3.0 mL/min, ~18–23 mL/min for the whole heart (Aburawi 2012), and LAD flow per gram of LV is highest in young infants (Yasuoka 2002).
 
 ## References
 
 - Aburawi EH, Malcus P, Thuring A, Fellman V, Pesonen E. Coronary flow in neonates with impaired intrauterine growth. *J Am Soc Echocardiogr* 2012;25(3):313–8. doi:10.1016/j.echo.2011.11.019 (healthy controls: LAD flow 8.2 ± 3.0 mL/min at 1 week).
+- Yasuoka K, Harada K, Tamura M, Takada G. Left anterior descending coronary artery flow and its relation to age in children. *J Am Soc Echocardiogr* 2002;15:69–75. doi:10.1067/mje.2002.115537 (LAD flow per gram of LV highest in young infants).
 - Smolich JJ, Berger PJ, Walker AM. Interrelation between ventricular function, myocardial blood flow, and O2 consumption changes at birth in lambs. *Am J Physiol* 1996;270:H741–9. doi:10.1152/ajpheart.1996.270.2.H741 (LV myocardial flow 234 → 199 mL/min/100 g fetus → 4 h; LV AV O2 difference 3.6 → 7.5 mL/dL).
-- Dalshaug GB, Scholz TD, Smith OM, et al. Effects of gestational age on myocardial blood flow and coronary flow reserve in pressure-loaded ovine fetal hearts. *Am J Physiol Heart Circ Physiol* 2002;282:H1359–69. doi:10.1152/ajpheart.00686.2001 (LV 258 vs 172, RV 341 vs 230 mL/min/100 g at 100 vs 128 days).

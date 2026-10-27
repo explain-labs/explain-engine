@@ -7,7 +7,7 @@
 //
 // The three models are process-controllers that auto-seed to NEUTRAL at rest (so a scenario shipping
 // them keeps its calibrated operating point). After patching, re-bake the steady state with the
-// generic warmer:  node scripts/reseed_preterm.mjs --file <scenario> --write
+// warmer:  node scripts/reseed_term_neonate.mjs --write
 //
 // NB: this only edits the JSON; it does not warm. It writes with the same 1-space indentation the
 // reseed/make scripts use, and reseed rewrites the file anyway.

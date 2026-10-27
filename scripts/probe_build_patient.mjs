@@ -4,24 +4,17 @@
 //
 // Usage:
 //   node scripts/probe_build_patient.mjs            all cases (each build takes about a minute)
-//   node scripts/probe_build_patient.mjs fio2       only cases whose name contains "fio2"
+//   node scripts/probe_build_patient.mjs echo       only cases whose name contains "echo"
 //
 // Checks per case:
 //   - the builder exits 0 and emits a scenario with a build_report
 //   - every calibrated target the report calls `within` is still within tolerance after reload
 //   - unknown targets are listed under ignored_targets
-//   - with targets.fio2: the reloaded scenario carries that FiO2, and the same patient put in
-//     room air desaturates (i.e. the oxygen lever was fitted AT the given FiO2)
 //   - with sys/dia: the derived pulse pressure (and the MAP estimate, when not given) are in the
 //     report; without a MAP the MAP target follows the model's waveform and the pair lands
-//   - a 0.72 kg preterm baseline with sys/dia 45/25: converges without the stiffness lever at its bound
-//   - with pda_mm: the reloaded duct has that diameter at its pulmonary end
 //   - with fo_mm: the reloaded foramen ovale has that diameter
 //   - with ef and co: ef is reported as superseded by co (same lever)
 //   - with only structural targets: the patient is still emitted, with measured vitals and a note
-//   - with an SpO2 out of diffusion's reach on high FiO2: the shunt is opened and noted
-//   - with a raised PAP: the intrapulmonary shunt fraction stays near the seed's
-//   - a preterm without a pressure pair: pulse pressure in the reference range (size-scaled arteries)
 //   - with postnatal_age_days: the report records it and the term PAP flags follow age (a PAP
 //     that is normal on day 1 is HIGH on day 7)
 //   - with solutes: each one is reported, read back within 3 % of what was set, and holds after
@@ -43,18 +36,8 @@ const READKEY = { co: "lvo", spo2: "spo2_pre" };
 const CASES = [
   {
     name: "term_room_air",
-    spec: { baseline: "term_neonate_72h", name: "probe_term", targets: { hr: 140, map: 48, spo2: 96, pco2: 42, be: -1 } },
-  },
-  {
-    name: "preterm_fio2",
-    spec: {
-      baseline: "term_neonate_72h", name: "probe_preterm_fio2", max_iters: 10,
-      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, hb: 9.0, fio2: 0.3, not_a_target: 1 },
-    },
+    spec: { baseline: "term_neonate_72h", name: "probe_term", targets: { hr: 140, map: 48, spo2: 96, pco2: 42, be: -1, not_a_target: 1 } },
     expectIgnored: ["not_a_target"],
-    // arterial stiffness follows size: without a pressure-pair target, a 28 wk patient's pulse
-    // pressure lands in the reference range (it was ~11 when arteries kept term elastance)
-    expectPpRange: [15, 27],
   },
   {
     // MAP derived from sys/dia; pulse pressure and respiratory rate calibrated
@@ -71,15 +54,6 @@ const CASES = [
       targets: { hr: 150, map: 45, spo2: 95, pco2: 40, be: -7, na: 134, k: 4.8, cl: 104, lactate: 4.5, glucose: 3.2, albumin: 24 },
     },
     expectSolutes: true,
-  },
-  {
-    // echo inputs: a measured duct diameter and a TR-jet systolic PA pressure
-    name: "preterm_echo",
-    spec: {
-      baseline: "term_neonate_72h", name: "probe_preterm_echo", max_iters: 10,
-      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 91, pco2: 51, be: -4.5, pda_mm: 2.2, pap_s: 32 },
-    },
-    expectPdaMm: 2.2,
   },
   {
     // echo inputs: a measured foramen ovale and a poor LV ejection fraction
@@ -105,29 +79,9 @@ const CASES = [
     expectSuperseded: [{ key: "ef", by: "co" }],
   },
   {
-    // an SpO2 below what lung diffusion alone can reach on 40 % oxygen: the oxygen lever must
-    // continue into the intrapulmonary shunt
-    name: "preterm_high_fio2_shunt",
-    spec: {
-      baseline: "term_neonate_72h", name: "probe_preterm_shunt", max_iters: 10,
-      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, spo2: 85, pco2: 51, be: -4.5, fio2: 0.4 },
-    },
-    expectNote: /intrapulmonary shunt was opened/,
-  },
-  {
-    // a raised pulmonary pressure: the PAP lever moves the intrapulmonary shunt with the bed, so
-    // the shunt's share of pulmonary flow stays near the seed's (33 % here; 46 % when it did not)
-    name: "preterm_raised_pap",
-    spec: {
-      baseline: "term_neonate_72h", name: "probe_preterm_pap", max_iters: 10,
-      targets: { weight: 1.08, gestational_age: 28, hr: 158, map: 34, pco2: 51, be: -4.5, fio2: 0.3, pap_s: 36 },
-    },
-    expectMaxShuntFraction: 0.37,
-  },
-  {
     // structural targets only: nothing to iterate, but the patient is settled, measured and emitted
     name: "structural_only",
-    spec: { baseline: "term_neonate_72h", name: "probe_structural", targets: { weight: 1.35, gestational_age: 30 } },
+    spec: { baseline: "term_neonate_72h", name: "probe_structural", targets: { weight: 3.2 } },
     expectNote: /no iterated targets/,
     expectNoTargets: true,
   },

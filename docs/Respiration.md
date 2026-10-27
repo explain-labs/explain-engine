@@ -34,7 +34,7 @@ BaseModelClass
 | `intrapulmonary_shunt_left`, `intrapulmonary_shunt_right` | `["IPSL"]`, `["IPSR"]` | atelectasis perfusion |
 | `pulmonary_capillaries_left`, `pulmonary_capillaries_right` | `xL_ART_xL_CAP`, `xL_CAP_xL_VEN` | atelectasis perfusion |
 
-Older (archived) scenarios spell `gas_exchangers` as `gas_echangers`; `init_model` accepts it.
+Older scenario files spell `gas_exchangers` as `gas_echangers`; `init_model` accepts it.
 
 ### Config: system levers
 
@@ -117,7 +117,7 @@ Each shunt resistor is scaled by `G_ips / (s'·G_tot')` and each capillary resis
 `IPSL`/`IPSR` belongs to [Surfactant](./Surfactant.md) and the scaling layer to the Calibrator and
 `ModelScaler`, and the factors are computed against those layers so they compose. Because the split is
 set from conductance ratios, the shunt share does not depend on the scenario's `Shunts.ips_res`
-(preterm 1600–4200, term 5000). With `c = 0` nothing is written.
+(term_neonate_72h 20 400). With `c = 0` nothing is written.
 
 On `term_neonate_72h`, right lung, room air (`scripts/probe_atelectasis.mjs`, measured when atelectasis was introduced, 2026-10):
 
@@ -189,9 +189,7 @@ With `atelectasis_recruitable = false` (a mucus plug, resorption atelectasis) th
 pressure. Where a scenario has [Surfactant](./Surfactant.md), it keeps its own whole-lung
 recruitment on the non-persistent layer. The two run independently and their effects add.
 
-The thresholds are calibrated on the term lung. In the since-removed `preterm_28wk`, recruitment with PIP 28 or sighs
-works the same way, but PEEP 8 already lets some re-collapse. At PEEP ≤ 5, Surfactant derecruits the
-whole lung as well, so a surfactant-deficient lung needs more PEEP, as at the bedside.
+The thresholds are calibrated on the term lung.
 
 Because the factor layers add up, Surfactant's derecruitment and atelectasis together can take a
 lung's effective unstressed volume or diffusion constant below zero. [Capacitance](./Capacitance.md)
@@ -243,7 +241,7 @@ None of its own. It writes:
 
 - **Levers add.** The persistent layers are shared, so simultaneous writers add their changes. A layer driven to the 0 clamp loses the part of the change below 0.
 - **Membership is by name.** Only models named in the lists are affected.
-- **Atelectasis is per lung, not regional,** and calibrated on the term lung. In preterm lungs, [Surfactant](./Surfactant.md)'s own whole-lung recruitment runs in parallel; their effects add.
+- **Atelectasis is per lung, not regional,** and calibrated on the term lung. Where a scenario has [Surfactant](./Surfactant.md), its own whole-lung recruitment runs in parallel; their effects add.
 - **The perfusion split assumes the shunt and capillary paths share one pressure drop** (`xL_ART` → `xL_VEN`).
 
 ## Example definition (JSON)
@@ -272,7 +270,7 @@ From `term_neonate_72h.json`, `models.Respiration` (trimmed: groups and atelecta
 
 ## Usage in the scenarios
 
-One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. term_neonate_72h uses the defaults above for every lever (1) and for atelectasis (0); disease (in the since-removed preterm scenarios) is carried by the compartments' own values and by Surfactant (enabled there).
+One instance in every scenario, owning `MOUTH`, `DS`, `ALL`, `ALR`, `THORAX`, `GASEX_LL` and `GASEX_RL`. term_neonate_72h uses the defaults above for every lever (1) and for atelectasis (0); disease is carried by the compartments' own values and, where a scenario has one, by Surfactant.
 
 ## References
 

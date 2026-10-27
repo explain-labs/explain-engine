@@ -1,5 +1,4 @@
-// Gestational-age lever tables, shared by the scenario generators and the calibrated
-// patient builder so a table lives in exactly one place.
+// Gestational-age lever tables of the calibrated patient builder (scripts/build_patient.mjs).
 //
 // Background: NOTHING in the engine reads `model.gestational_age` — it is metadata.
 // (`Uterus`/`MaternalPlacenta` have a `preg_ga`, but that is the *maternal* pregnancy
@@ -9,12 +8,11 @@
 // the engine can derive: each GA is a hand-fitted row of levers that compensates for
 // what allometric volume scaling leaves behind.
 //
-// These tables are therefore STARTING POINTS refined by iterating the generator +
-// reseed + probe, exactly as scripts/_make_preterm.mjs documents for the preterm series.
+// These tables are therefore STARTING POINTS, refined by iterating build + reseed + probe.
 
 // --- FETAL (in utero) -------------------------------------------------------------
-// Levers for scripts/_make_fetus.mjs, applied on top of the term_fetus.json baseline
-// (which already carries the fetal topology: placental gas exchange, wide-open duct and
+// Levers for the builder's fetal mode, applied on top of a fetal baseline
+// (one that carries the fetal topology: placental gas exchange, wide-open duct and
 // foramen ovale, x21 PVR on the pulmonary compartments, inert fluid-filled lungs, HbF).
 //
 // The columns are deliberately NOT the preterm ones. A fetus has no alveolar gas
@@ -33,7 +31,7 @@
 //                  term: this column must keep the 30 wk share BELOW the term scenario's ~15%.
 //                  NB it is sensitive to the baseline — when that changed from x21 to x9.5 the old
 //                  1.35 left 30 wk at 19%, i.e. ABOVE term, inverting the gestational trend.
-//                  Re-check the ordering against term_fetus after touching either.
+//                  Re-check the ordering against the term fetal baseline after touching either.
 //                  (The Doppler literature has pulmonary flow peaking near 30 wk rather than
 //                  rising to term; this table follows the human MRI reading, consistent with the
 //                  55:45 RV:LV target.)
@@ -60,8 +58,8 @@
 //                  scenarios coming out LV-dominant. Duct resistance carries a Bernoulli orifice
 //                  term scaling as 1/area^2 (Pda.js:200-210), so a narrow duct is expensive: the
 //                  previously shipped 3.0 mm cost a 12.5 mmHg PA-over-Ao gradient, which only the
-//                  RV pays. A fetus with a wide-open duct must have PA ~= Ao — probe_fetus.mjs
-//                  prints exactly that expectation. Measured on term_fetus: 3.0 mm -> 12.5 mmHg
+//                  RV pays. A fetus with a wide-open duct must have PA ~= Ao. Measured on the
+//                  term fetal baseline: 3.0 mm -> 12.5 mmHg
 //                  and RV:LV 48:52; 6.0 mm -> 1.0 mmHg and 51:49.
 //                  So da_diam at 40 wk is anchored to the PA~=Ao invariant (6.0 mm), NOT to the
 //                  3.0 mm the scenario used to ship. Note 3.0 also contradicted the model's own
@@ -88,21 +86,20 @@
 //                  left-shifts the dissociation curve further.
 //   hb             fetal haemoglobin in mmol/L (the model's unit), via Blood.set_solute.
 //                  Rises through gestation (10 mmol/L ~= 16.1 g/dL at term). NOTE the maternal
-//                  pool PL_MAT must be excluded from this — see _make_fetus.mjs section E.
+//                  pool PL_MAT must be excluded from this (the builder restores it).
 //   cont_left      immature myocardium: weaker systole (Heart.cont_factor_* < 1) and
 //   cont_right     stiffer/slower diastolic relaxation (Heart.relax_factor_* > 1).
 //   relax          cont_right is ALSO the lever that sets ventricular dominance, and it is the only
 //                  one that works: the right-atrial blood divides between the tricuspid valve and an
 //                  effectively unrestrictive foramen, so whichever ventricle ejects better draws the
-//                  larger share. Measured on fetus_30wk, cont_right 1.25 -> RV:LV 53:47 and 1.5 ->
+//                  larger share. Measured at 30 weeks, cont_right 1.25 -> RV:LV 53:47 and 1.5 ->
 //                  57:43, monotone throughout, while foramen DIAMETER does nothing between 3 and
 //                  6 mm (46:54 at every value) and only bites below 2 mm, where it swings violently
 //                  (1 mm -> 73:27). Raising cont_right also pulls the foramen share down from 43%
 //                  toward the human 27-34% and raises CVO/kg, so it fixes three things at once.
 //                  This is COMPENSATION, not a model of fetal RV physiology — see rv_uvol.
 //   rv_uvol_ratio  RV.u_vol expressed as a MULTIPLE OF LV.u_vol, not as a multiplier on the
-//                  existing value — fetus_<ga>wk is generated from term_fetus, which already
-//                  carries the trim, so a multiplier would be applied twice. The shipped chambers
+//                  existing value — a fetal baseline already carries the trim, so a multiplier would be applied twice. The shipped chambers
 //                  give the RV an unstressed volume
 //                  5.46x the LV's (4.00 vs 0.73 mL) with a lower el_max (22200 vs 27200) — a
 //                  NEONATAL parameterisation, correctly LV-dominant, inherited unchanged by the
@@ -112,8 +109,7 @@
 //                  does NOT move the split on its own (46:54 at every value tested) — the two
 //                  levers are independent. 5.46 is the shipped ratio; 1.64 is the trimmed one.
 //                  The real repair is the chamber parameterisation itself,
-//                  which is out of scope here because it ripples into ~30 neonatal scenarios; the
-//                  PDA family already works around the same weakness with cont_factor_right 1.5-5.2.
+//                  which is out of scope here.
 //   ven_uvol       multiplier on the large systemic veins' (VLB/VUB) unstressed volume.
 //                  Uniform volume scaling preserves the stressed fraction but leaves CVP
 //                  near zero, so trim u_vol to restore venous filling/preload.
@@ -121,8 +117,7 @@
 // Placenta.mat_to2 / mat_tco2 are intentionally NOT columns: the maternal pool is taken
 // as gestation-independent, so the term baseline's values carry over unchanged.
 //
-// 40 is the term_fetus baseline itself — an identity row, useful as documentation and so
-// `_make_fetus.mjs 40` is a no-op round-trip that must reproduce the source file.
+// 40 is the term fetal baseline itself — an identity row.
 export const FETAL = {
   30: { weight: 1.35, height: 0.385, pl_vol: 0.50, mat_vol: 0.50, svr: 1.75, pvr: 2.30, hr_ref: 152, br_map: 34, fo: 4.4, fo_septum: 2.2, da_diam: 4.58, da_len: 9.76, umb_art_res: 1260, umb_ven_res: 140, plf_res: 2800, dif_o2: 0.020, dif_co2: 0.027, p50: 18.2, hb: 9.0, cont_left: 0.93, cont_right: 1.16, relax: 1.06, rv_uvol_ratio: 1.64, ven_uvol: 0.85 },
   40: { weight: 3.545, height: 0.519, pl_vol: 1.0, mat_vol: 1.0, svr: 1.0, pvr: 1.0, hr_ref: 145, br_map: 55, fo: 6.0, fo_septum: 3.0, da_diam: 6.0, da_len: 14.0, umb_art_res: 680, umb_ven_res: 100, plf_res: 1500, dif_o2: 0.03, dif_co2: 0.04, p50: 18.8, hb: null, cont_left: 1.0, cont_right: 1.30, relax: 1.0, rv_uvol_ratio: 1.64, ven_uvol: 1.0 },

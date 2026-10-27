@@ -68,7 +68,7 @@ Additive layers (as Capacitance and Resistor), on `dif_o2`, `dif_co2` and one sh
 
 - **Reads:** both compartments' `po2`, `pco2`, `to2`, `tco2`, `solutes`, `vol`, `fixed_composition`.
 - **Writes:** `to2`, `tco2`, `solutes` of the non-fixed compartment(s); their solved `ph`, `pco2`, `po2`, `so2`, … through `calc_blood_composition`.
-- **Written by:** [Placenta](./Placenta.md) (`dif_o2`, `dif_co2`, `is_enabled` every 15 ms); the fetal generators set the Placenta values.
+- **Written by:** [Placenta](./Placenta.md) (`dif_o2`, `dif_co2`, `is_enabled` every 15 ms); the scenario sets the Placenta values.
 - **Read by:** `DataCollector` watchers.
 
 ## Assumptions and limitations
@@ -97,7 +97,7 @@ From `term_neonate_72h.json`, `models.Placenta.components.PL_GASEX` (trimmed to 
 
 ## Usage in the scenarios
 
-One instance, `PL_GASEX`, owned by `Placenta`, disabled in term_neonate_72h (it runs only in a fetus with the placenta running; the fetal scenarios were removed on 2026-10-25 to be rebuilt).
+One instance, `PL_GASEX`, owned by `Placenta`, disabled in term_neonate_72h (it runs only in a fetus with the placenta running).
 
 | Scenario | `dif_o2` | `dif_co2` |
 |---|---|---|
@@ -105,4 +105,4 @@ One instance, `PL_GASEX`, owned by `Placenta`, disabled in term_neonate_72h (it 
 
 ## References
 
-No literature values; the diffusing capacities are calibrated per fetal scenario (see [fetal_circulation](./fetal_circulation.md)).
+No literature values; the diffusing capacities are set per scenario on [Placenta](./Placenta.md).

@@ -3,17 +3,10 @@
 //
 //   node scripts/_fix_outflow_valves.mjs [--write]
 //
-// Why (re-validation item (b), step 2a): every valve had r_for 55 in every scenario, from 25 weeks to
-// term and in the fetus. After the physiological QT (aa7e0d3) the term peak gradients were aortic 5.2
+// Why (re-validation item (b), step 2a): every valve had r_for 55. After the physiological QT (aa7e0d3) the term peak gradients were aortic 5.2
 // and pulmonary 3.5 mmHg against ~3.2 and ~2.6. Targets (agreed with the model's author):
 //   term neonate (72 h)        aortic 0.9 m/s (3.24 mmHg), pulmonary 0.8 m/s (2.56 mmHg)
-//   preterm 25-30 wk (day 3)   aortic 0.7 m/s (1.96 mmHg), pulmonary 0.6 m/s (1.44 mmHg)
-//   fetus, by gestation        25 wk 0.6/0.55, 30 wk 0.75/0.65, term 0.9/0.8 m/s (outflow velocities
-//                              rise with gestation; the term values on a 25-week fetus would make its
-//                              aortic valve 3.5x stiffer than the same-size preterm's)
-// The resistance is anatomy, so it is tuned in the scenarios without a shunt; the three Bischoff
-// scenarios (25 wk, 0.68-0.76 kg) take preterm_25wk's values, so same-size preterm hearts share a
-// valve, and their gradients follow their own (ductal) flows.
+// The resistance is anatomy, so it is tuned in scenarios without a shunt.
 // Only r_for/r_back of the two valves change; the definitions are edited in place.
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
@@ -22,9 +15,6 @@ const WRITE = process.argv.includes("--write");
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 const g = (v) => 4 * v * v;
 const TERM = { LV_AA: g(0.9), RV_PA: g(0.8) };
-const PRETERM = { LV_AA: g(0.7), RV_PA: g(0.6) };
-// the preterm and fetal scenarios (PRETERM; fetus 25 wk 0.6/0.55, 30 wk 0.75/0.65, term as TERM) and the
-// three Bischoff ones (preterm_25wk's values) were removed on 2026-10-25
 const TUNE = { term_neonate_72h: TERM };
 const COPY = {};
 

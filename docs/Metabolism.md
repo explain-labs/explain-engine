@@ -22,7 +22,7 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `met_active` | boolean | `true` | Switch. |
-| `vo2` | mL O2/kg/min | 8.1 | Whole-body O2 use excluding the myocardium (STPD). term_neonate_72h 7.73 (all four term babies; the 1–24 h babies add brown fat on top). |
+| `vo2` | mL O2/kg/min | 8.1 | Whole-body O2 use excluding the myocardium (STPD). term_neonate_72h 7.73. |
 | `vo2_factor` | – | 1.0 | Persistent user/scenario multiplier; no model writes it. |
 | `vo2_temp_factor` | – | 1.0 | Q10 temperature effect; written by [Thermoregulation](./Thermoregulation.md). |
 | `vo2_bat_factor` | – | 1.0 | O2 cost of brown-fat thermogenesis; written by Thermoregulation. |
@@ -89,7 +89,6 @@ Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_ba
 
   See `scripts/_fix_term_vo2.mjs`.
 - **Brain share 0.313** (was 0.42–0.45, a Holliday-type estimate from adult CMRO2 per gram). Neonatal MRI finds a term CBF of 106 mL/min (Kooi 2019) and CMRO2 well below adult values (Liu 2014). Brain flow and O2 use were brought down together, keeping its extraction at ~35 %: CBF 144 → 106 mL/min, brain VO2 11.0 → 8.1 mL/min. The other beds took over the rest proportionally. See `scripts/_fix_term_brain_mri.mjs` and [TermNeonateReference](./TermNeonateReference.md).
-- **The since-removed fetal scenarios** gave the brain 0.65 (see [fetal_circulation](./fetal_circulation.md)).
 
 ## Example definition (JSON)
 
@@ -120,7 +119,6 @@ One instance in every scenario, with the same eight beds.
 | Scenario | `vo2` | `resp_q` | Brain share |
 |---|---|---|---|
 | term_neonate_72h | 7.73 | 0.80 | 0.255 |
-| term_neonate_1h / _12h / _24h | 7.73 (+ brown fat 0.45 / 0.3 / 0.3 W/kg at `RUB`) | 0.80 | 0.255 |
 
 ## References
 

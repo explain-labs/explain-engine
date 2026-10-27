@@ -72,10 +72,8 @@ Each step:
 
 **Desaturation and bradycardia** are emergent:
 - the lungs stop refreshing alveolar gas, so [GasExchanger](./GasExchanger.md) loads less O2 and the arterial saturation falls;
-- in the scenarios patched by `scripts/_add_apnea.mjs`, a pO2 heart-rate chemoreceptor (`CR_PO2_HR`, reading `AA.po2`) drives `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` (see [Ans](./Ans.md));
+- where the scenario has one, a pO2 heart-rate chemoreceptor (`CR_PO2_HR`, reading `AA.po2`) drives `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` (see [Ans](./Ans.md));
 - its set-point is a few mmHg below the baseline pO2, so the reflex is neutral at rest.
-
-**Current behaviour** (`node scripts/probe_apnea.mjs preterm_28wk`, 2026-10-24, FiO2 0.25, no device in the model definition): 3 central episodes of 11.5–13.3 s in 5 min. SpO2 falls only from 93.3 to ~91.6 % and the heart rate from 153 to ~152 /min: no bradycardia. That is milder than clinical apnoeas of that length, which often desaturate below 85 %. It is listed for the scenario re-validation.
 
 ## Factor system
 
@@ -85,8 +83,8 @@ None. It switches `Breathing.breathing_enabled` and the airway resistor's `no_fl
 
 - **Reads:** `Breathing.breathing_enabled` (baseline, once).
 - **Writes:** `Breathing.breathing_enabled` (via `switch_breathing`), `MOUTH_DS.no_flow`.
-- **Written by:** the user and bot (`apnea_enabled`, the settings); `scripts/_add_apnea.mjs`.
-- **Read by:** `scripts/probe_apnea.mjs`; `DataCollector` watchers.
+- **Written by:** the user and bot (`apnea_enabled`, the settings).
+- **Read by:** `DataCollector` watchers.
 
 ## Assumptions and limitations
 
@@ -97,7 +95,7 @@ None. It switches `Breathing.breathing_enabled` and the airway resistor's `no_fl
 
 ## Example definition (JSON)
 
-From the removed `preterm_28wk.json` (no shipped scenario has an Apnea model), `models.Apnea` (trimmed to the config props):
+No shipped scenario has an Apnea model; a `models.Apnea` entry (config props only) looks like:
 
 ```json
 {
@@ -118,7 +116,7 @@ From the removed `preterm_28wk.json` (no shipped scenario has an Apnea model), `
 
 ## Usage in the scenarios
 
-In no shipped scenario at present: the three preterm scenarios that had it (dormant, `apnea_enabled` false) were removed on 2026-10-25 to be rebuilt. `scripts/_add_apnea.mjs` adds it to a scenario. Verification: `node scripts/probe_apnea.mjs <scenario>` reports per-episode duration, SpO2 and HR nadirs and the desaturation → bradycardia lag; `--no-chemoreflex` disables `EF_HR_CHEMO` for comparison. See [TESTING](./TESTING.md).
+Not used by any shipped scenario: `term_neonate_72h` has no Apnea model.
 
 ## References
 

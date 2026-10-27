@@ -8,7 +8,7 @@ scenario instead of failing.
 
 | Export | Description |
 |---|---|
-| `SCENARIO_ALIASES` | `{ oldName: currentName }`. Currently `term_neonate` → `term_neonate_72h` (2026-10-26, when the transitional babies `term_neonate_1h` / `_12h` / `_24h` were added). |
+| `SCENARIO_ALIASES` | `{ oldName: currentName }`. Currently `term_neonate` → `term_neonate_72h` (2026-10-26). |
 | `resolveScenarioName(name)` | The current name for `name`, or `name` itself when it was never renamed. |
 
 ## Used by

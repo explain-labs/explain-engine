@@ -29,7 +29,7 @@ BaseModelClass
 | `solutes` | object | `{}` | Solute set seeded into fresh compartments (mmol/L; `albumin` g/L): `na`, `k`, `ca`, `cl`, `mg`, `lact`, `phosphates`, `uma` (unmeasured anions), `albumin`, `hemoglobin`, `glucose`. |
 | `temp` | °C | 37.0 | Temperature seeded into fresh compartments (not the live temperature, see `set_temperature`). |
 | `blood_temp_tc` | s | 10 | Time constant with which each compartment relaxes toward its perfusion target `body_temp`. |
-| `P50_0` | mmHg | 20.0 | O2–Hb affinity at standard conditions, given to every compartment that has none: fetal ~18.8, neonatal 20, adult 26.7. Scenarios 18.5–20. |
+| `P50_0` | mmHg | 20.0 | O2–Hb affinity at standard conditions, given to every compartment that has none: fetal ~18.8, neonatal 20, adult 26.7. term_neonate_72h 20. |
 | `haldane_coeff` | – | 1.0 | Haldane-effect strength in the CO2 solver (0 = off), given to every compartment. **2.2 in every scenario.** |
 | `viscosity_plasma` | cP | 1.3 | Plasma viscosity. |
 | `viscosity_hct_k` | per unit Hct | 3.13 | Exponential haematocrit coefficient (low-shear, in vivo). |
@@ -76,7 +76,7 @@ A neonatal Hb of 10 mmol/L gives Hct 0.49 and ~6 cP. [BloodVessel](./BloodVessel
 | `set_perfusion_target(core)` | Called by Thermoregulation: `body_temp` of every compartment not under device control (`temp_ext_override`). |
 | `get_thermal_state(density, cp)` | Heat capacity and mean temperature of the enabled, non-fixed blood, for Thermoregulation's heat balance. |
 | `calc_viscosity(hb)` | The viscosity law above. |
-| `calibrate_viscosity_ref()` | Re-takes `viscosity_ref` from the volume-weighted Hb of the circulating blood and copies it to every compartment (what `init_model` does at build). For tools that change the Hb of a scenario they then save (`build_patient.mjs`, `_make_term_transition.mjs`): otherwise they calibrate at viscosity / viscosity_ref ≠ 1 and the saved scenario loads with different resistances. A live Hb change (bleeding, transfusion) must not call it, since that is when the resistances should follow the viscosity. |
+| `calibrate_viscosity_ref()` | Re-takes `viscosity_ref` from the volume-weighted Hb of the circulating blood and copies it to every compartment (what `init_model` does at build). For tools that change the Hb of a scenario they then save (`build_patient.mjs`): otherwise they calibrate at viscosity / viscosity_ref ≠ 1 and the saved scenario loads with different resistances. A live Hb change (bleeding, transfusion) must not call it, since that is when the resistances should follow the viscosity. |
 
 ## Factor system
 
@@ -93,7 +93,7 @@ None. Viscosity reaches the resistances through `BloodVessel`'s viscosity term.
 
 ## Assumptions and limitations
 
-- **Setters reach every blood compartment, the maternal pool included.** `set_solute`, `set_P50`, `set_to2` and `set_tco2` without a site also change `PL_MAT` and the ECLS circuit. See [Placenta](./Placenta.md#assumptions-and-limitations) for why the generators restore `PL_MAT`.
+- **Setters reach every blood compartment, the maternal pool included.** `set_solute`, `set_P50`, `set_to2` and `set_tco2` without a site also change `PL_MAT` and the ECLS circuit. See [Placenta](./Placenta.md#assumptions-and-limitations) for why `build_patient.mjs` restores `PL_MAT`.
 - **Membership is by `model_type` string.** A custom subclass of a blood compartment with its own `model_type` must be added to `blood_containing_modeltypes`, or it is never seeded, warmed or given a viscosity.
 - **Fixed sampling sites.** The scenario must have `AA` and `AD`; `IVCI`, `SVC`, `RAIVCI`, `RASVC` and `PA` are used when present (until 2026-10-27 `RASVC` was not, so its gas read-outs kept a stale value). Other compartments' gases are solved only by whoever needs them.
 - **Blood gases are refreshed once per second.**

@@ -435,7 +435,6 @@ support (down to PEEP + 2) as the patient's own effort takes over the volume.
 
 Verified (`term_neonate_72h` unless noted):
 - PC + VG 15 mL converges to 15.3 mL at 8.6 cmH₂O.
-- preterm 28 wk VG 5 mL converges to 5.3 mL at 7.3 cmH₂O.
 - adult VG 450 mL converges to 451 mL at 13.6 cmH₂O.
 - Lung made twice as stiff mid-run: Vt 9.7 recovers to 14.6 mL within about 5 breaths.
 - Lung made twice as soft: Vt is capped at about 19.5 mL (130 %) while the pressure is trimmed
@@ -447,9 +446,7 @@ Verified (`term_neonate_72h` unless noted):
 `trigger_flow` (L/min) during expiration forces the breath, as a ventilator with a proximal flow
 sensor does. It is armed once the minimal expiratory time (`_min_exp_time`) has passed, so the end
 of the previous breath cannot re-trigger. With the 0.6 L/min default it triggers every effort on
-`term_neonate_72h` and `adult_female` in PS (`validate:resp`, case `flowtrig`). A 28-week preterm's
-efforts peak at ~0.5 L/min through the tube on PS, so they need a lower threshold; see the
-suite's known failures.
+`term_neonate_72h` in PS (`validate:resp`, case `flowtrig`).
 
 **Volume trigger** (`trigger_mode = "volume"`, the default) sets `trigger_volume = (tidal_volume/100)·trigger_volume_perc`. When `Breathing.ncc_insp === 1` (the
 onset of a patient effort) and the trigger is not blocked, it arms `_trigger_start` with a zeroed
@@ -494,7 +491,6 @@ triggered and backup breaths per minute.
   - The working amplitude stays within 4 cmH₂O and `hfo_amplitude_max_cmh2o`; `pressure_limited`
     flags a target that the limit stops.
   - The set `hfo_amplitude_cmh2o` is never changed, so switching targeting off returns to it.
-  - On preterm_28wk, targeting converges in about 5 s.
 - **Sighs and oscillation pause** (HFOV only).
   - `hfo_sigh()` stops the oscillation and holds the circuit at `hfo_sigh_cmh2o` for
     `hfo_sigh_time`. `hfo_sigh_rate` repeats this automatically.
@@ -515,7 +511,7 @@ triggered and backup breaths per minute.
 
 **CO₂ clearance comes from the airway, not the device.** It relies on the series dead space with
 axial dispersion ([GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)). With
-the old well-mixed dead space, PaCO₂ sat at 10–14 mmHg at any frequency. Now, on preterm_28wk with a
+the old well-mixed dead space, PaCO₂ sat at 10–14 mmHg at any frequency. Now, with a
 2.5 mm ETT, `PaCO₂·DCO₂` stays constant within about ±8 % over 8–15 Hz × amplitude 15–30. That is
 the clinical relationship: CO₂ elimination ∝ f·Vt², so **raising the frequency reduces CO₂
 clearance** (smaller Vt), and raising the amplitude increases it. The pressure swing is damped from
@@ -532,8 +528,7 @@ Limitations:
 While the ventilator is on, it sets the dead-space compartment's `tube_volume` to the lumen volume
 `π·(d/2)²·L` and its `tube_port_model` to `VENT_GASCIRCUIT`. With series dead space on (the default,
 see [GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)), gas to and from
-the circuit then passes through that rigid lumen, so a longer or wider tube adds dead space. On
-preterm_28wk, a 2.5 mm tube at 200 mm instead of 110 mm (+0.44 mL) raises PaCO₂ 81 → 91. The leak
+the circuit then passes through that rigid lumen, so a longer or wider tube adds dead space. The leak
 and the natural airway bypass the lumen. Switching the ventilator off sets `tube_volume` back to 0.
 
 ## Expiratory valve
@@ -576,7 +571,7 @@ R_leak = (K1(leak_size) + K2(leak_size)·|V̇_leak|) · 20/110          (K1 ∝ 
 The leak therefore grows with airway pressure: it is largest at PIP, and smaller but continuous at
 PEEP. Because conductance scales with d⁴, the useful range is narrow:
 
-| leak_size | term_neonate_72h PC 20/5 (3.5 mm tube) | adult_female PC 20/5 (7.5 mm tube) |
+| leak_size | term_neonate_72h PC 20/5 (3.5 mm tube) | adult PC 20/5 (7.5 mm tube) |
 |---|---|---|
 | 0.5 mm | 7 % | — |
 | 0.75 mm | 23 % | — |

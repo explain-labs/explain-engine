@@ -1,6 +1,6 @@
 # MaternalPlacenta
 
-> **Experimental.** Used only by the archived `adult_female_uterus` scenario (the Pregnancy panel is hidden in the app as unfinished). It builds and runs on the current engine, but its physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
+> **Experimental.** Not used by any shipped scenario (the Pregnancy panel is hidden in the app as unfinished). It builds and runs on the current engine, but its physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
 
 `MaternalPlacenta` is the **mother's** side of the placenta in the adult pregnancy model: the intervillous space (`PL_IVS`), a low-resistance blood lake fed by the spiral arteries off the uterine artery and drained by the uterine veins. It owns no blood. It controls `PL_IVS` and its resistors:
 - the spiral arteries dilate with gestational age, so placental flow grows;
@@ -41,9 +41,9 @@ BaseModelClass
 | `mp_running` | boolean | `true` | Master switch (flow also needs a pregnancy). |
 | `preg_ga_threshold` | weeks | 4 | Below this gestational age the placenta is absent (no flow). |
 | `preg_ga_term` | weeks | 40 | Age at which the term dilation is reached. |
-| `spiral_res_term_factor` | – | 0.01 | `PL_IVS` resistance multiplier at term (archived scenario 0.0075). |
+| `spiral_res_term_factor` | – | 0.01 | `PL_IVS` resistance multiplier at term. |
 | `met_active` | boolean | `true` | Switches the placental O2 consumption. |
-| `mp_vo2` | mL O2/kg/min | 0.04 | Placental O2 consumption at full perfusion, per kg maternal weight (archived scenario 0.33, i.e. ~20 mL/min at 60 kg). |
+| `mp_vo2` | mL O2/kg/min | 0.04 | Placental O2 consumption at full perfusion, per kg maternal weight. |
 | `vo2_factor`, `vo2_factor_ps` | – | 1.0 | Non-persistent (reset each step) and persistent VO2 multipliers. |
 | `resp_q` | – | 0.8 | Respiratory quotient (CO2 added per O2 used). |
 | `contraction_pres_gain` | – | 0.6 | Fraction of the uterine pressure applied to `PL_IVS`. |
@@ -74,7 +74,7 @@ Each step (references resolved lazily, so build order doesn't matter):
 
 ## Factor system
 
-It writes the **scaling layer** `PL_IVS.r_factor_scaling_ps`, the layer that belongs to `ModelScaler`. That is safe only while `PL_IVS` isn't in a scaler group (it isn't in the archived scenario). Its own `vo2_factor`/`vo2_factor_ps` are a simple multiplier pair.
+It writes the **scaling layer** `PL_IVS.r_factor_scaling_ps`, the layer that belongs to `ModelScaler`. That is safe only while `PL_IVS` isn't in a scaler group (it isn't in the shipped scaler config). Its own `vo2_factor`/`vo2_factor_ps` are a simple multiplier pair.
 
 ## Inputs and outputs
 
@@ -92,7 +92,7 @@ It writes the **scaling layer** `PL_IVS.r_factor_scaling_ps`, the layer that bel
 
 ## Example definition (JSON)
 
-From `archive/adult_female_uterus.json`, `models.MaternalPlacenta` (trimmed to the physiology props; the wiring props are the defaults):
+No shipped scenario has a MaternalPlacenta model; a `models.MaternalPlacenta` entry (physiology props only; the wiring props are the defaults) looks like:
 
 ```json
 {
@@ -112,7 +112,7 @@ From `archive/adult_female_uterus.json`, `models.MaternalPlacenta` (trimmed to t
 
 ## Usage in the scenarios
 
-Only `archive/adult_female_uterus` (60 kg adult female), with `PL_IVS` between `UT_ART` and `UT_VEN` in parallel with the uterine tissue bed (`UT_CAP`). The shipped scenario (term_neonate_72h) doesn't include it.
+Not used by any shipped scenario: `term_neonate_72h` has no MaternalPlacenta model.
 
 ## References
 

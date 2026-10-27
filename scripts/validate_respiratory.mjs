@@ -17,15 +17,13 @@
 //             the efforts between mandatory breaths are supported
 //   apnea     drive off: no muscle effort
 //   cstat     drive off, PC 15/5 with a 0.2 s pause: static compliance per kg
-//   hfov      (preterm class only) PaCO2·DCO2 over f = 8/10/12 Hz and an amplitude step
 //
 // Volumes are measured at the lungs (ALL + ALR swing per breath) and the pleural swing on THORAX, so
 // the checks do not depend on how Breathing or the Ventilator measure tidal volume themselves.
 //
 // Usage:
 //   node scripts/validate_respiratory.mjs [scenario ...] [--json] [--quick] [--only case,case]
-//   (default scenarios: term_neonate_72h, term_neonate_1h, term_neonate_12h, term_neonate_24h. The preterm and fetal scenarios were removed on 2026-10-25 to be rebuilt;
-//   until then the preterm-class checks, HFOV among them, do not run. adult_female is archived)
+//   (default scenario: term_neonate_72h)
 // Exit code 1 when a check fails that is not in KNOWN_FAILURES.
 
 import fs from "node:fs";
@@ -40,7 +38,7 @@ const QUICK = flag("--quick");
 const ONLY = optStr("--only")?.split(",");
 const CHILD = optStr("--child");
 const scenarios = argv.filter((a, i) => !a.startsWith("-") && !(argv[i - 1] ?? "").startsWith("--"));
-const DEFAULT_SCENARIOS = ["term_neonate_72h", "term_neonate_1h", "term_neonate_12h", "term_neonate_24h"];
+const DEFAULT_SCENARIOS = ["term_neonate_72h"];
 
 const MMHG_TO_CMH2O = 1.35951;
 const SETTLE = QUICK ? 60 : 120;   // s after a change before measuring
@@ -237,22 +235,6 @@ async function runChild(scenario) {
       vt_kg: (V.exp_tidal_volume * 1000) / def.weight, raw: V.resistance,
     };
   }
-  if (cls === "preterm" && want("hfov")) {
-    const hf = (freq, amp) => {
-      const m = build();
-      m.models.Breathing.switch_breathing(false);
-      const V = intubate(m, (V) => { V.set_ettube_diameter(2.5); V.set_fio2(0.4); V.set_hfov(10, amp, freq, 0.33, 10); });
-      eng.calc(QUICK ? 180 : 300);
-      return { freq, amp, vt: V.hfo_tidal_volume * 1000, dco2: V.hfo_dco2, paco2: m.models.AA.pco2 };
-    };
-    const runs = [hf(8, 20), hf(10, 20), hf(12, 20), hf(10, 30)];
-    const prod = runs.slice(0, 3).map((r) => r.paco2 * r.dco2);
-    const mean = prod.reduce((a, b) => a + b, 0) / prod.length;
-    out.cases.hfov = {
-      runs, spread: (Math.max(...prod) - Math.min(...prod)) / mean,
-      amp_paco2_falls: runs[3].paco2 < runs[1].paco2 ? 1 : 0,
-    };
-  }
   process.stdout.write(JSON.stringify(out));
 }
 
@@ -325,10 +307,6 @@ function evaluate(r) {
   }
   if (c.apnea) add("apnea.muscle", Math.abs(c.apnea.rmp), R.apnea_effort);
   if (c.cstat) add("cstat.cstat_kg", c.cstat.cstat_kg, t.cstat_kg);
-  if (c.hfov) {
-    add("hfov.paco2_dco2_spread", c.hfov.spread, R.hfov_paco2_dco2_spread);
-    add("hfov.amp_paco2_falls", c.hfov.amp_paco2_falls, R.hfov_amp_paco2_falls);
-  }
   return out;
 }
 
@@ -346,7 +324,6 @@ function print(results, checks) {
     }
     console.log(rows.map((l) => "  " + l).join("\n"));
     if (r.cases.cstat) console.log(`  cstat   Cstat ${f(r.cases.cstat.cstat_kg)} mL/cmH2O/kg, Cdyn ${f(r.cases.cstat.cdyn_kg)}, Vt ${f(r.cases.cstat.vt_kg)} mL/kg at PC 15/5`);
-    if (r.cases.hfov) console.log(`  hfov    ${r.cases.hfov.runs.map((h) => `f${h.freq}/A${h.amp}: PaCO2 ${f(h.paco2, 1)} DCO2 ${f(h.dco2, 0)}`).join(" | ")}`);
     console.log("");
     for (const c of checks.filter((c) => c.scenario === r.scenario)) {
       console.log(`  ${c.status.padEnd(6)} ${c.id.padEnd(24)} ${f(c.value, 3).padStart(9)}  [${rng(c.range)}]${c.note ? "  " + c.note : ""}`);

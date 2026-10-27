@@ -1,6 +1,6 @@
 # Uterus
 
-> **Experimental.** Used only by the archived `adult_female_uterus` scenario (the Pregnancy panel is hidden in the app as unfinished). It builds and runs on the current engine, but its pregnancy physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
+> **Experimental.** Not used by any shipped scenario (the Pregnancy panel is hidden in the app as unfinished). It builds and runs on the current engine, but its pregnancy physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
 
 `Uterus` turns the adult uterine vascular bed (`UT_ART` → `UT_CAP` → `UT_VEN`) into an organ. It holds no blood. It controls those vessels and adds:
 - a uterine oxygen consumption, with blood-flow and oxygen read-outs;
@@ -53,9 +53,9 @@ BaseModelClass
 | `preg_ga` | weeks | 0 | Gestational age of the pregnancy (not `model.gestational_age`, which is the mother's own). |
 | `preg_ga_threshold`, `preg_ga_term` | weeks | 4, 40 | The adaptations ramp linearly between these ages. |
 | `preg_res_term_factor` | – | 0.083 | Resistance multiplier of `UT_ART`, `UT_VEN` and the drainage at term. |
-| `preg_cap_res_term_factor` | – | 0.083 | Resistance multiplier of `UT_CAP` (myometrium) at term; archived scenario 0.43, so the placenta takes the larger share. |
+| `preg_cap_res_term_factor` | – | 0.083 | Resistance multiplier of `UT_CAP` (myometrium) at term. |
 | `preg_vol_term_factor` | – | 3.0 | Unstressed-volume multiplier of the bed at term (engorgement). |
-| `preg_vo2_term_factor` | – | 8.0 | VO2 multiplier at term (archived scenario 2). |
+| `preg_vo2_term_factor` | – | 8.0 | VO2 multiplier at term. |
 | `couple_placenta` | boolean | `false` | Drive `PL_MAT`'s O2/CO2 content from `UT_ART` while pregnant. Set `Placenta.skip_mat_gas_write` with it. |
 
 ### Config: contractions
@@ -102,7 +102,7 @@ Each step (references resolved lazily; skipped without the three vessels; output
 
 ## Factor system
 
-- It writes the **scaling layers** (`r_factor_scaling_ps`, `u_vol_factor_scaling_ps`), which belong to `ModelScaler`. That is safe only while the uterine vessels aren't in a scaler group (they aren't in the archived scenario).
+- It writes the **scaling layers** (`r_factor_scaling_ps`, `u_vol_factor_scaling_ps`), which belong to `ModelScaler`. That is safe only while the uterine vessels aren't in a scaler group (they aren't in the shipped scaler config).
 - It writes the **non-persistent** `r_factor` every step (tone and contractions).
 - It leaves `r_factor_ps` (Circulation's SVR channels) and the ANS alone; BloodVessel multiplies all layers.
 
@@ -115,17 +115,7 @@ Each step (references resolved lazily; skipped without the three vessels; output
 
 ## Assumptions and limitations
 
-- **Pregnancy isn't calibrated.** Measured in the archived scenario:
-
-  | Gestation | Uterine flow (mL/min) | Placental share | MAP (mmHg) |
-  |---|---|---|---|
-  | not pregnant | 46 | – | 98 |
-  | 20 wk | 78 | 11 % | 89 |
-  | 28 wk | 96 | 15 % | 81 |
-  | 36 wk | 166 | 25 % | 114 |
-  | 40 wk | 628 | 84 % | 75 |
-
-  The term value is right, but the path isn't. Resistance falls linearly with gestation, so flow (∝ 1/R) stays low until the last weeks and then jumps; real uterine flow rises steadily from the first trimester. MAP is non-monotonic with gestation. The maternal blood volume expansion, cardiac output rise and fall in SVR of pregnancy aren't modelled.
+- **Pregnancy isn't calibrated.** Resistance falls linearly with gestation, so flow (∝ 1/R) stays low until the last weeks and then jumps; real uterine flow rises steadily from the first trimester. MAP is non-monotonic with gestation. The maternal blood volume expansion, cardiac output rise and fall in SVR of pregnancy aren't modelled.
 - **Scaling-layer use** (see [Factor system](#factor-system)).
 - **Contractions are a fixed waveform.** No uterine electrophysiology, no oxytocin; `montevideo_units` restates the settings.
 - **The coupling is plumbing only.** No combined mother + fetus scenario uses it.
@@ -133,7 +123,7 @@ Each step (references resolved lazily; skipped without the three vessels; output
 
 ## Example definition (JSON)
 
-From `archive/adult_female_uterus.json`, `models.Uterus` (trimmed to the physiology props; the wiring props are the defaults):
+No shipped scenario has a Uterus model; a `models.Uterus` entry (physiology props only; the wiring props are the defaults) looks like:
 
 ```json
 {
@@ -162,7 +152,7 @@ From `archive/adult_female_uterus.json`, `models.Uterus` (trimmed to the physiol
 
 ## Usage in the scenarios
 
-Only `archive/adult_female_uterus` (60 kg adult female, not pregnant at build). There the uterine bed (`AD_UT_ART` → `UT_ART` → `UT_CAP` → `UT_VEN` → `VLB`) runs in parallel with the placental bed `PL_IVS` of [MaternalPlacenta](./MaternalPlacenta.md). With contractions on at term, the smoothed uterine flow swings between ~410 and ~670 mL/min over a cycle. None of the canonical neonatal and fetal scenarios include it.
+Not used by any shipped scenario: `term_neonate_72h` has no Uterus model.
 
 ## References
 

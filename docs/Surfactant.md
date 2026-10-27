@@ -85,8 +85,6 @@ Each step:
 
 `administer_surfactant(target = 1.0)` sets `surfactant_target` (clamped 0–1); it is callable through `callModelFunction` or the TaskScheduler.
 
-**Example** (the since-removed preterm_25wk, surfactant given): after 15 min the open fraction is 1.0, `el_lung_factor` 0.65, `ips_factor` 4. SaO2 rises 90.9 → 97.8 %, PaO2 55 → 89 and PaCO2 falls 48 → 43 mmHg; left alveolar volume 7.1 → 11.4 mL.
-
 ## Factor system
 
 | Target | Layer | Note |
@@ -105,14 +103,14 @@ Each step:
 ## Assumptions and limitations
 
 - **Whole-lung, one open fraction.** No regional or gravity-dependent collapse; both lungs share one state. [Respiration](./Respiration.md#atelectasis)'s per-lung atelectasis runs independently, and their effects add.
-- **Relative to the baseline.** Effects are deviations from the open fraction at capture (0.5 in every scenario), so the scenario's static RDS phenotype stays its baked values plus these deviations.
+- **Relative to the baseline.** Effects are deviations from the open fraction at capture, so the scenario's static RDS phenotype stays its baked values plus these deviations.
 - **Calibrated for a low operating pressure.** A spontaneously breathing preterm runs at a mean transpulmonary pressure of ~1–3 mmHg, so the margins are small and the surfactant gains large: a dose must pull the opening threshold clearly below the prevailing pressure to recruit.
 - **No surfactant kinetics.** Maturity only ramps toward the target. There is no inactivation (meconium, protein leak), no redosing decay, no effect on the airway.
 - **The first 30 s of a fresh build** hold the open fraction while the baseline is captured.
 
 ## Example definition (JSON)
 
-From the removed `preterm_25wk.json` (no shipped scenario has a Surfactant model), `models.Surfactant` (trimmed to the config props):
+No shipped scenario has a Surfactant model; a `models.Surfactant` entry (config props only) looks like:
 
 ```json
 {
@@ -142,8 +140,8 @@ From the removed `preterm_25wk.json` (no shipped scenario has a Surfactant model
 
 ## Usage in the scenarios
 
-In no shipped scenario at present: the three preterm scenarios that had it (`surfactant` 0.2–0.3) were removed on 2026-10-25 to be rebuilt. `scripts/_add_surfactant.mjs` adds it to a scenario.
+Not used by any shipped scenario: `term_neonate_72h` has no Surfactant model.
 
 ## References
 
-No literature values; the gains and thresholds are calibrated on the (since-removed) preterm scenarios' response to CPAP and surfactant.
+No literature values; the gains and thresholds are teaching calibrations.

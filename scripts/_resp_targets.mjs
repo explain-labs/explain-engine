@@ -4,44 +4,26 @@
 //
 // Sources (short names used below):
 //   [Polgar]   Polgar & Weng, "The functional development of the respiratory system", Am Rev Respir Dis 1979
-//   [Gerhardt] Gerhardt & Bancalari, lung compliance in newborns with and without RDS, Acta Paediatr 1980
 //   [Bhutani]  Bhutani & Sivieri, "Clinical use of pulmonary mechanics and waveform graphics", Clin Perinatol 2001
 //   [Rennie]   Rennie's Textbook of Neonatology, 5th ed., normal blood gases and ventilation
 //   [West]     West's Respiratory Physiology, 10th ed. (adult normals, chemosensitivity)
 //   [Rebuck]   Rebuck & Slutsky, "Measurement of ventilatory responses to hypercapnia and hypoxia", 1981
 //   [Rigatto]  Rigatto, "Control of ventilation in the newborn", Annu Rev Physiol 1984 (neonatal CO2 response)
 //   [Tobin]    Tobin, Principles and Practice of Mechanical Ventilation, 3rd ed. (load responses, PS, triggering)
-//   [Lucking]  Lucking et al., HFOV CO2 elimination ~ f·Vt², Crit Care Med 1986 / Slutsky NEJM 1988
 
 // scenario -> class; a scenario not listed is classified by weight in classify()
 export const SCENARIO_CLASS = {
   term_neonate_72h: "term",
-  term_neonate_1h: "term_1h",
-  term_neonate_12h: "term_12h",
-  term_neonate_24h: "term_24h",
-  adult_female: "adult",
 };
 
 export function classify(name, def) {
   if (SCENARIO_CLASS[name]) return SCENARIO_CLASS[name];
   const w = def.weight ?? 3;
-  if (w > 20) return "adult";
-  return (def.gestational_age ?? 40) < 37 ? "preterm" : "term";
+  return w > 20 ? "adult" : "term";
 }
 
 // [lo, hi]; null on either side = open
 export const TARGETS = {
-  preterm: {
-    rr: [40, 70],            // /min, spontaneous [Rennie]
-    vt_kg: [4.0, 7.0],       // mL/kg [Bhutani]
-    mv_kg: [0.15, 0.40],     // L/kg/min [Bhutani]
-    paco2: [35, 55],         // mmHg, permissive target for preterms [Rennie]
-    ph: [7.25, 7.45],        // [Rennie]
-    spo2: [88, 97],          // %, preterm target band [Rennie]
-    ppl_swing: [2, 10],      // cmH2O, quiet breathing [Bhutani]
-    cstat_kg: [0.5, 1.5],    // mL/cmH2O/kg, respiratory system, preterm with RDS [Gerhardt]
-    co2_gain: [0.05, 0.40],  // fractional MV rise per mmHg PaCO2; blunted in preterms [Rigatto]
-  },
   term: {
     rr: [30, 60],            // [Rennie]
     vt_kg: [4.5, 7.5],       // [Polgar]
@@ -52,48 +34,6 @@ export const TARGETS = {
     ppl_swing: [2, 8],       // [Bhutani]
     cstat_kg: [1.0, 2.0],    // mL/cmH2O/kg, total respiratory system [Polgar]
     co2_gain: [0.10, 0.40],  // 0.03-0.06 L/kg/min/mmHg on ~0.2 L/kg/min [Rigatto]
-  },
-  // the term baby at 1 h (docs/TermTransitionReference.md): mild metabolic acidosis and residual lung
-  // liquid; everything else as term
-  term_1h: {
-    rr: [30, 60],            // [Rennie]
-    vt_kg: [4.5, 7.5],       // [Polgar]
-    mv_kg: [0.15, 0.35],     // [Polgar]
-    paco2: [30, 42],         // 1 h reference (textbook, C)
-    ph: [7.27, 7.38],        // 1 h reference: BE ~-5 (textbook, C)
-    spo2: [94, 100],         // 96 +/- 1 at 1.5-13.5 h (Nikkola 2002)
-    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 1 h baby breathes ~290 mL/kg/min (brown-fat
-                             // CO2) through a lung with residual liquid: 8.6 cmH2O, as at 12 and 24 h
-    cstat_kg: [0.85, 2.0],   // term range, lower bound -15 %: Crs lower on day 0 (Lodrup Carlsen 1993), FRC ~-10 % (Lee 1999)
-    co2_gain: [0.10, 0.40],  // [Rigatto]
-  },
-  // the term baby at 12 h: acidosis mostly corrected, lung liquid mostly cleared
-  term_12h: {
-    rr: [30, 60],            // [Rennie]
-    vt_kg: [4.5, 7.5],       // [Polgar]
-    mv_kg: [0.15, 0.35],     // [Polgar]
-    paco2: [30, 40],         // 12 h reference (textbook, C)
-    ph: [7.31, 7.41],        // 12 h reference: BE ~-4 (textbook, C)
-    spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
-    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 12 h baby breathes ~280 mL/kg/min (brown-fat
-                             // CO2) through a lung with residual liquid: 8.3 cmH2O (faster, smaller breaths: 8.2)
-    cstat_kg: [0.85, 2.0],   // as at 1 h: Crs lower on day 0 than from day 1 (Lodrup Carlsen 1993)
-    co2_gain: [0.10, 0.40],  // [Rigatto]
-  },
-  // the term baby at 24 h: acidosis corrected, lung liquid cleared (compliance higher from day 1)
-  term_24h: {
-    rr: [30, 60],            // [Rennie]
-    vt_kg: [4.5, 7.5],       // [Polgar]
-    mv_kg: [0.15, 0.35],     // [Polgar]
-    paco2: [30, 41],         // 24 h reference (textbook, C)
-    ph: [7.32, 7.42],        // 24 h reference: BE ~-3.5 (textbook, C)
-    spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
-    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 24 h baby breathes ~280 mL/kg/min (brown-fat
-                             // CO2): 8.2 cmH2O, as at 12 h
-    cstat_kg: [0.95, 2.0],   // between the transitional floor (0.85) and the term range (1.0, Polgar): 24 h is the end
-                             // of day 0, when Crs is still lower than from day 1 (Lodrup Carlsen 1993, direction only);
-                             // the model reads 0.94 / 0.975 / 0.998 / 1.014 at 1 / 12 / 24 / 72 h
-    co2_gain: [0.10, 0.40],  // [Rigatto]
   },
   adult: {
     rr: [10, 20],            // [West]
@@ -133,9 +73,6 @@ export const RESPONSE_TARGETS = {
   simv_supported_frac: [0.80, 1.0],
   // drive off (central apnea / CPR)
   apnea_effort: [null, 0.01],         // cmH2O pleural swing driven by the muscle
-  // HFOV CO2 elimination ~ f·Vt² [Lucking]
-  hfov_paco2_dco2_spread: [null, 0.15], // (max-min)/mean of PaCO2·DCO2 over f = 8, 10, 12 Hz
-  hfov_amp_paco2_falls: [1, 1],       // 1 = PaCO2 falls when amplitude rises
 };
 
 // check id -> reason. A listed check that fails is reported as XFAIL (exit 0); a listed check that
@@ -144,7 +81,4 @@ export const KNOWN_FAILURES = {
   // the rate rises with stiffer lungs only through the chemoreflex; the vagal (stretch / J-receptor)
   // rate response is not modelled
   "adult.stiff.rr_ratio": "no vagal rate response to stiff lungs; the rate follows the chemoreflex only",
-  // intubated CPAP on a 1 kg preterm: the 3.0 x 110 mm tube adds ~0.8 mL dead space (~18 % of a
-  // 4.3 mL breath; a preterm tube is cut shorter) and the dead-space compartment stretches at PEEP
-  "preterm.cpap.paco2_delta": "ETT dead space ~18 % of Vt on a 1 kg preterm (uncut 110 mm tube); dead-space compliance",
 };

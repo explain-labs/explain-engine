@@ -319,8 +319,8 @@ export function buildLiveControllers(model, requested, tolOverrides = {}) {
   // Pulse pressure (sys/dia pair) <- stiffness of the large elastic arteries (AA, AAR, AD), their
   // el_base_factor_ps, as in the builder. The upper bound is what ARTERIAL_EL_MAX leaves of any size
   // stiffening still in el_base_factor_scaling_ps; the shipped scenarios have it baked into el_base
-  // (v1.0), so their bound is the full x5.7 on top of the loaded stiffness (preterm_25wk, implicit
-  // aorta: stable at x5.7, ABP 76/14). The aortic resistors are switched to implicit
+  // (v1.0), so their bound is the full x5.7 on top of the loaded stiffness (with the implicit aorta
+  // stable at x5.7). The aortic resistors are switched to implicit
   // integration first (a running scenario may predate them); without that the chain fails near ×2
   // and a live tune, unlike the builder, cannot discard a failed run.
   if (targets.pp != null) {

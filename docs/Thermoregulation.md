@@ -35,9 +35,9 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `thermoregulation_running` | boolean | `true` | Switch. Off releases the owned channels once. |
-| `env_temp` | °C | 32 | Air temperature (term 32, preterm 34–36, fetus 37.3 for the amniotic fluid). |
+| `env_temp` | °C | 32 | Air temperature (term_neonate_72h 32; in a fetus 37.3, the amniotic fluid). |
 | `radiant_temp` | °C or null | null | Radiant warmer temperature; null = `env_temp`. |
-| `rel_humidity` | 0–1 | 0.5 | Ambient humidity (term 0.5, preterm 0.6–0.8, fetus 1). |
+| `rel_humidity` | 0–1 | 0.5 | Ambient humidity (term_neonate_72h 0.5; 1 in a fetus). |
 | `respiratory_heat_loss` | boolean | `true` | Count the airway conditioning heat (off in the fetus). |
 | `resp_window` | s | 30 | Averaging window for the respiratory heat (must span several breaths). |
 | `metabolism_name`, `heart_name`, `blood_name`, `gas_name` | – | the model names | Wiring. |

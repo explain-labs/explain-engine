@@ -55,13 +55,13 @@
 //     },
 //     "pathophysiology": { "rds": "moderate", "pvr_scale": 1.7 },         // named modifiers
 //     "tolerance": { "map": 3, "pco2": 4 },                               // per-vital override
-//     "profile": "preterm_28",             // normal-range table (else auto from weight/GA)
+//     "profile": "neonate",                // normal-range table (else auto from weight)
 //     "postnatal_age_days": 3,             // metadata: picks the age-dependent term-neonate PAP ranges
 //                                          //   (else targets.age, else the baseline's age; none = day 1)
 //     "max_iters": 12, "warm_seconds": 45, "settle_seconds": 90, "final_seconds": 200
 //   }
 //
-// FETAL MODE. A fetal baseline (fetus_term, fetus_<ga>wk) is auto-detected and changes three
+// FETAL MODE. A fetal baseline (placenta running, cord unclamped) is auto-detected and changes three
 // things, because the neonatal levers are actively wrong on a fetus:
 //   - the gestational-age seed comes from FETAL, not PRETERM_SEED. The preterm seed would set
 //     Shunts.ips_res = 2200 (reopening the intrapulmonary shunts the fetus needs closed at 1e8)
@@ -153,7 +153,7 @@ const clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 const round = (x, n = 2) => (typeof x === "number" && isFinite(x) ? Number(x.toFixed(n)) : x);
 
 // the preterm seed table — when a GA is given we start from the matching lever
-// bundle so calibration begins near-converged (mirrors scripts/_make_preterm.mjs:43-51).
+// bundle so calibration begins near-converged.
 const PRETERM_SEED = {
   24: { weight: 0.64, height: 0.310, rds_el: 4.0, rds_uvol: 0.36, gasex: 0.32, hr_ref: 151, vt_rr: 0.72, br_map: 24, ips_res: 1900, ven_uvol: 0.78, cont: 0.90, relax: 1.15, pda: 0.40, svr: 1.85, pvr: 3.0 },
   26: { weight: 0.85, height: 0.330, rds_el: 3.5, rds_uvol: 0.42, gasex: 0.38, hr_ref: 153, vt_rr: 0.76, br_map: 26, ips_res: 1600, ven_uvol: 0.80, cont: 0.90, relax: 1.12, pda: 0.42, svr: 1.35, pvr: 1.9 },
@@ -306,8 +306,7 @@ if (weightKg != null) {
 // Pediatr Res 2006). Elastance x (W/W0)^-0.5 reproduces that PWV ratio (0.74 of term at 1.08 kg)
 // and gives the 28 wk patient a pulse pressure of about 16-18 mmHg (lower at a faster heart rate).
 // The reference is the term neonate's weight, not the baseline's, so a baseline that is already
-// small but was made before this rule (bischoff_cohort, preterm_*wk: term elastance at 0.72–2.7 kg)
-// is sized too; the factor is set absolutely, so a baseline that already carries it is unchanged.
+// small is sized too; the factor is set absolutely, so a baseline that already carries it is unchanged.
 // The integrator limit that used to cap this at x1.9 was the explicit AA–AAR–AD chain; those
 // resistors are now implicit (below), and ARTERIAL_SCALE_MAX only bounds the extrapolation of the
 // PWV data (x2.5 = 0.57 kg).
@@ -557,13 +556,10 @@ const controllers = [];
 let oxygenShunt = null; // set when the oxygen lever can open the intrapulmonary shunt
 
 // The resistance-scale levers (MAP, PVR) move a ModelScaler group's r_factor_scaling_ps layer. They
-// used eng.scale(group, f), which sets that layer ABSOLUTELY: on a size-scaled baseline
-// (bischoff_cohort carries systemic x3 and pulmonary x2.2, preterm_24wk x1.85 / x3) the first call
-// wiped the baked scaling, so the Bischoff infant fell from 42/19 to 30/14 before any lever had
-// moved. scaleGroup() instead sets each member to base x f, where base is the layer as loaded, so
+// used eng.scale(group, f), which sets that layer ABSOLUTELY: on a size-scaled baseline the first
+// call wiped the baked scaling before any lever had moved. scaleGroup() instead sets each member to base x f, where base is the layer as loaded, so
 // f = 1 is the patient as built. A gestational-age seed is the exception: its svr/pvr are stated
-// against the term reference (term_neonate_72h, fetus_term; a preterm baseline is never seeded, see
-// above), so a seeded build keeps the absolute layer (base 1), exactly as before.
+// against the term reference (a preterm baseline is never seeded, see above), so a seeded build keeps the absolute layer (base 1), exactly as before.
 const scaleGroup = (group, absolute) => {
   const cfg = group === "systemic_resistances" ? "blood_systemic" : "blood_pulmonary";
   const members = (model.scaler_config?.[cfg]?.resistance ?? []).map((n) => model.models[n]).filter((c) => c && typeof c.r_factor_scaling_ps === "number");
@@ -723,8 +719,7 @@ if (has("po2") || has("spo2")) {
 // a ventilated baseline the bot sets ventilator rate/Vt instead.)
 // In a FETUS this lever is inert (Breathing.is_enabled = false). The fetal equivalent is the
 // maternal pool's CO2 content: a higher maternal CO2 content means a smaller placental gradient and
-// therefore LESS clearance, so fetal pCO2 rises with mat_tco2 (sign +1 — verified empirically with
-// `probe_fetus.mjs <scenario> --mattco2`, not asserted from reading).
+// therefore LESS clearance, so fetal pCO2 rises with mat_tco2 (sign +1, verified empirically).
 if (has("pco2") && FETAL_MODE) {
   const P = model.models.Placenta;
   controllers.push(mkc({ key: "pco2", lever: "Placenta.mat_tco2", lo: 14, hi: 30, sign: +1, gain: 0.15, value: P.mat_tco2, set: (v) => { P.mat_tco2 = v; } }));

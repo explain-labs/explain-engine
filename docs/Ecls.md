@@ -249,7 +249,7 @@ displayed circuit pressure reads 23.4 mmHg higher:
 
 Before, the same VA run gave 0.47 L/min at 2800 rpm. VV with two single-lumen cannulas gave 0.47 L/min
 at ≈ 1800 rpm. At ≈ 0.45 L/min VV now needs ≈ 10 % more rpm than VA, and ≈ 20 % more at 0.6 L/min.
-Adult (`adult_female`, CentriMag, 25/19 Fr): 4000 rpm → 4.0 L/min (was 6.6), 5000 rpm → 6.0 (was 10.9).
+Adult (CentriMag, 25/19 Fr): 4000 rpm → 4.0 L/min (was 6.6), 5000 rpm → 6.0 (was 10.9).
 The realistic adult cannula losses also remove most of the implausibly high adult flows noted on
 2026-10-01.
 
@@ -542,8 +542,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   entries were removed from the single-lumen libraries (their resistances were unsourced, and a VV
   cannula is one device).
 - **Scenario clean-up.** `tubing_in_res` is live (in series on the pump inlet). The read-outs
-  `drainage_dp`/`return_dp` were added. Eight scenarios (`fetus_30wk`, `term_fetus`, `tapvc`,
-  `tapvc_obstructed`, `tof`, `tof_pa`, `tof_pink`, `tof_severe`) still embedded cannula (and some
+  `drainage_dp`/`return_dp` were added. Eight scenarios still embedded cannula (and some
   pump/oxygenator) library copies that override the class libraries. These were removed.
 - **Effect.** VV (13 Fr DL) now needs about the same or slightly more rpm than VA (12/10 Fr) for the
   same flow, instead of ≈ 35 % fewer. Adult VA flows at high rpm are much lower and more plausible.
@@ -569,7 +568,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   [HeartChamber](./HeartChamber.md#the-split-right-atrium)).
 - `term_neonate_72h` VA (RASVC → AAR), PediMag: 4000 rpm → ≈ 1.06 L/min (p_ven ≈ −12 mmHg, was 0.45 at −135);
   5500 rpm → ≈ 1.5 L/min. Native LVO falls toward 0 as ECMO takes over the circulation.
-- Follow-up: with the merged atrium, very high rpm now gives implausibly high flows, e.g. `adult_female`
+- Follow-up: with the merged atrium, very high rpm now gives implausibly high flows, e.g. the adult
   CentriMag ≈ 11 L/min at 5000 rpm. Neither caval/atrial collapse around the cannula (inflow limitation)
   nor possibly realistic adult cannula resistances are modelled yet.
 
@@ -580,7 +579,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   Manual (PL-0047 Rev 11, Fig. 14), RMS error 4.8 mmHg; the old coefficients were off by ≈ 216 mmHg
   RMS. The deadhead was about right (rpm² scaling holds, `hq_a` ≈ 23); the flow falloff was 5–7× too
   steep.
-- Effect in `adult_female` (VA, RASVC → AAR): the crossover is unchanged at ≈ 2000 rpm. Flow rises much
+- Effect in the adult (VA, RASVC → AAR): the crossover is unchanged at ≈ 2000 rpm. Flow rises much
   faster with rpm (≈ 2.6 L/min at 3000 vs 1.8 before) and reaches the drainage-limited plateau
   (≈ 2.7 L/min, RASVC empties) by ≈ 3000 rpm. That plateau is the venous-return / no-atrial-collapse
   limitation noted under "PediMag head corrected" below, and it is more apparent in the adult.
@@ -596,7 +595,7 @@ sub-models (and nothing refreshes the `Ecls.*` read-outs the UI watches).
   `hq_b` is unchanged; with it the corrected head reproduces the published PediVAS operating points
   (0.6 L/min @ 2800 rpm, 0.8 L/min @ 3200 rpm, 10 Fr return cannula). The class default, the standby
   `BloodPump` default and the six scenarios that set `pump_hq_a` explicitly were updated too. Those six
-  (`fetus_30wk`, `term_fetus`, `tof*`) also embedded a full copy of the `pumps`/`oxygenators` libraries,
+  also embedded a full copy of the `pumps`/`oxygenators` libraries,
   which `init_model` copies over the class library and so pinned the old value. The copies were otherwise
   identical to the class libraries and have been removed, so these scenarios now inherit the library.
 - Effect: in VA mode the centrifugal pump is non-occlusive, so flow reverses (aorta → circuit → RA)
