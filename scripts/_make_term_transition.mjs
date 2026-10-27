@@ -126,18 +126,21 @@ const PROFILES = {
     RV_DELAY: 0, PA_EL: 1,
     // output 258 (Agata 1991/1994: 245 +/- 56, 272 +/- 48), BP 71.3/41.2 (51.2) (Taiwo 2022), HR 121
     SVR: 0.75, HEART_EL_MAX: 1.35, HR_REF: 1.025,
-    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
+    // body beds partly toned and first-day brown fat, as at 12 h
+    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1, upper_body: 0.8, lower_body: 0.8 }, BRAIN_REANCHOR: true,
+    NST_W_PER_KG: 0.3,
     // GFR still the day-1 value (Smeets 2022)
     KF: 0.8,
     // blood as at 12 h: Hct 57 %, ~77 mL/kg
     BLOOD_VOLUME: 77 / 85, HCT: 0.57,
     // gases and metabolites (textbook, C): pH 7.37, pCO2 35, BE ~-3.5; lactate 1.8 (GLOW, interpolated),
     // glucose 3.3 (GLOW plateau)
-    LACT: 1.8, UMA_DELTA: 0.9, MV_REF: 1.12, GLUCOSE: 3.3,
+    // ventilation: pCO2 ~39 (24 h range 30-41)
+    LACT: 1.8, UMA_DELTA: 0.9, MV_REF: 1.09, GLUCOSE: 3.3,
     // the last lung liquid: FRC 24.9 at 24 h (Lee 1999)
     LUNG_U_VOL: 0.96, LUNG_EL: 1.02,
     // the baroreflex senses the time-averaged arch pressure: a clinical MAP of 51.2 is a time-averaged ~57
-    BR_MAP_INIT: 57, CR_PCO2_INIT: 35, CR_PH_INIT: 7.37,
+    BR_MAP_INIT: 57, CR_PCO2_INIT: 38, CR_PH_INIT: 7.35,
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
 };
