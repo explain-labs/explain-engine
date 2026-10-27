@@ -86,7 +86,7 @@ export const RANGES = {
   neonate_12h: {
     hr: [97, 152], rr: [32, 57], sys: [54, 85], dia: [28, 53], map: [39, 62],
     pap_s: [34, 71], pap_m: [32, 50], cvp: [-3, 4],
-    spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
+    spo2_pre: [95, 100], svo2: [70, 84], temp: [36.5, 37.5],
     ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
   },
   // the healthy term neonate at ~24 h: the ranges of docs/TermTransitionReference.md
