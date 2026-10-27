@@ -78,7 +78,7 @@ None; its own uptake and production factors.
 
 - **Reads:** `AA.solutes.glucose`; Metabolism's `metabolic_active_models`; `model.weight`.
 - **Writes:** `solutes.glucose` of the beds and of `IVCI` (and the seed in every blood compartment).
-- **Written by:** the user (rates, switch); Fluids (dextrose, indirectly).
+- **Written by:** the user (rates, switch); Fluids (dextrose, indirectly); `build_patient.mjs` (`glucose_setpoint`, `isf_glucose` for a glucose target, see [Calibrator](./Calibrator.md)).
 - **Read by:** `DataCollector` watchers, the Monitor.
 
 ## Assumptions and limitations

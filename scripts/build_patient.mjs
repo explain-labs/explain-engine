@@ -477,7 +477,15 @@ if (soluteTargets.length && model.models.Blood) {
   for (const k of soluteTargets) model.models.Blood.set_solute(SOLUTE_KEY[k], targets[k]);
   restoreMaternalPool(); // set_solute reaches PL_MAT; the mother is not the patient
   if (has("lactate") && model.models.Lactate) model.models.Lactate.lact_baseline = targets.lactate;
-  if (has("glucose") && model.models.Glucose) model.models.Glucose.glucose_setpoint = targets.glucose;
+  if (has("glucose") && model.models.Glucose) {
+    // the interstitial pool (Glucose.isf_glucose, ~3.5x the blood volume) is moved too, at the
+    // baseline's resting ISF/plasma ratio: left at the baseline value it refills the blood, and the
+    // blunted newborn insulin response takes over an hour to clear that excess
+    const G = model.models.Glucose;
+    const ref = G.glucose_setpoint > 0 ? G.glucose_setpoint : G.glucose;
+    if (G.isf_glucose > 0 && ref > 0) G.isf_glucose *= targets.glucose / ref;
+    G.glucose_setpoint = targets.glucose;
+  }
   trace(`structural: solutes ${soluteTargets.map((k) => `${k} ${targets[k]}`).join(", ")}`);
 }
 
