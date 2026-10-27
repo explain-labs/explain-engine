@@ -4565,6 +4565,123 @@
           }
         ]
       },
+      "renal": {
+        "title": "Renal",
+        "enabled": true,
+        "collapsed": true,
+        "parameters": [
+          {
+            "label": "GFR",
+            "unit": "ml/min",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Kidneys.gfr"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Urine",
+            "unit": "ml/kg/h",
+            "factor": 60,
+            "rounding": 1,
+            "props": [
+              "Kidneys.urine_flow"
+            ],
+            "weight_based": true
+          },
+          {
+            "label": "Urine vol",
+            "unit": "ml",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "Kidneys.urine_volume"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "FENa",
+            "unit": "%",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Kidneys.fe_na"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "RBF",
+            "unit": "ml/kg/min",
+            "factor": 1000,
+            "rounding": 1,
+            "props": [
+              "Monitor.flows.kid_flow"
+            ],
+            "weight_based": true
+          },
+          {
+            "label": "Renal art",
+            "unit": "mmHg",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "KID_ART.pres"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "NFP",
+            "unit": "mmHg",
+            "factor": 1,
+            "rounding": 1,
+            "props": [
+              "Kidneys.nfp"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Afferent",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Kidneys.afferent_factor"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Angiotensin",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Hormones.angiotensin"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Aldosterone",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Hormones.aldosterone"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "ADH",
+            "unit": "x",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "Hormones.adh"
+            ],
+            "weight_based": false
+          }
+        ]
+      },
       "respiration": {
         "title": "Respiration",
         "enabled": true,
