@@ -4682,6 +4682,93 @@
           }
         ]
       },
+      "ans": {
+        "title": "ANS",
+        "enabled": true,
+        "collapsed": true,
+        "parameters": [
+          {
+            "label": "Baro",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "BR_MAP.firing_rate"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Chemo pCO2",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "CR_PCO2.firing_rate"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Chemo pO2",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "CR_PO2.firing_rate"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Chemo pH",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "CR_PH.firing_rate"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "HR effect",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "EF_HR.effector"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "SVR effect",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "EF_SVR.effector"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Contr effect",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "EF_HEART.effector"
+            ],
+            "weight_based": false
+          },
+          {
+            "label": "Vent effect",
+            "unit": "",
+            "factor": 1,
+            "rounding": 2,
+            "props": [
+              "EF_MV.effector"
+            ],
+            "weight_based": false
+          }
+        ]
+      },
       "respiration": {
         "title": "Respiration",
         "enabled": true,
