@@ -174,6 +174,26 @@
       "cite": "Hiraishi S et al. Br Heart J 1991;65:41 (as cited in docs/Shunts.md)",
       "doi": "10.1136/hrt.65.1.41",
       "pmid": null
+    },
+    "vanderhoeven1996": {
+      "cite": "van der Hoeven MA, Maertzdorf WJ, Blanco CE. Continuous central venous oxygen saturation (ScvO2) measurement using a fibre optic catheter in newborn infants. Arch Dis Child Fetal Neonatal Ed 1996;74:F177-81",
+      "doi": "10.1136/fn.74.3.f177",
+      "pmid": "8777680"
+    },
+    "wolfsberger2023": {
+      "cite": "Wolfsberger CH et al. Peripheral muscle fractional tissue oxygen extraction in stable term and preterm neonates during the first 24 h after birth. Front Pediatr 2023;11:1276769",
+      "doi": "10.3389/fped.2023.1276769",
+      "pmid": "38034828"
+    },
+    "carmichael2025": {
+      "cite": "Carmichael TG et al. The application of magnetic susceptibility separation for measuring cerebral oxygenation in preterm neonates. Pediatr Res 2025;98:715-22",
+      "doi": "10.1038/s41390-025-03966-6",
+      "pmid": "40108431"
+    },
+    "zoppi1998": {
+      "cite": "Zoppi G et al. Respiratory quotient changes in full term newborn infants within 30 hours from birth before start of milk feeding. Eur J Clin Nutr 1998;52:360-2",
+      "doi": "10.1038/sj.ejcn.1600564",
+      "pmid": "9630387"
     }
   },
   "variables": [
@@ -308,7 +328,7 @@
       "group": "hemodynamics",
       "label": "Pulmonary artery pressure, systolic",
       "unit": "mmHg",
-      "mean": 36.0,
+      "mean": 36,
       "sd": 6.48,
       "low": null,
       "high": null,
@@ -495,7 +515,7 @@
       "mean": 1.6,
       "sd": 0.2,
       "low": 1.2,
-      "high": 2.0,
+      "high": 2,
       "range_type": "mean+/-2SD",
       "method": "CMR",
       "age": "31.8 h",
@@ -823,7 +843,7 @@
       "mean": 3.6,
       "sd": null,
       "low": 3.2,
-      "high": 4.0,
+      "high": 4,
       "range_type": "consensus of four studies",
       "method": "passive (single) occlusion",
       "age": "newborn to 4.6 wk",
@@ -867,7 +887,7 @@
       "mean": 27.1,
       "sd": null,
       "low": 23.8,
-      "high": 32.0,
+      "high": 32,
       "range_type": "median (range)",
       "method": "helium dilution",
       "age": "median day 2",
@@ -1047,53 +1067,53 @@
       "group": "gases",
       "label": "Mixed venous O2 saturation",
       "unit": "%",
-      "mean": 83,
+      "mean": 76,
       "sd": null,
-      "low": 80,
-      "high": 86,
-      "range_type": "derived range",
-      "method": "derived via Fick from the graded references: output 177-200 mL/kg/min (MRI), VO2 6.26-7.0 mL/kg/min, Hb 17 g/dL, SaO2 97.3 %",
-      "age": "-",
+      "low": 70,
+      "high": 80,
+      "range_type": "range",
+      "method": "right-atrial fibre-optic catheter (stable preterms, room air); peripheral and cerebral oximetry",
+      "age": "days",
       "n": null,
       "sources": [
-        "groves2011",
-        "jhaveri2023",
-        "photo2001",
-        "jopling2009",
-        "brockmann2011",
-        "bailey2013",
-        "liu2014"
+        "vanderhoeven1996",
+        "wolfsberger2023",
+        "carmichael2025",
+        "liu2014",
+        "bailey2013"
       ],
       "grade": "B",
       "model_readout": "Monitor.svo2",
-      "notes": "SvO2 = 1 - VO2/(output x CaO2). Not measured in healthy neonates; the textbook 70-80 % comes from sick or older patients. Regional NIRS day 2: cerebral 78, renal 89, splanchnic 75 %; cerebral venous (SSS) 63.9 +/- 8.2 % (Liu)."
+      "notes": "Right atrium 73.6 +/- 5.3 % (P5-P95 65-82) at SaO2 93.4 %, extraction 0.21 (van der Hoeven 1996, stable preterms); at SaO2 97 % that is ~76-77 %. Peripheral-muscle extraction 0.22-0.26 in healthy term babies (Wolfsberger 2023); sagittal sinus 72.4 % (Carmichael 2025), 63.9 % (Liu 2014). The Fick estimate from calorimetry VO2 and MRI output (~83 %) is higher. Revised 2026-10-27 (was 83, 80-86, derived)."
     },
     {
       "key": "vo2",
       "group": "metabolism",
       "label": "Oxygen consumption",
       "unit": "mL/kg/min",
-      "mean": 6.26,
+      "mean": 8.4,
       "sd": 1.51,
-      "low": null,
-      "high": null,
-      "range_type": null,
-      "method": "indirect calorimetry, thermoneutral",
+      "low": 6.3,
+      "high": 9.5,
+      "range_type": "range",
+      "method": "lung O2 uptake that gives the measured venous extraction at the measured output; calorimetry 6.3-7.2 at thermoneutral rest",
       "age": "first week",
       "n": 202,
       "sources": [
-        "photo2001"
+        "photo2001",
+        "zoppi1998",
+        "vanderhoeven1996"
       ],
-      "grade": "B",
+      "grade": "C",
       "model_readout": "Metabolism.vo2",
-      "notes": "Rises to 8-9 at 1-2 months."
+      "notes": "Calorimetry: 6.26 +/- 1.51 (first week, thermoneutral rest); 6.6-7.2 from energy expenditure at 6 and 30 h, RQ 0.94 -> 0.88 (Zoppi 1998). ~8.4 is what the direct venous extraction (0.21) needs at an output of ~200 mL/kg/min; it raises ventilation to ~250 (215 measured in quiet sleep). Revised 2026-10-27 (was 6.26)."
     },
     {
       "key": "temp",
       "group": "metabolism",
       "label": "Core temperature",
       "unit": "degC",
-      "mean": 37.0,
+      "mean": 37,
       "sd": null,
       "low": 36.5,
       "high": 37.5,
@@ -1113,7 +1133,7 @@
       "group": "metabolism",
       "label": "Plasma glucose",
       "unit": "mmol/L",
-      "mean": 4.0,
+      "mean": 4,
       "sd": 0.7,
       "low": null,
       "high": null,
@@ -1155,7 +1175,7 @@
       "group": "blood",
       "label": "Hemoglobin",
       "unit": "g/dL",
-      "mean": 17.0,
+      "mean": 17,
       "sd": null,
       "low": 12.8,
       "high": 21.2,

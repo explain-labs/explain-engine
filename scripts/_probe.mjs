@@ -69,7 +69,7 @@ export const RANGES = {
   neonate: {
     hr: [91, 145], rr: [32, 57], sys: [60, 89], dia: [31, 61], map: [45, 72],
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
-    spo2_pre: [94.5, 100], svo2: [80, 86], temp: [36.5, 37.5], etco2: [35, 45],
+    spo2_pre: [94.5, 100], svo2: [70, 80], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
   },
   // the healthy term neonate at ~1 h (vaginal birth, delayed cord clamping): the ranges of
