@@ -5,8 +5,8 @@
 // deviation in SD where an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference,
 // n/a = no model read-out). Reference sets:
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
-//   (the preterm, fetal and Bischoff sets were removed with their scenarios on 2026-10-25, to be rebuilt; the probe
-//   still reads their extra rows: fetal read-outs when the placenta runs, svo2_ra, pda_v_rtl, spo2_post)
+//   The probe also reads rows no current set uses (read-outs when the placenta runs, svo2_ra, pda_v_rtl,
+//   spo2_post), for sets made later.
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
@@ -64,7 +64,7 @@ const add = (k, v) => { acc[k] = (acc[k] || 0) + (Number.isFinite(v) ? v : 0); }
 let frcMin = Infinity;
 const peaks = { insp: [], exp: [] }; let curIn = 0, curEx = 0, seenBreath = false; // per-breath peak airway flows
 const steps = Math.round(WINDOW / dt);
-// fetal scenarios (docs/fetal_circulation.md: placenta running, cord patent): flow shares, umbilical and
+// fetal scenarios (placenta running, cord patent): flow shares, umbilical and
 // site gases, and the umbilical Fick uptake, the way the fetal reference values were measured
 const FETAL = M.Placenta?.placenta_running === true && M.Placenta?.umb_clamped === false;
 const fetalFlows = ["PL_UMB_VEN_IVCI", "PAAL_LL_ART", "PAAR_RL_ART"];
@@ -144,7 +144,7 @@ const model_values = {
   pda: perKgMin(acc.AAR_DA), fo: perKgMin(acc.LA_RAIVCI + acc.LA_RASVC),
   // coronary inflow (mL/min, whole heart) and myocardial O2 use (mL/100 g/min)
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
-  // used by the preterm set
+  // rows for other reference sets
   lvo_rvo: acc.LV_AA / acc.RV_PA, pda_diam: (M.Pda?.diameter_relative ?? NaN) * (M.Pda?.diameter_pa_max ?? NaN),
   cl: (lungC * 1000) / MMHG_TO_CMH2O / W, ccw: (chestC * 1000) / MMHG_TO_CMH2O / W, vd_vt: acc.ds_vol / acc.vt,
   fio2: M.Gas?.fio2, p50: M.Blood?.P50_0, rq: Math.abs(acc.co2_out / acc.o2_uptake),

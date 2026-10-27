@@ -4,20 +4,9 @@ A scenario file is a single JSON document that describes one complete patient/ex
 
 > **This repo is the source of truth for scenarios — edit `model_definitions/` here.**
 >
-> **Only the term neonate is shipped** (since 2026-10-25). The 72 h baby was `term_neonate` until 2026-10-26; `Model.load` and `build_patient.mjs` still accept that name (`helpers/ScenarioAliases.js`). `term_neonate_72h` is the literature-validated healthy term
+> **Only `term_neonate_72h` is shipped.** It was `term_neonate` until 2026-10-26; `Model.load` and `build_patient.mjs` still accept that name (`helpers/ScenarioAliases.js`). `term_neonate_72h` is the literature-validated healthy term
 > neonate at 72 h ([TermNeonateReference](./TermNeonateReference.md)) and the root every other patient is
-> built from. `term_neonate_1h` is the same baby 1 h after a vaginal birth with delayed cord clamping (open
-> bidirectional duct, near-systemic pulmonary pressure, high output), `term_neonate_12h` the same baby at
-> 12 h (closing left-to-right duct, PAP 41) and `term_neonate_24h` at 24 h (small restrictive duct, PAP 34),
-> all generated from it by `scripts/_make_term_transition.mjs --age 1|12|24` ([TermTransitionReference](./TermTransitionReference.md)). The preterm scenarios (`preterm_25wk`, `preterm_28wk`, `preterm_30wk`, 2026-10-18/19), the
-> fetal scenarios (`fetus_25wk`, `fetus_30wk`, `fetus_term`, 2026-10-19/20) and the three Bischoff 2021
-> scenarios (2026-10-22/23) were removed on 2026-10-25, during the re-validation, together with their
-> generators (`_make_preterm_validated.mjs`, `_make_fetus_validated.mjs`), lever profiles, reference pages and
-> probe targets: term is finished first, then they are rebuilt from scratch. Git history holds them.
-> The frozen set that the P1 companion and the ToF lesson used (`bischoff_cohort`, `p1_baseline`,
-> `p1_pda_none`, `tof_severe`) was built on the older engine and was archived on 2026-10-20. Everything else
-> is in [`model_definitions/archive/`](../model_definitions/archive/README.md) until it is rebuilt from
-> the fixed term baby.
+> built from.
 >
 > Consumers generate their own copy from it. In the [explain-ui](https://github.com/explain-labs/explain-ui)
 > web app, `scripts/sync-scenarios.mjs` copies this directory into its `public/model_definitions/`
@@ -230,7 +219,7 @@ Both are `{ settings, components }` objects. `settings` holds canvas-level optio
 A flat JSON array of scenario filename stems, e.g.:
 
 ```json
-["fetus_25wk", "preterm_25wk", "preterm_28wk", "term_neonate_72h", "..."]
+["term_neonate_72h"]
 ```
 
 Each entry `X` maps to `model_definitions/X.json` and is a valid argument to `Model.load("X")`. Add a scenario here to make it selectable in consuming apps. (In explain-ui, `sync-scenarios.mjs` rebuilds its served `index.json` as the union of the canonical set and any local snapshots.)

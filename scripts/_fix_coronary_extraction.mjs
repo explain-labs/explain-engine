@@ -5,11 +5,10 @@
 // Why (re-validation item (h)): AA_COR gave every scenario about the same coronary flow per kg body
 // weight (10.5-11.4 mL/kg/min, ~5 % of LV output), so the resting myocardial O2 extraction ranged from
 // 30 % (term_neonate_72h, 164 mL/min/100 g, ~2x human neonatal estimates: Aburawi 2012 LAD flow 8.2 mL/min,
-// doi:10.1016/j.echo.2011.11.019) to 70 % (fetus_term). Coronary flow is matched to myocardial O2 demand,
-// so the resistance is set to give a common resting extraction (agreed with the model's author): 55 %
-// postnatal (between newborn lambs, ~50 %, and adults, ~70 %) and 50 % in the fetus (fetal lamb
-// myocardial flows 170-260 mL/min/100 g, Smolich 1996 doi:10.1152/ajpheart.1996.270.2.H741, Dalshaug
-// 2002 doi:10.1152/ajpheart.00686.2001). Myocardial VO2 (Mob) is unchanged, so the flow follows it:
+// doi:10.1016/j.echo.2011.11.019) upwards. Coronary flow is matched to myocardial O2 demand,
+// so the resistance is set to give a resting extraction (agreed with the model's author) of 55 %
+// (between newborn lambs, ~50 %, and adults, ~70 %; Smolich 1996 doi:10.1152/ajpheart.1996.270.2.H741).
+// Myocardial VO2 (Mob) is unchanged, so the flow follows it:
 // extraction = MVO2 / (Q·CaO2), and R is scaled by target/extraction until it matches.
 // Only r_for/r_back of AA_COR change; the definitions are edited in place.
 // 2026-10-27: scripts/_fix_term_mvo2.mjs raised the term baby's myocardial O2 use and re-fitted AA_COR to the
@@ -18,10 +17,10 @@ import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 
 const WRITE = process.argv.includes("--write");
-const ALL = ["term_neonate_72h"]; // the other scenarios were removed on 2026-10-25
+const ALL = ["term_neonate_72h"];
 const args = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const names = args.length ? args : ALL;
-const target = (n) => (n.startsWith("fetus") ? 0.5 : 0.55);
+const target = () => 0.55;
 const out = (...a) => process.stderr.write(a.join(" ") + "\n");
 const eng = await createEngine();
 const path = (n) => new URL(`../model_definitions/${n}.json`, import.meta.url);

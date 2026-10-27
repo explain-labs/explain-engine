@@ -32,7 +32,7 @@ BaseModelClass
 |---|---|---|---|
 | `kidneys_running` | boolean | `true` | Switch for filtration. |
 | `kid_cap_name`, `urine_name` | – | `"KID_CAP"`, `"URINE"` | Glomerular capillary and the bladder compartment (a component, kept out of the blood pool). |
-| `kf` | L/(s·mmHg) | 6.6e-6 | Filtration coefficient. term 6.0e-6, preterm 2.1–3.4e-6 (scaled by body surface). |
+| `kf` | L/(s·mmHg) | 6.6e-6 | Filtration coefficient. term 6.0e-6; scaled by body surface below 34 weeks. |
 | `p_bowman` | mmHg | 8 | Bowman's capsule pressure (preterm lower, scaled by the gestation's MAP). |
 | `oncotic_base`, `albumin_ref` | mmHg, g/L | 18, 25 | Plasma oncotic pressure at the reference albumin (preterm 15). |
 | `reabsorption_fraction` | – | 0.985 | Water reabsorption fraction. term_neonate_72h 0.98. |
@@ -121,7 +121,7 @@ Each step (nothing while off; skipped if `KID_CAP` or `URINE` is missing):
 ### Calibration
 
 - **Term:** `kf` was back-solved for a GFR of ~4 mL/min at a net filtration pressure of ~11 mmHg (a thin margin, so `p_bowman + oncotic` must stay well below `KID_CAP.pres`).
-- **Preterm (below 34 weeks) — the kidney of its own gestation and size:** `scripts/_renal_reference.mjs` with `scripts/_renal_bed.mjs`, applied by `reseed_preterm.mjs`, `build_patient.mjs` and `_fix_renal_bed.mjs`. The rules were chosen with the model's author:
+- **Preterm (below 34 weeks) — the kidney of its own gestation and size:** applied by `build_patient.mjs` (the renal bed solve is `scripts/_renal_bed.mjs`). The rules were chosen with the model's author:
 
   | Quantity | Rule | Basis |
   |---|---|---|

@@ -31,7 +31,7 @@ A bedside monitor shows the vital signs a neonatal team watches: heart rate (fro
 | `etco2` | end-tidal CO₂; mirrored from `Ventilator.etco2` while the ventilator is enabled, otherwise derived from the spontaneous breath (see below) |
 | `temp` | blood temperature (°C), mirrored each step from `AA.temp` (last value kept if AA is absent) |
 | `sao2_pre`, `sao2_post` | pre-/post-ductal arterial O₂ saturation, from `AA.so2` / `AD.so2` |
-| `svo2` | mixed-venous O₂ saturation, from the pulmonary artery (`PA.so2`). Falls back to `RAIVCI.so2` when there is no PA; `RAIVCI` holds IVC-side blood, which misses the brain's extraction where the right-atrial halves don't mix (the fetal scenarios). In `term_neonate_72h` the two agree (81.9 %). |
+| `svo2` | mixed-venous O₂ saturation, from the pulmonary artery (`PA.so2`). Falls back to `RAIVCI.so2` when there is no PA; `RAIVCI` holds IVC-side blood, which misses the brain's extraction where the right-atrial halves don't mix (a fetal circulation). In `term_neonate_72h` the two agree (81.9 %). |
 
 **Heart rate** — on each ventricular beat (`Heart.ncc_ventricular === 1`), the beat-to-beat rate is
 `60 / interval` (interval = time since the previous beat). A running window of the last `hr_avg_beats`

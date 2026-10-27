@@ -9,8 +9,7 @@
 // tricuspid orifice and 1.5 cm of inflow give 1.52 and 1.06 mmHg·s²/L; twice that (the column
 // extends into the atrium) gave the best E and A at term (prototype, with the exponential
 // relaxation of Heart.relax_frac). Smaller hearts are scaled as geometrically similar ones:
-// diameter ~ weight^(1/3), so L ~ weight^(-1/3). The three Bischoff scenarios (removed 2026-10-25) shared preterm_25wk's
-// valves, as for the outflow valves. The tricuspid connection is two parallel halves
+// diameter ~ weight^(1/3), so L ~ weight^(-1/3). The tricuspid connection is two parallel halves
 // (RAIVCI_RV, RASVC_RV), each carrying 2·L so the pair has L. Only the inertance key is added.
 import fs from "node:fs";
 

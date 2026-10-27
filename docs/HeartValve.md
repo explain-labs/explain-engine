@@ -56,12 +56,12 @@ Exactly [`Resistor`'s](./Resistor.md#calculation): forward flow `Δp / r_for_eff
 
 - **Reads / writes:** the pressures of the two chambers or vessels it joins; their volumes and composition (as any resistor).
 - **Read by:** `Heart` (`LA_LV` and the active LV outflow valve: their flow starting and stopping marks end-diastole and end-systole for the per-beat analysis), `Monitor` and `DataCollector` watchers.
-- **Written by:** the scenario generators for congenital lesions (`no_flow`, `is_enabled`, `no_back_flow`, `r_back`; e.g. `_make_dtga.mjs`, `_make_hlhs.mjs`, `_make_ta.mjs`, `_make_paivs.mjs`).
+- **Written by:** congenital-lesion scenarios (`no_flow`, `is_enabled`, `no_back_flow`, `r_back`).
 
 ## Assumptions and limitations
 
 - **Ideal valves.** Instant opening and closing, no leaflet dynamics, no closing backflow, no regurgitation unless configured.
-- **One resistance for every valve, and too high at term.** All valves have `r_for` 55 mmHg·s/L in all scenarios. At term that gives peak open-valve gradients of mitral 7.8, aortic 7.1, tricuspid 5.3 and pulmonary 4.7 mmHg. Normal neonatal velocities (about 0.5–0.7 m/s across the atrioventricular valves, 0.8–1.0 m/s across the outflow valves; ΔP ≈ 4v²) suggest roughly 1–2 and 3–4 mmHg. In the 1 kg preterm the gradients are 1.4–5.3 mmHg. A linear resistance also gives a gradient proportional to flow, where a real valve's grows with flow². The valve resistances are to be retuned per scenario in the scenario re-validation session.
+- **One resistance for every valve, and too high at term.** All valves have `r_for` 55 mmHg·s/L in all scenarios. At term that gives peak open-valve gradients of mitral 7.8, aortic 7.1, tricuspid 5.3 and pulmonary 4.7 mmHg. Normal neonatal velocities (about 0.5–0.7 m/s across the atrioventricular valves, 0.8–1.0 m/s across the outflow valves; ΔP ≈ 4v²) suggest roughly 1–2 and 3–4 mmHg. A linear resistance also gives a gradient proportional to flow, where a real valve's grows with flow². The valve resistances are to be retuned per scenario in the scenario re-validation session.
 - **The type is a label.** The UI shows the same fields for `HeartValve` and `Resistor`. Nothing in the engine branches on the type.
 
 ## Example definition (JSON)
@@ -94,7 +94,7 @@ Seven valves in term_neonate_72h, all owned by `Heart`:
 | Mitral | `LA_LV` | enabled |
 | Pulmonary | `RV_PA` | enabled |
 | Aortic | `LV_AA` | enabled, implicit |
-| Alternative outflows | `RV_AA`, `LV_PA` | disabled; switched on by the transposition generator (`_make_dtga.mjs`) |
+| Alternative outflows | `RV_AA`, `LV_PA` | disabled; switched on for a transposition (d-TGA) |
 
 ## References
 

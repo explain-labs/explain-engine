@@ -27,7 +27,7 @@ BaseModelClass
 |---|---|---|---|
 | `diameter_ao_max` | mm | 3.0 | Fully open diameter at the aortic end. |
 | `diameter_pa_max` | mm | 2.0 | Fully open diameter at the pulmonary (narrowest) end. **Equal to `diameter_ao_max` in every shipped scenario**, so the duct is a cylinder there. |
-| `diameter_relative` | – | 0.0 | Patency fraction 0–1, scaling both ends together; 0 = closed. term 0, preterm 0.27–0.33, fetal 1. |
+| `diameter_relative` | – | 0.0 | Patency fraction 0–1, scaling both ends together; 0 = closed. term_neonate_72h 0. |
 | `length` | mm | 20 | Length of the duct (the Poiseuille term). A restrictive jet needs a short throat (~1–2 mm). term_neonate_72h 14. |
 | `discharge_coeff` | – | 0.9 | Vena-contracta coefficient of the pulmonary-end orifice; lower = tighter jet. 0.9 in every shipped scenario. |
 
@@ -92,14 +92,14 @@ None of its own. It writes the **base** `r_for`/`r_back`/`r_k`/`no_flow` of `AAR
 - **Written by:** `Drugs` (`diameter_drug_factor`); the user and the scenario generators (diameters, length, `discharge_coeff`).
 - **Read by:**
   - `probe_vitals` (duct shunt), and `Monitor` through its configurable `flow_targets`;
-  - `scripts/probe_pda.mjs`, `probe_term_reference.mjs` and the P1 paper scripts (Doppler envelope);
+  - `scripts/probe_pda.mjs`, `probe_term_reference.mjs` (Doppler envelope);
   - `DataCollector` watchers.
 
 ## Assumptions and limitations
 
 - **No closure physiology.** Constriction by oxygen and falling PGE2, closure from the pulmonary end first, and the wall's passive and active elastance aren't computed. The duct's size is a scenario or user setting.
 - **Symmetric patency.** `diameter_relative` scales both ends together. The shipped scenarios also set both ends equal, so the duct is a cylinder.
-- **Absolute millimetres.** The diameters and `length` aren't scaled with body size; each scenario sets them (the since-removed fetal scenarios used Szpinda's gestational regressions, see [fetal_circulation](./fetal_circulation.md)).
+- **Absolute millimetres.** The diameters and `length` aren't scaled with body size; each scenario sets them.
 - **PGE1 cannot reopen a closed duct** (`diameter_relative` 0 is a hard stop).
 - **Reopening transient.** On the first step after reopening, the Bernoulli term is 0 (no previous flow), so flow briefly overshoots for one step.
 
@@ -129,10 +129,7 @@ One instance in every scenario, owning `AAR_DA` (`AAR` → `PA`, implicit):
 |---|---|---|---|---|
 | term_neonate_72h | 0 | 14 | 0.9 | closed |
 
-The archived `pda_restrictive_ltr` uses a short throat (`length` 1.5 mm, `discharge_coeff` 0.35, `diameter_relative` 0.13) for a restrictive jet.
-
 ## References
 
-- Szpinda M. Morphometric study of the ductus arteriosus during human development. 2007 (fetal diameter and length regressions).
 
 The orifice constant is derived in [Orifice](./Orifice.md).

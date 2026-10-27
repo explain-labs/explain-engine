@@ -88,13 +88,12 @@ None of its own. It writes the **base** `r_for`/`r_back` of its resistors every 
 
 - **Reads:** `LA.viscosity`; the flows of its five resistors.
 - **Writes:** `r_for`, `r_back`, `no_flow` of `LA_RAIVCI`, `LA_RASVC`, `VSD`; `r_for`, `r_back` of `IPSL`, `IPSR`.
-- **Written by:** the user and scenario generators (diameters, `ips_res`); the `Calibrator` (`ips_res`).
+- **Written by:** the user and `build_patient.mjs` (diameters, `ips_res`); the `Calibrator` (`ips_res`).
 - **Read by:** `Monitor` (`fo_flow`), `DataCollector` watchers, `scripts/probe_*` (Qp:Qs, Doppler).
 
 ## Assumptions and limitations
 
 - **Echo-measured diameter, no flap.** All scenarios use `fo_lr_factor` 1: a diameter from an echo colour jet already reflects the flap's restriction. With 25, an FO was almost one-way (5 mm: Qp:Qs 0.99, Doppler 0.2 m/s). With 1, a 3 mm FO carries ~18 mL/kg/min (Qp:Qs 1.04, Doppler 0.66 m/s) and 5 mm ~32 mL/kg/min (Qp:Qs 1.14). Hiraishi 1991 finds a predominantly left-to-right PFO in most term newborns; Evans & Iyer 1994 a measurable Qp:Qs above ~3 mm.
-- **The foramen is not the lever for the fetal ventricular split.** At fetal sizes `res_fo` is ~13× below the tricuspid valve's resistance, so the two ventricles draw on a common atrial pressure. 6 → 3 mm moves RV:LV by 0 points; only below 2 mm does it bite, and then violently (1 mm: 73:27). See [fetal_circulation](./fetal_circulation.md).
 - **Absolute millimetres, not scaled.** `diameter_*` and the septal widths are set per scenario; no scaler touches them. Leaving `atrial_septal_width` at term thickness in a small body makes the foramen restrictive.
 - **Intrapulmonary shunt behaviour.**
   - Pulmonary hypertension on its own shouldn't raise it: the hypoxaemia of PPHN comes from right-to-left flow across the duct and foramen, and in pulmonary vascular disease inert-gas studies find little shunt (Dantzker & Bower 1979).
@@ -129,7 +128,6 @@ One instance in every scenario. It owns `LA_RAIVCI`, `LA_RASVC` (LA → right-at
 
 **term_neonate_72h calibration (2026-10):**
 - **Foramen:** `diameter_fo` 1.5 mm, a small left-to-right PFO of ~6 mL/kg/min (Qp:Qs ~1.03). Basis: no PFO has closed by day 3 (He 2011), and neonatal CMR finds RV output a few mL/kg/min above LV output with the duct closed (Jhaveri 2023, Groves 2011). It also lets the scenario shunt right-to-left at atrial level when right-sided pressures rise. See `scripts/_fix_term_fo.mjs` and [TermNeonateReference](./TermNeonateReference.md).
-- **Fetal scenarios:** `fo_svc_fraction` 0, the crista dividens. Before that, a third of the foramen flow came from the SVC half, and the aorta was only 0.9 saturation points above the pulmonary artery; with it the gap is 6.0 points (reference ~8). They also close the intrapulmonary shunts (`ips_res` 10⁸).
 
 ## References
 

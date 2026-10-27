@@ -132,12 +132,6 @@ function figA() {
 function figB() {
   const scenarios = [
     ["term_neonate_72h", "Term"],
-    ["preterm_28wk", "Preterm 28wk"],
-    ["bischoff_cohort", "Bischoff 25wk"],
-    ["pphn", "PPHN"],
-    ["cdh_severe", "CDH (severe)"],
-    ["dtga", "d-TGA"],
-    ["hlhs", "HLHS"],
   ].filter(([f]) => fs.existsSync(RES + `${f}_oat_reduced.json`));
   const targets = ["map", "pap_m", "cvp", "hr", "co", "spo2", "po2", "pco2", "be", "ph"];
 

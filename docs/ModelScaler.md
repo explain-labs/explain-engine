@@ -37,7 +37,7 @@ Each method skips a name the scenario lacks or a component without that property
 
 | Group | Effect |
 |---|---|
-| `weight_scale` | `scale_to_weight(kg)`: the five volume groups by `kg / _baseline_weight`, then `model.weight = kg`. Volumes only: elastances, resistances, heart rate and VO2 are not scaled (the inverse-scaling lines are deliberately commented out); the generators calibrate those separately. The placenta is not in any group. |
+| `weight_scale` | `scale_to_weight(kg)`: the five volume groups by `kg / _baseline_weight`, then `model.weight = kg`. Volumes only: elastances, resistances, heart rate and VO2 are not scaled (the inverse-scaling lines are deliberately commented out); the builder (`build_patient.mjs`) calibrates those separately. The placenta is not in any group. |
 | `weight` | Sets `model.weight` only. |
 | `add_volume` | Adds litres to `IVCI.vol`. |
 | `incorporate` | Bakes every scaling layer into the base values (below). |
@@ -57,11 +57,7 @@ Three rules keep the baked model exactly as it was:
 
 What the bake cannot preserve exactly is the heart chambers' ANS term, which is additive as a fraction of the base. Once baked it acts on the actual contractility rather than the unscaled base, so after a bake the sympathetic inotropy and lusitropy are proportional.
 
-**Why the shipped scenarios are baked.** The factor groups write the layer absolutely, so a calibration left in it is overwritten by the first `scale` command. Before v1.0 the non-term scenarios carried their size calibration there (preterm_25wk: systemic resistances ×2–3.96, `el_max` ×4.86, lung elastance ×7.1). As a result:
-- "scale systemic_resistances 1.2" *lowered* its MAP (36.7 → 31.5 mmHg);
-- `reset` dropped it to 30 mmHg.
-
-`scripts/_bake_scaling.py` baked the nine non-term scenarios; the same command now raises MAP (35.6 → 37.5) and `reset` is a no-op. The generators and `build_patient.mjs` end with `incorporate`.
+**Why the shipped scenarios are baked.** The factor groups write the layer absolutely, so a calibration left in it is overwritten by the first `scale` command. A scenario that carried its size calibration there would see "scale systemic_resistances 1.2" *lower* its MAP, and `reset` would undo the calibration. `scripts/_bake_scaling.py` bakes such a scenario, and `build_patient.mjs` ends with `incorporate`.
 
 ## Methods
 
@@ -76,7 +72,7 @@ Private helpers:
 
 ModelScaler owns the `*_factor_scaling_ps` layer of the components in `scaler_config`. Other writers of that layer:
 - **the Calibrator:** `IPSL`/`IPSR` `r_factor_scaling_ps`;
-- **the archived Uterus and MaternalPlacenta:** pregnancy.
+- **Uterus and MaternalPlacenta:** pregnancy.
 
 Volume scaling and `add_volume` change the base volumes instead.
 

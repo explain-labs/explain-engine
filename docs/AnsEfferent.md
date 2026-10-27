@@ -89,7 +89,7 @@ From `term_neonate_72h.json`, `models.Ans.components.EF_HR` (trimmed to the conf
 
 ## Usage in the scenarios
 
-`EF_HR`, `EF_SVR`, `EF_HEART` and `EF_MV` in every scenario; `EF_HR_CHEMO` (hypoxic bradycardia) in none at present (the preterm scenarios that had it were removed on 2026-10-25 to be rebuilt). Their targets, ranges and time constants are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
+`EF_HR`, `EF_SVR`, `EF_HEART` and `EF_MV` in every scenario; `EF_HR_CHEMO` (hypoxic bradycardia) in none. Their targets, ranges and time constants are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
 
 ## References
 

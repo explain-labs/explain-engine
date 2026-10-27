@@ -117,7 +117,7 @@ From `term_neonate_72h.json`, `models.Glucose` (trimmed to the config props; gai
 
 ## Usage in the scenarios
 
-One instance in every scenario, running with use = production = 0.03 mmol/kg/min. The set-points equal each scenario's `Blood.solutes.glucose`: term 4.0, fetus 3.7–4.2, preterm 5.5–7.0 mmol/L.
+One instance in every scenario, running with use = production = 0.03 mmol/kg/min. The set-points equal each scenario's `Blood.solutes.glucose`: term_neonate_72h 4.0 mmol/L.
 
 ## References
 

@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
 
 A framework-agnostic, dependency-free physiological simulation engine (whole-body neonatal
-and fetal cardiorespiratory model; the adult scenarios are archived). It runs in a dedicated Web Worker (`ModelEngine.js`) and
+cardiorespiratory model; the one shipped scenario is the healthy term neonate at 72 h). It runs in a dedicated Web Worker (`ModelEngine.js`) and
 is controlled from the main thread through the `Model` wrapper (`Model.js`).
 
 This repository is self-contained: it has no runtime or build dependencies, and the tooling

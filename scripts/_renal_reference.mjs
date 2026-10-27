@@ -1,12 +1,8 @@
 // Healthy renal reference of an immature patient: the glomerular filtration terms and the renal-bed
-// targets a preterm (or fetal) scenario should rest at, by gestational age and size.
-//
-// Until 2026-10-15 every preterm, Bischoff and fetal scenario kept term_neonate_72h's kidney: Bowman's
-// pressure 8 + oncotic 18 = 26 mmHg against a glomerular pressure of 18-25 mmHg, so GFR was 0 at
-// <= 30 wk; the term autoregulation set-points (myogenic 40 mmHg, TGF 582.7) held the afferent
-// arteriole at its 0.50 dilation floor; renal blood flow per kg was HIGHER than term's; and kf was
-// the term value whatever the size. The rules below were chosen with the model's author, one point
-// at a time (see scripts/sa/PARAMETER_INVENTORY.md and docs/Kidneys.md):
+// targets a patient built below 34 weeks should rest at, by gestational age and size (used by
+// scripts/build_patient.mjs). With term_neonate_72h's kidney such a patient filters nothing (Bowman's
+// pressure 8 + oncotic 18 = 26 mmHg against a glomerular pressure of 18-25 mmHg at <= 30 wk). The rules below were chosen with the model's author, one point
+// at a time (see docs/Kidneys.md):
 //
 //   GFR target          Vieux 2010 (Pediatrics, doi 10.1542/peds.2009-1426) day-7 medians, 7.9 at
 //                       27 wk -> 30.3 mL/min per 1.73 m2 at 31 wk, exponential (x1.4/wk, as
@@ -25,8 +21,7 @@
 //                       clearance rise in parallel 28 -> 35 wk: Fawer 1979, PMID 429191).
 //   glomerular pressure p_bowman + oncotic + GFR target / kf (what that kf needs to filter it).
 //   gfrFactor           optional multiplier on the GFR target (default 1), for a scenario whose own
-//                       reference set places GFR off this curve (preterm_25wk: 0.30 mL/min/kg, above the
-//                       curve extrapolated below 27 wk). Renal blood flow follows it.
+//                       reference set places GFR off this curve. Renal blood flow follows it.
 //
 // Scenarios at >= 34 wk keep their kidney unchanged (their GFR already sits on the plateau).
 export const RENAL_GA_LIMIT = 34;

@@ -6,9 +6,8 @@
 // diagram/animation blocks, re-parents any nested `components` back under their
 // owner model, and zeroes model_time_total. Mutates and returns the same object.
 //
-// This is the exact logic that was copy-pasted inline into scripts/_make_*.mjs
-// and scripts/reseed_*.mjs (e.g. reseed_preterm.mjs:44-60); extracted here so the
-// generic builder (build_patient.mjs) and those scripts can share one source.
+// Shared by the reseed scripts (reseed_term_neonate.mjs), the one-off _fix_* scripts and the
+// generic builder (build_patient.mjs), so they serialize the same way.
 export function serializeState(model) {
   delete model["DataCollector"];
   delete model["TaskScheduler"];

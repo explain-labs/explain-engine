@@ -57,7 +57,7 @@ Every scenario (term_neonate_72h values; the set-points are re-anchored per scen
 
 So a fall in pressure (low baroreceptor firing) raises heart rate, vascular tone and contractility, and a rise in pCO2 raises minute ventilation. A fall in pO2 raises it too, through the negative weight on `CR_PO2`.
 
-**Hypoxic bradycardia** (added by `scripts/_add_apnea.mjs`; it was in the preterm scenarios, removed on 2026-10-25 to be rebuilt): `CR_PO2_HR` (`AA.po2`, set-point a few mmHg below the resting pO2) → `EF_HR_CHEMO` → `Heart.hr_chemo_factor`, with effect 0.5 at firing 0 and 1 at 1, so it only slows the heart. See [Apnea](./Apnea.md).
+**Hypoxic bradycardia** (in no shipped scenario): `CR_PO2_HR` (`AA.po2`, set-point a few mmHg below the resting pO2) → `EF_HR_CHEMO` → `Heart.hr_chemo_factor`, with effect 0.5 at firing 0 and 1 at 1, so it only slows the heart. See [Apnea](./Apnea.md).
 
 ## Factor system
 
@@ -99,7 +99,7 @@ From `term_neonate_72h.json`, `models.Ans` (trimmed; `components` holds the eigh
 
 ## Usage in the scenarios
 
-One instance in every scenario, with the network above. No shipped scenario has the hypoxic-bradycardia arc at present (the preterm scenarios that had it were removed on 2026-10-25 to be rebuilt).
+One instance in every scenario, with the network above. No shipped scenario has the hypoxic-bradycardia arc.
 
 ## References
 

@@ -10,7 +10,7 @@
 //   node scripts/headless.mjs <scenario> [--seconds N] [--window W] [--no-ans] [--no-autoreg] [--verbose]
 //
 // <scenario> is a file name in model_definitions/ without the .json suffix
-// (e.g. term_neonate_72h, adult_female). Prints the renal calibration panel.
+// (e.g. term_neonate_72h). Prints the renal calibration panel.
 
 import fs from "node:fs";
 import { register } from "node:module";

@@ -93,7 +93,7 @@ node scripts/sa/summarize.mjs                           # consolidate results/ i
 node scripts/sa/plot_sa.mjs [--out DIR]                 # dependency-free SVG figures
 ```
 
-Tiers are `oat | morris | sobol | prcc`. Results are tracked in `scripts/sa/results/`;
+Tiers are `oat | morris | sobol | prcc`. Results are written to `scripts/sa/results/`;
 `results/figures/` is gitignored (derived, regenerate with `plot_sa.mjs`).
 
 `run_sa.mjs` shards rows across `os.cpus()-2` **forked processes** — because the engine is a

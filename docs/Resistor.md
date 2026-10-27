@@ -141,15 +141,9 @@ Inertance is used on the atrioventricular valves (`LA_LV`, `RAIVCI_RV`, `RASVC_R
 
 `implicit` switches one resistor from the explicit `Δp / R` to the backward-Euler solution for the two compartments it joins, `Δp / (R + dt·(E_from + E_to))`. It does this by adding `dt·(E_from + E_to)` to `r_for_eff`/`r_back_eff` each step. `E` is the compartment's current **local** elastance: `el_eff`, or a time-varying elastance's instantaneous value, plus the slope `2·el_k_eff·S` of the non-linear term above the unstressed volume (for a time-varying elastance on its diastolic curve). It is a numerical scheme, not a change of the resistor law. Both forms are first-order accurate and agree when `R >> dt·ΣE`.
 
-Explicit integration of two capacitances joined by a small resistance is stable only while `dt·(E_from + E_to)/R < 2`. For three equal capacitances in a row, as in the aorta (AA → AAR → AD, joined by `AA_AAR` and `AAR_AD`, R ≈ 70 mmHg·s/L), the limit is 4/3. Stiffening the large arteries, which a small infant's pulse pressure needs, crosses that limit at about ×2–3. Measured on the 0.72 kg Bischoff infant (AA pressure range, mmHg):
+Explicit integration of two capacitances joined by a small resistance is stable only while `dt·(E_from + E_to)/R < 2`. For three equal capacitances in a row, as in the aorta (AA → AAR → AD, joined by `AA_AAR` and `AAR_AD`, R ≈ 70 mmHg·s/L), the limit is 4/3. Stiffening the large arteries, which a small infant's pulse pressure needs, crosses that limit at about ×2–3.
 
-| Arterial stiffness | Explicit | Implicit `AA_AAR`, `AAR_AD` | Explicit, half time step |
-|---|---|---|---|
-| ×1.8 | 23.6–35.7 | 23.6–35.8 | 23.7–35.7 |
-| ×3 | unstable | 21.4–39.8 | 21.5–39.6 |
-| ×5 | unstable | 18.4–44.7 | 18.2–44.4 |
-
-term_neonate_72h sets it on 13 resistors: the outflow valves (`LV_AA`, `RV_AA`), the aortic chain (`AA_AAR`, `AAR_AD`) and the aortic branches (`AA_COR`, `AA_BR_ART`, `AA_RUB`, `AAR_DA`, `AD_LS_ART`, `AD_KID_ART`, `AD_INT_ART`, `AD_RLB`, `AD_PL_UMB_ART`). The 8 scenarios with quadratic heart chambers also set it on `RAIVCI_RASVC`, the low-resistance (13 mmHg·s/L) link between the two right-atrial halves: their stiffness grows with filling, and the explicit scheme then flipped the flow's sign every step. The patient builder and the live tuner set it the same way on the aorta.
+term_neonate_72h sets it on 14 resistors: the outflow valves (`LV_AA`, `RV_AA`), the aortic chain (`AA_AAR`, `AAR_AD`) and the aortic branches (`AA_COR`, `AA_BR_ART`, `AA_RUB`, `AAR_DA`, `AD_LS_ART`, `AD_KID_ART`, `AD_INT_ART`, `AD_RLB`, `AD_PL_UMB_ART`) and `RAIVCI_RASVC`, the low-resistance (13 mmHg·s/L) link between the two right-atrial halves: the quadratic chambers' stiffness grows with filling, and the explicit scheme then flipped the flow's sign every step. The patient builder and the live tuner set it the same way on the aorta.
 
 ## Mixing without net flow (`mix_flow`)
 

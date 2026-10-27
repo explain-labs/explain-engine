@@ -109,8 +109,8 @@ Hormones writes **its own channels**, so it composes with the other writers inst
 
 ## Assumptions and limitations
 
-- **Set-points are the healthy reference of the patient's size and gestation.** A lesion keeps its size's reference, so a coarctation's low renal pressure activates RAAS (angiotensin ≈ 2.5), as it should. `scripts/_reference.mjs` (`scaleHormoneReferences`) derives them: volume scales with weight, perfusion with the gestation's defended MAP (`BR_MAP.set_value`). `_make_preterm.mjs`, `_make_bischoff.mjs`, `_make_fetus*.mjs` and `build_patient.mjs` apply it; below 34 weeks the [Kidneys](./Kidneys.md) renal reference replaces `perfusion_setpoint`.
-- **Near-neutral at rest** in term_neonate_72h (300 s from build): angiotensin, aldosterone and ADH 0.99–1.03. (The since-removed fetus_term was not: its fetal renal pressure, 39 mmHg, sat above its 35 mmHg reference, so angiotensin settled at 0.70.)
+- **Set-points are the healthy reference of the patient's size and gestation.** A lesion keeps its size's reference, so a coarctation's low renal pressure activates RAAS (angiotensin ≈ 2.5), as it should. `scripts/_reference.mjs` (`scaleHormoneReferences`) derives them: volume scales with weight, perfusion with the gestation's defended MAP (`BR_MAP.set_value`). `build_patient.mjs` applies it; below 34 weeks the [Kidneys](./Kidneys.md) renal reference replaces `perfusion_setpoint`.
+- **Near-neutral at rest** in term_neonate_72h (300 s from build): angiotensin, aldosterone and ADH 0.99–1.03.
 - **Aldosterone's volume effect is small:** water transport isn't osmotically coupled to Na, so aldosterone shows as lower urinary Na rather than volume. ADH and angiotensin carry the volume and pressure defence. With the physiologic `aldosterone_tc`, aldosterone barely moves in a short session.
 - **The owned channels are overwritten** while running: edit them through the hormones, or switch them off (`hormones_running`, `raas_enabled`, `adh_enabled`), which releases them to 1.
 - **Not modelled:** natriuretic peptides, thirst and intake, catecholamines (the ANS and Drugs cover those).

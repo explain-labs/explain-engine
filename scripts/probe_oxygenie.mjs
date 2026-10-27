@@ -1,6 +1,5 @@
 // SLE6000 OxyGenie (closed-loop O2): pass/fail checks of the controller on the SLE6000 in CMV. A
-// hypoxaemic preterm (preterm_26wk at 21 %) is titrated up into the target range without overshoot,
-// a hyperoxic term neonate at 60 % is weaned to air, a manual override delivers the user's O2 for
+// hyperoxic term neonate at 60 % is weaned to air, a manual override delivers the user's O2 for
 // 30 s and resumes without a jump, a detached probe holds the O2 for 60 s and then drifts towards
 // the reference O2, and the interlocks (O2 Boost, SpO2 monitoring, Standby) hold. See
 // docs/Sle6000.md#oxygenie. Takes a few minutes (about 30 simulated minutes).
@@ -16,7 +15,6 @@ const eng = await createEngine();
 const log = eng.log;
 const load = (name) => JSON.parse(fs.readFileSync(new URL(`../model_definitions/${name}.json`, import.meta.url), "utf8")).model_definition;
 const TERM = load("term_neonate_72h");
-const PRETERM = load("preterm_26wk");
 
 const checks = [];
 const check = (id, value, lo, hi, note = "") => {
@@ -46,24 +44,7 @@ function run(m, V, seconds, label) {
   return { lo, hi };
 }
 
-// 1. hypoxaemia: a 26-week preterm on air (SpO2 ~70 %) is titrated up into 91-95 %
-{
-  const { m, V } = start(PRETERM, 21, 16);
-  check("preterm on air is hypoxaemic (SpO2 %)", m.models.AA.so2, 60, 85);
-  V.sle_oxygenie(true);
-  check("OxyGenie on: Auto", V.oxy_state === "auto" ? 1 : 0, 1, 1);
-  run(m, V, 60, "hypox");
-  check("O2 raised within 60 s (%)", V.sle_o2, 35, 60);
-  const r = run(m, V, 540, "hypox");
-  check("SpO2 after 10 min (%)", V.mon_spo2, 90, 94);
-  check("no overshoot above the range (max SpO2)", r.hi, 0, 96);
-  check("O2 > N % shown above N (N = 60, O2 below)", V.oxy_high_o2_flag ? 1 : 0, 0, 0);
-  V.sle_oxy_high_o2 = 40;
-  eng.calc(12);
-  check("O2 > N % shown above N (N = 40)", V.oxy_high_o2_flag ? 1 : 0, 1, 1);
-}
-
-// 2. hyperoxia: a healthy term neonate at 60 % is weaned to air without dropping below the range
+// 1. hyperoxia: a healthy term neonate at 60 % is weaned to air without dropping below the range
 {
   const { m, V } = start(TERM, 60);
   V.sle_oxygenie(true);
@@ -73,7 +54,7 @@ function run(m, V, seconds, label) {
   check("delivered FiO2 follows the O2 control", V.fio2 * 100, V.sle_o2 - 0.01, V.sle_o2 + 0.01);
 }
 
-// 3. manual override: touching O2 delivers the set O2 for 30 s, then Auto resumes from it
+// 2. manual override: touching O2 delivers the set O2 for 30 s, then Auto resumes from it
 {
   const { m, V } = start(TERM, 40);
   V.sle_oxygenie(true);
@@ -95,7 +76,7 @@ function run(m, V, seconds, label) {
   check("off: O2 keeps the last value (%)", V.fio2 * 100, last - 0.01, last + 0.01);
 }
 
-// 4. fallback: no SpO2 holds the O2 for 60 s, then (last reading above the range) moves it slowly
+// 3. fallback: no SpO2 holds the O2 for 60 s, then (last reading above the range) moves it slowly
 // down towards the reference O2; a valid reading resumes Auto
 {
   const { m, V } = start(TERM, 40);
@@ -115,7 +96,7 @@ function run(m, V, seconds, label) {
   check("probe back: Auto", V.oxy_state === "auto" ? 1 : 0, 1, 1);
 }
 
-// 5. interlocks
+// 4. interlocks
 {
   const { m, V } = start(TERM, 30);
   V.sle_oxygenie(true);

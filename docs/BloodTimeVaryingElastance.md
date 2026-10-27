@@ -70,7 +70,7 @@ Inherited unchanged: `u_vol`, `el_min`, `el_max` and `el_k` carry the three laye
 
 - **One compartment for the whole coronary circulation.** Left and right coronary beds, and epicardial versus intramyocardial vessels, aren't separated.
 - **Compression follows the LV activation for the whole bed.** The right-ventricular activation (`rvaf`) doesn't act on it.
-- **Two compression effects.** The bed's own elastance swing (`el_max/el_min` = 3) squeezes blood *out* in systole. Holding inflow back is done by `Heart.cor_r_systolic_factor`, which raises the inflow resistance `AA_COR` by `(1 + 5·vaf)` in systole. With both, 73 % of the coronary inflow arrives in diastole at term (60–62 % in the preterm and fetal scenarios, which have shorter diastoles). This compares with ~75–85 % for an adult left coronary, which a lumped left+right bed should sit below. An intramyocardial-*pressure* variant was tried and dropped: with this bed's compliance it squeezed the bed empty in systole.
+- **Two compression effects.** The bed's own elastance swing (`el_max/el_min` = 3) squeezes blood *out* in systole. Holding inflow back is done by `Heart.cor_r_systolic_factor`, which raises the inflow resistance `AA_COR` by `(1 + 5·vaf)` in systole. With both, 73 % of the coronary inflow arrives in diastole at term. This compares with ~75–85 % for an adult left coronary, which a lumped left+right bed should sit below. An intramyocardial-*pressure* variant was tried and dropped: with this bed's compliance it squeezed the bed empty in systole.
 - **Active only since the two-phase build** (`302ed76`). Before that, `Heart` never found `COR` (owned by `Mob`), and `act_factor` stayed 0.
 
 ## Example definition (JSON)

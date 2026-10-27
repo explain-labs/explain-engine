@@ -97,14 +97,7 @@ A single well-mixed compartment is a poor dead space: mixing makes part of it "v
 - **Ends.** `_end_conc(neighbour)` / `_end_add(neighbour, dn)` read and change the sub-tank facing a neighbour; the gas `mix_flow` of a [Resistor](./Resistor.md#mixing-without-net-flow-mix_flow) uses them.
 - **Bulk.** The bulk concentrations equal the mean of the DS sub-tanks, so heat, water and the gas law work unchanged.
 
-Calibration when it was introduced (`scripts/probe_dead_space.mjs`, preterm_28wk, PRVC 5 mL/kg; HFOV with a 2.5 mm tube):
-
-| Check | Well-mixed (1) | Series (32, dispersion 0.015) |
-|---|---|---|
-| PaCO2 with DS +0 / +50 / +100 % | 67 / 70 / 72 | 81 / 98 / 122, as (Vt − VD)·rate predicts |
-| HFOV PaCO2 at 6 / 10 / 15 Hz | 10 / 11 / 11 (no frequency effect) | f·Vt² law: PaCO2·DCO2 constant within ±8 % over 8–15 Hz × amplitude 15–30 |
-| Sub-tank count | – | 8 → 16 → 32 still changes HFOV (numerical dispersion), so the count is fixed at 32 and the dispersion term carries the transport |
-| Runtime | – | +7–9 % |
+The sub-tank count is fixed at 32: 8 → 16 → 32 still changed HFOV PaCO2 (numerical dispersion), so the dispersion term carries the transport. Runtime cost +7–9 %. `scripts/probe_dead_space.mjs` checks it.
 
 ## Factor system
 

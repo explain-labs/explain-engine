@@ -26,7 +26,7 @@ BaseModelClass
 | `minute_volume_ref_factor`, `minute_volume_ref_scaling_factor` | – | 1.0 | Persistent multipliers on the reference (no engine model writes them). |
 | `vt_rr_ratio` | L·min/kg | 1.212e-4 | Mecklenburgh ratio: `Vt / RR` per kg (term 1.298e-4). |
 | `vt_rr_ratio_factor`, `vt_rr_ratio_scaling_factor` | – | 1.0 | Multipliers on `vt_rr_ratio`. |
-| `ie_ratio` | – | 0.3 | Inspiratory **fraction** of the breath (Ti/Ttot), not an I:E ratio. Term 0.40, preterm 0.38. |
+| `ie_ratio` | – | 0.3 | Inspiratory **fraction** of the breath (Ti/Ttot), not an I:E ratio. term_neonate_72h 0.40. |
 | `rmp_gain` | mmHg/L | calibrated | Muscle pressure per litre of target tidal volume. |
 | `rmp_calibrated` | boolean | `false` | `rmp_gain` holds a calibrated value (true in every scenario). |
 | `rmp_gain_max` | mmHg | 100 | Cap on the peak muscle pressure. |
@@ -148,7 +148,7 @@ None of the engine's factor layers. Its own multipliers (`*_factor`, `*_scaling_
 - **Central vs obstructive apnoea.** A central apnoea switches breathing off; an obstructive one keeps the drive and closes `MOUTH_DS` (see [Apnea](./Apnea.md)).
 - **One muscle-pressure shape** (linear ramp); infants reach peak flow earlier in inspiration, so peak inspiratory flow is ~15 % low at term.
 - **`resp_rate_measured` has a start-up transient** over the first breaths; the settled value is correct.
-- **Verification:** `npm run validate:resp` (see [TESTING](./TESTING.md)) checks the spontaneous steady state, the chemoreflex, resistive and elastic loads, CPAP and pressure support against clinical ranges. The known failures are the missing vagal and Hering–Breuer reflexes, plus listed ventilator and preterm calibration items.
+- **Verification:** `npm run validate:resp` (see [TESTING](./TESTING.md)) checks the spontaneous steady state, the chemoreflex, resistive and elastic loads, CPAP and pressure support against clinical ranges. The one known failure is the missing vagal rate response to stiff lungs (adult class).
 
 ## Example definition (JSON)
 

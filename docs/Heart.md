@@ -47,7 +47,7 @@ BaseModelClass
 | `qt_time` | s | 0.4 | QT at 60 bpm (a QTc), from QRS onset; rate-corrected each beat with Bazett, `cqt_time = qt_time·√(60/HR)`. Sets both the ECG QT and how long the ventricles contract. 0.4 in every scenario (neonatal QTc ~0.40 s). |
 | `act_peak` | – | 0.85 | Fraction of the QT at which ventricular activation peaks (end-systole). |
 | `relax_frac` | – | 0.06 | Relaxation after end-systole: the activation decays with τ = `relax_frac`·RR (30 ms at 120/min). 0 = a raised-cosine fall to zero at the end of the QT. |
-| `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together; negative = the LV (and the coronaries) lag the RV by \|`rv_delay`\|. `term_neonate_1h` uses −0.035 (early systolic right-to-left ductal flow); the removed `bischoff_bidir_pda` used 0.008. |
+| `rv_delay` | s | 0.0 | RV activation lag behind the LV; 0 = both together; negative = the LV (and the coronaries) lag the RV by \|`rv_delay`\|. term_neonate_72h uses 0. |
 
 ### Config: rhythm and conduction
 
@@ -92,7 +92,7 @@ BaseModelClass
 | `hr_mob_factor` | – | 1.0 | `Mob`: myocardial-oxygen-balance effect on rate. |
 | `hr_temp_factor` | – | 1.0 | `Thermoregulation`: temperature effect on rate. |
 | `hr_drug_factor` | – | 1.0 | `Drugs`: chronotropy. |
-| `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent: hypoxic bradycardia (in no shipped scenario at present). |
+| `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent: hypoxic bradycardia (in no shipped scenario). |
 
 ### Outputs
 
@@ -193,9 +193,9 @@ Each is applied as a delta to the *shared* persistent layer, so the chamber's fa
 
 ## Assumptions and limitations
 
-- **QT sets both the ECG and the contraction.** With `qt_time` 0.40 the ECG QTc is 0.40 s and the ventricles eject for 157–180 ms (LV) in the postnatal and fetal scenarios at rest (term 180 ms at 121/min; fetus_term 166 ms; the fetal reference is 169 ms, Peixoto 2024, doi:10.1017/S1047951124025927). Until the 2026-10 re-validation QT was 0.25 s and the contraction lasted QRS + QT with a late-peaking `x·sin(πx)` pulse: ejection lasted only 118–131 ms, so peak flows and valve gradients were too high, and lengthening QT alone ate into diastolic filling (term mitral inflow 213 → 104 ms per beat). Counting the QT from QRS onset and the raised-cosine pulse keep filling, EF and output (≤1.4 % change).
-- **Relaxation scales with the beat.** τ = `relax_frac`·RR, so relaxation speeds up with heart rate (the frequency-dependent acceleration of relaxation). A fixed τ was rejected: term output peaked at 150/min and fell to below rest at 210/min, while with τ ∝ RR it rises to ~180/min and plateaus. Sympathetic and drug lusitropy act on the passive stiffness only, not on τ. With the AV-valve inertance ([Resistor](./Resistor.md#inertance-inertance)) relax_frac 0.06 gives term mitral E/A 0.61/0.59 m/s (E/A 1.04); the since-removed preterm and fetal scenarios had 0.27–0.91; before the relaxation tail and inertance E/A was 1.8–5.4 everywhere.
-- **The same timings in every scenario.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.4, `act_peak` 0.85, `relax_frac` 0.06 and `av_delay` 0.0005 are used from 25 weeks to term and in the fetus.
+- **QT sets both the ECG and the contraction.** With `qt_time` 0.40 the ECG QTc is 0.40 s and the LV ejects for 180 ms in term_neonate_72h at rest (121/min). Until the 2026-10 re-validation QT was 0.25 s and the contraction lasted QRS + QT with a late-peaking `x·sin(πx)` pulse: ejection lasted only 118–131 ms, so peak flows and valve gradients were too high, and lengthening QT alone ate into diastolic filling (term mitral inflow 213 → 104 ms per beat). Counting the QT from QRS onset and the raised-cosine pulse keep filling, EF and output (≤1.4 % change).
+- **Relaxation scales with the beat.** τ = `relax_frac`·RR, so relaxation speeds up with heart rate (the frequency-dependent acceleration of relaxation). A fixed τ was rejected: term output peaked at 150/min and fell to below rest at 210/min, while with τ ∝ RR it rises to ~180/min and plateaus. Sympathetic and drug lusitropy act on the passive stiffness only, not on τ. With the AV-valve inertance ([Resistor](./Resistor.md#inertance-inertance)) relax_frac 0.06 gives term mitral E/A 0.61/0.59 m/s (E/A 1.04); before the relaxation tail and inertance E/A was 1.8–5.4 everywhere.
+- **The same timings at every size.** `pq_time` 0.1, `qrs_time` 0.075, `qt_time` 0.4, `act_peak` 0.85, `relax_frac` 0.06 and `av_delay` 0.0005 are the shipped values; nothing scales them with gestation or weight.
 - **The AV delay is nearly zero.** The PR interval is essentially `pq_time`, and atrial contraction (the `aaf` pulse) spans the whole PQ interval, ending just as the ventricles activate.
 - **`cardiac_cycle_time` is the activation time, not the RR interval** (≈0.28 s against 0.50 s at term). `Mob` therefore uses its own measured beat interval for the stroke-work O2 cost (since v1.0).
 - **End-diastolic and end-systolic pressures are transmural.** They exclude the pericardial (and thoracic) pressure, which is about −3 to −8 mmHg at term, so they read higher than a catheter's cavity pressure. Transmural is the right quantity for wall stress (`HeartFunction`).
@@ -255,6 +255,4 @@ Scenario differences:
 ## References
 
 - Bazett HC. An analysis of the time-relations of electrocardiograms. *Heart* 1920;7:353–370. (QT rate correction.)
-- Peixoto AB et al. Influence of pre-existing maternal diabetes mellitus on fetal myocardial performance index and systolic-to-diastolic duration ratio. *Cardiol Young* 2025;35:53–59. doi:10.1017/S1047951124025927 (fetal LV ejection time 0.169 s in controls).
-- Zhu F et al. Cardiopulmonary physiological effects of diuretic therapy in preterm infants with chronic pulmonary hypertension. *J Perinatol* 2023;43:1288–1294. doi:10.1038/s41372-023-01742-0 (preterm RV ejection time ≈ 200 ms from RVET:PAAT 5.9 × PAAT 34 ms).
 - Term calibration sources (Satoh 2016, He 2011, Agata 1994, Jhaveri 2023) are listed in [TermNeonateReference](./TermNeonateReference.md).

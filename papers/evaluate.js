@@ -1,9 +1,7 @@
 // Shared evaluator for the paper-companion experiments (papers/<id>/experiments.json);
 // paper-independent, so every companion and probe imports this one file.
 //
-// Both consumers use it so a value shown in the app is the value the headless probe prints:
-//   - scripts/probe_p1.mjs (Node)      samples the model directly every `sample_s` seconds
-//   - explain-ui /paper/<id> (browser) samples the engine's slow stream
+// explain-ui's paper companions (/paper/<id>) use it in the browser, sampling the engine's slow stream.
 // Each experiment lists `measures`; a measure is either sampled from one dot-path (`path`,
 // averaged over the window) or derived from earlier measures (`derive: [op, a, b]`). The
 // optional `factor` multiplies and `per_kg` divides by the patient's weight (kg).

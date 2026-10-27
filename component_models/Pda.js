@@ -113,8 +113,8 @@ export class Pda extends BaseModelClass {
     this.velocity_ao = 0;         // bulk mean velocity at aortic end, Q/A (m/s)
     this.velocity_pa = 0;         // bulk mean velocity at pulmonary end, Q/A (m/s)
     this.velocity_doppler = 0;    // jet velocity from the Bernoulli term, = Q / A_eff (see Orifice.jet_velocity) (m/s)
-    // per-beat envelope of velocity_pa, latched at each ventricular activation (read-outs for the
-    // Doppler-pattern comparison of the cardiovascular paper, see papers/p1/): the systolic peak, the
+    // per-beat envelope of velocity_pa, latched at each ventricular activation (read-outs for a
+    // Doppler-pattern comparison): the systolic peak, the
     // minimum (negative = right-to-left), and the fraction of the beat with left-to-right flow
     this.velocity_pa_max = 0;     // peak of velocity_pa over the previous beat (m/s)
     this.velocity_pa_min = 0;     // minimum of velocity_pa over the previous beat (m/s)

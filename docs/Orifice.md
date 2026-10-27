@@ -40,4 +40,4 @@ Shipped settings, for example:
 
 - **Only the kinetic term.** `jet_velocity` uses the Bernoulli coefficient and the flow, not the total pressure drop, so the viscous loss along a long duct isn't attributed to the jet. Through an open, non-restrictive duct the jet velocity is low even when the total gradient isn't zero.
 - **Semi-implicit use.** Both callers fold B into the linear resistance using last step's flow (`B·|Q_prev|`), because the old turbulent `r_k` term of `Resistor` was unstable. `Resistor` now solves `r_k` exactly each step, so passing B as `r_k` is an option, to be reviewed with Pda and Shunts.
-- **Cd is a model constant**, not computed from the orifice geometry. The removed Bischoff scenarios used a low Cd (0.25) as a calibration lever for the ductal flow pattern; every shipped scenario now uses 0.9.
+- **Cd is a model constant**, not computed from the orifice geometry. term_neonate_72h uses 0.9.
