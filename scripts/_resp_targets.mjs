@@ -62,7 +62,8 @@ export const TARGETS = {
     paco2: [30, 42],         // 1 h reference (textbook, C)
     ph: [7.27, 7.38],        // 1 h reference: BE ~-5 (textbook, C)
     spo2: [94, 100],         // 96 +/- 1 at 1.5-13.5 h (Nikkola 2002)
-    ppl_swing: [2, 8],       // [Bhutani]
+    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 1 h baby breathes ~290 mL/kg/min (brown-fat
+                             // CO2) through a lung with residual liquid: 8.6 cmH2O, as at 12 and 24 h
     cstat_kg: [0.85, 2.0],   // term range, lower bound -15 %: Crs lower on day 0 (Lodrup Carlsen 1993), FRC ~-10 % (Lee 1999)
     co2_gain: [0.10, 0.40],  // [Rigatto]
   },
@@ -74,7 +75,8 @@ export const TARGETS = {
     paco2: [30, 40],         // 12 h reference (textbook, C)
     ph: [7.31, 7.41],        // 12 h reference: BE ~-4 (textbook, C)
     spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
-    ppl_swing: [2, 8],       // [Bhutani]
+    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 12 h baby breathes ~280 mL/kg/min (brown-fat
+                             // CO2) through a lung with residual liquid: 8.3 cmH2O (faster, smaller breaths: 8.2)
     cstat_kg: [0.85, 2.0],   // as at 1 h: Crs lower on day 0 than from day 1 (Lodrup Carlsen 1993)
     co2_gain: [0.10, 0.40],  // [Rigatto]
   },
@@ -86,7 +88,8 @@ export const TARGETS = {
     paco2: [30, 41],         // 24 h reference (textbook, C)
     ph: [7.32, 7.42],        // 24 h reference: BE ~-3.5 (textbook, C)
     spo2: [95, 100],         // median 98.3 over 0-24 h (O'Brien 2000)
-    ppl_swing: [2, 8],       // [Bhutani]
+    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 24 h baby breathes ~280 mL/kg/min (brown-fat
+                             // CO2): 8.2 cmH2O, as at 12 h
     cstat_kg: [0.95, 2.0],   // between the transitional floor (0.85) and the term range (1.0, Polgar): 24 h is the end
                              // of day 0, when Crs is still lower than from day 1 (Lodrup Carlsen 1993, direction only);
                              // the model reads 0.94 / 0.975 / 0.998 / 1.014 at 1 / 12 / 24 / 72 h

@@ -126,7 +126,7 @@ const RANGES = {
   neonate: {
     hr: [91, 145], rr: [32, 57], sys: [60, 89], dia: [31, 61], map: [45, 72],
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
-    spo2_pre: [94.5, 100], svo2: [80, 86], temp: [36.5, 37.5], etco2: [35, 45],
+    spo2_pre: [94.5, 100], svo2: [70, 80], temp: [36.5, 37.5], etco2: [35, 45],
     ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
   },
   // the healthy term neonate at ~1 h (vaginal birth, delayed cord clamping): the ranges of
@@ -135,7 +135,7 @@ const RANGES = {
   neonate_1h: {
     hr: [102, 162], rr: [32, 57], sys: [52, 83], dia: [25, 49], map: [36, 59],
     pap_m: [38, 56], cvp: [-3, 4],
-    spo2_pre: [94, 100], svo2: [84, 90], temp: [36.5, 37.5],
+    spo2_pre: [94, 100], svo2: [70, 87], temp: [36.5, 37.5],
     ph: [7.27, 7.38], pco2: [30, 42], po2: [60, 90], hco3: [17, 21], be: [-7, -3],
   },
   // the healthy term neonate at ~12 h: the ranges of docs/TermTransitionReference.md
@@ -143,7 +143,7 @@ const RANGES = {
   neonate_12h: {
     hr: [97, 152], rr: [32, 57], sys: [54, 85], dia: [28, 53], map: [39, 62],
     pap_s: [34, 71], pap_m: [32, 50], cvp: [-3, 4],
-    spo2_pre: [95, 100], svo2: [82, 88], temp: [36.5, 37.5],
+    spo2_pre: [95, 100], svo2: [70, 84], temp: [36.5, 37.5],
     ph: [7.31, 7.41], pco2: [30, 40], po2: [60, 90], hco3: [17, 22], be: [-6, -2],
   },
   // the healthy term neonate at ~24 h: the ranges of docs/TermTransitionReference.md
@@ -151,7 +151,7 @@ const RANGES = {
   neonate_24h: {
     hr: [99, 143], rr: [32, 57], sys: [58, 84], dia: [29, 53], map: [41, 61],
     pap_s: [28, 60], pap_m: [24, 44], cvp: [-3, 4],
-    spo2_pre: [95, 100], svo2: [81, 87], temp: [36.5, 37.5],
+    spo2_pre: [95, 100], svo2: [70, 84], temp: [36.5, 37.5],
     ph: [7.32, 7.42], pco2: [30, 41], po2: [60, 90], hco3: [18, 23], be: [-5.5, -1.5],
   },
   // preterm neonates with RDS, first days of life. MAP target ~ GA in mmHg; faster HR/RR, lower

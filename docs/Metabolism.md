@@ -22,12 +22,13 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `met_active` | boolean | `true` | Switch. |
-| `vo2` | mL O2/kg/min | 8.1 | Whole-body O2 use excluding the myocardium (STPD). term 6.14, preterm 5.2–5.7, fetal 5.0–5.5. |
+| `vo2` | mL O2/kg/min | 8.1 | Whole-body O2 use excluding the myocardium (STPD). term_neonate_72h 7.73 (all four term babies; the 1–24 h babies add brown fat on top). |
 | `vo2_factor` | – | 1.0 | Persistent user/scenario multiplier; no model writes it. |
 | `vo2_temp_factor` | – | 1.0 | Q10 temperature effect; written by [Thermoregulation](./Thermoregulation.md). |
 | `vo2_bat_factor` | – | 1.0 | O2 cost of brown-fat thermogenesis; written by Thermoregulation. |
 | `resp_q` | – | 0.8 | Respiratory quotient. term_neonate_72h 0.8. |
 | `metabolic_active_models` | {name: fraction} | `{}` | The beds and their share of VO2 (summing to 1). |
+| `bat_site` | name | `"RUB"` | The blood compartment that carries the brown-fat O2 cost: brown fat lies in the neck, between the shoulder blades and in the axillae, i.e. the upper body. `""` (or a name the scenario lacks) spreads it over the beds like the rest of the VO2. |
 
 ### Outputs
 
@@ -40,17 +41,20 @@ BaseModelClass
 Each step (nothing while `met_active` is off):
 
 ```
-vo2_step = vo2 · vo2_factor · vo2_temp_factor · vo2_bat_factor · weight / 60 · dt / 22.414      (mmol)
+vo2_step = vo2 · vo2_factor · vo2_temp_factor · weight / 60 · dt / 22.414      (mmol)
+bat_step = vo2_step · (vo2_bat_factor − 1)                                       brown fat's O2 cost
 ```
 
 For each bed with fraction f (a missing or empty bed is skipped):
 ```
-demand = vo2_step · f
+demand = vo2_step · f              (+ bat_step · f when there is no usable bat_site)
 used   = min(demand, to2 · V)                 never more O2 than the bed holds
 to2   −= used / V
 tco2  += resp_q · used / V                    CO2 only from O2 actually used
 o2_deficit += (demand − used) / dt
 ```
+
+The brown-fat cost `bat_step` is then taken, the same way, from `bat_site` alone. Spread over the beds it would also lower the brain's and the gut's venous saturation, which non-shivering thermogenesis does not; taken where the brown fat is, it raises the extraction of the upper body, whose blood flow rises with it (2026-10-26).
 
 STPD conversion as in [Units](./Units.md). Example: with the brain's inflow closed in term_neonate_72h, `BR_CAP` empties of O2 within seconds and `o2_deficit` reads 0.005 mmol/s, the brain's 6.8 mL/min share; its tCO2 stays at ~31 mmol/L. Before v1.0 CO2 kept being added from the missing O2 and reached 225 mmol/L in 2 min.
 
@@ -58,7 +62,7 @@ STPD conversion as in [Units](./Units.md). Example: with the brain's inflow clos
 
 ## Factor system
 
-Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_bat_factor` (Thermoregulation). They multiply.
+Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_bat_factor` (Thermoregulation). They multiply; the part `vo2_bat_factor` adds is used at `bat_site`.
 
 ## Inputs and outputs
 
@@ -72,12 +76,13 @@ Its own multipliers on `vo2`: `vo2_factor` (user), `vo2_temp_factor` and `vo2_ba
 ## Assumptions and limitations
 
 - **Fixed shares.** A bed's O2 use doesn't depend on its flow or on its own O2 (no supply dependence above the zero floor), and doesn't follow organ activity (seizures, feeding, work of breathing).
-- **The myocardium is separate** ([Mob](./Mob.md)), so lung uptake = Metabolism + Mob (term: 6.14 + ~0.8 = 7.0 mL/kg/min).
+- **The myocardium is separate** ([Mob](./Mob.md)), so lung uptake = Metabolism + Mob (term_neonate_72h: 7.73 + ~0.8 = 8.5 mL/kg/min).
 - **The beds stand for whole organs and regions:** `RLB`/`RUB` the lumped lower and upper body, `AA`/`AD` the aortic wall.
 
 ### term_neonate_72h calibration (2026-10)
 
-- **Whole-body uptake.** `vo2` 6.1396 gives a lung uptake of 7.0 mL/kg/min, slightly above quiet rest. First-week references are 6.26 ± 1.51 at thermoneutral rest and 45–50 kcal/kg/d, ~6.5–7.2 mL/kg/min. Knock-on changes:
+- **Venous extraction (2026-10-27).** `vo2` 6.30 → 7.73: lung uptake 7.07 → 8.51 mL/kg/min, mixed venous saturation 82.0 → 78.5 %, systemic extraction 0.155 → 0.19. The direct measurements in stable newborns are a right-atrial ScvO2 of 73.6 ± 5.3 % at an extraction of 0.21 (van der Hoeven 1996) and a peripheral-muscle extraction of 0.22–0.26 (Wolfsberger 2023). The brain and kidney kept their absolute O2 use (the brain's venous saturation already matched, 67 %); the extra went to the upper and lower body (+0.6 each), the gut (+0.15) and the liver (+0.08) mL/kg/min, which raised their shares. Ventilation rose to ~250 mL/kg/min (215 measured in quiet sleep), an accepted deviation. See `scripts/_fix_term_venous_vo2.mjs` and [TermNeonateReference](./TermNeonateReference.md).
+- **Whole-body uptake (2026-10-18, superseded).** `vo2` 6.1396 gave a lung uptake of 7.0 mL/kg/min, slightly above quiet rest. First-week references are 6.26 ± 1.51 at thermoneutral rest and 45–50 kcal/kg/d, ~6.5–7.2 mL/kg/min. Knock-on changes:
   - CO2 production fell, so `Breathing.minute_volume_ref` and the chemoreceptor set-points were re-anchored;
   - by Fick, SvO2 is ~81–85 % (scenario 81.5 %);
   - Thermoregulation re-seeds its heat-loss trim at load.
@@ -96,14 +101,15 @@ From `term_neonate_72h.json`, `models.Metabolism` (trimmed to the config props):
   "model_type": "Metabolism",
   "is_enabled": true,
   "met_active": true,
-  "vo2": 6.1396,
+  "vo2": 7.73061,
   "vo2_factor": 1,
   "resp_q": 0.8,
   "metabolic_active_models": {
-    "BR_CAP": 0.31311, "RLB": 0.16754, "INT_CAP": 0.16754,
-    "LS_CAP": 0.11169, "KID_CAP": 0.11169, "RUB": 0.11169,
-    "AA": 0.00558, "AD": 0.01117
-  }
+    "BR_CAP": 0.25519, "RLB": 0.21416, "RUB": 0.16864,
+    "INT_CAP": 0.15595, "LS_CAP": 0.10138, "KID_CAP": 0.09103,
+    "AA": 0.00455, "AD": 0.0091
+  },
+  "bat_site": "RUB"
 }
 ```
 
@@ -113,7 +119,8 @@ One instance in every scenario, with the same eight beds.
 
 | Scenario | `vo2` | `resp_q` | Brain share |
 |---|---|---|---|
-| term_neonate_72h | 6.14 | 0.80 | 0.313 |
+| term_neonate_72h | 7.73 | 0.80 | 0.255 |
+| term_neonate_1h / _12h / _24h | 7.73 (+ brown fat 0.45 / 0.3 / 0.3 W/kg at `RUB`) | 0.80 | 0.255 |
 
 ## References
 

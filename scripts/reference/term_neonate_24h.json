@@ -298,6 +298,26 @@
       "cite": "Taiwo AB et al. Blood pressure profile and trends in the neonatal transitioning period: term asphyxiated and healthy newborns. Glob Pediatr Health 2022;9:2333794X221099263",
       "doi": "10.1177/2333794X221099263",
       "pmid": "35592790"
+    },
+    "vanderhoeven1996": {
+      "cite": "van der Hoeven MA, Maertzdorf WJ, Blanco CE. Continuous central venous oxygen saturation (ScvO2) measurement using a fibre optic catheter in newborn infants. Arch Dis Child Fetal Neonatal Ed 1996;74:F177-81",
+      "doi": "10.1136/fn.74.3.f177",
+      "pmid": "8777680"
+    },
+    "wolfsberger2023": {
+      "cite": "Wolfsberger CH et al. Peripheral muscle fractional tissue oxygen extraction in stable term and preterm neonates during the first 24 h after birth. Front Pediatr 2023;11:1276769",
+      "doi": "10.3389/fped.2023.1276769",
+      "pmid": "38034828"
+    },
+    "carmichael2025": {
+      "cite": "Carmichael TG et al. The application of magnetic susceptibility separation for measuring cerebral oxygenation in preterm neonates. Pediatr Res 2025;98:715-22",
+      "doi": "10.1038/s41390-025-03966-6",
+      "pmid": "40108431"
+    },
+    "zoppi1998": {
+      "cite": "Zoppi G et al. Respiratory quotient changes in full term newborn infants within 30 hours from birth before start of milk feeding. Eur J Clin Nutr 1998;52:360-2",
+      "doi": "10.1038/sj.ejcn.1600564",
+      "pmid": "9630387"
     }
   },
   "variables": [
@@ -1123,38 +1143,42 @@
       "group": "gases",
       "label": "Mixed venous O2 saturation",
       "unit": "%",
-      "mean": 84,
+      "mean": 78,
       "sd": null,
-      "low": 81,
-      "high": 87,
-      "range_type": "derived",
-      "method": "Fick: VO2 7.0, systemic flow ~300 (LVO minus ductal shunt), Hb ~18.5",
+      "low": 70,
+      "high": 84,
+      "range_type": "range",
+      "method": "pulmonary artery (the probe read-out)",
       "age": "24 h",
       "n": null,
-      "sources": [],
-      "grade": "C",
+      "sources": [
+        "vanderhoeven1996",
+        "wolfsberger2023"
+      ],
+      "grade": "B",
       "model_readout": "Monitor.svo2",
-      "notes": "Between the 12 h (85) and 72 h (83) values."
+      "notes": "Systemic extraction about as at 72 h (peripheral extraction constant over the first 24 h, Wolfsberger 2023): mixed systemic venous ~76-80 %; the small left-to-right duct adds ~1 point at the pulmonary artery. Revised 2026-10-27 (was 84, 81-87, C)."
     },
     {
       "key": "vo2",
       "group": "metabolism",
       "label": "Oxygen consumption",
       "unit": "mL/kg/min",
-      "mean": 7,
+      "mean": 9.5,
       "sd": null,
-      "low": null,
-      "high": null,
-      "range_type": null,
+      "low": 7,
+      "high": 10.5,
+      "range_type": "range",
       "method": "user decision 2026-10-25",
       "age": "24 h (72 h value kept)",
       "n": null,
       "sources": [
-        "hill1968"
+        "photo2001",
+        "zoppi1998"
       ],
-      "grade": "B",
+      "grade": "C",
       "model_readout": "Metabolism.vo2",
-      "notes": "Hill & Robinson ~5 under 12 h in mostly low-birth-weight infants; lambs reach the postnatal level by 1 h. Kept at the 72 h value."
+      "notes": "The 72 h value (8.4, set from the venous extraction) plus first-day brown-fat thermogenesis in a 24 degC room (~0.9). Calorimetry 6.6-7.2 at 6-30 h, RQ 0.94 -> 0.88 (Zoppi 1998). Revised 2026-10-27 (was 7.0)."
     },
     {
       "key": "temp",

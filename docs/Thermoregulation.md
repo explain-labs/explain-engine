@@ -93,7 +93,7 @@ d core / dt = (Q_prod − Q_loss − Q_perf) / (weight · heat_capacity − C_bl
 
 **Effects** (written every update):
 - `Metabolism.vo2_temp_factor = q10^((core − 37)/10)` (clamped);
-- `Metabolism.vo2_bat_factor`: brown fat's O2 cost added to Metabolism's O2 use (its heat is counted once, above);
+- `Metabolism.vo2_bat_factor`: brown fat's O2 cost added to Metabolism's O2 use (its heat is counted once, above), taken from `Metabolism.bat_site` (the upper body);
 - `Heart.hr_temp_factor = 1 + hr_temp_gain · (core − set-point)` (clamped);
 - `Blood.set_perfusion_target(core)` and `Gas.set_body_temperature(core)`.
 

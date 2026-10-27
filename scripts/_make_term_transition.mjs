@@ -62,10 +62,14 @@ const PROFILES = {
     // 1 h (dilated) tone: re-anchoring it to the 72 h afferent tone (KIDNEY_REANCHOR) collapses GFR to
     // ~8 and renal flow to 23 at the slightly lower 1 h renal pressure, so it stays off
     KF: 0.8,
+    // first-day non-shivering thermogenesis, highest right after birth (birth cooling, catecholamines,
+    // the TSH peak at ~30 min): 0.45 W/kg ~ +1.3 mL O2/kg/min, taken at the upper body. The body beds stay
+    // dilated here: toned (x0.8) the extra resistance sent the output through the large duct (L->R 117)
+    NST_W_PER_KG: 0.45,
     // blood: ~80 mL/kg at Hct 55 % (delayed clamping, after the first plasma shift)
     BLOOD_VOLUME: 80 / 85, HCT: 0.55,
     // gases and metabolites: lactate 2.2 (GLOW), BE ~-5 and pCO2 ~36 (textbook, C), glucose 3.3 (GLOW)
-    LACT: 2.2, UMA_DELTA: 2.1, MV_REF: 1.11, GLUCOSE: 3.3,
+    LACT: 2.2, UMA_DELTA: 2.1, MV_REF: 1.08, GLUCOSE: 3.3,
     // residual lung liquid: a smaller, proportionally stiffer aerated lung (alveolar u_vol and el_base of
     // ALL/ALR) -> FRC ~-10 % (Lee 1999: vaginal FRC 23.1 at 4-6 h vs 24.9 at 24 h), Crs ~-8 % (Lødrup
     // Carlsen 1993: Crs lower on day 0; direction only), specific compliance about constant
@@ -73,7 +77,7 @@ const PROFILES = {
     // reflex set-points at the targets while the levers settle (re-anchored to the result afterwards); the
     // baroreflex senses the time-averaged arch pressure: a clinical MAP (dia + PP/3) of 47.2 (Taiwo 2022,
     // at birth) is a time-averaged ~53.5 with this waveform
-    BR_MAP_INIT: 53.5, CR_PCO2_INIT: 36, CR_PH_INIT: 7.33,
+    BR_MAP_INIT: 53.5, CR_PCO2_INIT: 38, CR_PH_INIT: 7.32,
     // dressed / skin-to-skin at room temperature
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
@@ -94,18 +98,25 @@ const PROFILES = {
     // output past the surge but still high (Agata: ~290 at 12 h vs 245-272 at 24 h); BP 69.8/40.4 (50.2)
     // (Taiwo 2022); HR 121 (Tveiten 2021)
     SVR: 0.65, HEART_EL_MAX: 1.5, HR_REF: 1.025,
-    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
+    // the upper/lower-body beds (skin, muscle) keep part of their tone: fully dilated they took the high
+    // output with little O2 extraction (venous 84 %)
+    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1, upper_body: 0.8, lower_body: 0.8 }, BRAIN_REANCHOR: true,
+    // first-day non-shivering thermogenesis (brown fat in the neck, interscapular and axillary fat: the
+    // upper body), 0.3 W/kg ~ +0.9 mL O2/kg/min: venous extraction about as at 72 h (Wolfsberger 2023:
+    // peripheral extraction constant over the first 24 h)
+    NST_W_PER_KG: 0.3,
     // GFR still ~20 on day 1 (Smeets 2022)
     KF: 0.8,
     // blood: Hct 57 % with the red cell mass of the 1 h baby (44 mL/kg) -> ~77 mL/kg
     BLOOD_VOLUME: 77 / 85, HCT: 0.57,
     // gases and metabolites (textbook, C): pH 7.36, pCO2 35, BE ~-4; lactate 2.0, glucose 3.2 (GLOW)
-    LACT: 2.0, UMA_DELTA: 1.6, MV_REF: 1.11, GLUCOSE: 3.2,
+    // ventilation: pCO2 ~38 (12 h range 30-40); at 35 the higher CO2 output needed ~295 mL/kg/min
+    LACT: 2.0, UMA_DELTA: 1.6, MV_REF: 1.08, GLUCOSE: 3.2,
     // lung liquid mostly cleared: FRC ~24 (Lee 1999, between 4-6 h and 24 h)
     LUNG_U_VOL: 0.92, LUNG_EL: 1.05,
     // the baroreflex senses the time-averaged arch pressure: a clinical MAP (dia + PP/3) of 50 is a
     // time-averaged ~56 with this waveform (form factor ~0.5)
-    BR_MAP_INIT: 56, CR_PCO2_INIT: 35, CR_PH_INIT: 7.36,
+    BR_MAP_INIT: 56, CR_PCO2_INIT: 38, CR_PH_INIT: 7.34,
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
   24: {
@@ -119,18 +130,21 @@ const PROFILES = {
     RV_DELAY: 0, PA_EL: 1,
     // output 258 (Agata 1991/1994: 245 +/- 56, 272 +/- 48), BP 71.3/41.2 (51.2) (Taiwo 2022), HR 121
     SVR: 0.75, HEART_EL_MAX: 1.35, HR_REF: 1.025,
-    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1 }, BRAIN_REANCHOR: true,
+    // body beds partly toned and first-day brown fat, as at 12 h
+    SVR_BEDS: { brain: 1, gut: 1, liver: 1, kidney: 1, upper_body: 0.8, lower_body: 0.8 }, BRAIN_REANCHOR: true,
+    NST_W_PER_KG: 0.3,
     // GFR still the day-1 value (Smeets 2022)
     KF: 0.8,
     // blood as at 12 h: Hct 57 %, ~77 mL/kg
     BLOOD_VOLUME: 77 / 85, HCT: 0.57,
     // gases and metabolites (textbook, C): pH 7.37, pCO2 35, BE ~-3.5; lactate 1.8 (GLOW, interpolated),
     // glucose 3.3 (GLOW plateau)
-    LACT: 1.8, UMA_DELTA: 0.9, MV_REF: 1.12, GLUCOSE: 3.3,
+    // ventilation: pCO2 ~39 (24 h range 30-41)
+    LACT: 1.8, UMA_DELTA: 0.9, MV_REF: 1.09, GLUCOSE: 3.3,
     // the last lung liquid: FRC 24.9 at 24 h (Lee 1999)
     LUNG_U_VOL: 0.96, LUNG_EL: 1.02,
     // the baroreflex senses the time-averaged arch pressure: a clinical MAP of 51.2 is a time-averaged ~57
-    BR_MAP_INIT: 57, CR_PCO2_INIT: 35, CR_PH_INIT: 7.37,
+    BR_MAP_INIT: 57, CR_PCO2_INIT: 38, CR_PH_INIT: 7.35,
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },
 };
@@ -202,8 +216,10 @@ log.push(`lactate ${P.LACT}, uma +${P.UMA_DELTA}, glucose ${P.GLUCOSE}`);
 // 5. breathing; the reflex set-points start at the targets so they do not fight the levers while the
 // model settles (all are re-anchored to the settled state below)
 M.Breathing.minute_volume_ref *= P.MV_REF;
+// optional: breathing pattern, a lower Vt/RR ratio gives faster and smaller breaths at the same ventilation
+if (P.VT_RR) M.Breathing.vt_rr_ratio *= P.VT_RR;
 M.CR_PCO2.set_value = P.CR_PCO2_INIT; M.CR_PH.set_value = P.CR_PH_INIT; M.BR_MAP.set_value = P.BR_MAP_INIT;
-log.push(`minute_volume_ref x${P.MV_REF}`);
+log.push(`minute_volume_ref x${P.MV_REF}${P.VT_RR ? `, vt_rr_ratio x${P.VT_RR}` : ""}`);
 for (const n of ["ALL", "ALR"]) { M[n].u_vol *= P.LUNG_U_VOL; M[n].el_base *= P.LUNG_EL; }
 log.push(`lung liquid: alveolar u_vol x${P.LUNG_U_VOL}, el_base x${P.LUNG_EL}`);
 
@@ -224,6 +240,16 @@ const kid72 = { aff: K.afferent_factor, myo: K.myogenic_factor, tgf: K.tgf_facto
 if (P.KF) K.kf *= P.KF;
 if (P.KIDNEY_REANCHOR) { K.autoregulation_enabled = false; M[K.aff_resistor_name].r_factor_ps = kid72.aff; }
 eng.calc(SECONDS);
+// optional: first-day non-shivering thermogenesis. The loss trim has seeded neutral by now; add the
+// brown-fat heat to the loss and raise the set-point by heat / bat_gain, so brown fat makes up the
+// difference and the core stays where it was. Its O2 cost is taken at Metabolism.bat_site (upper body)
+if (P.NST_W_PER_KG) {
+  const T = M.Thermoregulation, q = P.NST_W_PER_KG * model.weight;
+  T.loss_trim += q;
+  T.setpoint_temp = +(T.setpoint_temp + q / T.bat_gain).toFixed(4);
+  log.push(`brown fat ${P.NST_W_PER_KG} W/kg (${q.toFixed(2)} W): loss_trim +${q.toFixed(2)} W, set-point ${T.setpoint_temp} degC`);
+  eng.calc(SECONDS);
+}
 reanchorBaroreflex();
 reanchorChemoreflex();
 reanchorHormones();

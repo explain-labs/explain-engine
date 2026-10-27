@@ -42,7 +42,7 @@ drifting toward 72 h. The time course is the series of scenarios, not something 
   hours plasma leaves the circulation at a constant red cell mass, which is why Hct rises: 85 × 0.50/0.55 ≈ 77 at 1 h
   (3-min clamping at 2 h: 100 × 0.50/0.63 ≈ 79). The extra placental blood shows up as red cells, not as
   volume. Red cell mass 0.55 × 80 = 44 mL/kg then runs smoothly into the 72 h baby's 0.49 × 85 = 42.
-- **VO2:** 7.0 mL/kg/min at every age. The only human early value (~5 under 12 h, Hill & Robinson 1968)
+- **VO2 (superseded 2026-10-27, see "Venous oxygenation" below):** 7.0 mL/kg/min at every age. The only human early value (~5 under 12 h, Hill & Robinson 1968)
   comes mostly from low-birth-weight infants, and lambs reach their postnatal VO2 within an hour.
 
 ## The 1 h scenario
@@ -251,6 +251,58 @@ reads FRC high at every age), GFR. Loaded, it holds for 10 min (MAP 51.8–51.9,
 `probe_vitals` clean (profile `neonate_24h`); respiratory battery 24/24 (class `term_24h`, static
 compliance floor 0.95: the model's compliance rises 0.94 / 0.975 / 0.998 / 1.014 mL/cmH2O/kg at
 1 / 12 / 24 / 72 h).
+
+## Venous oxygenation and first-day brown fat (2026-10-27)
+
+The venous saturations were high in every baby, most of all in the first day:
+- SVC / RA 87.8 / 85.4 % at 1 h, 82.6 / 82.0 % at 72 h;
+- the brain and the organs fitted the measurements; the excess came from the upper- and lower-body beds (skin, muscle).
+
+Those beds carried more flow at 1 h than at 72 h (85 + 43 against 54 + 28 mL/kg/min: the generator dilated
+everything but the organs), with more haemoglobin (Hct 55–57 %) and the same O2 use.
+
+**Evidence**
+
+| Site | Value | Population | Source |
+|---|---|---|---|
+| Right atrium (fibre-optic catheter) | 73.6 ± 5.3 % (P5–P95 65–82), extraction 0.21 ± 0.04 | 10 stable preterms in room air after RDS | van der Hoeven 1996 ([doi](https://doi.org/10.1136/fn.74.3.f177)) |
+| Peripheral muscle (NIRS) | extraction 0.264 / 0.228 / 0.237 / 0.220 per 6 h, no change over the first 24 h | 55 healthy term babies | Wolfsberger 2023 ([doi](https://doi.org/10.3389/fped.2023.1276769)) |
+| Cerebral (NIRS) | 78.2 % on day 1, 78.3 % on day 2; splanchnic lower, renal higher on day 1 | 38 healthy term babies | Bailey 2013 ([doi](https://doi.org/10.1055/s-0033-1349894)) |
+| Sagittal sinus (MRI, QSM) | 72.4 ± 3.4 % | preterms at term-equivalent age | Carmichael 2025 ([doi](https://doi.org/10.1038/s41390-025-03966-6)) |
+| RQ, energy expenditure | RQ 0.94 at 6 h, 0.88 at 30 h; VO2 ~6.6–7.2 | 46 term babies before milk feeding | Zoppi 1998 ([doi](https://doi.org/10.1038/sj.ejcn.1600564)) |
+
+The direct venous data give an extraction of ~0.21, i.e. a mixed venous saturation of ~76–78 % at SaO2 97 %. The
+indirect route (calorimetry VO2 6.3–7.2 with MRI output ~200 mL/kg/min) gives ~80–84 % by Fick; the measured
+ventilation fits VO2 ~7. User decision: the venous data, 70–80 %.
+
+**What changed**
+1. **72 h** (`scripts/_fix_term_venous_vo2.mjs`):
+   - lung VO2 7.07 → 8.51 mL/kg/min, the extra in the upper and lower body, gut and liver; the brain and kidney keep their absolute use;
+   - mixed venous 82.0 → 78.5 %;
+   - ventilation 213 → 250 mL/kg/min (215 measured in quiet sleep: an accepted deviation).
+2. **Brown-fat O2 at the brown fat:** `Metabolism.bat_site` (`RUB`, the upper body). Before, the brown-fat O2 cost was spread over every bed, the brain included.
+3. **First-day brown fat** (`NST_W_PER_KG` in the generator):
+   - the heat is added to the loss after the trim seeds, and the set-point rises by heat / `bat_gain`, so the core stays at ~37 °C;
+   - brown fat is most active right after birth (birth cooling, catecholamines, the TSH peak);
+   - at 12 and 24 h the upper and lower body also keep part of their tone (bed factor 0.8). At 1 h they stay dilated: toned, they sent the output through the large duct (left-to-right 117 mL/kg/min).
+4. **pCO2:** about 39–40 at every age (within each age's range). At 35–36 the higher CO2 output needed ~295 mL/kg/min.
+
+| | 1 h | 12 h | 24 h | 72 h |
+|---|---|---|---|---|
+| Brown fat (W/kg) / body bed factor | 0.45 / dilated | 0.3 / 0.8 | 0.3 / 0.8 | – |
+| RA (RAIVCI / RASVC) | 80.2 / 79.4 (was 85.4) | 80.1 / 79.5 (85.3) | 80.3 / 79.6 (85.4) | 78.5 / 78.2 (82.0) |
+| SVC / IVC | 79.8 / 81.2 | 78.7 / 81.9 | 78.6 / 82.1 | 79.0 / 79.0 |
+| PA (the probe's SvO2; ductal admixture) | 85.1 | 82.4 | 81.8 | 78.5 |
+| Brain venous | 65.7 | 70.1 | 70.5 | 67.2 |
+| Lung VO2 (mL/kg/min) | 10.1 | 9.5 | 9.6 | 8.5 |
+| Ventilation (mL/kg/min) / pCO2 | 287 / 39.8 | 279 / 39.0 | 281 / 38.8 | 250 / 39.5 |
+
+The 1–2 points the RA stays above 72 h come from the IVC, i.e. the kidney (87–88 %), which the renal NIRS also shows
+higher on day 1. References: SvO2 (pulmonary artery) 82 / 78 / 78 / 76 % at 1 / 12 / 24 / 72 h (70–87 / 70–84 / 70–84 /
+70–80); VO2 10 / 9.5 / 9.5 / 8.4. The higher first-day ventilation through a lung with residual liquid takes the pleural
+swing to 8.2–8.6 cmH2O, so the transitional respiratory classes allow 2–9 (quiet breathing 2–8, Bhutani). Every baby
+still has all its numeric targets in range and holds for 10 min. Not modelled: the rise of brown-fat blood flow with
+thermogenesis, which matters only in a cold room.
 
 ## Hemodynamics
 

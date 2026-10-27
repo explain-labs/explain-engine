@@ -61,7 +61,7 @@ viscosity  = viscosity_plasma · exp(viscosity_hct_k · Hct),   Hct = Hb[mmol/L]
 ```
 A neonatal Hb of 10 mmol/L gives Hct 0.49 and ~6 cP. [BloodVessel](./BloodVessel.md) scales its resistance with `viscosity / viscosity_ref`, so a change in Hb moves the resistances.
 
-**Every 1 s:** `calc_blood_composition` on `AA` and `AD` (stored in the two blood gas objects), and on `IVCI`, `SVC`, `RAIVCI` and `PA`. The Monitor reads SvO2 from `PA`, the true mixed-venous blood.
+**Every 1 s:** `calc_blood_composition` on `AA` and `AD` (stored in the two blood gas objects), and on `IVCI`, `SVC`, both right-atrial halves (`RAIVCI`, `RASVC`) and `PA`. The Monitor reads SvO2 from `PA`, the true mixed-venous blood.
 
 ## Methods
 
@@ -84,7 +84,7 @@ None. Viscosity reaches the resistances through `BloodVessel`'s viscosity term.
 
 ## Inputs and outputs
 
-- **Reads:** `AA`, `AD`, `IVCI`, `SVC`, `RAIVCI`, `PA` (composition); every blood compartment's Hb, volume and temperature.
+- **Reads:** `AA`, `AD`, `IVCI`, `SVC`, `RAIVCI`, `RASVC`, `PA` (composition); every blood compartment's Hb, volume and temperature.
 - **Writes:**
   - every blood compartment: `temp`, `viscosity`; at build also `haldane_coeff`, `P50_0`, `viscosity_ref`, the seed composition and the thermal fields;
   - the solved composition of the six sampling sites.
@@ -95,7 +95,7 @@ None. Viscosity reaches the resistances through `BloodVessel`'s viscosity term.
 
 - **Setters reach every blood compartment, the maternal pool included.** `set_solute`, `set_P50`, `set_to2` and `set_tco2` without a site also change `PL_MAT` and the ECLS circuit. See [Placenta](./Placenta.md#assumptions-and-limitations) for why the generators restore `PL_MAT`.
 - **Membership is by `model_type` string.** A custom subclass of a blood compartment with its own `model_type` must be added to `blood_containing_modeltypes`, or it is never seeded, warmed or given a viscosity.
-- **Fixed sampling sites.** The scenario must have `AA` and `AD`; `IVCI`, `SVC`, `RAIVCI` and `PA` are used when present. Other compartments' gases are solved only by whoever needs them.
+- **Fixed sampling sites.** The scenario must have `AA` and `AD`; `IVCI`, `SVC`, `RAIVCI`, `RASVC` and `PA` are used when present (until 2026-10-27 `RASVC` was not, so its gas read-outs kept a stale value). Other compartments' gases are solved only by whoever needs them.
 - **Blood gases are refreshed once per second.**
 - **Viscosity is low-shear** and depends on haematocrit only: no shear-thinning, no Fåhræus effect in small vessels. Hct is derived from Hb with a fixed MCHC of 33 g/dL.
 - **`haldane_coeff` 2.2** is a calibration value of the model's own CO2 formulation (see [BloodComposition](./BloodComposition.md)), not a measured quantity.
