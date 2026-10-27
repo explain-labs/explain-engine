@@ -62,10 +62,14 @@ const PROFILES = {
     // 1 h (dilated) tone: re-anchoring it to the 72 h afferent tone (KIDNEY_REANCHOR) collapses GFR to
     // ~8 and renal flow to 23 at the slightly lower 1 h renal pressure, so it stays off
     KF: 0.8,
+    // first-day non-shivering thermogenesis, highest right after birth (birth cooling, catecholamines,
+    // the TSH peak at ~30 min): 0.45 W/kg ~ +1.3 mL O2/kg/min, taken at the upper body. The body beds stay
+    // dilated here: toned (x0.8) the extra resistance sent the output through the large duct (L->R 117)
+    NST_W_PER_KG: 0.45,
     // blood: ~80 mL/kg at Hct 55 % (delayed clamping, after the first plasma shift)
     BLOOD_VOLUME: 80 / 85, HCT: 0.55,
     // gases and metabolites: lactate 2.2 (GLOW), BE ~-5 and pCO2 ~36 (textbook, C), glucose 3.3 (GLOW)
-    LACT: 2.2, UMA_DELTA: 2.1, MV_REF: 1.11, GLUCOSE: 3.3,
+    LACT: 2.2, UMA_DELTA: 2.1, MV_REF: 1.08, GLUCOSE: 3.3,
     // residual lung liquid: a smaller, proportionally stiffer aerated lung (alveolar u_vol and el_base of
     // ALL/ALR) -> FRC ~-10 % (Lee 1999: vaginal FRC 23.1 at 4-6 h vs 24.9 at 24 h), Crs ~-8 % (Lødrup
     // Carlsen 1993: Crs lower on day 0; direction only), specific compliance about constant
@@ -73,7 +77,7 @@ const PROFILES = {
     // reflex set-points at the targets while the levers settle (re-anchored to the result afterwards); the
     // baroreflex senses the time-averaged arch pressure: a clinical MAP (dia + PP/3) of 47.2 (Taiwo 2022,
     // at birth) is a time-averaged ~53.5 with this waveform
-    BR_MAP_INIT: 53.5, CR_PCO2_INIT: 36, CR_PH_INIT: 7.33,
+    BR_MAP_INIT: 53.5, CR_PCO2_INIT: 38, CR_PH_INIT: 7.32,
     // dressed / skin-to-skin at room temperature
     ENV_TEMP: 24.0, REL_HUMIDITY: 0.5,
   },

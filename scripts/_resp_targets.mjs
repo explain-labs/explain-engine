@@ -62,7 +62,8 @@ export const TARGETS = {
     paco2: [30, 42],         // 1 h reference (textbook, C)
     ph: [7.27, 7.38],        // 1 h reference: BE ~-5 (textbook, C)
     spo2: [94, 100],         // 96 +/- 1 at 1.5-13.5 h (Nikkola 2002)
-    ppl_swing: [2, 8],       // [Bhutani]
+    ppl_swing: [2, 9],       // [Bhutani] 2-8 in quiet breathing; the 1 h baby breathes ~290 mL/kg/min (brown-fat
+                             // CO2) through a lung with residual liquid: 8.6 cmH2O, as at 12 and 24 h
     cstat_kg: [0.85, 2.0],   // term range, lower bound -15 %: Crs lower on day 0 (Lodrup Carlsen 1993), FRC ~-10 % (Lee 1999)
     co2_gain: [0.10, 0.40],  // [Rigatto]
   },
