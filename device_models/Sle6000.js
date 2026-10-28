@@ -1,5 +1,5 @@
 import { Ventilator } from "./Ventilator";
-import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, SLE_SPO2_TARGETS, SLE_SPO2_AVG, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
+import { SLE_PARAMS, SLE_MODES, SLE_HFO_MODES, SLE_NONINVASIVE_MODES, SLE_SPO2_TARGETS, SLE_SPO2_AVG, sle_defaults, sle_clamp, sle_interlocks } from "./sle6000_params";
 
 const MBAR_TO_CMH2O = 1.01972;
 const HFO_BIAS_FLOW = 8.0; // l/min, the continuous flow (p24); an assumption for HFO
@@ -46,7 +46,7 @@ export class Sle6000 extends Ventilator {
     super(model_ref, name);
 
     // Independent properties: the device settings, in the device's units (see sle6000_params.js)
-    this.sle_mode = "Standby"; // Standby | CPAP | CMV | PTV | PSV | SIMV | HFOV | HFOV+CMV
+    this.sle_mode = "Standby"; // Standby | CPAP | nCPAP | CMV | PTV | PSV | SIMV | HFOV | HFOV+CMV
     const d = sle_defaults();
     this.sle_rr = d.rr; // BPM
     this.sle_ti = d.ti; // s (Ti Max in PSV)
@@ -69,6 +69,7 @@ export class Sle6000 extends Ventilator {
     this.sle_sigh_p = d.sigh_p; // mbar
     this.sle_hfo_activity = d.hfo_activity; // HFOV+CMV: 0 = oscillation in both phases, 1 = expiration only
     this.sle_circuit = 10; // mm, patient circuit BC6188 (10) or BC6198 (15)
+    this.sle_interface = "prongs"; // non-invasive patient interface: "prongs" | "mask" (the invasive modes use the tube)
     this.sle_o2_boost_inc = 10; // %, O2 Boost increment (factory default, p128)
     this.sle_spo2_on = true; // SpO2 monitoring (Utilities > Sensors > SpO2, p104)
     this.sle_spo2_target = "91-95"; // OxyGenie target range, one of SLE_SPO2_TARGETS (default, p104)
@@ -169,6 +170,7 @@ export class Sle6000 extends Ventilator {
       if (k in SLE_PARAMS) this[`sle_${k}`] = sle_clamp(k, Number(v));
     }
     if (settings.circuit === 10 || settings.circuit === 15) this.sle_circuit = settings.circuit;
+    if (settings.interface === "prongs" || settings.interface === "mask") this.sle_interface = settings.interface;
     if (mode !== "Standby" && !(mode in SLE_MODES)) return;
     const s = sle_interlocks(this._settings(), mode, Object.keys(settings));
     for (const [k, v] of Object.entries(s)) this[`sle_${k}`] = v;
@@ -381,7 +383,7 @@ export class Sle6000 extends Ventilator {
 
     // VTV: PIP becomes PIP Max and the working pressure is servoed on Vte (p126); off restores the
     // set PIP, which the volume targeting never changes
-    const vtv = this.sle_vtv > 0.0 && mode !== "CPAP" && !SLE_HFO_MODES.includes(mode);
+    const vtv = this.sle_vtv > 0.0 && mode !== "CPAP" && !SLE_NONINVASIVE_MODES.includes(mode) && !SLE_HFO_MODES.includes(mode);
     const vg_was = this.volume_guarantee;
     this.volume_guarantee = vtv;
     if (vtv) {
@@ -389,10 +391,18 @@ export class Sle6000 extends Ventilator {
       this.tidal_volume = this.sle_vtv / 1000.0;
     }
 
+    // the invasive modes are on the tube; nCPAP puts the patient on the nasal interface (below)
+    if (!SLE_NONINVASIVE_MODES.includes(mode) && this.interface !== "ett") this.set_interface("ett");
+
     switch (mode) {
       case "CPAP":
         this.backup_rate = this.sle_rr_backup;
         this.vent_mode = "CPAP";
+        break;
+      case "nCPAP": // CPAP through nasal prongs or a mask, no backup breaths
+        this.backup_rate = 0.0;
+        this.vent_mode = "CPAP";
+        this.set_interface(this.sle_interface);
         break;
       case "CMV": // time-triggered, time-cycled (p16)
         this.vent_rate = this.sle_rr;
@@ -475,7 +485,11 @@ export class Sle6000 extends Ventilator {
     // the SLE6000 has no VC or PRVC: volume-targeted mandatory ventilation is CMV/PTV with VTV on
     const cmv = this.synchronized ? "PTV" : "CMV";
     const modes = { PC: cmv, VC: cmv, PRVC: cmv, PS: "PSV", SIMV: "SIMV", CPAP: "CPAP", HFOV: "HFOV", HFOV_CMV: "HFOV+CMV" };
-    const mode = modes[this.vent_mode];
+    let mode = modes[this.vent_mode];
+    if (mode === "CPAP" && (this.interface === "prongs" || this.interface === "mask")) {
+      mode = "nCPAP";
+      this.sle_interface = this.interface;
+    }
     if (!mode || !this.is_enabled) return;
     const set = (k, v) => {
       if (Number.isFinite(v)) this[`sle_${k}`] = sle_clamp(k, v);
