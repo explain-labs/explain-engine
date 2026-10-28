@@ -18,6 +18,9 @@ export class Ventilator extends BaseModelClass {
     this.temp = 37;
     this.ettube_diameter = 4;
     this.ettube_length = 110;
+    this.sensor_dead_space = 0.0; // mL, flow sensor and tube connector at the Y-piece (in series with the tube); 0 = auto by circuit size (calc_sensor_dead_space)
+    this.upper_airway_ds_fraction = 0.0; // share of the airway dead space (DS) above the tube tip, bypassed while intubated; 0 = auto by age (calc_upper_airway_ds_fraction)
+    this.ds_bypass_applied = 0.0; // state: the DS share whose volume is currently removed (saved with the scenario, so a reload does not remove it twice)
     this.vent_mode = "PRVC";
     this.vent_rate = 40;
     this.tidal_volume = 0.015;
@@ -408,13 +411,45 @@ export class Ventilator extends BaseModelClass {
   }
 
   _set_tube_dead_space(intubated) {
-    // the ET-tube lumen is dead space in series with the airway; the dead-space compartment carries
-    // it as rigid composition sub-tanks ahead of the tube port (only with series dead space on)
+    // the ET-tube lumen and the flow sensor / connector are dead space in series with the airway;
+    // the dead-space compartment carries them as rigid composition sub-tanks ahead of the tube port
+    // (only with series dead space on). The tube also bypasses the airway above its tip (nose,
+    // pharynx, larynx), so that share of the dead-space compartment leaves the gas path while
+    // intubated: its volume is removed once when the tube goes in (and given back when it comes
+    // out), and its unstressed volume is held down through the non-persistent u_vol factor.
     const ds = this._model_engine.models[this._ett_to];
     if (!ds || !("tube_volume" in ds)) return;
     const r = this.ettube_diameter / 2000.0; // m
+    const lumen = Math.PI * r * r * (this.ettube_length / 1000.0) * 1000.0; // L
     ds.tube_port_model = this._vent_gascircuit?.name ?? "";
-    ds.tube_volume = intubated ? Math.PI * r * r * (this.ettube_length / 1000.0) * 1000.0 : 0.0; // L
+    ds.tube_volume = intubated ? lumen + this.calc_sensor_dead_space() / 1000.0 : 0.0; // L
+
+    const bypass = intubated ? this.calc_upper_airway_ds_fraction() : 0.0;
+    if (bypass !== this.ds_bypass_applied) {
+      ds.vol *= (1.0 - bypass) / (1.0 - this.ds_bypass_applied);
+      this.ds_bypass_applied = bypass;
+    }
+    if (bypass > 0.0) ds.u_vol_factor = 1.0 - bypass;
+  }
+
+  calc_sensor_dead_space() {
+    // mL; auto (sensor_dead_space 0) by circuit size: a neonatal flow sensor with its connector ~1 mL
+    // (without an in-line suction hub), paediatric ~2 mL, adult ~6 mL
+    if (this.sensor_dead_space > 0.0) return this.sensor_dead_space;
+    if (this.ettube_diameter < 4.5) return 1.0;
+    if (this.ettube_diameter < 6.0) return 2.0;
+    return 6.0;
+  }
+
+  calc_upper_airway_ds_fraction() {
+    // the extrathoracic share of the anatomic dead space, which the tube bypasses. Numa & Newth 1996
+    // (intubated infants and children): extrathoracic 2.25 - 0.56 ln(1 + age) mL/kg (2.3 in early
+    // infancy, 0.8 beyond 6 years), intrathoracic 1.03 mL/kg at every age, so the share is ~0.69 in
+    // a newborn and falls with age. Auto when upper_airway_ds_fraction is 0.
+    if (this.upper_airway_ds_fraction > 0.0) return Math.min(this.upper_airway_ds_fraction, 0.95);
+    const age = Math.max(this._model_engine.age ?? 0.0, 0.0); // years
+    const extra = Math.max(2.25 - 0.56 * Math.log(1.0 + age), 0.2);
+    return extra / (extra + 1.03);
   }
 
   calc_leak() {
