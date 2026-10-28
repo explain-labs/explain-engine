@@ -112,6 +112,10 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `leak_size` | mm | Equivalent diameter of the gap around an uncuffed tube; 0 = no leak (default). Useful range ≈ 0.5–1.25 mm neonatal, 1–3 mm adult — see *Tube leak* |
 | `exp_valve_resistance` | mmHg·s/L | Expiratory limb + valve; 0 = auto by circuit size (default) — see *Expiratory valve* |
 | `bias_flow` | L/min | Continuous fresh-gas flow through the circuit while the expiratory valve is open; 0 = auto by circuit size (default) — see *Bias flow* |
+| `interface` | – | Patient interface: `"ett"` (intubated, default), `"prongs"` or `"mask"` (nasal, CPAP only) — see *Nasal interface* |
+| `interface_resistance` | mmHg·s/L | Nasal prongs / mask resistance; 0 = auto (prongs 8, mask 4) |
+| `interface_dead_space` | mL | Nasal prongs / mask dead space; 0 = auto (prongs 0.3, mask 1.5) |
+| `mouth_leak` | – | Nasal interface: mouth opening, 0 = closed (default) to 1 = open |
 | `sensor_dead_space` | mL | Flow sensor + tube connector at the Y-piece, in series with the tube; 0 = auto by circuit size (default) — see *ET-tube dead space* |
 | `upper_airway_ds_fraction` | – | Share of the airway dead space above the tube tip, bypassed while intubated; 0 = auto by age (default) — see *ET-tube dead space* |
 | `ds_bypass_applied` | – | State, not a setting: the dead-space share whose volume is currently removed (saved with the scenario) |
@@ -715,6 +719,52 @@ Results with the SLE6000 (5 l/min, 10–50 %), `probe_sle6000.mjs` section 15:
 `Breathing` subtracts the leak flow from the airway-opening flow (see below), because gas that
 escapes around the tube never reaches the lungs.
 
+## Nasal interface (`set_interface`, `_apply_interface`)
+
+`set_interface("prongs" | "mask")` puts a CPAP patient on nasal CPAP; `set_interface("ett")` intubates. A
+nasal interface carries **CPAP only**: it is refused in another mode, and switching to another mode
+while on it returns the interface to `"ett"` (the patient is intubated for it).
+
+The circuit reaches the airway the same way, through `VENT_ETTUBE` into `DS`, but that resistor is
+now the interface plus the patient's own upper airway:
+
+```
+R = interface_resistance + R_upper            R_upper = MOUTH_DS r_for at its persistent factors
+```
+
+- **No tube.** No tube resistance or lumen, no flow sensor, and no upper-airway bypass: the whole
+  anatomic dead space stays in the path, plus the interface's own volume (`tube_volume` = prongs
+  0.3 mL / mask 1.5 mL, auto). The tube leak (`VENT_LEAK`) and the tube events (right main bronchus,
+  extubation) do not apply.
+- **Mouth leak.** `MOUTH_DS` becomes the mouth path to the room: closed at `mouth_leak = 0` (the
+  default; newborns breathe mainly through the nose), and at the upper-airway resistance divided by
+  the opening otherwise (through its non-persistent `r_factor`).
+- **Obstructive apnoea.** With `Apnea.airway_obstructed` the Ventilator closes both the nose path and
+  the mouth, since the upper airway is the patient's own (Apnea does not touch `MOUTH_DS` then).
+- **Defaults.** Green 2018 measured neonatal CPAP interfaces at 6–10 L/min: masks under 1 cmH₂O,
+  Infant Flow prongs under 1.5, other binasal prongs more at the small sizes; so prongs 8 and a mask
+  4 mmHg·s/L. The interface dead spaces are estimates: prongs sit in the bias flow, a nasal mask has
+  a small chamber over the nose.
+
+term_neonate_72h, CPAP 5 (`probe_nasal_cpap.mjs`):
+
+| | P trachea cmH₂O | EELV mL/kg | MV mL/kg/min | RR | PaCO2 |
+|---|---|---|---|---|---|
+| spontaneous | 0.0 | 27.8 | 256 | 44.3 | 39.4 |
+| ETT | 5.1 | 32.4 | 251 | 42.6 | 37.4 |
+| prongs, mouth closed | 5.1 | 33.2 | 292 | 49.8 | 40.4 |
+| mask, mouth closed | 5.1 | 33.1 | 311 | 50.9 | 40.7 |
+| prongs, mouth half open | 2.9 | 30.5 | 251 | 43.6 | 38.5 |
+| prongs, mouth open | 2.0 | 29.5 | 249 | 42.6 | 37.4 |
+
+With the mouth closed the CPAP level reaches the trachea in full; ventilation is a little higher than
+intubated because the whole anatomic dead space and the interface stay in the path. An open mouth
+loses most of the CPAP level (4.7 L/min leak, 2.0 cmH₂O left), as bench studies of nasal support
+with an open mouth show.
+
+**Not modelled yet:** the SLE6000's non-invasive modes (its screen and settings), the pressure trigger
+that synchronised NIPPV and nHFOV need, and separate nose and mouth paths (a pharynx node).
+
 ## Airway events
 
 Three events of the DOPE list, active only while ventilating. `switch_ventilator(false)` ends them:
@@ -901,6 +951,7 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
 ## References
 
 - ISO 80601-2-12 (critical care ventilators): the expiratory-limb pressure drop limits used for the automatic expiratory valve.
+- Green EA, Dawson JA, Davis PG, De Paoli AG, Roberts CT. Assessment of resistance of nasal continuous positive airway pressure interfaces. *Arch Dis Child Fetal Neonatal Ed* 2019;104:F535–9. doi:10.1136/archdischild-2018-315838 (interface pressure drops at 6–10 L/min)
 - Numa AH, Newth CJ. Anatomic dead space in infants and children. *J Appl Physiol* 1996;80:1485–9. doi:10.1152/jappl.1996.80.5.1485 (extrathoracic and intrathoracic dead space by age)
 - Nassabeh-Montazami S, Abubakar KM, Keszler M. The impact of instrumental dead-space in volume-targeted ventilation of the extremely low birth weight (ELBW) infant. *Pediatr Pulmonol* 2009;44:128–33. doi:10.1002/ppul.20954 (tube, suction hub and flow sensor 2.7 mL)
 - SLE6000 instructions for use: monitoring definitions (see [Sle6000](./Sle6000.md)).

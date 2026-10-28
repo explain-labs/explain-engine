@@ -154,12 +154,19 @@ export class Apnea extends BaseModelClass {
     // the natural airway open beside the tube
     if (state && this._intubated()) return;
     this.airway_obstructed = state;
-    if (this._airway && !this._intubated()) this._airway.no_flow = state;
+    // on a nasal interface the Ventilator owns MOUTH_DS (the mouth leak) and closes the nose path itself
+    if (this._airway && !this._intubated() && !this._nasal_interface()) this._airway.no_flow = state;
   }
 
   _intubated() {
     const v = this._model_engine.models["Ventilator"];
-    return !!(v && v.is_enabled && v.tube_position !== "extubated");
+    const nasal = v?.interface === "prongs" || v?.interface === "mask";
+    return !!(v && v.is_enabled && !nasal && v.tube_position !== "extubated");
+  }
+
+  _nasal_interface() {
+    const v = this._model_engine.models["Ventilator"];
+    return !!(v && v.is_enabled && (v.interface === "prongs" || v.interface === "mask"));
   }
 
   _restore_ventilation() {
