@@ -36,6 +36,7 @@ export class Ventilator extends BaseModelClass {
     this.hfo_freq = 10; // HFOV frequency (Hz)
     this.hfo_insp_fraction = 0.33; // HFOV inspiratory fraction of the cycle (0.33 = I:E 1:2, 0.5 = 1:1)
     this.hfo_bias_flow = 10; // HFOV continuous fresh-gas (bias) flow (L/min)
+    this.bias_flow = 0.0; // continuous fresh-gas flow through the circuit while the expiratory valve is open (L/min); 0 = auto by circuit size (calc_bias_flow)
     this.hfo_volume_guarantee = false; // HFOV: servo the amplitude to hfo_tidal_volume_target (limit hfo_amplitude_max_cmh2o)
     this.hfo_tidal_volume_target = 0.002; // L, HFOV expired volume per oscillation to aim for
     this.hfo_amplitude_max_cmh2o = 40; // HFOV volume targeting: the amplitude limit
@@ -991,12 +992,7 @@ export class Ventilator extends BaseModelClass {
       // the expiratory valve opens to the PEEP reservoir and the demand valve holds PEEP, so a
       // spontaneously breathing patient can inhale between ventilator breaths (and trigger them).
       // While the patient exhales the circuit sits above PEEP and the servo stays shut.
-      this._vent_exp_valve.no_flow = false;
-      this._vent_exp_valve.no_back_flow = true;
-      this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-      const p_exp = this._respond(this._peep);
-      this._vent_gasout.vol = p_exp / this._vent_gasout.el_base + this._vent_gasout.u_vol;
-      this._pressure_servo(p_exp);
+      this._hold_expiratory(this._respond(this._peep));
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -1056,12 +1052,7 @@ export class Ventilator extends BaseModelClass {
       // the expiratory valve opens to the PEEP reservoir and the demand valve holds PEEP, so a
       // spontaneously breathing patient can inhale between ventilator breaths (and trigger them).
       // While the patient exhales the circuit sits above PEEP and the servo stays shut.
-      this._vent_exp_valve.no_flow = false;
-      this._vent_exp_valve.no_back_flow = true;
-      this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-      this._vent_gasout.vol =
-        this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
-      this._pressure_servo(this._peep);
+      this._hold_expiratory(this._peep);
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -1078,14 +1069,7 @@ export class Ventilator extends BaseModelClass {
     // inspiratory valve: servo the circuit at the CPAP level, delivering the patient's
     // inspiratory demand (up to insp_flow) instead of letting the pressure dip. The level passes
     // the pressure response, so the circuit settles back to CPAP after a backup breath.
-    const p_cpap = this._respond(this._peep);
-    this._pressure_servo(p_cpap);
-
-    // expiratory valve: open, reservoir pinned at CPAP so the circuit floats at CPAP
-    this._vent_exp_valve.no_flow = false;
-    this._vent_exp_valve.no_back_flow = true;
-    this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-    this._vent_gasout.vol = p_cpap / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+    this._hold_expiratory(this._respond(this._peep));
 
     // spontaneous-breath monitoring: close out a breath at each spontaneous inspiration start
     // (Breathing.ncc_insp === 1 marks the first step of a new spontaneous inspiration)
@@ -1111,7 +1095,19 @@ export class Ventilator extends BaseModelClass {
     this.minute_volume = this.exp_tidal_volume * (this._breathing_model?.resp_rate ?? 0);
   }
 
-  _pressure_servo(target) {
+  _hold_expiratory(p) {
+    // expiratory valve open to the PEEP reservoir, demand valve holding p; with a bias flow the
+    // reservoir sits lower by the valve's pressure drop at that flow, so the circuit stays at p
+    const r = this.calc_exp_valve_resistance();
+    const q_bias = this.calc_bias_flow() / 60.0;
+    this._vent_exp_valve.no_flow = false;
+    this._vent_exp_valve.no_back_flow = true;
+    this._vent_exp_valve.r_for = r;
+    this._vent_gasout.vol = (p - q_bias * r) / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+    this._pressure_servo(p, q_bias);
+  }
+
+  _pressure_servo(target, q_floor = 0.0) {
     // Demand valve: meter fresh gas into the circuit so its pressure follows `target` (mmHg above
     // atmospheric). Needed flow = what leaves the circuit (ET tube + expiratory valve, last step)
     // plus a proportional correction of the pressure error through the circuit elastance, capped
@@ -1125,7 +1121,7 @@ export class Ventilator extends BaseModelClass {
     const e_c = Math.max(circuit.el_eff, 1.0); // mmHg/L
     const q_out =
       this._vent_ettube.flow + (this._vent_exp_valve.no_flow ? 0.0 : this._vent_exp_valve.flow);
-    const q = Math.min(q_max, q_out + (this._servo_gain * p_err) / (e_c * this._t));
+    const q = Math.min(q_max, Math.max(q_floor, q_out + (this._servo_gain * p_err) / (e_c * this._t)));
 
     const dp_valve = this._vent_gasin.pres - circuit.pres;
     valve.no_back_flow = true;
@@ -1637,6 +1633,20 @@ export class Ventilator extends BaseModelClass {
     if (resp && typeof resp.set_tube_block === "function") {
       resp.set_tube_block("left", ventilating && this.tube_position === "right_main");
     }
+  }
+
+  calc_bias_flow() {
+    // the continuous fresh-gas flow that washes the expired gas out of the circuit between
+    // breaths (and in CPAP); without it the circuit fills with expired CO2 that the next breath
+    // draws back in. Auto (bias_flow 0) picks the circuit that goes with the tube size, like the
+    // expiratory valve: neonatal circuits run ~8 L/min, paediatric and adult ventilators a few L/min
+    let q = this.bias_flow;
+    if (!(q > 0.0)) {
+      if (this.ettube_diameter < 4.5) q = 8.0; // neonatal circuit
+      else if (this.ettube_diameter < 6.0) q = 5.0; // paediatric
+      else q = 3.0; // adult
+    }
+    return Math.min(q, this.insp_flow); // the demand valve delivers at most insp_flow
   }
 
   calc_exp_valve_resistance() {
