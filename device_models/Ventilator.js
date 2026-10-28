@@ -18,6 +18,10 @@ export class Ventilator extends BaseModelClass {
     this.temp = 37;
     this.ettube_diameter = 4;
     this.ettube_length = 110;
+    this.interface = "ett"; // patient interface: "ett" (intubated) | "prongs" | "mask" (nasal, CPAP only)
+    this.interface_resistance = 0.0; // mmHg*s/L of the nasal prongs / mask; 0 = auto (calc_interface_resistance)
+    this.interface_dead_space = 0.0; // mL of the nasal prongs / mask; 0 = auto (calc_interface_dead_space)
+    this.mouth_leak = 0.0; // nasal interface: mouth opening, 0 = closed .. 1 = open (the mouth path at the upper-airway resistance)
     this.sensor_dead_space = 0.0; // mL, flow sensor and tube connector at the Y-piece (in series with the tube); 0 = auto by circuit size (calc_sensor_dead_space)
     this.upper_airway_ds_fraction = 0.0; // share of the airway dead space (DS) above the tube tip, bypassed while intubated; 0 = auto by age (calc_upper_airway_ds_fraction)
     this.ds_bypass_applied = 0.0; // state: the DS share whose volume is currently removed (saved with the scenario, so a reload does not remove it twice)
@@ -372,6 +376,9 @@ export class Ventilator extends BaseModelClass {
     // calc_measured_mechanics(); they are NOT recomputed here (and must not be clobbered to null
     // each step, or the per-breath measurement would never survive)
     this._breath_interval_counter += this._t;
+    // a nasal interface carries CPAP only: another mode means the patient is intubated
+    if (this._nasal() && this.vent_mode !== "CPAP") this.set_interface("ett");
+    this._apply_interface();
     this.calc_ettube_resistance(this._vent_ettube.flow); // sets the tube r_for/r_back
     this.calc_leak();
     this._set_tube_dead_space(this.tube_position !== "extubated");
@@ -421,15 +428,64 @@ export class Ventilator extends BaseModelClass {
     if (!ds || !("tube_volume" in ds)) return;
     const r = this.ettube_diameter / 2000.0; // m
     const lumen = Math.PI * r * r * (this.ettube_length / 1000.0) * 1000.0; // L
+    const nasal = this._nasal();
     ds.tube_port_model = this._vent_gascircuit?.name ?? "";
-    ds.tube_volume = intubated ? lumen + this.calc_sensor_dead_space() / 1000.0 : 0.0; // L
+    // a nasal interface adds only its own small volume and leaves the upper airway in the path
+    ds.tube_volume = !intubated ? 0.0 : nasal ? this.calc_interface_dead_space() / 1000.0 : lumen + this.calc_sensor_dead_space() / 1000.0; // L
 
-    const bypass = intubated ? this.calc_upper_airway_ds_fraction() : 0.0;
+    const bypass = intubated && !nasal ? this.calc_upper_airway_ds_fraction() : 0.0;
     if (bypass !== this.ds_bypass_applied) {
       ds.vol *= (1.0 - bypass) / (1.0 - this.ds_bypass_applied);
       this.ds_bypass_applied = bypass;
     }
     if (bypass > 0.0) ds.u_vol_factor = 1.0 - bypass;
+  }
+
+  _nasal() {
+    return this.is_enabled && (this.interface === "prongs" || this.interface === "mask");
+  }
+
+  set_interface(name) {
+    // "ett" intubates; "prongs" / "mask" put a CPAP patient on a nasal interface (refused in other modes)
+    if (!["ett", "prongs", "mask"].includes(name)) return;
+    if (name !== "ett" && this.vent_mode !== "CPAP") {
+      console.warn(`Ventilator: the ${name} interface carries CPAP only (mode ${this.vent_mode})`);
+      return;
+    }
+    this.interface = name;
+    if (name !== "ett") this.tube_position = "trachea"; // the tube events don't apply to a nasal interface
+    this._apply_airway_routing();
+    this._apply_interface();
+  }
+
+  _apply_interface() {
+    // nasal interface: the circuit reaches the airway through the interface and the nose (the tube
+    // resistor, see calc_ettube_resistance), the mouth path (MOUTH_DS) is the mouth leak, and an
+    // obstructive apnoea (Apnea.airway_obstructed) closes both, since the upper airway is the patient's own
+    if (!this._nasal()) return;
+    const models = this._model_engine.models;
+    const obstructed = !!models["Apnea"]?.airway_obstructed;
+    if (this._vent_ettube && this.circuit_connected) this._vent_ettube.no_flow = obstructed;
+    const mouth = models["MOUTH_DS"];
+    if (mouth) {
+      const open = Math.min(Math.max(this.mouth_leak, 0.0), 1.0);
+      mouth.no_flow = obstructed || !(open > 0.0);
+      if (open > 0.0) mouth.r_factor = 1.0 / open;
+    }
+  }
+
+  calc_interface_resistance() {
+    // mmHg*s/L; auto (interface_resistance 0): prongs ~1.5 cmH2O at 8 L/min (~8 mmHg*s/L), masks under
+    // 1 cmH2O at 6-10 L/min (~4) (Green 2018, neonatal CPAP interfaces in vitro)
+    if (this.interface_resistance > 0.0) return this.interface_resistance;
+    return this.interface === "mask" ? 4.0 : 8.0;
+  }
+
+  calc_interface_dead_space() {
+    // mL; auto (interface_dead_space 0): prongs sit in the bias flow and are washed out (~0.3 mL); a
+    // nasal mask has a small chamber over the nose (~1.5 mL). Estimates, no measured values found
+    if (this.interface_dead_space > 0.0) return this.interface_dead_space;
+    return this.interface === "mask" ? 1.5 : 0.3;
   }
 
   calc_sensor_dead_space() {
@@ -457,7 +513,7 @@ export class Ventilator extends BaseModelClass {
     // leak_size, so the leak grows with airway pressure (more in inspiration, a little at PEEP)
     const leak = this._vent_leak;
     if (!leak) return;
-    if (!(this.leak_size > 0.0) || this.tube_position === "extubated") {
+    if (!(this.leak_size > 0.0) || this.tube_position === "extubated" || this._nasal()) {
       leak.no_flow = true;
       return;
     }
@@ -1614,7 +1670,7 @@ export class Ventilator extends BaseModelClass {
 
   // the airway events exist only while ventilating (a patient off the ventilator is not intubated)
   set_tube_position(position) {
-    if (!this.is_enabled || !["trachea", "right_main", "extubated"].includes(position)) return;
+    if (!this.is_enabled || this._nasal() || !["trachea", "right_main", "extubated"].includes(position)) return;
     this.tube_position = position;
     this._apply_airway_routing();
   }
@@ -1706,10 +1762,17 @@ export class Ventilator extends BaseModelClass {
 
   calc_ettube_resistance(flow) {
     // Rohrer form R = K1 + K2*|flow| (flow in L/s; the pressure drop K1*V + K2*V^2 is symmetric in
-    // inspiration and expiration), scaled linearly with tube length
+    // inspiration and expiration), scaled linearly with tube length. On a nasal interface the same
+    // resistor is the interface plus the patient's own upper airway (nose to larynx, MOUTH_DS)
     let res =
       (this._ett_k1 + this._ett_k2 * Math.abs(flow)) *
       (this.ettube_length / this._ettube_length_ref);
+    if (this._nasal()) {
+      const upper = this._model_engine.models["MOUTH_DS"];
+      // the nose at its persistent value: the non-persistent factor carries the mouth opening
+      const nose = upper ? upper.r_for * (1.0 + (upper.r_factor_ps - 1.0) + (upper.r_factor_scaling_ps - 1.0)) : 0.0;
+      res = this.calc_interface_resistance() + nose;
+    }
 
     // numerical floor only: the flow across the tube is integrated explicitly, so it must not
     // equilibrate the circuit and the airway faster than one step (dt * (E_circuit + E_airway) / R

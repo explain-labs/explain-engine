@@ -61,7 +61,7 @@ Each step:
 - **Not active** (`apnea_enabled` false, or a non-breathing patient): ventilation is restored if Apnea had suppressed it; nothing else.
 - **Breathing:** count toward `next_interval`, then start an episode. Its duration is drawn, and
   - **central:** `Breathing.switch_breathing(false)`;
-  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`, unless the patient is intubated (Ventilator on, tube not out).
+  - **obstructive / mixed:** `MOUTH_DS.no_flow = true`, unless the patient is intubated (Ventilator on, tube not out). On a nasal CPAP interface (`Ventilator.interface` prongs or mask) only `airway_obstructed` is set: the Ventilator then closes both the nose path and the mouth leak itself.
 - **In an episode:**
   - a mixed episode also switches breathing off after `mixed_obstructive_fraction` of its duration;
   - at the end, ventilation is restored, the counters are updated and the next interval is drawn.
