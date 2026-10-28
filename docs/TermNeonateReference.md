@@ -101,6 +101,8 @@ inflow comes through the intestinal bed (INT), which the model drains into the l
 | Resistance (Rrs) | **52 ± 6** cmH₂O/L/s | (Katier ~75–80) | passive occlusion, n=9 | B | Nowotny 1998 |
 | FRC | **27.1** mL/kg | 23.8–32.0 | helium, median day 2, n=24 | A | Yüksel 1995; nitrogen 24.0, plethysmography 29.8–31.1 |
 | Anatomic dead space | **2.2** mL/kg | Vd/Vt ~0.3–0.4 | term, day 5 | A/B | Stokes 1986 |
+| CO₂ response | **38.7 ± 3.0** mL/kg/min per mmHg (quiet sleep) | 12–67 | normoxic CO₂ rebreathing, term, 4–6 days, n=5; REM sleep 12.2 ± 3.0; Moriette 67 / 44 (quiet / active sleep, 40 % O₂). Vt rises in every report; rate contributes in quiet sleep, no quantitative split found. Model 34 (`scripts/probe_co2_response.mjs`, 0/2/4 % CO₂) | B | Cohen 1991 ([doi](https://doi.org/10.1152/jappl.1991.71.1.168)); Moriette 1985 ([doi](https://doi.org/10.1016/0034-5687(85)90093-3)); Rigatto 1991 ([doi](https://doi.org/10.1164/ajrccm/143.1.101)); Mortola 1996 ([doi](https://doi.org/10.1016/0034-5687(95)00093-3)). Added 2026-10-28 |
+| Pleural (oesophageal) pressure swing | **7.3 ± 1.4** cmH₂O | — | oesophageal catheter, quiet breathing, newborn to 5 years (no change with growth), n=40. Cross-check: lung compliance 1.34 ± 0.37 mL/cmH₂O/kg in healthy term infants (Yau 1994); the model's Crs with a chest wall ~2.9× as compliant as the lung (Papastamelos 1995) gives ~1.30. Model 7.6 (`validate_respiratory`) | B | Gerhardt 1987 ([doi](https://doi.org/10.1002/ppul.1950030506)); Papastamelos 1995 ([doi](https://doi.org/10.1152/jappl.1995.78.1.179)); Yau 1994 (PMID [7912580](https://pubmed.ncbi.nlm.nih.gov/7912580/)). Added 2026-10-28 |
 
 ## Gases and saturations
 

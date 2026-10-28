@@ -187,7 +187,7 @@ const ref = JSON.parse(fs.readFileSync(REF ?? new URL("./reference/term_neonate_
 const rows = ref.variables.map((r) => {
   const v = model_values[r.key];
   const hasNum = r.mean != null || r.low != null || r.high != null;
-  const z = r.mean != null && r.sd ? (v - r.mean) / r.sd : null;
+  const z = r.mean != null && r.sd && Number.isFinite(v) ? (v - r.mean) / r.sd : null;
   let flag = hasNum ? "ok" : "ref";
   if (Number.isFinite(v)) {
     if (r.low != null && v < r.low) flag = "LOW";
