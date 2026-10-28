@@ -234,6 +234,21 @@
       "cite": "Mortola JP, Lanthier C. The ventilatory and metabolic response to hypercapnia in newborn mammalian species. Respir Physiol 1996;103:263-70",
       "doi": "10.1016/0034-5687(95)00093-3",
       "pmid": "8738902"
+    },
+    "gerhardt1987": {
+      "cite": "Gerhardt T, Reifenberg L, Hehre D, Feller R, Bancalari E. Pulmonary mechanics in normal infants and young children during first 5 years of life. Pediatr Pulmonol 1987;3:309-16",
+      "doi": "10.1002/ppul.1950030506",
+      "pmid": "3670905"
+    },
+    "papastamelos1995": {
+      "cite": "Papastamelos C, Panitch HB, England SE, Allen JL. Developmental changes in chest wall compliance in infancy and early childhood. J Appl Physiol 1995;78:179-84",
+      "doi": "10.1152/jappl.1995.78.1.179",
+      "pmid": "7713809"
+    },
+    "yau1994": {
+      "cite": "Yau KI, Fang LJ. Pulmonary mechanics and the energetics of breathing in healthy infants. J Formos Med Assoc 1994;93:110-6",
+      "doi": null,
+      "pmid": "7912580"
     }
   },
   "variables": [
@@ -1023,6 +1038,28 @@
       "grade": "B",
       "model_readout": "none in this probe: scripts/probe_co2_response.mjs (steady state, 0/2/4 % inspired CO2)",
       "notes": "Mixed sleep/awake state between the REM and quiet-sleep values; test-to-test variation 35 % in quiet sleep. Moriette 1985 (rebreathing in 40 % O2) 67 in quiet sleep, 44 in active sleep: upper bound. Steady-state and rebreathing slopes agree in preterms (38 vs 40, Rigatto 1991). Pattern: Vt rises in all reports; rate contributes in quiet sleep (Cohen 1991: the REM deficit is mainly a missing rate rise), little in preterms and newborn mammals (Rigatto 1981; Mortola 1996: Vt +78 %, rate 98 % at 5 % CO2); no quantitative term split found. Model 2026-10-28: 34 (0-4 % CO2; RR +52 %, Vt +35 % at 4 %). Added 2026-10-28."
+    },
+    {
+      "key": "ppl_swing",
+      "group": "breathing",
+      "label": "Pleural (oesophageal) pressure swing",
+      "unit": "cmH2O",
+      "mean": 7.3,
+      "sd": 1.4,
+      "low": null,
+      "high": null,
+      "range_type": "mean_sd",
+      "method": "oesophageal water-filled catheter, quiet breathing; no change with growth from the newborn period to 5 years (n=40)",
+      "age": "newborn to 5 years",
+      "n": 40,
+      "sources": [
+        "gerhardt1987",
+        "papastamelos1995",
+        "yau1994"
+      ],
+      "grade": "B",
+      "model_readout": "none in this probe: validate_respiratory base.ppl_swing (THORAX pressure swing per breath)",
+      "notes": "Cross-check: chest wall ~2.9x as compliant as the lung in infancy (Papastamelos 1995), so the model's Crs 0.96 mL/cmH2O/kg implies a lung compliance ~1.30 /kg against 1.34 +/- 0.37 measured in healthy term infants (Yau 1994); the elastic part of the swing is then Vt/CL ~4.4 cmH2O, the airway resistance adds the rest. Model 2026-10-28: 7.6 (+0.2 SD). Added 2026-10-28."
     },
     {
       "key": "spo2",

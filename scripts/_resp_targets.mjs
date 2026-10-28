@@ -4,11 +4,11 @@
 //
 // Sources (short names used below):
 //   [Polgar]   Polgar & Weng, "The functional development of the respiratory system", Am Rev Respir Dis 1979
-//   [Bhutani]  Bhutani & Sivieri, "Clinical use of pulmonary mechanics and waveform graphics", Clin Perinatol 2001
 //   [Rennie]   Rennie's Textbook of Neonatology, 5th ed., normal blood gases and ventilation
 //   [West]     West's Respiratory Physiology, 10th ed. (adult normals, chemosensitivity)
 //   [Rebuck]   Rebuck & Slutsky, "Measurement of ventilatory responses to hypercapnia and hypoxia", 1981
 //   [Rigatto]  Rigatto, "Control of ventilation in the newborn", Annu Rev Physiol 1984 (neonatal CO2 response)
+//   [Gerhardt] Gerhardt et al., "Pulmonary mechanics in normal infants and young children during first 5 years of life", Pediatr Pulmonol 1987 (oesophageal pressure swing)
 //   [Tobin]    Tobin, Principles and Practice of Mechanical Ventilation, 3rd ed. (load responses, PS, triggering)
 
 // scenario -> class; a scenario not listed is classified by weight in classify()
@@ -31,7 +31,7 @@ export const TARGETS = {
     paco2: [35, 45],         // [Rennie]
     ph: [7.35, 7.45],
     spo2: [95, 100],
-    ppl_swing: [2, 8],       // [Bhutani]
+    ppl_swing: [4.5, 10.1],  // cmH2O, oesophageal swing 7.3 +/- 1.4 (mean +/- 2 SD) [Gerhardt]
     cstat_kg: [1.0, 2.0],    // mL/cmH2O/kg, total respiratory system [Polgar]
     co2_gain: [0.10, 0.40],  // 0.03-0.06 L/kg/min/mmHg on ~0.2 L/kg/min [Rigatto]
   },
