@@ -74,6 +74,7 @@ export class Breathing extends BaseModelClass {
     this._breath_interval = 0.0; // duration of the current breath (s); 0 starts a breath at once
     this._target_vt_breath = 0.0; // target tidal volume latched for the current breath (L)
     this._v_start = 0.0; // lung volume at the start of the breath (L)
+    this._v_trough = 0.0; // lowest lung volume during the neural inspiration: the tail of the previous expiration runs on into it (L)
     this._v_max = 0.0; // highest lung volume during the breath (L)
     this._cal_breaths = 0; // breaths spent calibrating
     this._cal_ok = 0; // consecutive calibration breaths within tolerance
@@ -133,6 +134,7 @@ export class Breathing extends BaseModelClass {
 
     const v_lung = this._lung_volume();
     this._v_max = Math.max(this._v_max, v_lung);
+    if (this.insp_running) this._v_trough = Math.min(this._v_trough, v_lung);
 
     // breath phases; the timing and the target of a breath are latched at its start. Switching
     // breathing back on (end of a central apnea, after CPR) starts a breath at once instead of waiting
@@ -160,6 +162,7 @@ export class Breathing extends BaseModelClass {
       this.exp_running = false;
       this.ncc_insp = 0;
       this._v_start = v_lung;
+      this._v_trough = v_lung;
       this._v_max = v_lung;
     }
 
@@ -167,7 +170,6 @@ export class Breathing extends BaseModelClass {
       this.insp_running = false;
       this.exp_running = true;
       this.ncc_exp = 0;
-      this.insp_tidal_volume = Math.max(this._v_max - this._v_start, 0.0);
     }
 
     if (this.breathing_enabled) this._breath_timer += this._t;
@@ -209,6 +211,10 @@ export class Breathing extends BaseModelClass {
     // close out the breath that just ended: its tidal volumes at the lungs, then calibration / trim
     if (!this.insp_running && !this.exp_running) return;
     this.exp_tidal_volume = Math.max(this._v_max - v_lung, 0.0);
+    // the inspired volume runs from the trough (the previous expiration ends a little into the effort)
+    // to the peak, which comes after the end of the neural inspiration: the lungs keep filling until
+    // the alveolar pressure catches up with the mouth. Latched with the exhaled volume, at breath end
+    this.insp_tidal_volume = Math.max(this._v_max - this._v_trough, 0.0);
     this.minute_volume = this.exp_tidal_volume * this.resp_rate;
     if (!this.breathing_enabled || !(this._target_vt_breath > 0.0)) return;
 
