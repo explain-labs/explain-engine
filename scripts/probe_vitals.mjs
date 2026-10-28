@@ -121,7 +121,7 @@ const RANGES = {
   },
   // the healthy term neonate at ~72 h: the ranges of docs/TermNeonateReference.md
   // (scripts/reference/term_neonate_72h.json) where it gives one; SpO2 mean - 2 SD; pap_* stay the
-  // age-dependent table below (rangesFor); hco3 and etco2 have no reference range
+  // age-dependent table (rangesFor in _probe.mjs); hco3 and etco2 have no reference range
   neonate: {
     hr: [91, 145], rr: [32, 57], sys: [60, 89], dia: [31, 61], map: [45, 72],
     pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
