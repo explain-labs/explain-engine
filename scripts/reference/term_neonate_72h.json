@@ -209,6 +209,11 @@
       "cite": "Smolich JJ, Berger PJ, Walker AM. Interrelation between ventricular function, myocardial blood flow, and O2 consumption changes at birth in lambs. Am J Physiol 1996;270:H741-9",
       "doi": "10.1152/ajpheart.1996.270.2.H741",
       "pmid": "8779852"
+    },
+    "stettler1992": {
+      "cite": "Stettler N et al. Energetic and metabolic cost of growth in Gambian infants. Eur J Clin Nutr 1992;46:329-35",
+      "doi": null,
+      "pmid": "1600931"
     }
   },
   "variables": [
@@ -1161,8 +1166,29 @@
         "vanderhoeven1996"
       ],
       "grade": "C",
-      "model_readout": "Metabolism.vo2",
+      "model_readout": "Monitor.vo2",
       "notes": "Calorimetry: 6.26 +/- 1.51 (first week, thermoneutral rest); 6.6-7.2 from energy expenditure at 6 and 30 h, RQ 0.94 -> 0.88 (Zoppi 1998). ~8.4 is what the direct venous extraction (0.21) needs at an output of ~200 mL/kg/min; it raises ventilation to ~250 (215 measured in quiet sleep). Revised 2026-10-27 (was 6.26)."
+    },
+    {
+      "key": "rq",
+      "group": "metabolism",
+      "label": "Respiratory quotient",
+      "unit": "-",
+      "mean": 0.85,
+      "sd": null,
+      "low": 0.8,
+      "high": 0.9,
+      "range_type": "range",
+      "method": "indirect calorimetry (VCO2 / VO2 at the airway)",
+      "age": "first days (no measurement at 72 h)",
+      "n": null,
+      "sources": [
+        "zoppi1998",
+        "stettler1992"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.rq",
+      "notes": "Zoppi 1998: 0.94 at 6 h, 0.88 at 30 h in term babies on 10 % glucose feeds before milk (n=46); Stettler 1992: 0.879 +/- 0.009 in breast-fed term babies at ~17 days, asleep. No measurement at 72 h; a breast-fed baby on small volumes of fat-rich milk is expected below the glucose-fed 0.88, so ~0.85 is an estimate. The model's 0.80 (Metabolism.resp_q) is kept at the low edge: raising it adds CO2 and ventilation, which already exceeds the quiet-sleep 215 mL/kg/min. Added 2026-10-28."
     },
     {
       "key": "temp",
