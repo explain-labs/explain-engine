@@ -214,6 +214,26 @@
       "cite": "Stettler N et al. Energetic and metabolic cost of growth in Gambian infants. Eur J Clin Nutr 1992;46:329-35",
       "doi": null,
       "pmid": "1600931"
+    },
+    "cohen1991": {
+      "cite": "Cohen G, Xu C, Henderson-Smart D. Ventilatory response of the sleeping newborn to CO2 during normoxic rebreathing. J Appl Physiol 1991;71:168-74",
+      "doi": "10.1152/jappl.1991.71.1.168",
+      "pmid": "1917739"
+    },
+    "moriette1985": {
+      "cite": "Moriette G, Van Reempts P, Moore M, Cates D, Rigatto H. The effect of rebreathing CO2 on ventilation and diaphragmatic electromyography in newborn infants. Respir Physiol 1985;62:387-97",
+      "doi": "10.1016/0034-5687(85)90093-3",
+      "pmid": "3937194"
+    },
+    "rigatto1991": {
+      "cite": "Rigatto H, Kwiatkowski KA, Hasan SU, Cates DB. The ventilatory response to endogenous CO2 in preterm infants. Am Rev Respir Dis 1991;143:101-4",
+      "doi": "10.1164/ajrccm/143.1.101",
+      "pmid": "1898842"
+    },
+    "mortola1996": {
+      "cite": "Mortola JP, Lanthier C. The ventilatory and metabolic response to hypercapnia in newborn mammalian species. Respir Physiol 1996;103:263-70",
+      "doi": "10.1016/0034-5687(95)00093-3",
+      "pmid": "8738902"
     }
   },
   "variables": [
@@ -980,6 +1000,29 @@
       "grade": "A/B",
       "model_readout": "DS.vol / weight",
       "notes": "Vd/Vt ~0.3-0.4."
+    },
+    {
+      "key": "co2_response",
+      "group": "breathing",
+      "label": "Ventilatory response to CO2",
+      "unit": "mL/kg/min per mmHg",
+      "mean": 38.7,
+      "sd": null,
+      "low": 12,
+      "high": 67,
+      "range_type": "range",
+      "method": "CO2 rebreathing (normoxic) in term babies at 4-6 days; quiet sleep 38.7 +/- 3.0, REM sleep 12.2 +/- 3.0 (n=5, 4-5 tests each)",
+      "age": "4-6 days",
+      "n": 5,
+      "sources": [
+        "cohen1991",
+        "moriette1985",
+        "rigatto1991",
+        "mortola1996"
+      ],
+      "grade": "B",
+      "model_readout": "none in this probe: scripts/probe_co2_response.mjs (steady state, 0/2/4 % inspired CO2)",
+      "notes": "Mixed sleep/awake state between the REM and quiet-sleep values; test-to-test variation 35 % in quiet sleep. Moriette 1985 (rebreathing in 40 % O2) 67 in quiet sleep, 44 in active sleep: upper bound. Steady-state and rebreathing slopes agree in preterms (38 vs 40, Rigatto 1991). Pattern: Vt rises in all reports; rate contributes in quiet sleep (Cohen 1991: the REM deficit is mainly a missing rate rise), little in preterms and newborn mammals (Rigatto 1981; Mortola 1996: Vt +78 %, rate 98 % at 5 % CO2); no quantitative term split found. Model 2026-10-28: 34 (0-4 % CO2; RR +52 %, Vt +35 % at 4 %). Added 2026-10-28."
     },
     {
       "key": "spo2",
