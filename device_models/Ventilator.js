@@ -18,6 +18,9 @@ export class Ventilator extends BaseModelClass {
     this.temp = 37;
     this.ettube_diameter = 4;
     this.ettube_length = 110;
+    this.sensor_dead_space = 0.0; // mL, flow sensor and tube connector at the Y-piece (in series with the tube); 0 = auto by circuit size (calc_sensor_dead_space)
+    this.upper_airway_ds_fraction = 0.0; // share of the airway dead space (DS) above the tube tip, bypassed while intubated; 0 = auto by age (calc_upper_airway_ds_fraction)
+    this.ds_bypass_applied = 0.0; // state: the DS share whose volume is currently removed (saved with the scenario, so a reload does not remove it twice)
     this.vent_mode = "PRVC";
     this.vent_rate = 40;
     this.tidal_volume = 0.015;
@@ -36,6 +39,7 @@ export class Ventilator extends BaseModelClass {
     this.hfo_freq = 10; // HFOV frequency (Hz)
     this.hfo_insp_fraction = 0.33; // HFOV inspiratory fraction of the cycle (0.33 = I:E 1:2, 0.5 = 1:1)
     this.hfo_bias_flow = 10; // HFOV continuous fresh-gas (bias) flow (L/min)
+    this.bias_flow = 0.0; // continuous fresh-gas flow through the circuit while the expiratory valve is open (L/min); 0 = auto by circuit size (calc_bias_flow)
     this.hfo_volume_guarantee = false; // HFOV: servo the amplitude to hfo_tidal_volume_target (limit hfo_amplitude_max_cmh2o)
     this.hfo_tidal_volume_target = 0.002; // L, HFOV expired volume per oscillation to aim for
     this.hfo_amplitude_max_cmh2o = 40; // HFOV volume targeting: the amplitude limit
@@ -407,13 +411,45 @@ export class Ventilator extends BaseModelClass {
   }
 
   _set_tube_dead_space(intubated) {
-    // the ET-tube lumen is dead space in series with the airway; the dead-space compartment carries
-    // it as rigid composition sub-tanks ahead of the tube port (only with series dead space on)
+    // the ET-tube lumen and the flow sensor / connector are dead space in series with the airway;
+    // the dead-space compartment carries them as rigid composition sub-tanks ahead of the tube port
+    // (only with series dead space on). The tube also bypasses the airway above its tip (nose,
+    // pharynx, larynx), so that share of the dead-space compartment leaves the gas path while
+    // intubated: its volume is removed once when the tube goes in (and given back when it comes
+    // out), and its unstressed volume is held down through the non-persistent u_vol factor.
     const ds = this._model_engine.models[this._ett_to];
     if (!ds || !("tube_volume" in ds)) return;
     const r = this.ettube_diameter / 2000.0; // m
+    const lumen = Math.PI * r * r * (this.ettube_length / 1000.0) * 1000.0; // L
     ds.tube_port_model = this._vent_gascircuit?.name ?? "";
-    ds.tube_volume = intubated ? Math.PI * r * r * (this.ettube_length / 1000.0) * 1000.0 : 0.0; // L
+    ds.tube_volume = intubated ? lumen + this.calc_sensor_dead_space() / 1000.0 : 0.0; // L
+
+    const bypass = intubated ? this.calc_upper_airway_ds_fraction() : 0.0;
+    if (bypass !== this.ds_bypass_applied) {
+      ds.vol *= (1.0 - bypass) / (1.0 - this.ds_bypass_applied);
+      this.ds_bypass_applied = bypass;
+    }
+    if (bypass > 0.0) ds.u_vol_factor = 1.0 - bypass;
+  }
+
+  calc_sensor_dead_space() {
+    // mL; auto (sensor_dead_space 0) by circuit size: a neonatal flow sensor with its connector ~1 mL
+    // (without an in-line suction hub), paediatric ~2 mL, adult ~6 mL
+    if (this.sensor_dead_space > 0.0) return this.sensor_dead_space;
+    if (this.ettube_diameter < 4.5) return 1.0;
+    if (this.ettube_diameter < 6.0) return 2.0;
+    return 6.0;
+  }
+
+  calc_upper_airway_ds_fraction() {
+    // the extrathoracic share of the anatomic dead space, which the tube bypasses. Numa & Newth 1996
+    // (intubated infants and children): extrathoracic 2.25 - 0.56 ln(1 + age) mL/kg (2.3 in early
+    // infancy, 0.8 beyond 6 years), intrathoracic 1.03 mL/kg at every age, so the share is ~0.69 in
+    // a newborn and falls with age. Auto when upper_airway_ds_fraction is 0.
+    if (this.upper_airway_ds_fraction > 0.0) return Math.min(this.upper_airway_ds_fraction, 0.95);
+    const age = Math.max(this._model_engine.age ?? 0.0, 0.0); // years
+    const extra = Math.max(2.25 - 0.56 * Math.log(1.0 + age), 0.2);
+    return extra / (extra + 1.03);
   }
 
   calc_leak() {
@@ -991,12 +1027,7 @@ export class Ventilator extends BaseModelClass {
       // the expiratory valve opens to the PEEP reservoir and the demand valve holds PEEP, so a
       // spontaneously breathing patient can inhale between ventilator breaths (and trigger them).
       // While the patient exhales the circuit sits above PEEP and the servo stays shut.
-      this._vent_exp_valve.no_flow = false;
-      this._vent_exp_valve.no_back_flow = true;
-      this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-      const p_exp = this._respond(this._peep);
-      this._vent_gasout.vol = p_exp / this._vent_gasout.el_base + this._vent_gasout.u_vol;
-      this._pressure_servo(p_exp);
+      this._hold_expiratory(this._respond(this._peep));
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -1056,12 +1087,7 @@ export class Ventilator extends BaseModelClass {
       // the expiratory valve opens to the PEEP reservoir and the demand valve holds PEEP, so a
       // spontaneously breathing patient can inhale between ventilator breaths (and trigger them).
       // While the patient exhales the circuit sits above PEEP and the servo stays shut.
-      this._vent_exp_valve.no_flow = false;
-      this._vent_exp_valve.no_back_flow = true;
-      this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-      this._vent_gasout.vol =
-        this._peep / this._vent_gasout.el_base + this._vent_gasout.u_vol;
-      this._pressure_servo(this._peep);
+      this._hold_expiratory(this._peep);
 
       if (this._vent_ettube.flow < 0) {
         this._exp_tidal_volume_counter += this._vent_ettube.flow * this._t;
@@ -1078,14 +1104,7 @@ export class Ventilator extends BaseModelClass {
     // inspiratory valve: servo the circuit at the CPAP level, delivering the patient's
     // inspiratory demand (up to insp_flow) instead of letting the pressure dip. The level passes
     // the pressure response, so the circuit settles back to CPAP after a backup breath.
-    const p_cpap = this._respond(this._peep);
-    this._pressure_servo(p_cpap);
-
-    // expiratory valve: open, reservoir pinned at CPAP so the circuit floats at CPAP
-    this._vent_exp_valve.no_flow = false;
-    this._vent_exp_valve.no_back_flow = true;
-    this._vent_exp_valve.r_for = this.calc_exp_valve_resistance();
-    this._vent_gasout.vol = p_cpap / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+    this._hold_expiratory(this._respond(this._peep));
 
     // spontaneous-breath monitoring: close out a breath at each spontaneous inspiration start
     // (Breathing.ncc_insp === 1 marks the first step of a new spontaneous inspiration)
@@ -1111,7 +1130,19 @@ export class Ventilator extends BaseModelClass {
     this.minute_volume = this.exp_tidal_volume * (this._breathing_model?.resp_rate ?? 0);
   }
 
-  _pressure_servo(target) {
+  _hold_expiratory(p) {
+    // expiratory valve open to the PEEP reservoir, demand valve holding p; with a bias flow the
+    // reservoir sits lower by the valve's pressure drop at that flow, so the circuit stays at p
+    const r = this.calc_exp_valve_resistance();
+    const q_bias = this.calc_bias_flow() / 60.0;
+    this._vent_exp_valve.no_flow = false;
+    this._vent_exp_valve.no_back_flow = true;
+    this._vent_exp_valve.r_for = r;
+    this._vent_gasout.vol = (p - q_bias * r) / this._vent_gasout.el_base + this._vent_gasout.u_vol;
+    this._pressure_servo(p, q_bias);
+  }
+
+  _pressure_servo(target, q_floor = 0.0) {
     // Demand valve: meter fresh gas into the circuit so its pressure follows `target` (mmHg above
     // atmospheric). Needed flow = what leaves the circuit (ET tube + expiratory valve, last step)
     // plus a proportional correction of the pressure error through the circuit elastance, capped
@@ -1125,7 +1156,7 @@ export class Ventilator extends BaseModelClass {
     const e_c = Math.max(circuit.el_eff, 1.0); // mmHg/L
     const q_out =
       this._vent_ettube.flow + (this._vent_exp_valve.no_flow ? 0.0 : this._vent_exp_valve.flow);
-    const q = Math.min(q_max, q_out + (this._servo_gain * p_err) / (e_c * this._t));
+    const q = Math.min(q_max, Math.max(q_floor, q_out + (this._servo_gain * p_err) / (e_c * this._t)));
 
     const dp_valve = this._vent_gasin.pres - circuit.pres;
     valve.no_back_flow = true;
@@ -1637,6 +1668,20 @@ export class Ventilator extends BaseModelClass {
     if (resp && typeof resp.set_tube_block === "function") {
       resp.set_tube_block("left", ventilating && this.tube_position === "right_main");
     }
+  }
+
+  calc_bias_flow() {
+    // the continuous fresh-gas flow that washes the expired gas out of the circuit between
+    // breaths (and in CPAP); without it the circuit fills with expired CO2 that the next breath
+    // draws back in. Auto (bias_flow 0) picks the circuit that goes with the tube size, like the
+    // expiratory valve: neonatal circuits run ~8 L/min, paediatric and adult ventilators a few L/min
+    let q = this.bias_flow;
+    if (!(q > 0.0)) {
+      if (this.ettube_diameter < 4.5) q = 8.0; // neonatal circuit
+      else if (this.ettube_diameter < 6.0) q = 5.0; // paediatric
+      else q = 3.0; // adult
+    }
+    return Math.min(q, this.insp_flow); // the demand valve delivers at most insp_flow
   }
 
   calc_exp_valve_resistance() {

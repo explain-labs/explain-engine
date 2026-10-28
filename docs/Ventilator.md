@@ -111,6 +111,10 @@ References to the first six are cached in `init_model` and held in `_ventilator_
 | `insp_flow` | L/min | Maximal flow of the demand valve in `PC`/`PRVC`/`PS`/`CPAP`; the delivered (constant) flow in `VC` (default 12) |
 | `leak_size` | mm | Equivalent diameter of the gap around an uncuffed tube; 0 = no leak (default). Useful range ≈ 0.5–1.25 mm neonatal, 1–3 mm adult — see *Tube leak* |
 | `exp_valve_resistance` | mmHg·s/L | Expiratory limb + valve; 0 = auto by circuit size (default) — see *Expiratory valve* |
+| `bias_flow` | L/min | Continuous fresh-gas flow through the circuit while the expiratory valve is open; 0 = auto by circuit size (default) — see *Bias flow* |
+| `sensor_dead_space` | mL | Flow sensor + tube connector at the Y-piece, in series with the tube; 0 = auto by circuit size (default) — see *ET-tube dead space* |
+| `upper_airway_ds_fraction` | – | Share of the airway dead space above the tube tip, bypassed while intubated; 0 = auto by age (default) — see *ET-tube dead space* |
+| `ds_bypass_applied` | – | State, not a setting: the dead-space share whose volume is currently removed (saved with the scenario) |
 | `volume_guarantee` | bool | Volume guarantee on top of `PC` (incl. synchronized A/C), `PS` or `SIMV`: the working pressure is servoed breath-to-breath to `tidal_volume`, limited by `pip_cmh2o_max` (default false) |
 | `rise_time` | s | Pressure rise time in `PC`/`PRVC`/`PS`: the target ramps PEEP → PIP over this time (default 0.1; 0 = as fast as `insp_flow` allows) |
 | `exp_flow` | L/min | Expiratory flow setting (default 3; reserved — not used in the current math) |
@@ -265,11 +269,11 @@ captured into `_pip_meas` for the mechanics read-outs.
   The result is a square pressure waveform with decelerating flow, as on a real pressure-controlled
   ventilator. Integrate inspiratory tidal volume from positive ET-tube flow, and record
   `_insp_flow_at_pause` for the resistance measurement.
-- **Expiration** — open `VENT_EXP_VALVE` (`r_for` from `calc_exp_valve_resistance`, see *Expiratory valve*) and pin the expiratory reservoir volume to
-  hold PEEP (`vol = _peep/el_base + u_vol`). The inspiratory valve runs the pressure servo with PEEP
-  as its target (a demand valve). While the patient exhales the circuit sits above PEEP and the
-  servo stays shut; once the patient inhales it supplies the flow. Integrate expiratory tidal volume
-  from negative ET-tube flow.
+- **Expiration** — `_hold_expiratory(PEEP)`: open `VENT_EXP_VALVE` (`r_for` from `calc_exp_valve_resistance`, see *Expiratory valve*), pin the expiratory reservoir volume to
+  hold PEEP and run the pressure servo with PEEP as its target (a demand valve) with the bias flow
+  as its floor (see *Bias flow*). While the patient exhales the circuit sits above PEEP and only the
+  bias flow runs; once the patient inhales the servo supplies the flow. Integrate expiratory tidal
+  volume from negative ET-tube flow.
 
   > Before 2026-10, the inspiratory valve was simply shut in expiration. The circuit was then sealed
   > between ventilator breaths, apart from the one-way exit to the PEEP reservoir. A spontaneously
@@ -292,12 +296,35 @@ at the Y-piece. Without the filter the circuit tracks the target within a step, 
 comes out as a sharp-cornered box. VC and HFO do not use it; they reset the filter state. See
 [Sle6000](./Sle6000.md) for the 12 ms value and its calibration.
 
+### Bias flow (`_hold_expiratory`, `calc_bias_flow`)
+
+Whenever the expiratory valve is open (the expiration of PC/PRVC/VC/PS and CPAP), a continuous
+fresh-gas flow runs through the circuit and out of the expiratory valve, as on a real neonatal or
+paediatric ventilator. It washes the expired gas out of the circuit. `_hold_expiratory(p)` passes it
+to the pressure servo as a floor (`q ≥ q_bias`) and pins the PEEP reservoir lower by the valve's
+pressure drop at that flow (`p − q_bias · r_exp`), so the circuit stays at `p`. With
+`bias_flow = 0` (auto) it follows the circuit size, capped at `insp_flow`:
+
+| ET tube | circuit | bias flow (L/min) |
+|---|---|---|
+| < 4.5 mm | neonatal | 8 |
+| 4.5–6 mm | paediatric | 5 |
+| ≥ 6 mm | adult | 3 |
+
+> Before 2026-10 there was no bias flow: the demand valve delivered only what the patient drew in,
+> the expired gas stayed in the single well-mixed circuit compartment and the next breath drew it
+> back in. On CPAP 5 the term baby's circuit held ~15 mmHg CO₂ (~2 %), and the chemoreflex raised
+> ventilation by 58 % (MV 256 → 405 mL/kg/min, RR 56, Vt 7.2 mL/kg). With 8 L/min the circuit holds
+> ~2.6 mmHg.
+
+HFOV keeps its own `hfo_bias_flow` (see *High-frequency oscillation*).
+
 ### `_pressure_servo(target)` (demand valve)
 
 Meters fresh gas into the circuit so `VENT_GASCIRCUIT` follows `target` (mmHg above atmospheric):
 
 ```
-q = clamp( q_out + gain · (target − P_circuit) / (E_circuit · dt) ,  0 , insp_flow/60 )
+q = clamp( q_out + gain · (target − P_circuit) / (E_circuit · dt) ,  q_floor , insp_flow/60 )
 r_for(VENT_INSP_VALVE) = (VENT_GASIN.pres − P_circuit) / q        (no_flow when q ≈ 0)
 ```
 
@@ -306,7 +333,8 @@ the valve feeds the patient's demand forward and only corrects the residual pres
 `gain` (`_servo_gain`) is 0.8. A lower gain lags the target, which made the adult circuit
 oscillate; at 1.0 PS starts to dither. The source sits about 400 mmHg above the circuit, so the
 valve is close to an ideal flow source, and the one-step-old circuit pressure the Ventilator sees
-(it steps before its components) is good enough. The valve never sucks gas back (`q ≥ 0`), and it
+(it steps before its components) is good enough. The valve never delivers less than `q_floor` (the
+bias flow when the expiratory valve is open, else 0), so it never sucks gas back, and it
 is capped at `insp_flow`. A flow-limited breath (small `insp_flow`, large lung) therefore ramps
 instead of squaring, and may not reach PIP within `insp_time`.
 
@@ -400,8 +428,8 @@ per minute.
 CPAP holds the circuit at the CPAP level (= `peep_cmh2o`) and lets the patient breathe spontaneously
 through the ET tube — **both valves stay open**. The inspiratory valve is the pressure servo, with
 the CPAP level as its target, so it delivers the patient's inspiratory demand (up to `insp_flow`)
-instead of letting the pressure dip. The expiratory reservoir is pinned, so the circuit floats at
-CPAP. Tidal volumes are accumulated from ET-tube flow and closed out at each spontaneous inspiration
+instead of letting the pressure dip, and never less than the bias flow, which washes the circuit
+(see *Bias flow*). The expiratory reservoir is pinned, so the circuit floats at CPAP. Tidal volumes are accumulated from ET-tube flow and closed out at each spontaneous inspiration
 start (`Breathing.ncc_insp === 1`), where `tv_kg` and `p_peak` (peak circuit pressure over that
 spontaneous breath) are latched too; `minute_volume = exp_tidal_volume · Breathing.resp_rate`.
 
@@ -526,10 +554,30 @@ Limitations:
 ## ET-tube dead space (`_set_tube_dead_space`)
 
 While the ventilator is on, it sets the dead-space compartment's `tube_volume` to the lumen volume
-`π·(d/2)²·L` and its `tube_port_model` to `VENT_GASCIRCUIT`. With series dead space on (the default,
-see [GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)), gas to and from
-the circuit then passes through that rigid lumen, so a longer or wider tube adds dead space. The leak
-and the natural airway bypass the lumen. Switching the ventilator off sets `tube_volume` back to 0.
+`π·(d/2)²·L` plus the flow sensor and connector (`calc_sensor_dead_space`), and its
+`tube_port_model` to `VENT_GASCIRCUIT`. With series dead space on (the default, see
+[GasCapacitance → Series dead space](./GasCapacitance.md#series-dead-space)), gas to and from the
+circuit then passes through that rigid volume, so a longer or wider tube adds dead space. The leak
+and the natural airway bypass it. Switching the ventilator off sets `tube_volume` back to 0.
+
+**Sensor and connector.** `sensor_dead_space = 0` (auto): 1 mL for a neonatal circuit (a neonatal
+flow sensor with its connector, without an in-line suction hub), 2 mL paediatric, 6 mL adult.
+Nassabeh-Montazami 2009 measured 2.7 mL for a 2.5 mm tube cut to 10 cm with an in-line suction hub
+and flow sensor.
+
+**Upper airway bypassed.** The tube tip sits in the trachea, so the dead space above it (nose,
+mouth, pharynx, larynx) leaves the gas path. That share of the dead-space compartment is removed
+while intubated: its volume once when the tube goes in (`ds_bypass_applied` records it, so a saved
+and reloaded state does not remove it twice; it is given back when the ventilator is switched off or
+the patient extubated), and its unstressed volume each step through the non-persistent `u_vol_factor`.
+With `upper_airway_ds_fraction = 0` (auto) the share follows age (Numa & Newth 1996, intubated
+infants and children): extrathoracic 2.25 − 0.56·ln(1 + age) mL/kg (2.3 in early infancy, 0.8
+beyond 6 years), intrathoracic 1.03 mL/kg at every age, so the share is ~0.69 in a newborn and ~0.24
+in an adult.
+
+term_neonate_72h, intubated (3.5 mm × 110 mm) on CPAP 5: airway dead space 7.9 → 3.1 mL, tube +
+sensor 2.06 mL, series dead space 5.1 mL instead of 7.9 (before: 7.9 + the 1.06 mL lumen). With the
+bias flow, MV is 251 mL/kg/min against 256 breathing spontaneously, PaCO2 37.4 against 39.4.
 
 ## Expiratory valve
 
@@ -853,4 +901,6 @@ the full definition also nests the six `VENT_*` sub-models under `components`:
 ## References
 
 - ISO 80601-2-12 (critical care ventilators): the expiratory-limb pressure drop limits used for the automatic expiratory valve.
+- Numa AH, Newth CJ. Anatomic dead space in infants and children. *J Appl Physiol* 1996;80:1485–9. doi:10.1152/jappl.1996.80.5.1485 (extrathoracic and intrathoracic dead space by age)
+- Nassabeh-Montazami S, Abubakar KM, Keszler M. The impact of instrumental dead-space in volume-targeted ventilation of the extremely low birth weight (ELBW) infant. *Pediatr Pulmonol* 2009;44:128–33. doi:10.1002/ppul.20954 (tube, suction hub and flow sensor 2.7 mL)
 - SLE6000 instructions for use: monitoring definitions (see [Sle6000](./Sle6000.md)).
