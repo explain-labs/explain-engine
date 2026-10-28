@@ -16,6 +16,9 @@ export class Monitor extends BaseModelClass {
     this.sao2_pre = 0.0; // pre-ductal arterial O2 saturation, from the ascending aorta (AA)
     this.sao2_post = 0.0; // post-ductal arterial O2 saturation, from the descending aorta (AD)
     this.svo2 = 0.0; // mixed-venous O2 saturation, from the pulmonary artery (PA); falls back to RAIVCI
+    this.vo2 = 0.0; // O2 taken up by the lungs (gas exchangers of Respiration), mL/kg/min STPD, averaged over gas_avg_time
+    this.vco2 = 0.0; // CO2 given off by the lungs, mL/kg/min STPD, averaged over gas_avg_time
+    this.rq = 0.0; // respiratory exchange ratio vco2 / vo2 at the lungs
 
     // JSON-configurable flow read-outs: a list of { name, model } where model is a "ModelName.prop"
     // dot-path (prop defaults to "flow"). Each is reported beat-averaged in L/min under flows[name].
@@ -53,6 +56,7 @@ export class Monitor extends BaseModelClass {
     this.hr_avg_beats = 12;
     this.flow_avg_beats = 1;
     this.rr_avg_time = 20;
+    this.gas_avg_time = 60.0; // time constant (s) of the first-order average of the lung VO2/VCO2, as indirect calorimetry averages over ~1 min
     this.asystole_time = 6.0; // s without a beat after which HR, the beat-averaged flows and the
                               // per-beat pressures read 0 / the flat-line value instead of the last beat
     this.etco2_source = "DS"; // airway (dead-space) gas compartment whose end-expiratory pCO2 is the
@@ -67,6 +71,7 @@ export class Monitor extends BaseModelClass {
     this._breathing = null; // reference to the spontaneous breathing model (breath events)
     this._ventilator = null; // reference to the mechanical ventilator model (breath events)
     this._ds = null; // reference to the airway gas compartment for spontaneous end-tidal CO2
+    this._gas_exchangers = []; // the lung gas exchangers (Respiration.gas_exchangers) for vo2 / vco2
     this._vent_was_on = false; // ventilator state at the previous step (resets the etCO2 peak on a switch)
     this._asystole_counter = 0.0; // time since the last beat or the last asystole latch (s)
     this._etco2_peak = 0.0; // running peak airway pCO2 over the current breath (latched as etco2 at breath onset)
@@ -155,6 +160,12 @@ export class Monitor extends BaseModelClass {
     // airway gas compartment for the spontaneous end-tidal CO2 read-out (may be absent)
     this._ds = this._model_engine.models[this.etco2_source] ?? null;
 
+    // the lung gas exchangers for the measured vo2 / vco2 (lungs only: an ECLS oxygenator is not counted)
+    const respiration = this._model_engine.models["Respiration"];
+    this._gas_exchangers = (Array.isArray(respiration?.gas_exchangers) ? respiration.gas_exchangers : [])
+      .map((name) => this._model_engine.models[name])
+      .filter((m) => m);
+
     // flag that the model is initialized
     this._is_initialized = true;
   }
@@ -171,6 +182,9 @@ export class Monitor extends BaseModelClass {
 
     // average respiratory rate
     this.calc_resp_rate();
+
+    // O2 uptake and CO2 output at the lungs
+    this.calc_lung_gas_exchange();
 
     // end-tidal CO2: mirror the ventilator while it is actively ventilating, otherwise derive it
     // from the spontaneous breath (peak end-expiratory airway pCO2, latched in calc_resp_rate)
@@ -287,6 +301,24 @@ export class Monitor extends BaseModelClass {
       t.pres_sum = 0.0; t.pres_n = 0;
       t.vol_min = 1000.0; t.vol_max = -1000.0;
     });
+  }
+
+  calc_lung_gas_exchange() {
+    // the exchangers' fluxes are mmol per step, blood -> gas (O2 uptake is negative); a disabled
+    // exchanger keeps its last flux, so it is skipped
+    let o2_in = 0.0;
+    let co2_out = 0.0;
+    this._gas_exchangers.forEach((gex) => {
+      if (!gex.is_enabled) return;
+      o2_in -= gex.flux_o2;
+      co2_out += gex.flux_co2;
+    });
+    // mmol per step -> mL/kg/min STPD
+    const to_ml_kg_min = 60.0 / (this._t * O2_MMOL_PER_ML * this._model_engine.weight);
+    const a = Math.min(1.0, this._t / Math.max(this.gas_avg_time, this._t));
+    this.vo2 += (o2_in * to_ml_kg_min - this.vo2) * a;
+    this.vco2 += (co2_out * to_ml_kg_min - this.vco2) * a;
+    this.rq = this.vo2 > 0.01 ? this.vco2 / this.vo2 : 0.0;
   }
 
   calc_resp_rate() {

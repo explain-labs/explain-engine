@@ -5656,6 +5656,36 @@
                 "weight_based": false
               },
               {
+                "label": "VO2 lungs",
+                "unit": "ml/kg/min",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Monitor.vo2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "VCO2 lungs",
+                "unit": "ml/kg/min",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Monitor.vco2"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "RQ lungs",
+                "unit": "",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
+                  "Monitor.rq"
+                ],
+                "weight_based": false
+              },
+              {
                 "label": "Glucose",
                 "unit": "mmol/l",
                 "factor": 1,
@@ -13209,6 +13239,9 @@
         "sao2_pre": 96.6098958311967,
         "sao2_post": 96.36536807700996,
         "svo2": 78.09235562730524,
+        "vo2": 8.716,
+        "vco2": 6.974,
+        "rq": 0.8,
         "flow_targets": [
           {
             "name": "lvo",
@@ -13392,6 +13425,7 @@
         "hr_avg_beats": 12,
         "flow_avg_beats": 1,
         "rr_avg_time": 20,
+        "gas_avg_time": 60,
         "asystole_time": 6,
         "etco2_source": "DS"
       },
