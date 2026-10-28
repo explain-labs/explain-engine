@@ -3944,6 +3944,7 @@
         "title": "Vitals",
         "enabled": true,
         "collapsed": false,
+        "pinned": true,
         "parameters": [
           {
             "label": "HR",
@@ -4484,6 +4485,7 @@
             "title": "Vitals",
             "enabled": true,
             "collapsed": false,
+            "pinned": true,
             "parameters": [
               {
                 "label": "HR",
