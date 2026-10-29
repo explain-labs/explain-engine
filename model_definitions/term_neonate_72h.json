@@ -6903,6 +6903,60 @@
         "sensed_pressure": 41.81004928708462,
         "tgf_signal": 621.6173522284926
       },
+      "Interstitium": {
+        "name": "Interstitium",
+        "description": "interstitial fluid: capillary filtration, interstitial pool, lymph",
+        "is_enabled": true,
+        "model_type": "Interstitium",
+        "isf_volume_per_kg": 0.36,
+        "pif_rest": -1,
+        "compliance_above": 40,
+        "compliance_below": 4,
+        "kf_per_kg": 0.2,
+        "sigma": 0.85,
+        "oncotic_base": 18,
+        "albumin_ref": 25,
+        "isf_albumin_ratio": 0.6,
+        "lymph_flow_rest": 0.1,
+        "lymph_gain": 1,
+        "lymph_pv_gain": 0.127,
+        "lymph_max_ratio": 3.4,
+        "lymph_site": "SVC",
+        "pc_art_fraction": 0.2,
+        "seed_delay": 30,
+        "filtration_sites": [
+          {
+            "bed": "RUB",
+            "vein": "VUB",
+            "share": 0.4
+          },
+          {
+            "bed": "RLB",
+            "vein": "VLB",
+            "share": 0.4
+          },
+          {
+            "bed": "INT_CAP",
+            "vein": "",
+            "share": 0.12
+          },
+          {
+            "bed": "LS_CAP",
+            "vein": "",
+            "share": 0.08
+          }
+        ],
+        "filterable_solutes": [
+          "na",
+          "k",
+          "ca",
+          "cl",
+          "lact",
+          "mg",
+          "phosphates",
+          "uma"
+        ]
+      },
       "Brain": {
         "name": "Brain",
         "description": "cerebral autoregulation + intracranial pressure",
