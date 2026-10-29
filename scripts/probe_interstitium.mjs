@@ -5,8 +5,12 @@
 //     resting volume, pressure and albumin.
 // (B) --saline ML_KG: normal saline over 10 min into IVCI (fraction of the infused volume still in the
 //     blood at 10/20/30/60 min after its start).
+// (C) --bleed FRAC: an arterial bleed of FRAC of the blood volume over 5 min (Brace 1983's protocol),
+//     with and without the Interstitium: restitution = share of the shed volume back by 10/20/30/60 min.
+// --skip-rest skips (A).
 //
 // Usage: node scripts/probe_interstitium.mjs [--scenario term_neonate_72h] [--minutes 30] [--saline 20]
+//        [--bleed 0.14] [--skip-rest] [--set kf_per_kg=0.1,compliance_below=4]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -17,6 +21,10 @@ const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] 
 const SCENARIO = opt("--scenario", "term_neonate_72h");
 const MINUTES = Number(opt("--minutes", 30));
 const SALINE = Number(opt("--saline", 0));
+const BLEED = Number(opt("--bleed", 0));
+const SKIP_REST = argv.includes("--skip-rest");
+// --set key=value,key=value overrides Interstitium parameters (fitting)
+const SET = Object.fromEntries((opt("--set", "") || "").split(",").filter(Boolean).map((kv) => { const [k, v] = kv.split("="); return [k, Number(v)]; }));
 
 let live = null;
 globalThis.self = globalThis;
@@ -40,6 +48,7 @@ function build(isf) {
   const def = structuredClone(base);
   if (isf && !def.models.Interstitium) def.models = { Interstitium: { ...ISF_DEF }, ...def.models };
   if (!isf) delete def.models.Interstitium;
+  else Object.assign(def.models.Interstitium, SET);
   send("POST", "build", def);
   send("GET", "state", []);
   return live;
@@ -52,8 +61,8 @@ function means(M, T = 10) {
   return { cvp: c / n, map: p / n };
 }
 
-function snap(E, label) {
-  const M = E.models, W = E.weight, I = M.Interstitium, a = means(M);
+function snap(E, label, T = 10) {
+  const M = E.models, W = E.weight, I = M.Interstitium, a = means(M, T);
   return {
     t: label,
     BV: r((M.Circulation.total_blood_volume * 1000) / W, 2),
@@ -72,23 +81,26 @@ function snap(E, label) {
 
 console.log = _log;
 const rows = [];
-for (const isf of [false, true]) {
+for (const isf of SKIP_REST ? [] : [false, true]) {
   const E = build(isf);
   console.log = () => {};
   send("POST", "calc", 50); // warm-up incl. the 30 s seed
-  const row0 = snap(E, `${isf ? "isf" : "ctrl"} 1m`);
-  send("POST", "calc", MINUTES * 60 - 70);
-  const row1 = snap(E, `${isf ? "isf" : "ctrl"} ${MINUTES}m`);
+  // the rest comparison averages 30 s, so the breathing cycle and CVP noise do not decide it
+  const row0 = snap(E, `${isf ? "isf" : "ctrl"} 1m`, 30);
+  send("POST", "calc", MINUTES * 60 - 110);
+  const row1 = snap(E, `${isf ? "isf" : "ctrl"} ${MINUTES}m`, 30);
   rows.push(row0, row1);
   console.log = _log;
 }
-console.log(`\nInterstitium probe — ${SCENARIO}: (A) rest, ${MINUTES} min, without and with the model`);
-console.table(rows);
-const c = rows[1], i = rows[3];
-const ok = (x, y, tol) => Math.abs(x - y) <= tol;
-console.log(
-  `NEUTRALITY: BV ${ok(c.BV, i.BV, 0.2)} | MAP ${ok(c.MAP, i.MAP, 0.3)} | CVP ${ok(c.CVP, i.CVP, 0.1)} | Hb ${ok(c.Hb, i.Hb, 0.02)} | alb ${ok(c.alb, i.alb, 0.2)} | Na ${ok(c.na, i.na, 0.2)} | ISF held ${ok(rows[2].ISF, i.ISF, 1)} | Pif held ${ok(rows[2].Pif, i.Pif, 0.05)}`,
-);
+if (!SKIP_REST) {
+  console.log(`\nInterstitium probe — ${SCENARIO}: (A) rest, ${MINUTES} min, without and with the model`);
+  console.table(rows);
+  const c = rows[1], i = rows[3];
+  const ok = (x, y, tol) => Math.abs(x - y) <= tol;
+  console.log(
+    `NEUTRALITY: BV ${ok(c.BV, i.BV, 0.2)} | MAP ${ok(c.MAP, i.MAP, 0.3)} | CVP ${ok(c.CVP, i.CVP, 0.1)} | Hb ${ok(c.Hb, i.Hb, 0.02)} | alb ${ok(c.alb, i.alb, 0.2)} | Na ${ok(c.na, i.na, 0.2)} | ISF held ${ok(rows[2].ISF, i.ISF, 1)} | Pif held ${ok(rows[2].Pif, i.Pif, 0.05)}`,
+  );
+}
 
 if (SALINE > 0) {
   const E = build(true), M = E.models, W = E.weight;
@@ -107,5 +119,32 @@ if (SALINE > 0) {
   }
   console.log = _log;
   console.log(`\n(B) normal saline ${SALINE} mL/kg over 10 min into IVCI (retained = blood-volume gain / volume given)`);
+  console.table(out);
+}
+
+if (BLEED > 0) {
+  const out = [];
+  for (const isf of [false, true]) {
+    const E = build(isf), M = E.models, W = E.weight;
+    console.log = () => {};
+    send("POST", "calc", 120);
+    const bv0 = M.Circulation.total_blood_volume;
+    const shed = BLEED * bv0; // L
+    const row0 = snap(E, `${isf ? "isf" : "ctrl"} before`);
+    row0.HR = r(M.Monitor.heart_rate, 0);
+    out.push(row0);
+    M.Fluids.remove_volume(shed * 1000, 300, "AD");
+    let t = 10;
+    for (const T of [5, 10, 20, 30, 60]) {
+      send("POST", "calc", T * 60 - t - 10); t = T * 60;
+      const row = snap(E, `${isf ? "isf" : "ctrl"} ${T} min`);
+      row.HR = r(M.Monitor.heart_rate, 0);
+      const lost = Math.min(T, 5) / 5 * shed;
+      row.restit_pct = r(100 * (1 - (bv0 - M.Circulation.total_blood_volume) / lost), 1);
+      out.push(row);
+    }
+    console.log = _log;
+  }
+  console.log(`\n(C) arterial bleed ${BLEED * 100} % of blood volume over 5 min (restitution = shed volume back in the blood)`);
   console.table(out);
 }

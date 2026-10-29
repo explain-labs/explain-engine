@@ -14,7 +14,8 @@ import { BaseModelClass } from "../base_models/BaseModelClass.js";
   The offsets are seeded after a warm-up so each site filters its share of the resting lymph flow:
   neutral at rest, and Kf sets how strongly the beds respond to a change.
 
-  Lymph:  Q = lymph_flow_rest · (1 + lymph_gain·(Pif − Pif_rest)) · (1 − lymph_pv_gain·(Pv − Pv_rest))
+  Lymph:  Q = lymph_flow_rest · (1 + gain·(Pif − Pif_rest)) · (1 − lymph_pv_gain·(Pv − Pv_rest)), gain =
+          lymph_gain above the resting pressure and lymph_gain_below under it
           clamped to 0 … lymph_max_ratio · lymph_flow_rest, into lymph_site with the pool's composition.
 
   Interstitial pressure: Pif = pif_rest + (V − V_rest)/C, with C = compliance_above above the resting
@@ -39,13 +40,14 @@ export class Interstitium extends BaseModelClass {
     this.pif_rest = -1.0; // mmHg — resting interstitial fluid pressure
     this.compliance_above = 40.0; // mL/mmHg/kg — above the resting volume
     this.compliance_below = 4.0; // mL/mmHg/kg — below the resting volume
-    this.kf_per_kg = 0.2; // mL/min/mmHg/kg — whole-body capillary filtration coefficient
+    this.kf_per_kg = 0.08; // mL/min/mmHg/kg — whole-body capillary filtration coefficient (fitted, term 72 h)
     this.sigma = 0.85; // albumin reflection coefficient
     this.oncotic_base = 18.0; // mmHg — oncotic pressure at albumin_ref (as Kidneys)
     this.albumin_ref = 25.0; // g/L
     this.isf_albumin_ratio = 0.6; // resting interstitial / plasma albumin (πif / πp)
     this.lymph_flow_rest = 0.1; // mL/min/kg — resting lymph flow (= resting net filtration)
     this.lymph_gain = 1.0; // fractional rise of lymph flow per mmHg of Pif above rest
+    this.lymph_gain_below = 0.3; // fractional fall per mmHg of Pif below rest (no data; weaker, so lymph keeps flowing)
     this.lymph_pv_gain = 0.127; // fractional fall of lymph flow per mmHg of outflow pressure above rest
     this.lymph_max_ratio = 3.4; // lymph flow ceiling (× rest)
     this.lymph_site = "SVC"; // venous compartment the thoracic duct drains into
@@ -138,7 +140,8 @@ export class Interstitium extends BaseModelClass {
 
     // lymph back to the venous system
     const q_rest = this.lymph_flow_rest * w / 60000.0; // L/s
-    let ratio = (1.0 + this.lymph_gain * (this.pif - this.pif_rest)) * (1.0 - this.lymph_pv_gain * (this._lymph_site.pres - this.pv_rest));
+    const d_pif = this.pif - this.pif_rest;
+    let ratio = (1.0 + (d_pif >= 0.0 ? this.lymph_gain : this.lymph_gain_below) * d_pif) * (1.0 - this.lymph_pv_gain * (this._lymph_site.pres - this.pv_rest));
     if (ratio < 0.0) ratio = 0.0;
     if (ratio > this.lymph_max_ratio) ratio = this.lymph_max_ratio;
     let lymph = q_rest * ratio * u; // L
