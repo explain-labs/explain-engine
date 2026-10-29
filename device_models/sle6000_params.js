@@ -43,6 +43,8 @@ export const SLE_MODES = {
     labels: { peep: "CPAP" },
   },
   CMV: { main: ["rr", "ti", "peep", "pip", "vtv", "o2"], extra: [null, "rise"] },
+  // non-invasive (p139): nCPAP through nasal prongs or a mask, the CPAP level and O2 only
+  nCPAP: { main: [null, null, "peep", null, null, "o2"], extra: [], labels: { peep: "CPAP" } },
   PTV: { main: ["rr", "ti", "peep", "pip", "vtv", "o2"], extra: [null, "rise", null, "trig_sens"] },
   PSV: {
     main: ["rr", "ti", "peep", "pip", "vtv", "o2"],
@@ -60,6 +62,9 @@ export const SLE_MODES = {
 
 // the oscillatory modes
 export const SLE_HFO_MODES = ["HFOV", "HFOV+CMV"];
+
+// the non-invasive modes (on a nasal interface; the others are on the endotracheal tube)
+export const SLE_NONINVASIVE_MODES = ["nCPAP"];
 
 // SpO2 (Utilities > Sensors > SpO2, p104): the OxyGenie target ranges, the only ones it may be used
 // with (p118), and the averaging times in s (3 = "2-4", 5 = "4-6"; 8 is the default)
@@ -122,6 +127,7 @@ export function sle_format(name, value, decimals = 1) {
 // lists the settings just edited.
 export function sle_interlocks(s, mode, changed = []) {
   const out = { ...s };
+  if (mode === "nCPAP") return out; // the CPAP level and O2 only: nothing to interlock
   if (mode === "HFOV") {
     if (out.sigh_rr > 0) {
       if (changed.includes("sigh_rr") && !changed.includes("sigh_ti")) {
