@@ -7,6 +7,11 @@
 //     blood at 10/20/30/60 min after its start).
 // (C) --bleed FRAC: an arterial bleed of FRAC of the blood volume over 5 min (Brace 1983's protocol),
 //     with and without the Interstitium: restitution = share of the shed volume back by 10/20/30/60 min.
+// (D) --merrill: Merrill 1995's volume expansion (conscious lambs 3-7 d: 6 % dextran 70, 0.7 mL/kg/min
+//     for 60 min = 42 mL/kg; RAP +5.6 ± 0.5 mmHg, reflex bradycardia), with an iso-oncotic colloid
+//     (albumin at the patient's own level in plasma electrolytes) into IVCI.
+// (E) --compliance: instant ±5 % blood-volume steps, CVP change over the first 10 s → total vascular
+//     compliance (mL/mmHg/kg; fetal sheep 3.0-3.5, Brace & Gold 1984).
 // --skip-rest skips (A).
 //
 // Usage: node scripts/probe_interstitium.mjs [--scenario term_neonate_72h] [--minutes 30] [--saline 20]
@@ -23,6 +28,11 @@ const MINUTES = Number(opt("--minutes", 30));
 const SALINE = Number(opt("--saline", 0));
 const BLEED = Number(opt("--bleed", 0));
 const SKIP_REST = argv.includes("--skip-rest");
+const MERRILL = argv.includes("--merrill");
+// --venous K: scale the systemic venous compliance by 1/K first (scripts/_fix_venous_compliance.mjs)
+const VENOUS_K = Number(opt("--venous", 0));
+const { scale_venous } = await import("./_fix_venous_compliance.mjs");
+const COMPLIANCE = argv.includes("--compliance");
 // --set key=value,key=value overrides Interstitium parameters (fitting)
 const SET = Object.fromEntries((opt("--set", "") || "").split(",").filter(Boolean).map((kv) => { const [k, v] = kv.split("="); return [k, Number(v)]; }));
 
@@ -49,6 +59,7 @@ function build(isf) {
   if (isf && !def.models.Interstitium) def.models = { Interstitium: { ...ISF_DEF }, ...def.models };
   if (!isf) delete def.models.Interstitium;
   else Object.assign(def.models.Interstitium, SET);
+  if (VENOUS_K > 0) scale_venous(def, VENOUS_K);
   send("POST", "build", def);
   send("GET", "state", []);
   return live;
@@ -146,5 +157,49 @@ if (BLEED > 0) {
     console.log = _log;
   }
   console.log(`\n(C) arterial bleed ${BLEED * 100} % of blood volume over 5 min (restitution = shed volume back in the blood)`);
+  console.table(out);
+}
+
+if (MERRILL) {
+  const E = build(true), M = E.models, W = E.weight;
+  console.log = () => {};
+  send("POST", "calc", 120);
+  const a = M.AD.solutes;
+  M.Fluids.fluids.colloid_iso = { na: a.na, k: a.k, ca: a.ca, cl: a.cl, mg: a.mg, phosphates: a.phosphates, albumin: a.albumin };
+  const bv0 = M.Circulation.total_blood_volume;
+  const row0 = snap(E, "before", 30);
+  row0.HR = r(M.Monitor.heart_rate, 0);
+  const out = [row0];
+  M.Fluids.add_volume(42 * W, 3600, "colloid_iso", "IVCI");
+  let t = 30;
+  for (const T of [15, 30, 45, 60]) {
+    send("POST", "calc", T * 60 - t - 30); t = T * 60;
+    const row = snap(E, `${T} min`, 30);
+    row.HR = r(M.Monitor.heart_rate, 0);
+    row.dCVP = r(row.CVP - row0.CVP, 2);
+    row.retained_pct = r((100 * ((M.Circulation.total_blood_volume - bv0) * 1000) / W) / (42 * T / 60), 1);
+    out.push(row);
+  }
+  console.log = _log;
+  console.log("\n(D) Merrill 1995: iso-oncotic colloid 42 mL/kg over 60 min into IVCI (lamb 3-7 d: RAP +5.6 ± 0.5, HR falls)");
+  console.table(out);
+}
+
+if (COMPLIANCE) {
+  const out = [];
+  for (const f of [-0.05, 0.05]) {
+    const E = build(true), M = E.models, W = E.weight;
+    console.log = () => {};
+    send("POST", "calc", 120);
+    const a0 = means(M, 30);
+    const bv0 = M.Circulation.total_blood_volume;
+    for (const m of Object.values(M)) if (m && m.blood_pool !== false && typeof m.vol === "number" && m.solutes && m.vol > 0) m.vol *= 1 + f;
+    send("POST", "calc", 0.1);
+    const dv = ((M.Circulation.total_blood_volume - bv0) * 1000) / W;
+    const a1 = means(M, 10);
+    console.log = _log;
+    out.push({ step: `${f * 100} %`, dV_mL_kg: r(dv, 2), dCVP: r(a1.cvp - a0.cvp, 2), compliance_mL_mmHg_kg: r(dv / (a1.cvp - a0.cvp), 2) });
+  }
+  console.log("\n(E) total vascular compliance from instant ±5 % steps (fetal sheep 3.0-3.5 mL/mmHg/kg)");
   console.table(out);
 }
