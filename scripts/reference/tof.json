@@ -597,10 +597,10 @@
    "group": "tof",
    "label": "O2 step-up at RV (RV so2 - svo2)",
    "unit": "%",
-   "mean": 2,
+   "mean": null,
    "sd": null,
-   "low": 0,
-   "high": 5,
+   "low": null,
+   "high": null,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
@@ -610,7 +610,7 @@
    ],
    "grade": "B/C",
    "model_readout": "RV.so2 - Monitor.svo2",
-   "notes": "Bidirectional shunt: little net step-up."
+   "notes": "Reported only (step 3.4): Rudolph shows little step-up with bidirectional shunting. In the model the VSD exchanges 3-4 mL per beat both ways and the lumped RV mixes it (step-up ~12 %); in a real heart the LV blood crossing in systole streams into the overriding aorta without mixing in the RV body."
   },
   {
    "key": "vsd_net",

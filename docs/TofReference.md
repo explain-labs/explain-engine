@@ -90,6 +90,13 @@ physiology of the pink tetralogy, and is used for `tof_pink`.
   tricuspid flows); the PA saturation is a row of its own. With the aorta overriding, R→L blood leaves the
   RV straight into the aorta (`RV_AA`), so the ventricular shunt is the RV→PA output minus the systemic
   venous inflow (L→R positive), not the VSD resistor flow alone (reported as `vsd_flow`).
+- **RV saturation is mixed in the model.** The VSD exchanges blood both ways every beat (3–4 mL LV→RV,
+  1–2 mL back), as Doppler shows. In a real heart the LV blood crossing in systole streams into the
+  overriding aorta without mixing in the body of the RV; the model's RV is one well-mixed compartment, so
+  its saturation reads ~11–12 % above the venous blood in `tof` and `tof_severe` (Rudolph's severe newborn:
+  RV = venous). It does not depend on the override resistance or the VSD size, and it does not move the
+  other targets; it does make the RV and PA look more oxygenated in the diagram. The step-up is therefore
+  reported only for those two; in `tof_pink` the L→R step-up is the real physiology and stays a target.
 - **Qp:Qs is derived** with the Fick principle from the figure saturations:
   Qp:Qs = (SaO₂ − SvO₂) / (SpvO₂ − SpaO₂). No neonatal catheter or MRI series was found.
 - **Pulmonary valve z-scores are fetal** (28–32 weeks) and have no model counterpart: `RV_PA` lumps
@@ -113,7 +120,7 @@ inflow) and the VSD diameter are reported only: no quantitative source was found
 | PA systolic / mean (mmHg) | 47 (40–55) / 33 (28–38) | 36 (30–42) / 24 (20–28) | 28 (20–36) / 22 (16–28) | 28 (20–36) / 22 (16–28) |
 | RVOT gradient (mmHg) | 25 (15–35) | 38 (30–45) | ~55, reported | – |
 | RVOT velocity (m/s) | 2.5 (1.9–3.0) | 3.1 (2.7–3.35) | ~3.7, reported | – |
-| RV − venous sat step-up (%) | 8 (3–15) | 2 (0–5) | 0 (−3 to +3) | – |
+| RV − venous sat step-up (%) | 8 (3–15) | small, reported | 0, reported | – |
 | Net ventricular shunt | L→R (> 0) | ≈ 0 (±30 mL/kg/min) | R→L (< 0) | R→L, whole venous return |
 | Antegrade RVOT flow | = Qp | = Qp | small | 0 (atresia) |
 | Duct | closed | closed | 2.2 mm, Ao→PA | 2.5 mm, Ao→PA = Qp |
@@ -171,6 +178,8 @@ saturation definition.
   targets of both re-derived from their pulmonary flow at 72 h by the step 3.2 rule (Fig 14.3's PA 20/10
   has Qp:Qs ~0.6). Qp:Qs after duct closure is reported only: after an acute closure the systemic output
   falls with the pulmonary flow, so the ratio stays ~0.4–0.5; Fig 14.4's 0.18 is an older infant.
+- 2026-10-30 (step 3.4): RV step-up reported only for `tof` and `tof_severe` (lumped-RV mixing of the
+  to-and-fro VSD flow; no engine change, a streaming mechanism would be needed).
 
 ## References
 

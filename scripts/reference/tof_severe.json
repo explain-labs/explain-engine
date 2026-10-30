@@ -596,10 +596,10 @@
    "group": "tof",
    "label": "O2 step-up at RV (RV so2 - svo2)",
    "unit": "%",
-   "mean": 0,
+   "mean": null,
    "sd": null,
-   "low": -3,
-   "high": 3,
+   "low": null,
+   "high": null,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
@@ -609,7 +609,7 @@
    ],
    "grade": "B/C",
    "model_readout": "RV.so2 - Monitor.svo2",
-   "notes": "Fig 14.3: RV 58 = venous 55-60, no L->R step-up."
+   "notes": "Reported only (step 3.4): Fig 14.3 has RV 58 = venous 55-60, no step-up. In the model the VSD exchanges 2-3 mL per beat both ways and the lumped RV mixes it (step-up ~11 %, insensitive to the override resistance and VSD size); in a real heart the LV blood crossing in systole streams into the overriding aorta without mixing in the RV body."
   },
   {
    "key": "vsd_net",
