@@ -65,10 +65,12 @@ function build(isf) {
   return live;
 }
 
-// mean CVP and MAP over T seconds (sampled every 0.1 s, so breathing and the beat average out)
+// mean CVP and MAP over T seconds, from the Monitor's per-beat aggregates. Sampling the instantaneous
+// pressures on a fixed grid aliases against the cardiac cycle (0.1 s against the 0.5 s cycle at HR 120
+// is exact 5:1 resonance); the Monitor's minmax means are per-beat, so sampling them weights whole beats.
 function means(M, T = 10) {
   let c = 0, p = 0, n = 0;
-  for (let i = 0; i < T * 10; i++) { send("POST", "calc", 0.1); c += M.RAIVCI.pres; p += M.AD.pres; n++; }
+  for (let i = 0; i < T * 10; i++) { send("POST", "calc", 0.1); c += M.Monitor.minmax.cvp_pres_mean; p += M.Monitor.minmax.abp_pres_mean; n++; }
   return { cvp: c / n, map: p / n };
 }
 
