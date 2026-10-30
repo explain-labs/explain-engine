@@ -445,9 +445,9 @@
    "notes": "Rudolph Fig 14.3 (newborn, duct patent): aortic 80 %; text: the duct may lift SaO2 to 85-92 %. Li 2023 before RVOT stent 75 +/- 17 %."
   },
   {
-   "key": "svo2",
+   "key": "svo2_ven",
    "group": "gases",
-   "label": "Mixed venous O2 saturation",
+   "label": "Systemic venous O2 saturation",
    "unit": "%",
    "mean": 60,
    "sd": null,
@@ -461,8 +461,28 @@
     "rudolph2009"
    ],
    "grade": "B/C",
-   "model_readout": "Monitor.svo2",
+   "model_readout": "RAIVCI/RASVC so2 weighted by their tricuspid flows (Monitor.svo2 reads the PA, which is not mixed venous blood in ToF)",
    "notes": "Fig 14.3: SVC 55, IVC 60 %."
+  },
+  {
+   "key": "pa_so2",
+   "group": "gases",
+   "label": "PA O2 saturation",
+   "unit": "%",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "PA.so2",
+   "notes": "Reported. Fig 14.3 shows 58 % (= RV); a PGE1 duct adds aortic blood."
   },
   {
    "key": "qp_qs",
@@ -587,7 +607,7 @@
   {
    "key": "vsd_net",
    "group": "shunts",
-   "label": "VSD net flow (L->R positive)",
+   "label": "Net ventricular shunt (L->R positive)",
    "unit": "mL/kg/min",
    "mean": null,
    "sd": null,
@@ -601,8 +621,26 @@
     "rudolph2009"
    ],
    "grade": "B/C",
+   "model_readout": "(RV_PA flow - tricuspid inflow RAIVCI_RV + RASVC_RV) per kg",
+   "notes": "Net R->L (negative). Model: R->L blood reaches the aorta through RV_AA (the override), so the shunt is RV->PA output minus systemic venous inflow, not the VSD resistor flow alone."
+  },
+  {
+   "key": "vsd_flow",
+   "group": "shunts",
+   "label": "VSD resistor flow LV->RV",
+   "unit": "mL/kg/min",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "reported",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [],
+   "grade": "-",
    "model_readout": "Shunts.flow_vsd per kg",
-   "notes": "Net R->L (negative)."
+   "notes": "Reported: the model's LV->RV resistor alone."
   },
   {
    "key": "rvpa",

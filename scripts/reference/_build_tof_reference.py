@@ -51,14 +51,18 @@ def shared():
 def ph(name, d):
     out = []
     out.append(row("spo2", "gases", "SpO2 (pre-ductal)", "%", d["spo2"][0], d["spo2"][1], d["spo2"][2], d["spo2_src"], d["spo2_grade"], "Monitor.sao2_pre", d["spo2_note"], method="pulse oximetry / catheter"))
-    out.append(row("svo2", "gases", "Mixed venous O2 saturation", "%", *d["svo2"], ["rudolph2009"], "B/C", "Monitor.svo2", d["svo2_note"], method="catheter, textbook figure"))
+    out.append(row("svo2_ven", "gases", "Systemic venous O2 saturation", "%", *d["svo2"], ["rudolph2009"], "B/C",
+        "RAIVCI/RASVC so2 weighted by their tricuspid flows (Monitor.svo2 reads the PA, which is not mixed venous blood in ToF)", d["svo2_note"], method="catheter, textbook figure"))
+    out.append(row("pa_so2", "gases", "PA O2 saturation", "%", *d["pa_so2"], ["rudolph2009"], "B/C", "PA.so2", d["pa_so2_note"], method="catheter, textbook figure"))
     out.append(row("qp_qs", "tof", "Qp:Qs", "-", *d["qpqs"], ["rudolph2009"], "C (derived)", "pulmonary venous return (LL_VEN_PV + RL_VEN_PV) / qs", d["qpqs_note"], method="Fick from figure saturations"))
     out.append(row("pap_s", "hemodynamics", "PA systolic pressure", "mmHg", *d["pap_s"], ["rudolph2009"], d.get("pap_grade", "B/C"), "Monitor.minmax.pap_pres_max", d["pap_note"], method="catheter, textbook figure"))
     out.append(row("pap_m", "hemodynamics", "PA mean pressure", "mmHg", *d["pap_m"], ["rudolph2009"], d.get("pap_grade", "B/C"), "Monitor.minmax.pap_pres_mean", d["pap_note"], method="catheter, textbook figure"))
     out.append(row("rvot_grad", "tof", "RVOT peak-to-peak gradient", "mmHg", *d["grad"], d["grad_src"], d["grad_grade"], "per-beat max RV.pres - per-beat max PA.pres", d["grad_note"], method="catheter / Doppler"))
     out.append(row("rvot_v", "tof", "RVOT peak velocity (derived)", "m/s", *d["v"], ["echo_convention"], "C (derived)", "sqrt(rvot_grad / 4) (RV_PA is a linear resistor without a Doppler read-out)", d["v_note"], method="modified Bernoulli from the gradient"))
     out.append(row("rv_step_up", "tof", "O2 step-up at RV (RV so2 - svo2)", "%", *d["step"], ["rudolph2009"], "B/C", "RV.so2 - Monitor.svo2", d["step_note"], method="catheter, textbook figure"))
-    out.append(row("vsd_net", "shunts", "VSD net flow (L->R positive)", "mL/kg/min", *d["vsd"], ["rudolph2009"], "B/C", "Shunts.flow_vsd per kg", d["vsd_note"], method="direction rule"))
+    out.append(row("vsd_net", "shunts", "Net ventricular shunt (L->R positive)", "mL/kg/min", *d["vsd"], ["rudolph2009"], "B/C",
+        "(RV_PA flow - tricuspid inflow RAIVCI_RV + RASVC_RV) per kg", d["vsd_note"] + " Model: R->L blood reaches the aorta through RV_AA (the override), so the shunt is RV->PA output minus systemic venous inflow, not the VSD resistor flow alone.", method="direction rule"))
+    out.append(row("vsd_flow", "shunts", "VSD resistor flow LV->RV", "mL/kg/min", None, None, None, [], "-", "Shunts.flow_vsd per kg", "Reported: the model's LV->RV resistor alone.", method="reported"))
     out.append(row("rvpa", "shunts", "Antegrade RVOT flow", "mL/kg/min", *d["rvpa"], ["rudolph2009"], "C", "RV_PA.flow per kg", d["rvpa_note"], method="reported"))
     out.append(row("duct", "shunts", "Ductal flow (Ao->PA positive)", "mL/kg/min", *d["duct"], d["duct_src"], "B/C", "Pda.flow per kg (Ao->PA positive)", d["duct_note"], method="structural / direction"))
     out.append(row("pv_z", "tof", "Pulmonary valve annulus z-score", "z", *d["pvz"], d["pvz_src"], "B (fetal)", "none (structural; RV_PA lumps valve + infundibulum)", d["pvz_note"], method="fetal echo 25-32 wk"))
@@ -67,6 +71,7 @@ def ph(name, d):
 
 P = {
  "tof_pink": dict(
+   pa_so2=(80, 75, 85), pa_so2_note="Fig 14.2: PA 80 % (VSD L->R raises it above venous 65-70 %).",
    title="Tetralogy of Fallot, mild RVOT obstruction (pink tetralogy)",
    desc="Term neonate 3.545 kg at 72 h with ToF and mild RVOT obstruction: net L->R VSD shunt, Qp > Qs, acyanotic; ductus closed.",
    spo2=(93, 90, 97), spo2_src=["reddy1995", "rudolph2009"], spo2_grade="A (definition)", spo2_note="Pink = SaO2 > 90 % (Reddy 1995). Rudolph Fig 14.2: aortic 95 %. Neonatal PVR limits the L->R shunt in the first days (Rudolph), so not fully saturated.",
@@ -81,6 +86,7 @@ P = {
    duct=(0, 0, 0), duct_src=["rudolph2009"], duct_note="Ductus closed (Pda.diameter_relative 0).",
    pvz=(None, None, None), pvz_src=["rudolph2009", "vetten2025"], pvz_note="Annulus often normal in mild obstruction (Rudolph); later-intervention group fetal PV z -2.6 +/- 1.6 (Vetten 2025)."),
  "tof": dict(
+   pa_so2=(None, None, None), pa_so2_note="Reported.",
    title="Tetralogy of Fallot, moderate RVOT obstruction",
    desc="Term neonate 3.545 kg at 72 h with ToF and moderate RVOT obstruction: bidirectional VSD shunt, Qp ~ Qs, mild-moderate cyanosis; not duct-dependent, ductus closed.",
    spo2=(84, 75, 90), spo2_src=["reddy1995", "rudolph2009"], spo2_grade="A (definition)", spo2_note="Reddy 1995 'adequate pulmonary blood flow' group: SaO2 75-90 %. Rudolph: moderate stenosis is only mildly cyanotic after birth.",
@@ -95,6 +101,7 @@ P = {
    duct=(0, 0, 0), duct_src=["rudolph2009"], duct_note="Ductus closed (not duct-dependent).",
    pvz=(-2.6, -4.2, -1.0), pvz_src=["vetten2025", "hirji2010", "mini2024"], pvz_note="Fetal later-intervention group -2.6 +/- 1.6 (Vetten 2025); postnatal cyanotic infants -3.7 (-6.1 to -1.3) (Mini 2024)."),
  "tof_severe": dict(
+   pa_so2=(None, None, None), pa_so2_note="Reported. Fig 14.3 shows 58 % (= RV); a PGE1 duct adds aortic blood.",
    title="Tetralogy of Fallot, severe RVOT obstruction on PGE1",
    desc="Term neonate 3.545 kg at 72 h with ToF and severe RVOT obstruction: little antegrade flow, R->L VSD shunt, duct-dependent pulmonary flow; ductus held open on PGE1 (2.5 mm).",
    spo2=(82, 75, 90), spo2_src=["rudolph2009", "li2023", "matter2012"], spo2_grade="B", spo2_note="Rudolph Fig 14.3 (newborn, duct patent): aortic 80 %; text: the duct may lift SaO2 to 85-92 %. Li 2023 before RVOT stent 75 +/- 17 %.",
@@ -113,6 +120,7 @@ P = {
      row("qp_qs_closed", "test", "Qp:Qs after duct closure", "-", 0.2, 0.1, 0.35, ["rudolph2009"], "C (derived)", "probe --close-duct", "Fig 14.4 Fick: (50 - 40)/(96 - 40) = 0.18. PA 15/10 m12.", method="Fick from figure saturations"),
    ]),
  "tof_pa": dict(
+   pa_so2=(None, None, None), pa_so2_note="Reported: = aortic saturation (the duct is the only inflow).",
    title="Tetralogy of Fallot with pulmonary atresia on PGE1",
    desc="Term neonate 3.545 kg at 72 h with ToF and pulmonary atresia (no MAPCAs): no antegrade flow, all RV output R->L through the VSD, ductus (2.5 mm, PGE1) is the sole pulmonary supply.",
    spo2=(80, 70, 88), spo2_src=["matter2012", "rudolph2009"], spo2_grade="B", spo2_note="Matter 2012 pre-stent (on PGE1) 75.1 +/- 13.2 %. Complete mixing in the aorta: SaO2 is set by Qp:Qs (Rudolph); Qp:Qs ~1 gives ~80 %.",

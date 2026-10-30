@@ -5,11 +5,14 @@
 // deviation in SD where an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference,
 // n/a = no model read-out). Reference sets:
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
+//   scripts/reference/tof_pink.json, tof.json, tof_severe.json, tof_pa.json   (docs/TofReference.md)
 //   The probe also reads rows no current set uses (read-outs when the placenta runs, svo2_ra, pda_v_rtl,
 //   spo2_post), for sets made later.
 //
 // Usage:
 //   node scripts/probe_term_reference.mjs [scenario] [--ref path.json] [--settle S] [--window W] [--json out.json] [--file path.json]
+// A reference set with *_closed rows (the ToF duct-closure test) makes the probe close the duct after the
+// main window, settle again and measure SpO2 and Qp:Qs a second time.
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -58,7 +61,7 @@ send("POST", "calc", SETTLE);
 const vit = measureVitals(model, send, { window: WINDOW });
 
 // second window, stepped directly so per-step values (heart volumes, flows, gas uptake, FRC) are sampled
-const flowNames = ["LV_AA", "RV_PA", "AA_BR_ART", "AA_RUB", "AAR_AD", "AD_LS_ART", "AD_KID_ART", "AD_INT_ART", "SVC_RASVC", "AAR_DA", "LA_RAIVCI", "LA_RASVC", "AA_COR"];
+const flowNames = ["LV_AA", "RV_PA", "RV_AA", "LL_VEN_PV", "RL_VEN_PV", "RAIVCI_RV", "RASVC_RV", "AA_BR_ART", "AA_RUB", "AAR_AD", "AD_LS_ART", "AD_KID_ART", "AD_INT_ART", "SVC_RASVC", "AAR_DA", "LA_RAIVCI", "LA_RASVC", "AA_COR"];
 const acc = {};
 const add = (k, v) => { acc[k] = (acc[k] || 0) + (Number.isFinite(v) ? v : 0); };
 let frcMin = Infinity;
@@ -71,12 +74,22 @@ const fetalFlows = ["PL_UMB_VEN_IVCI", "PAAL_LL_ART", "PAAR_RL_ART"];
 const gasSites = { uv: "PL_UMB_VEN", ua: "PL_UMB_ART", aa: "AA", dao: "AD", ivc: "IVCI", svc: "SVC" };
 const gasAcc = {}; let gasN = 0;
 let raSo2 = 0, raN = 0;
+// systemic venous return as it enters the RV (RAIVCI and RASVC so2, weighted by their tricuspid flows) and the PA
+// so2: in tetralogy of Fallot the PA (the Monitor's SvO2 site) is not mixed venous blood
+let ivciSo2 = 0, svcSo2 = 0, paSo2 = 0;
+// per-beat peak pressures (RV, LV, PA), latched at each ventricular activation: VSD restrictiveness and RVOT gradient
+const beatPk = { rv: -Infinity, lv: -Infinity, pa: -Infinity }, pkList = { rv: [], lv: [], pa: [] };
 // ductal flow direction and Doppler per beat (open duct only): time right-to-left, peak systolic and end-diastolic velocity
 let daRtoL = 0, daSteps = 0, beatVmax = -Infinity, beatVmin = Infinity; const vPeaks = [], vEnds = [];
 for (let i = 0; i < steps; i++) {
   for (const k in M) M[k].step_model();
   model.model_time_total += dt;
   for (const n of flowNames) add(n, M[n]?.flow);
+  add("vsd", M.Shunts?.flow_vsd);
+  for (const [k, c] of [["rv", M.RV], ["lv", M.LV], ["pa", M.PA]]) if (c?.pres > beatPk[k]) beatPk[k] = c.pres;
+  if (M.Heart?.ncc_ventricular === 1) {
+    for (const k in beatPk) { if (Number.isFinite(beatPk[k])) pkList[k].push(beatPk[k]); beatPk[k] = -Infinity; }
+  }
   // mixed right-atrial blood (both RA halves) as it enters the RV: SvO2 for patients with a left-to-right duct, where
   // the PA (the Monitor's SvO2 site) also receives oxygenated aortic blood
   if (M.Pda && M.Pda.diameter_relative > 0) {
@@ -84,7 +97,11 @@ for (let i = 0; i < steps; i++) {
     const v = M.Pda.velocity_doppler; if (v > beatVmax) beatVmax = v; if (v < beatVmin) beatVmin = v;
     if (M.Heart?.ncc_ventricular === 1) { if (Number.isFinite(beatVmax)) { vPeaks.push(beatVmax); vEnds.push(beatVmin); } beatVmax = -Infinity; beatVmin = Infinity; }
   }
-  if (i % 25 === 0 && M.RV) { calc_blood_composition(M.RV); raN++; raSo2 += M.RV.so2 ?? NaN; }
+  if (i % 25 === 0 && M.RV) {
+    calc_blood_composition(M.RV); raN++; raSo2 += M.RV.so2 ?? NaN;
+    for (const c of [M.RAIVCI, M.RASVC, M.PA]) if (c) calc_blood_composition(c);
+    ivciSo2 += M.RAIVCI?.so2 ?? NaN; svcSo2 += M.RASVC?.so2 ?? NaN; paSo2 += M.PA?.so2 ?? NaN;
+  }
   if (FETAL) {
     for (const n of fetalFlows) add(n, M[n]?.flow);
     if (i % 25 === 0) {
@@ -127,6 +144,23 @@ const bsa = 0.024265 * Math.pow(W, 0.5378) * Math.pow((model.height || Math.pow(
 const hb = (AA?.solutes?.hemoglobin ?? NaN) * HB_MMOL_TO_GDL;
 const toKgMl = (L) => (L * 1000) / W;
 
+// tetralogy of Fallot read-outs (docs/TofReference.md). The duct (AAR_DA) is positive aorta -> PA, so the ductal
+// flow is taken off the aortic output to give the systemic output
+const qs = acc.LV_AA + acc.RV_AA - acc.AAR_DA; // L/s
+const qp = acc.LL_VEN_PV + acc.RL_VEN_PV;
+const pk = (k) => meanOf(pkList[k].slice(1)); // first beat may be partial
+const tricuspid = acc.RAIVCI_RV + acc.RASVC_RV;
+const svo2Ven = (acc.RAIVCI_RV * ivciSo2 + acc.RASVC_RV * svcSo2) / raN / tricuspid;
+const rvotGrad = M.RV_PA?.no_flow || M.RV_PA?.is_enabled === false ? NaN : pk("rv") - pk("pa");
+// net ventricular shunt (L->R positive): what the RV sends to the PA beyond the systemic venous blood it received.
+// With the aorta overriding, R->L blood leaves the RV straight into the aorta (RV_AA), not back through the VSD
+// resistor, so Shunts.flow_vsd alone (vsd_flow) does not show the direction of the ventricular shunt
+const tof = {
+  qs: perKgMin(qs), qp_qs: qp / qs, rv_lv_peak: pk("rv") - pk("lv"), rvot_grad: rvotGrad, rvot_v: Math.sqrt(Math.max(rvotGrad, 0) / 4),
+  svo2_ven: svo2Ven, pa_so2: paSo2 / raN, rv_step_up: raSo2 / raN - svo2Ven, vsd_net: perKgMin(acc.RV_PA - tricuspid), vsd_flow: perKgMin(acc.vsd), rvpa: perKgMin(acc.RV_PA),
+  duct: perKgMin(acc.AAR_DA), override: (100 * acc.RV_AA) / (acc.RV_AA + acc.LV_AA), vsd_size: M.Shunts?.diameter_vsd,
+};
+
 const model_values = {
   hr: vit.hr, sbp: vit.sys, dbp: vit.dia, map: vit.map, pp: vit.sys - vit.dia, cvp: vit.cvp, pap_s: vit.pap_s, pap_d: vit.pap_d, pap_m: vit.pap_m,
   lv_edv: toKgMl(acc.lv_edv), lv_esv: toKgMl(acc.lv_esv), lv_sv: toKgMl(acc.lv_sv), lv_ef: acc.lv_ef * 100,
@@ -149,6 +183,7 @@ const model_values = {
   cl: (lungC * 1000) / MMHG_TO_CMH2O / W, ccw: (chestC * 1000) / MMHG_TO_CMH2O / W, vd_vt: acc.ds_vol / acc.vt,
   fio2: M.Gas?.fio2, p50: M.Blood?.P50_0, rq: Math.abs(acc.co2_out / acc.o2_uptake),
   incubator_temp: M.Thermoregulation?.env_temp, humidity: (M.Thermoregulation?.rel_humidity ?? NaN) * 100,
+  ...tof,
 };
 if (FETAL) {
   // shares of combined ventricular output (CVO); duct and foramen flows are positive left-to-right in the
@@ -184,6 +219,22 @@ const extras = {
 
 const REF = opt("--ref", null);
 const ref = JSON.parse(fs.readFileSync(REF ?? new URL("./reference/term_neonate_72h.json", import.meta.url), "utf8"));
+// duct-closure test (ToF sets): close the duct, settle, measure SpO2 and Qp:Qs again
+if (ref.variables.some((r) => r.key.endsWith("_closed")) && M.Pda) {
+  M.Pda.diameter_relative = 0;
+  send("POST", "calc", SETTLE);
+  const vc = measureVitals(model, send, { window: WINDOW });
+  let qpc = 0, qsc = 0;
+  const n = Math.round(WINDOW / dt);
+  for (let i = 0; i < n; i++) {
+    for (const k in M) M[k].step_model();
+    model.model_time_total += dt;
+    qpc += (M.LL_VEN_PV?.flow ?? 0) + (M.RL_VEN_PV?.flow ?? 0);
+    qsc += (M.LV_AA?.flow ?? 0) + (M.RV_AA?.flow ?? 0) - (M.AAR_DA?.flow ?? 0);
+  }
+  Object.assign(model_values, { spo2_closed: vc.spo2_pre, qp_qs_closed: qpc / qsc, map_closed: vc.map, ph_closed: vc.ph });
+}
+
 const rows = ref.variables.map((r) => {
   const v = model_values[r.key];
   const hasNum = r.mean != null || r.low != null || r.high != null;

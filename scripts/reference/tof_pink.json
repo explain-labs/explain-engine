@@ -434,9 +434,9 @@
    "notes": "Pink = SaO2 > 90 % (Reddy 1995). Rudolph Fig 14.2: aortic 95 %. Neonatal PVR limits the L->R shunt in the first days (Rudolph), so not fully saturated."
   },
   {
-   "key": "svo2",
+   "key": "svo2_ven",
    "group": "gases",
-   "label": "Mixed venous O2 saturation",
+   "label": "Systemic venous O2 saturation",
    "unit": "%",
    "mean": 70,
    "sd": null,
@@ -450,8 +450,28 @@
     "rudolph2009"
    ],
    "grade": "B/C",
-   "model_readout": "Monitor.svo2",
+   "model_readout": "RAIVCI/RASVC so2 weighted by their tricuspid flows (Monitor.svo2 reads the PA, which is not mixed venous blood in ToF)",
    "notes": "Fig 14.2: SVC 65, IVC 70 %."
+  },
+  {
+   "key": "pa_so2",
+   "group": "gases",
+   "label": "PA O2 saturation",
+   "unit": "%",
+   "mean": 80,
+   "sd": null,
+   "low": 75,
+   "high": 85,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "PA.so2",
+   "notes": "Fig 14.2: PA 80 % (VSD L->R raises it above venous 65-70 %)."
   },
   {
    "key": "qp_qs",
@@ -577,7 +597,7 @@
   {
    "key": "vsd_net",
    "group": "shunts",
-   "label": "VSD net flow (L->R positive)",
+   "label": "Net ventricular shunt (L->R positive)",
    "unit": "mL/kg/min",
    "mean": null,
    "sd": null,
@@ -591,8 +611,26 @@
     "rudolph2009"
    ],
    "grade": "B/C",
+   "model_readout": "(RV_PA flow - tricuspid inflow RAIVCI_RV + RASVC_RV) per kg",
+   "notes": "Net L->R (positive). Small in the first days because PVR is still high. Model: R->L blood reaches the aorta through RV_AA (the override), so the shunt is RV->PA output minus systemic venous inflow, not the VSD resistor flow alone."
+  },
+  {
+   "key": "vsd_flow",
+   "group": "shunts",
+   "label": "VSD resistor flow LV->RV",
+   "unit": "mL/kg/min",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "reported",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [],
+   "grade": "-",
    "model_readout": "Shunts.flow_vsd per kg",
-   "notes": "Net L->R (positive). Small in the first days because PVR is still high."
+   "notes": "Reported: the model's LV->RV resistor alone."
   },
   {
    "key": "rvpa",

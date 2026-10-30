@@ -444,9 +444,9 @@
    "notes": "Reddy 1995 'adequate pulmonary blood flow' group: SaO2 75-90 %. Rudolph: moderate stenosis is only mildly cyanotic after birth."
   },
   {
-   "key": "svo2",
+   "key": "svo2_ven",
    "group": "gases",
-   "label": "Mixed venous O2 saturation",
+   "label": "Systemic venous O2 saturation",
    "unit": "%",
    "mean": 65,
    "sd": null,
@@ -460,8 +460,28 @@
     "rudolph2009"
    ],
    "grade": "B/C",
-   "model_readout": "Monitor.svo2",
+   "model_readout": "RAIVCI/RASVC so2 weighted by their tricuspid flows (Monitor.svo2 reads the PA, which is not mixed venous blood in ToF)",
    "notes": "Between Fig 14.2 (65-70) and Fig 14.3 (55-60)."
+  },
+  {
+   "key": "pa_so2",
+   "group": "gases",
+   "label": "PA O2 saturation",
+   "unit": "%",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "PA.so2",
+   "notes": "Reported."
   },
   {
    "key": "qp_qs",
@@ -588,7 +608,7 @@
   {
    "key": "vsd_net",
    "group": "shunts",
-   "label": "VSD net flow (L->R positive)",
+   "label": "Net ventricular shunt (L->R positive)",
    "unit": "mL/kg/min",
    "mean": 0,
    "sd": null,
@@ -602,8 +622,26 @@
     "rudolph2009"
    ],
    "grade": "B/C",
+   "model_readout": "(RV_PA flow - tricuspid inflow RAIVCI_RV + RASVC_RV) per kg",
+   "notes": "Bidirectional, net near zero (band is a C-grade choice: +/-30 mL/kg/min). Model: R->L blood reaches the aorta through RV_AA (the override), so the shunt is RV->PA output minus systemic venous inflow, not the VSD resistor flow alone."
+  },
+  {
+   "key": "vsd_flow",
+   "group": "shunts",
+   "label": "VSD resistor flow LV->RV",
+   "unit": "mL/kg/min",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "reported",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [],
+   "grade": "-",
    "model_readout": "Shunts.flow_vsd per kg",
-   "notes": "Bidirectional, net near zero (band is a C-grade choice: +/-30 mL/kg/min)."
+   "notes": "Reported: the model's LV->RV resistor alone."
   },
   {
    "key": "rvpa",

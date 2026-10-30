@@ -69,6 +69,11 @@ physiology of the pink tetralogy, and is used for `tof_pink`.
 - **RVOT velocity is derived.** `RV_PA` is a linear resistor without a Doppler read-out, so the velocity
   is computed from the peak-to-peak gradient with the modified Bernoulli equation (v = √(ΔP/4)).
   Peak-to-peak (catheter) is lower than the peak instantaneous Doppler gradient.
+- **Model read-outs.** The Monitor's SvO₂ reads the PA, which in ToF is not mixed venous blood, so the
+  venous saturation is the systemic venous return entering the RV (RAIVCI and RASVC, weighted by their
+  tricuspid flows); the PA saturation is a row of its own. With the aorta overriding, R→L blood leaves the
+  RV straight into the aorta (`RV_AA`), so the ventricular shunt is the RV→PA output minus the systemic
+  venous inflow (L→R positive), not the VSD resistor flow alone (reported as `vsd_flow`).
 - **Qp:Qs is derived** with the Fick principle from the figure saturations:
   Qp:Qs = (SaO₂ − SvO₂) / (SpvO₂ − SpaO₂). No neonatal catheter or MRI series was found.
 - **Pulmonary valve z-scores are fetal** (28–32 weeks) and have no model counterpart: `RV_PA` lumps
@@ -86,13 +91,14 @@ inflow) and the VSD diameter are reported only: no quantitative source was found
 | Variable | `tof_pink` | `tof` | `tof_severe` | `tof_pa` |
 |---|---|---|---|---|
 | SpO₂ pre-ductal (%) | **93** (90–97) | **84** (75–90) | **82** (75–90) | **80** (70–88) |
-| Mixed venous sat (%) | 70 (65–75) | 65 (60–70) | 60 (55–65) | 60 (55–65) |
+| Systemic venous sat (%) | 70 (65–75) | 65 (60–70) | 60 (55–65) | 60 (55–65) |
+| PA sat (%) | 80 (75–85) | reported | reported | = aortic |
 | Qp:Qs | 1.5 (1.2–2.0) | 1.0 (0.8–1.2) | 0.8 (0.6–1.1) | 1.0 (0.8–1.3) |
 | PA systolic / mean (mmHg) | 35 (30–40) / 25 (20–30) | 25 (20–30) / 18 (14–22) | 20 (15–25) / 15 (12–18) | 20 (15–28) / 15 (10–20) |
 | RVOT gradient (mmHg) | 42 (35–50) | 52 (45–60) | ~55, reported | – |
 | RVOT velocity, derived (m/s) | 3.2 (3.0–3.5) | 3.6 (3.4–3.9) | ~3.7, reported | – |
 | RV − venous sat step-up (%) | 8 (3–15) | 2 (0–5) | 0 (−3 to +3) | – |
-| VSD net flow | L→R (> 0) | ≈ 0 (±30 mL/kg/min) | R→L (< 0) | R→L, whole RV output |
+| Net ventricular shunt | L→R (> 0) | ≈ 0 (±30 mL/kg/min) | R→L (< 0) | R→L, whole venous return |
 | Antegrade RVOT flow | = Qp | = Qp | small | 0 (atresia) |
 | Duct | closed | closed | 2.5 mm, Ao→PA | 2.5 mm, Ao→PA = Qp |
 | Pulmonary valve z (fetal) | often normal annulus | −2.6 ± 1.6 | −5.3 ± 2.4 | – |
