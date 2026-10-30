@@ -25,7 +25,8 @@
       "shuntOptionsVisible": true,
       "deviceBand": 0.85,
       "to2_lo": 3,
-      "to2_hi": 9.8
+      "to2_hi": 9.8,
+      "flowMarker": "arrow"
     },
     "components": {
       "LV": {
@@ -79,11 +80,21 @@
       },
       "RLB": {
         "type": "Compartment",
-        "label": "RLB",
+        "label": "LOWER\nBODY",
         "picto": "container.png",
         "enabled": true,
         "models": [
-          "RLB"
+          "RLB",
+          "LS_CAP",
+          "LS_VEN",
+          "LS_ART",
+          "KID_CAP",
+          "KID_VEN",
+          "KID_ART",
+          "INT_CAP",
+          "INT_VEN",
+          "INT_ART",
+          "VLB"
         ],
         "dbcFrom": "",
         "dbcTo": "",
@@ -569,58 +580,9 @@
           }
         }
       },
-      "VLB": {
-        "type": "Compartment",
-        "label": "VLB",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "VLB"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "arc",
-              "x": 0,
-              "y": 0,
-              "dgs": 120
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
       "IVCI": {
         "type": "Compartment",
-        "label": "IVCI",
+        "label": "IVC",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -646,7 +608,7 @@
               "type": "arc",
               "x": 0,
               "y": 0,
-              "dgs": 160
+              "dgs": 145
             },
             "scale": {
               "x": 1,
@@ -666,6 +628,712 @@
             "color": "#ffffff"
           }
         }
+      },
+      "RL": {
+        "type": "Compartment",
+        "label": "RL",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "RL_CAP",
+          "RL_ART",
+          "RL_VEN"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": 0,
+              "y": -0.84,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "RPA": {
+        "type": "Compartment",
+        "label": "RPA",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "PAAR"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": -0.34,
+              "y": -0.81,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "RUB": {
+        "type": "Compartment",
+        "label": "UPPER\nBODY",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "RUB",
+          "BR_CAP",
+          "BR_VEN",
+          "BR_ART",
+          "VUB"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": 0,
+              "y": 0.32,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "SVC": {
+        "type": "Compartment",
+        "label": "SVC",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "SVC"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": -0.56,
+              "y": 0.2,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "LUNG": {
+        "type": "Compartment",
+        "label": "",
+        "picto": "gas_container.png",
+        "enabled": true,
+        "models": [
+          "ALL",
+          "ALR"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 6,
+            "alpha": 1,
+            "tinting": false
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#777777",
+            "pos": {
+              "type": "rel",
+              "x": 0,
+              "y": -0.92,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1.1,
+              "y": 1.1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "TITLE": {
+        "type": "Device",
+        "label": "TETRALOGY OF FALLOT - MODERATE",
+        "picto": "vessel.png",
+        "enabled": true,
+        "models": [],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "none",
+            "z_index": 10,
+            "alpha": 0,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#000000",
+            "pos": {
+              "type": "bottom",
+              "x": 0,
+              "y": 20,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1.2,
+              "y": 1.2
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 14,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "ECLS_TUBING_IN": {
+        "type": "Compartment",
+        "label": "IN",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "ECLS_TUBING_IN"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": -0.45,
+              "y": 1.28,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.07
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 22,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
+      },
+      "ECLS_PUMP": {
+        "type": "Compartment",
+        "label": "PUMP",
+        "picto": "pump.png",
+        "enabled": true,
+        "models": [
+          "ECLS_PUMP"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": false
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#00aaaa",
+            "pos": {
+              "type": "rel",
+              "x": -0.15,
+              "y": 1.28,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.11
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 28,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
+      },
+      "ECLS_OXY": {
+        "type": "Compartment",
+        "label": "OXY",
+        "picto": "oxygenator.png",
+        "enabled": true,
+        "models": [
+          "ECLS_OXY"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": 0.15,
+              "y": 1.28,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.13
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 30,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
+      },
+      "ECLS_TUBING_OUT": {
+        "type": "Compartment",
+        "label": "OUT",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "ECLS_TUBING_OUT"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": 0.45,
+              "y": 1.28,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.07
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 22,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
+      },
+      "RA": {
+        "type": "Compartment",
+        "label": "RA",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "RAIVCI",
+          "RASVC"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "arc",
+              "x": -1.2,
+              "y": 0,
+              "dgs": 180
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "ECLS_GAS_SOURCE": {
+        "type": "Compartment",
+        "label": "SWEEP",
+        "picto": "gas_container.png",
+        "enabled": true,
+        "models": [
+          "ECLS_GAS_SOURCE"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": false
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#777777",
+            "pos": {
+              "type": "rel",
+              "x": 0.37,
+              "y": 1.58,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.06
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 22,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
+      },
+      "ECLS_GAS_OXY": {
+        "type": "Compartment",
+        "label": "",
+        "picto": "gas_container.png",
+        "enabled": true,
+        "models": [
+          "ECLS_GAS_OXY"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": false
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#777777",
+            "pos": {
+              "type": "rel",
+              "x": 0.15,
+              "y": 1.58,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.08
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 22,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
+      },
+      "ECLS_GAS_OUT": {
+        "type": "Compartment",
+        "label": "EXHAUST",
+        "picto": "gas_container.png",
+        "enabled": true,
+        "models": [
+          "ECLS_GAS_OUT"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": false
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#777777",
+            "pos": {
+              "type": "rel",
+              "x": -0.13,
+              "y": 1.58,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.06
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 22,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        },
+        "group": "ecls"
       },
       "PV_LA": {
         "type": "Connector",
@@ -865,7 +1533,7 @@
       },
       "RV_PA": {
         "type": "Connector",
-        "label": "",
+        "label": "RVOT",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -905,10 +1573,13 @@
           },
           "label": {
             "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
+            "pos_y": -13,
+            "size": 13,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.5
           }
         }
       },
@@ -969,57 +1640,8 @@
         "models": [
           "VLB_IVCI"
         ],
-        "dbcFrom": "VLB",
-        "dbcTo": "IVCI",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "RLB_VLB": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "RLB_VLB"
-        ],
         "dbcFrom": "RLB",
-        "dbcTo": "VLB",
+        "dbcTo": "IVCI",
         "layout": {
           "general": {
             "animatedBy": "flow",
@@ -1065,7 +1687,10 @@
         "picto": "container.png",
         "enabled": true,
         "models": [
-          "AD_RLB"
+          "AD_RLB",
+          "AD_KID_ART",
+          "AD_INT_ART",
+          "AD_LS_ART"
         ],
         "dbcFrom": "AD",
         "dbcTo": "RLB",
@@ -1304,106 +1929,6 @@
           }
         }
       },
-      "RL": {
-        "type": "Compartment",
-        "label": "RL",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "RL_CAP",
-          "RL_ART",
-          "RL_VEN"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": -0.84,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "RPA": {
-        "type": "Compartment",
-        "label": "RPA",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "PAAR"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": -0.34,
-              "y": -0.81,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
       "PA_RPA": {
         "type": "Connector",
         "label": "",
@@ -1551,808 +2076,17 @@
           }
         }
       },
-      "KID": {
-        "type": "Compartment",
-        "label": "KID",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "KID_CAP",
-          "KID_VEN",
-          "KID_ART"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0.85,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "INT": {
-        "type": "Compartment",
-        "label": "INT",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "INT_CAP",
-          "INT_VEN",
-          "INT_ART"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0.7,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "LS": {
-        "type": "Compartment",
-        "label": "LS",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "LS_CAP",
-          "LS_VEN",
-          "LS_ART"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0.55,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "AD_KID": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "AD_KID_ART"
-        ],
-        "dbcFrom": "AD",
-        "dbcTo": "KID",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "AD_INT": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "AD_INT_ART"
-        ],
-        "dbcFrom": "AD",
-        "dbcTo": "INT",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc_r",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "AD_LS": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "AD_LS_ART"
-        ],
-        "dbcFrom": "AD",
-        "dbcTo": "LS",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc_r",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "LS_VLB": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "LS_VEN_VLB"
-        ],
-        "dbcFrom": "LS",
-        "dbcTo": "VLB",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc_r",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "INT_VLB": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "INT_VEN_VLB"
-        ],
-        "dbcFrom": "INT",
-        "dbcTo": "VLB",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc_r",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "KID_VLB": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "KID_VEN_VLB"
-        ],
-        "dbcFrom": "KID",
-        "dbcTo": "VLB",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc_r",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "RUB": {
-        "type": "Compartment",
-        "label": "RUB",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "RUB"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0.25,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "BR": {
-        "type": "Compartment",
-        "label": "BR",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "BR_CAP",
-          "BR_VEN",
-          "BR_ART"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0.1,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "AA_BR": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "AA_BR_ART"
-        ],
-        "dbcFrom": "AA",
-        "dbcTo": "BR",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
       "AA_RUB": {
         "type": "Connector",
         "label": "",
         "picto": "container.png",
         "enabled": true,
         "models": [
+          "AA_BR_ART",
           "AA_RUB"
         ],
         "dbcFrom": "AA",
         "dbcTo": "RUB",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "SVC": {
-        "type": "Compartment",
-        "label": "SVC",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "SVC"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": -0.7,
-              "y": 0.1,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "VUB": {
-        "type": "Compartment",
-        "label": "VUB",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "VUB"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": -0.35,
-              "y": 0.15,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "BR_VUB": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "BR_VEN_VUB"
-        ],
-        "dbcFrom": "BR",
-        "dbcTo": "VUB",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": 7,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "RUB_VUB": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "RUB_VUB"
-        ],
-        "dbcFrom": "RUB",
-        "dbcTo": "VUB",
         "layout": {
           "general": {
             "animatedBy": "flow",
@@ -2400,7 +2134,7 @@
         "models": [
           "VUB_SVC"
         ],
-        "dbcFrom": "VUB",
+        "dbcFrom": "RUB",
         "dbcTo": "SVC",
         "layout": {
           "general": {
@@ -2443,7 +2177,7 @@
       },
       "DA": {
         "type": "Connector",
-        "label": "ductus arteriosus",
+        "label": "DUCTUS ARTERIOSUS",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -2461,252 +2195,8 @@
           "path": {
             "type": "straight",
             "width": 7,
-            "color": "#333333"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": -50,
-            "pos_y": -43,
-            "size": 8,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "LUNG": {
-        "type": "Compartment",
-        "label": "",
-        "picto": "gas_container.png",
-        "enabled": true,
-        "models": [
-          "ALL",
-          "ALR"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 6,
-            "alpha": 1,
-            "tinting": false
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#777777",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": -0.92,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1.1,
-              "y": 1.1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "TITLE": {
-        "type": "Device",
-        "label": "TETRALOGY OF FALLOT - MODERATE",
-        "picto": "vessel.png",
-        "enabled": true,
-        "models": [],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "none",
-            "z_index": 10,
-            "alpha": 0,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#000000",
-            "pos": {
-              "type": "bottom",
-              "x": 0,
-              "y": 20,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1.2,
-              "y": 1.2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 14,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "COR": {
-        "type": "Compartment",
-        "label": "COR",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "COR"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0.4000000000000001,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 6,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "AA_COR": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "AA_COR"
-        ],
-        "dbcFrom": "AA",
-        "dbcTo": "COR",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 6,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": "3",
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 0.5,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "COR_RA": {
-        "type": "Connector",
-        "label": "",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "COR_RAIVCI",
-          "COR_RASVC"
-        ],
-        "dbcFrom": "COR",
-        "dbcTo": "RA",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "arc",
-            "width": "3",
-            "color": "#666666"
+            "color": "#333333",
+            "accent": "#6a5d48"
           },
           "sprite": {
             "color": "#ffffff",
@@ -2728,216 +2218,15 @@
           },
           "label": {
             "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
+            "pos_y": -13,
+            "size": 11,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.72
           }
         }
-      },
-      "ECLS_TUBING_IN": {
-        "type": "Compartment",
-        "label": "IN",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "ECLS_TUBING_IN"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": -0.45,
-              "y": 1.28,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.07
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 22,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
-      },
-      "ECLS_PUMP": {
-        "type": "Compartment",
-        "label": "PUMP",
-        "picto": "pump.png",
-        "enabled": true,
-        "models": [
-          "ECLS_PUMP"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": false
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#00aaaa",
-            "pos": {
-              "type": "rel",
-              "x": -0.15,
-              "y": 1.28,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.11
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 28,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
-      },
-      "ECLS_OXY": {
-        "type": "Compartment",
-        "label": "OXY",
-        "picto": "oxygenator.png",
-        "enabled": true,
-        "models": [
-          "ECLS_OXY"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0.15,
-              "y": 1.28,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.13
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 30,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
-      },
-      "ECLS_TUBING_OUT": {
-        "type": "Compartment",
-        "label": "OUT",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "ECLS_TUBING_OUT"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0.45,
-              "y": 1.28,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.07
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 22,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
       },
       "ECLS_DRAINAGE": {
         "type": "Connector",
@@ -3191,56 +2480,6 @@
         },
         "group": "ecls"
       },
-      "RA": {
-        "type": "Compartment",
-        "label": "RA",
-        "picto": "container.png",
-        "enabled": true,
-        "models": [
-          "RAIVCI",
-          "RASVC"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "arc",
-              "x": -1.2,
-              "y": 0,
-              "dgs": 180
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
       "SVC_RA": {
         "type": "Connector",
         "label": "",
@@ -3342,7 +2581,7 @@
       },
       "FO": {
         "type": "Connector",
-        "label": "foramen ovale",
+        "label": "FORAMEN OVALE",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -3361,7 +2600,8 @@
           "path": {
             "type": "straight",
             "width": 7,
-            "color": "#333333"
+            "color": "#333333",
+            "accent": "#6a5d48"
           },
           "sprite": {
             "color": "#ffffff",
@@ -3383,215 +2623,15 @@
           },
           "label": {
             "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
+            "pos_y": -13,
+            "size": 11,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.3
           }
         }
-      },
-      "IPS": {
-        "type": "Connector",
-        "label": "IPS",
-        "picto": "gfx/container.png",
-        "enabled": true,
-        "models": [
-          "IPSL",
-          "IPSR"
-        ],
-        "dbcFrom": "PA",
-        "dbcTo": "PV",
-        "layout": {
-          "general": {
-            "animatedBy": "flow",
-            "z_index": 8,
-            "alpha": 1,
-            "tinting": true
-          },
-          "path": {
-            "type": "straight",
-            "width": 7,
-            "color": "#333333"
-          },
-          "sprite": {
-            "color": "#ffffff",
-            "pos": {
-              "type": "rel",
-              "x": 0,
-              "y": 0,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 2
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        }
-      },
-      "ECLS_GAS_SOURCE": {
-        "type": "Compartment",
-        "label": "SWEEP",
-        "picto": "gas_container.png",
-        "enabled": true,
-        "models": [
-          "ECLS_GAS_SOURCE"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": false
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#777777",
-            "pos": {
-              "type": "rel",
-              "x": 0.37,
-              "y": 1.58,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.06
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 22,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
-      },
-      "ECLS_GAS_OXY": {
-        "type": "Compartment",
-        "label": "",
-        "picto": "gas_container.png",
-        "enabled": true,
-        "models": [
-          "ECLS_GAS_OXY"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": false
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#777777",
-            "pos": {
-              "type": "rel",
-              "x": 0.15,
-              "y": 1.58,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.08
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 22,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
-      },
-      "ECLS_GAS_OUT": {
-        "type": "Compartment",
-        "label": "EXHAUST",
-        "picto": "gas_container.png",
-        "enabled": true,
-        "models": [
-          "ECLS_GAS_OUT"
-        ],
-        "dbcFrom": "",
-        "dbcTo": "",
-        "layout": {
-          "general": {
-            "animatedBy": "vol",
-            "z_index": 10,
-            "alpha": 1,
-            "tinting": false
-          },
-          "path": {
-            "type": "straight",
-            "width": 5,
-            "color": "#666666"
-          },
-          "sprite": {
-            "color": "#777777",
-            "pos": {
-              "type": "rel",
-              "x": -0.13,
-              "y": 1.58,
-              "dgs": 0
-            },
-            "scale": {
-              "x": 1,
-              "y": 1
-            },
-            "anchor": {
-              "x": 0.5,
-              "y": 0.5
-            },
-            "rotation": 0,
-            "fixed_size": 0.06
-          },
-          "label": {
-            "pos_x": 0,
-            "pos_y": 22,
-            "size": 10,
-            "rotation": 0,
-            "color": "#ffffff"
-          }
-        },
-        "group": "ecls"
       },
       "ECLS_SWEEP_IN": {
         "type": "Connector",
@@ -3713,7 +2753,8 @@
           "path": {
             "type": "straight",
             "width": 7,
-            "color": "#333333"
+            "color": "#333333",
+            "accent": "#6a5d48"
           },
           "sprite": {
             "color": "#ffffff",
@@ -3735,16 +2776,19 @@
           },
           "label": {
             "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
+            "pos_y": -13,
+            "size": 13,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.7
           }
         }
       },
       "RV_AA": {
         "type": "Connector",
-        "label": "",
+        "label": "OVERRIDING AORTA",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -3784,10 +2828,13 @@
           },
           "label": {
             "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
+            "pos_y": -13,
+            "size": 11,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.5
           }
         }
       }
