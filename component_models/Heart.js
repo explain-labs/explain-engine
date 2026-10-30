@@ -496,8 +496,12 @@ export class Heart extends BaseModelClass {
 
     // incorporate the ans factors ans sensitivity on the heart function.
     // ans_activity_factor (driven by the Mob myocardial-oxygen-balance hypoxia feedback) scales the
-    // sympathetic drive propagated to the chambers; 1.0 = no effect.
-    const _eff_ans_activity = this.ans_activity * this.ans_activity_factor;
+    // sympathetic drive propagated to the chambers; 1.0 = no effect. It scales only the deviation from
+    // rest: a hypoxic myocardium loses its adrenergic reserve, but the depression below rest is Mob's
+    // direct el_max_mob_factor. Scaling the whole activity (activity x factor) counted the hypoxia twice
+    // in the chambers' additive el_max sum and drove contractility to zero (no recovery after ~2 min of
+    // severe hypoxia).
+    const _eff_ans_activity = 1.0 + (this.ans_activity - 1.0) * this.ans_activity_factor;
     if (this._raivci) {
       this._raivci.ans_sens = this.ans_sens
       this._raivci.ans_activity = _eff_ans_activity

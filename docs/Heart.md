@@ -161,7 +161,7 @@ BaseModelClass
    - `vaf` → LV and COR;
    - `rvaf` → RV.
 
-   It also passes `ans_sens` and `ans_activity · ans_activity_factor` to the chambers, and sets the coronary inflow resistor's non-persistent factor `AA_COR.r_factor = 1 + cor_r_systolic_factor · vaf`.
+   It also passes `ans_sens` and `1 + (ans_activity − 1) · ans_activity_factor` to the chambers (hypoxia removes the adrenergic reserve, never more), and sets the coronary inflow resistor's non-persistent factor `AA_COR.r_factor = 1 + cor_r_systolic_factor · vaf`.
 9. **Per-beat analysis** (`analyze`), at the systole/diastole transitions:
    - at end-systole, it latches the end-systolic volume and pressure;
    - at end-diastole, the end-diastolic values, then `SV = EDV − ESV` and `EF = SV / EDV` (0 if EDV = 0).
