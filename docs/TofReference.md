@@ -180,6 +180,10 @@ saturation definition.
   falls with the pulmonary flow, so the ratio stays ~0.4–0.5; Fig 14.4's 0.18 is an older infant.
 - 2026-10-30 (step 3.4): RV step-up reported only for `tof` and `tof_severe` (lumped-RV mixing of the
   to-and-fro VSD flow; no engine change, a streaming mechanism would be needed).
+- 2026-10-30: accepted exception: `tof_pa` systemic venous saturation ~53 % (band 55–65). The arterial–venous
+  gap (~21 points, set by oxygen use, systemic flow and Hb) is the same in all four grades and in Fig 14.3;
+  the band was copied from Fig 14.3 at SpO₂ 80 %, and at the atresia baby's 74 % the same gap gives ~53 %.
+  A 2.8 mm duct would lift it to 56 % at the cost of Qp:Qs 1.2 and PA mean 29; the 2.5 mm duct was kept.
 
 ## References
 
