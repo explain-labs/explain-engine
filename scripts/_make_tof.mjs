@@ -49,7 +49,7 @@ import fs from "node:fs";
 import { orifice_b } from "../helpers/Orifice.js";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
-import { addChordConnector, addVsdConnector, hideConnectors, narrowConnector, simplifyDiagram } from "./_diagram.mjs";
+import { SHUNT_STYLE, SHUNT_TONE, addChordConnector, addVsdConnector, hideConnectors, narrowConnector, pathCaption, simplifyDiagram } from "./_diagram.mjs";
 
 // ---- lever table ---------------------------------------------------------------------------------------
 //   vsd     Shunts.diameter_vsd, mm (large, non-restrictive)
@@ -95,12 +95,8 @@ const TOF = {
 };
 
 // ---- teaching diagram (see simplifyDiagram in _diagram.mjs) ---------------------------------------------
-// the shunt lines a shade warmer than the grey vessels (#4a4a4a), so they stand apart without drawing the eye
-const SHUNT_TONE = "#6a5d48";
-// captions: light grey, turned along the line (`along`) and nudged off it; `at` is the fraction along the line
-// from its start, so the FO (LA->RA) and VSD (LV->RV), two nearly parallel lines across the ring, carry theirs
-// at opposite ends instead of side by side; written-out names are a bit smaller
-const caption = (at, size = 13) => ({ visible: true, along: true, at, pos_x: 0, pos_y: -13, size, color: "#b8b8b8" });
+// the duct, foramen ovale and flow arrows in the shared style (SHUNT_STYLE, _diagram.mjs); the VSD gets the same
+// tone and its caption at the other end of the line than the FO's (two nearly parallel lines across the ring)
 const TOF_DIAGRAM = {
   hide: ["IPS", "COR"],
   lump: [
@@ -111,15 +107,15 @@ const TOF_DIAGRAM = {
     // the venae cavae a little closer to their body discs (SVC was x -0.7 y 0.1, IVC 160 deg)
     SVC: { sprite: { pos: { x: -0.56, y: 0.2 } } },
     IVCI: { sprite: { pos: { dgs: 145 } } },
-    DA: { path: { accent: SHUNT_TONE }, label: caption(0.72, 11) },
-    FO: { path: { accent: SHUNT_TONE }, label: caption(0.3, 11) },
-    VSD: { path: { accent: SHUNT_TONE }, label: caption(0.7) },
+    ...SHUNT_STYLE.layout,
+    VSD: { path: { accent: SHUNT_TONE }, label: pathCaption(0.7) },
     // the overriding aorta and the RVOT keep the vessel grey (the RVOT stays narrowed)
-    RV_AA: { label: caption(0.5, 11) },
-    RV_PA: { label: caption(0.5) },
+    RV_AA: { label: pathCaption(0.5, 11) },
+    RV_PA: { label: pathCaption(0.5) },
   },
-  labels: { IVCI: "IVC", DA: "DUCTUS ARTERIOSUS", FO: "FORAMEN OVALE", RV_AA: "OVERRIDING AORTA", RV_PA: "RVOT", VSD: "VSD" },
-  settings: { flowMarker: "arrow" }, // arrows instead of dots show the flow direction
+  labels: { ...SHUNT_STYLE.labels, IVCI: "IVC", RV_AA: "OVERRIDING AORTA", RV_PA: "RVOT", VSD: "VSD" },
+  // scaling 1: the term baby's diagram (the base) is drawn at 0.9, the ToF diagrams keep their own size
+  settings: { ...SHUNT_STYLE.settings, scaling: 1 },
 };
 
 // the ToF diagram from the term baby's: draw the VSD and the RV -> aorta pathway (a chord: an arc from RV to AA

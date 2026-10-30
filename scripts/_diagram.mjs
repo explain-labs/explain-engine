@@ -7,6 +7,10 @@
 // don't run over the ring arcs the way a ring-to-ring "arc" connector would.
 export function addChordConnector(dc, name, models, from, to, label = "") {
   dc[name] = { ...structuredClone(dc.FO), label, models, dbcFrom: from, dbcTo: to };
+  // start plain: the FO's own accent colour and visible caption (SHUNT_STYLE) are not copied
+  const l = dc[name].layout;
+  delete l.path.accent;
+  if (l.label) for (const k of ["visible", "along", "at"]) delete l.label[k];
   return dc[name];
 }
 
@@ -108,9 +112,33 @@ export function simplifyDiagram(dd, spec) {
   }
   for (const { names, conn } of merged.values()) comps[names.length === 1 ? names[0] : `${conn.dbcFrom}_${conn.dbcTo}`] = conn;
 
+  out.components = comps;
+  return patchDiagram(out, spec);
+}
+
+// The layout / labels / settings part of a simplifyDiagram spec, applied in place on `dd` without hiding,
+// lumping or reordering anything (keeps a hand-authored file's diff small). Returns `dd`.
+export function patchDiagram(dd, spec) {
+  const comps = dd.components ?? {};
   for (const [name, patch] of Object.entries(spec.layout ?? {})) if (comps[name]?.layout) deepMerge(comps[name].layout, patch);
   for (const [name, label] of Object.entries(spec.labels ?? {})) if (comps[name]) comps[name].label = label;
-  if (spec.settings) out.settings = { ...(out.settings ?? {}), ...spec.settings };
-  out.components = comps;
-  return out;
+  if (spec.settings) dd.settings = { ...(dd.settings ?? {}), ...spec.settings };
+  return dd;
 }
+
+// ---- shared teaching style (ToF scenarios, term_neonate_72h) -----------------------------------------------
+// the shunt lines a shade warmer than the grey vessels (#4a4a4a), so they stand apart without drawing the eye
+export const SHUNT_TONE = "#6a5d48";
+// a connector caption: light grey, turned along the line (`along`) and nudged off it; `at` is the fraction along
+// the line from its start; written-out names are smaller (DA/FO 9, overriding aorta 11) than short ones (13)
+export const pathCaption = (at, size = 13) => ({ visible: true, along: true, at, pos_x: 0, pos_y: -13, size, color: "#b8b8b8" });
+// the duct and the foramen ovale in that style, and flow arrows instead of dots: the simplifyDiagram spec parts
+// both the term baby and the ToF scenarios use
+export const SHUNT_STYLE = {
+  layout: {
+    DA: { path: { accent: SHUNT_TONE }, label: pathCaption(0.72, 9) },
+    FO: { path: { accent: SHUNT_TONE }, label: pathCaption(0.3, 9) },
+  },
+  labels: { DA: "DUCTUS ARTERIOSUS", FO: "FORAMEN OVALE" },
+  settings: { flowMarker: "arrow" },
+};
