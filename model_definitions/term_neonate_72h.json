@@ -11,7 +11,7 @@
       "type": "explain_diagram",
       "backgroundColor": 3355443,
       "editingMode": 1,
-      "scaling": 1,
+      "scaling": 0.9,
       "speed": 1,
       "grid": false,
       "gridSize": 10,

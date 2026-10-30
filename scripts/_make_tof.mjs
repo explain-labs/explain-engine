@@ -114,7 +114,8 @@ const TOF_DIAGRAM = {
     RV_PA: { label: pathCaption(0.5) },
   },
   labels: { ...SHUNT_STYLE.labels, IVCI: "IVC", RV_AA: "OVERRIDING AORTA", RV_PA: "RVOT", VSD: "VSD" },
-  settings: SHUNT_STYLE.settings,
+  // scaling 1: the term baby's diagram (the base) is drawn at 0.9, the ToF diagrams keep their own size
+  settings: { ...SHUNT_STYLE.settings, scaling: 1 },
 };
 
 // the ToF diagram from the term baby's: draw the VSD and the RV -> aorta pathway (a chord: an arc from RV to AA
