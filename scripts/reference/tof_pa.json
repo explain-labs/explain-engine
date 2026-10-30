@@ -549,7 +549,7 @@
   {
    "key": "rvot_v",
    "group": "tof",
-   "label": "RVOT peak velocity (derived)",
+   "label": "RVOT peak jet velocity",
    "unit": "m/s",
    "mean": null,
    "sd": null,
@@ -563,7 +563,7 @@
     "echo_convention"
    ],
    "grade": "C (derived)",
-   "model_readout": "sqrt(rvot_grad / 4) (RV_PA is a linear resistor without a Doppler read-out)",
+   "model_readout": "peak RV_PA jet velocity per beat, jet_velocity(RV_PA.r_k, flow) (the RVOT orifice); sqrt(rvot_grad / 4) if r_k is 0",
    "notes": "Not applicable."
   },
   {

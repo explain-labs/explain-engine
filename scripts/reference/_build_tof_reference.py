@@ -55,10 +55,10 @@ def ph(name, d):
         "RAIVCI/RASVC so2 weighted by their tricuspid flows (Monitor.svo2 reads the PA, which is not mixed venous blood in ToF)", d["svo2_note"], method="catheter, textbook figure"))
     out.append(row("pa_so2", "gases", "PA O2 saturation", "%", *d["pa_so2"], ["rudolph2009"], "B/C", "PA.so2", d["pa_so2_note"], method="catheter, textbook figure"))
     out.append(row("qp_qs", "tof", "Qp:Qs", "-", *d["qpqs"], ["rudolph2009"], "C (derived)", "pulmonary venous return (LL_VEN_PV + RL_VEN_PV) / qs", d["qpqs_note"], method="Fick from figure saturations"))
-    out.append(row("pap_s", "hemodynamics", "PA systolic pressure", "mmHg", *d["pap_s"], ["rudolph2009"], d.get("pap_grade", "B/C"), "Monitor.minmax.pap_pres_max", d["pap_note"], method="catheter, textbook figure"))
-    out.append(row("pap_m", "hemodynamics", "PA mean pressure", "mmHg", *d["pap_m"], ["rudolph2009"], d.get("pap_grade", "B/C"), "Monitor.minmax.pap_pres_mean", d["pap_note"], method="catheter, textbook figure"))
+    out.append(row("pap_s", "hemodynamics", "PA systolic pressure", "mmHg", *d["pap_s"], d.get("pap_src", ["rudolph2009"]), d.get("pap_grade", "B/C"), "Monitor.minmax.pap_pres_max", d["pap_note"], method="catheter, textbook figure"))
+    out.append(row("pap_m", "hemodynamics", "PA mean pressure", "mmHg", *d["pap_m"], d.get("pap_src", ["rudolph2009"]), d.get("pap_grade", "B/C"), "Monitor.minmax.pap_pres_mean", d["pap_note"], method="catheter, textbook figure"))
     out.append(row("rvot_grad", "tof", "RVOT peak-to-peak gradient", "mmHg", *d["grad"], d["grad_src"], d["grad_grade"], "per-beat max RV.pres - per-beat max PA.pres", d["grad_note"], method="catheter / Doppler"))
-    out.append(row("rvot_v", "tof", "RVOT peak velocity (derived)", "m/s", *d["v"], ["echo_convention"], "C (derived)", "sqrt(rvot_grad / 4) (RV_PA is a linear resistor without a Doppler read-out)", d["v_note"], method="modified Bernoulli from the gradient"))
+    out.append(row("rvot_v", "tof", "RVOT peak jet velocity", "m/s", *d["v"], ["echo_convention"], "C (derived)", "peak RV_PA jet velocity per beat, jet_velocity(RV_PA.r_k, flow) (the RVOT orifice); sqrt(rvot_grad / 4) if r_k is 0", d["v_note"], method="modified Bernoulli from the gradient"))
     out.append(row("rv_step_up", "tof", "O2 step-up at RV (RV so2 - svo2)", "%", *d["step"], ["rudolph2009"], "B/C", "RV.so2 - Monitor.svo2", d["step_note"], method="catheter, textbook figure"))
     out.append(row("vsd_net", "shunts", "Net ventricular shunt (L->R positive)", "mL/kg/min", *d["vsd"], ["rudolph2009"], "B/C",
         "(RV_PA flow - tricuspid inflow RAIVCI_RV + RASVC_RV) per kg", d["vsd_note"] + " Model: R->L blood reaches the aorta through RV_AA (the override), so the shunt is RV->PA output minus systemic venous inflow, not the VSD resistor flow alone.", method="direction rule"))
@@ -77,9 +77,9 @@ P = {
    spo2=(93, 90, 97), spo2_src=["reddy1995", "rudolph2009"], spo2_grade="A (definition)", spo2_note="Pink = SaO2 > 90 % (Reddy 1995). Rudolph Fig 14.2: aortic 95 %. Neonatal PVR limits the L->R shunt in the first days (Rudolph), so not fully saturated.",
    svo2=(70, 65, 75), svo2_note="Fig 14.2: SVC 65, IVC 70 %.",
    qpqs=(1.5, 1.2, 2.0), qpqs_note="Fig 14.2 Fick: (Ao 95 - venous ~67)/(PV 98 - PA 80) = 1.55. Pink = Qp > Qs (Rudolph text).",
-   pap_s=(35, 30, 40), pap_m=(25, 20, 30), pap_note="Fig 14.2: PA 40/20 m28 with aortic systolic 90; 'mildly or moderately elevated' (Rudolph). Scaled to systolic ~74 at 72 h.",
-   grad=(42, 35, 50), grad_src=["rudolph2009", "echo_convention"], grad_grade="C", grad_note="Fig 14.2: RV 90 - PA 40 = 50 at aortic 90; at our systolic ~74 -> ~35-50. Neonatal gradients underestimate the obstruction (high PVR).",
-   v=(3.2, 3.0, 3.5), v_note="From the gradient band; 'mild/moderate' Doppler band 3-3.5 m/s.",
+   pap_s=(47, 40, 55), pap_m=(33, 28, 38), pap_src=["kang2016", "rudolph2009"], pap_note="Derived (revised 2026-10-30, step 3.2): the 72 h PA pressure at normal flow (Kang 2016: 36/13 m25) with Qp:Qs ~1.5 through a still-high neonatal PVR; Rudolph: 'mildly or moderately elevated'. Fig 14.2 (PA 40/20 m28) is an older infant whose PVR has fallen.",
+   grad=(25, 15, 35), grad_src=["rudolph2009", "kang2016"], grad_grade="C", grad_note="Derived (revised 2026-10-30): with a non-restrictive VSD the gradient is systemic systolic (~74) minus PA systolic. Neonatal gradients underestimate the obstruction while PVR is high (Rudolph); Fig 14.2's 50 mmHg is an older infant.",
+   v=(2.5, 1.9, 3.0), v_note="From the peak-to-peak gradient band (v = sqrt(dP/4)); the model's jet velocity (peak instantaneous) reads ~0.3 m/s higher.",
    step=(8, 3, 15), step_note="Fig 14.2: RV 75 vs venous 65-70 = small L->R step-up.",
    vsd=(None, 0, None), vsd_note="Net L->R (positive). Small in the first days because PVR is still high.",
    rvpa=(None, None, None), rvpa_note="Reported; = Qp with the duct closed.",
@@ -92,9 +92,9 @@ P = {
    spo2=(84, 75, 90), spo2_src=["reddy1995", "rudolph2009"], spo2_grade="A (definition)", spo2_note="Reddy 1995 'adequate pulmonary blood flow' group: SaO2 75-90 %. Rudolph: moderate stenosis is only mildly cyanotic after birth.",
    svo2=(65, 60, 70), svo2_note="Between Fig 14.2 (65-70) and Fig 14.3 (55-60).",
    qpqs=(1.0, 0.8, 1.2), qpqs_note="Interpolated between Fig 14.2 (1.5) and Fig 14.3 (0.6); bidirectional shunting at ventricular level in milder stenosis (Rudolph).",
-   pap_s=(25, 20, 30), pap_m=(18, 14, 22), pap_note="Interpolated between Fig 14.2 (40/20 m28) and Fig 14.3 (20/10 m15).", pap_grade="C",
-   grad=(52, 45, 60), grad_src=["rudolph2009", "mini2024", "echo_convention"], grad_grade="B/C", grad_note="Mini 2024 cyanotic infants (median 35 d) mean gradient 50 (32-72); moderate Doppler band 36-64 mmHg.",
-   v=(3.6, 3.4, 3.9), v_note="From the gradient band (moderate 3-4 m/s).",
+   pap_s=(36, 30, 42), pap_m=(24, 20, 28), pap_src=["kang2016", "rudolph2009"], pap_note="Derived (revised 2026-10-30, step 3.2): Qp:Qs ~1 through the 72 h PVR gives about the term PA pressure (Kang 2016: 36/13 m25).", pap_grade="C",
+   grad=(38, 30, 45), grad_src=["rudolph2009", "kang2016", "mini2024"], grad_grade="C", grad_note="Derived (revised 2026-10-30): systemic systolic (~74) minus PA systolic. Mini 2024's 50 (32-72) mmHg is in cyanotic infants of median 35 d (SpO2 70 %, lower PVR); neonatal gradients underestimate the obstruction (Rudolph).",
+   v=(3.1, 2.7, 3.35), v_note="From the peak-to-peak gradient band (v = sqrt(dP/4)); the model's jet velocity (peak instantaneous) reads ~0.2 m/s higher.",
    step=(2, 0, 5), step_note="Bidirectional shunt: little net step-up.",
    vsd=(0, -30, 30), vsd_note="Bidirectional, net near zero (band is a C-grade choice: +/-30 mL/kg/min).",
    rvpa=(None, None, None), rvpa_note="Reported; = Qp with the duct closed.",

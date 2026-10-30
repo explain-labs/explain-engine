@@ -45,6 +45,7 @@ console.log = () => {};
 
 await import("../ModelEngine.js");
 const { calc_blood_composition } = await import("../component_models/BloodComposition.js");
+const { jet_velocity } = await import("../helpers/Orifice.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 const FILE = opt("--file", null); // probe a scenario file outside model_definitions/ (e.g. a prototype)
 const json = JSON.parse(fs.readFileSync(FILE ?? new URL(`../model_definitions/${scenario}.json`, import.meta.url), "utf8"));
@@ -78,7 +79,7 @@ let raSo2 = 0, raN = 0;
 // so2: in tetralogy of Fallot the PA (the Monitor's SvO2 site) is not mixed venous blood
 let ivciSo2 = 0, svcSo2 = 0, paSo2 = 0;
 // per-beat peak pressures (RV, LV, PA), latched at each ventricular activation: VSD restrictiveness and RVOT gradient
-const beatPk = { rv: -Infinity, lv: -Infinity, pa: -Infinity }, pkList = { rv: [], lv: [], pa: [] };
+const beatPk = { rv: -Infinity, lv: -Infinity, pa: -Infinity, q: -Infinity }, pkList = { rv: [], lv: [], pa: [], q: [] };
 // ductal flow direction and Doppler per beat (open duct only): time right-to-left, peak systolic and end-diastolic velocity
 let daRtoL = 0, daSteps = 0, beatVmax = -Infinity, beatVmin = Infinity; const vPeaks = [], vEnds = [];
 for (let i = 0; i < steps; i++) {
@@ -87,6 +88,7 @@ for (let i = 0; i < steps; i++) {
   for (const n of flowNames) add(n, M[n]?.flow);
   add("vsd", M.Shunts?.flow_vsd);
   for (const [k, c] of [["rv", M.RV], ["lv", M.LV], ["pa", M.PA]]) if (c?.pres > beatPk[k]) beatPk[k] = c.pres;
+  if (M.RV_PA?.flow > beatPk.q) beatPk.q = M.RV_PA.flow;
   if (M.Heart?.ncc_ventricular === 1) {
     for (const k in beatPk) { if (Number.isFinite(beatPk[k])) pkList[k].push(beatPk[k]); beatPk[k] = -Infinity; }
   }
@@ -156,7 +158,9 @@ const rvotGrad = M.RV_PA?.no_flow || M.RV_PA?.is_enabled === false ? NaN : pk("r
 // With the aorta overriding, R->L blood leaves the RV straight into the aorta (RV_AA), not back through the VSD
 // resistor, so Shunts.flow_vsd alone (vsd_flow) does not show the direction of the ventricular shunt
 const tof = {
-  qs: perKgMin(qs), qp_qs: qp / qs, rv_lv_peak: pk("rv") - pk("lv"), rvot_grad: rvotGrad, rvot_v: Math.sqrt(Math.max(rvotGrad, 0) / 4),
+  qs: perKgMin(qs), qp_qs: qp / qs, rv_lv_peak: pk("rv") - pk("lv"), rvot_grad: rvotGrad, // RVOT jet velocity: from the orifice (r_k) at the per-beat peak flow, as Doppler measures it; from the
+  // peak-to-peak gradient for a linear RVOT
+  rvot_v: M.RV_PA?.r_k_eff > 0 ? jet_velocity(M.RV_PA.r_k_eff, pk("q")) : Math.sqrt(Math.max(rvotGrad, 0) / 4),
   svo2_ven: svo2Ven, pa_so2: paSo2 / raN, rv_step_up: raSo2 / raN - svo2Ven, vsd_net: perKgMin(acc.RV_PA - tricuspid), vsd_flow: perKgMin(acc.vsd), rvpa: perKgMin(acc.RV_PA),
   duct: perKgMin(acc.AAR_DA), override: (100 * acc.RV_AA) / (acc.RV_AA + acc.LV_AA), vsd_size: M.Shunts?.diameter_vsd,
 };

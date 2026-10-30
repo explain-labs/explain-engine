@@ -62,13 +62,29 @@ physiology of the pink tetralogy, and is used for `tof_pink`.
 - **Figures scaled to 72 h.** Rudolph's diagrams have aortic systolic pressures of 85–90 mmHg; at 72 h
   this baby's systolic is ~74. Because RV systolic = aortic systolic, PA pressures and gradients are
   scaled to that.
+- **PA pressure and gradient at 72 h (revised in step 3.2).** With a non-restrictive VSD the RV peak is the
+  systemic peak, so the gradient is simply systemic minus PA systolic pressure, and the PA pressure is set
+  by the pulmonary flow through the pulmonary vascular resistance. At 72 h that resistance is still high:
+  the healthy baby has PA 36/13 (mean 25) at normal flow (Kang 2016). Fig 14.2, which the first targets
+  for `tof_pink` and `tof` were scaled from, is an older infant whose PVR has fallen, so its PA pressure is
+  lower and its gradient higher than a 72 h baby's at the same saturation. The `tof_pink` and `tof` PA and
+  gradient targets are therefore derived from the term PA pressure and the pulmonary flow (grade C).
+  Consistent with this, the model gives a gradient of ~54 mmHg at SpO₂ 72 %, as Mini 2024 measured in
+  cyanotic infants of five weeks (50 mmHg at 70 %).
 - **The RVOT gradient is a weak severity measure here.** With a non-restrictive VSD the RV cannot exceed
   systemic pressure, so the gradient is capped; and in the first days a high PVR makes it underestimate
   the obstruction. Saturation follows the RVOT resistance, not the gradient. In `tof_severe` the
   gradient is reported only.
-- **RVOT velocity is derived.** `RV_PA` is a linear resistor without a Doppler read-out, so the velocity
-  is computed from the peak-to-peak gradient with the modified Bernoulli equation (v = √(ΔP/4)).
-  Peak-to-peak (catheter) is lower than the peak instantaneous Doppler gradient.
+- **RVOT velocity.** The model's RVOT is an orifice (see below), so the probe reports its jet velocity at the
+  per-beat peak flow, as Doppler measures it. The velocity targets are derived from the gradient bands
+  with the modified Bernoulli equation (v = √(ΔP/4)); the peak-to-peak (catheter) gradient is lower than
+  the peak instantaneous Doppler gradient, so the jet velocity reads ~0.2–0.3 m/s above the derived value.
+- **The RVOT in the model** is `RV_PA` with an orifice term: `r_k` is the Bernoulli coefficient of an
+  effective RVOT diameter (valve and infundibulum lumped, discharge coefficient 0.7; `helpers/Orifice.js`),
+  so the pressure drop rises with the square of the flow (ΔP = r·Q + r_k·Q², solved exactly per step by
+  the Resistor); `r_for` keeps the baseline valve resistance. At a matched operating point it gives the
+  same pressures as a linear resistance; it is used because the obstruction is then a diameter, it
+  behaves like a stenosis when the flow changes (crying, a spell), and it yields a Doppler velocity.
 - **Model read-outs.** The Monitor's SvO₂ reads the PA, which in ToF is not mixed venous blood, so the
   venous saturation is the systemic venous return entering the RV (RAIVCI and RASVC, weighted by their
   tricuspid flows); the PA saturation is a row of its own. With the aorta overriding, R→L blood leaves the
@@ -94,9 +110,9 @@ inflow) and the VSD diameter are reported only: no quantitative source was found
 | Systemic venous sat (%) | 70 (65–75) | 65 (60–70) | 60 (55–65) | 60 (55–65) |
 | PA sat (%) | 80 (75–85) | reported | reported | = aortic |
 | Qp:Qs | 1.5 (1.2–2.0) | 1.0 (0.8–1.2) | 0.8 (0.6–1.1) | 1.0 (0.8–1.3) |
-| PA systolic / mean (mmHg) | 35 (30–40) / 25 (20–30) | 25 (20–30) / 18 (14–22) | 20 (15–25) / 15 (12–18) | 20 (15–28) / 15 (10–20) |
-| RVOT gradient (mmHg) | 42 (35–50) | 52 (45–60) | ~55, reported | – |
-| RVOT velocity, derived (m/s) | 3.2 (3.0–3.5) | 3.6 (3.4–3.9) | ~3.7, reported | – |
+| PA systolic / mean (mmHg) | 47 (40–55) / 33 (28–38) | 36 (30–42) / 24 (20–28) | 20 (15–25) / 15 (12–18) | 20 (15–28) / 15 (10–20) |
+| RVOT gradient (mmHg) | 25 (15–35) | 38 (30–45) | ~55, reported | – |
+| RVOT velocity (m/s) | 2.5 (1.9–3.0) | 3.1 (2.7–3.35) | ~3.7, reported | – |
 | RV − venous sat step-up (%) | 8 (3–15) | 2 (0–5) | 0 (−3 to +3) | – |
 | Net ventricular shunt | L→R (> 0) | ≈ 0 (±30 mL/kg/min) | R→L (< 0) | R→L, whole venous return |
 | Antegrade RVOT flow | = Qp | = Qp | small | 0 (atresia) |
@@ -114,9 +130,11 @@ Grades and sources per value:
 - **Mixed venous, PA pressures, step-up** (B/C): Rudolph Figs 14.2–14.4, scaled; `tof` is
   interpolated between Figs 14.2 and 14.3; `tof_pa` by analogy.
 - **Qp:Qs** (C): Fick from the figures; `tof_pa` from the complete-mixing relation at SaO₂ 80 %.
-- **RVOT gradient** (B/C): Rudolph figures, scaled; Mini 2024, mean gradient 50 (32–72) mmHg in 19
-  cyanotic ToF infants (median 35 days, 3.3 kg; postnatal PV z −3.7, SpO₂ 70 %); Doppler convention
-  mild < 36, moderate 36–64, severe > 64 mmHg.
+- **PA pressure and RVOT gradient** (C for `tof_pink`/`tof`, B/C for `tof_severe`): derived for 72 h from the
+  term PA pressure (Kang 2016) and the pulmonary flow; `tof_severe` from Rudolph Fig 14.3 (a newborn).
+  Context, not targets: Mini 2024, mean gradient 50 (32–72) mmHg in 19 cyanotic ToF infants (median
+  35 days, 3.3 kg; postnatal PV z −3.7, SpO₂ 70 %); Doppler convention mild < 36, moderate 36–64,
+  severe > 64 mmHg (older infants and children).
 - **Pulmonary valve z** (B, fetal): Vetten 2025, −2.6 ± 1.6 later intervention vs −5.3 ± 2.4
   PGE1-dependent / intervention ≤ 7 days, cut-off ≤ −3.5; Arya 2014, −5.38 ± 2.95 duct-dependent vs
   −3.51 ± 1.66; Hirji 2010, −3.0 ± 2.0 whole cohort, PV/AoV 0.65 ± 0.10.
@@ -143,6 +161,9 @@ saturation definition.
   afterload mismatch and cut RV contractility to 0.2–0.6 (blood pressure and output fell with severity, the
   atresia baby decompensated). Contractility itself is unchanged (a ×1.5 RV `el_max` was prototyped and
   not taken: no source for the number).
+- 2026-10-30 (step 3.2): PA pressure and gradient targets of `tof_pink` and `tof` re-derived for 72 h
+  (see "PA pressure and gradient at 72 h"); the RVOT is an orifice with an effective diameter (6 mm pink,
+  4.5 mm moderate, 2 mm severe) instead of a linear resistance.
 
 ## References
 

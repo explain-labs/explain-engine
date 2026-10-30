@@ -48,6 +48,11 @@
    "doi": "10.1542/peds.2008-2654",
    "pmid": "19171584"
   },
+  "kang2016": {
+   "cite": "Kang C et al. Medicine (Baltimore) 2016;95:e2599 (76 healthy term newborns, echo 2-72 h)",
+   "doi": "10.1097/MD.0000000000002599",
+   "pmid": "26817918"
+  },
   "norway2021": {
    "cite": "Heart rate during the first 24 hours in term-born infants. Arch Dis Child Fetal Neonatal Ed 2021;106:489-93",
    "doi": "10.1136/archdischild-2020-320761",
@@ -498,71 +503,73 @@
    "group": "hemodynamics",
    "label": "PA systolic pressure",
    "unit": "mmHg",
-   "mean": 35,
+   "mean": 47,
    "sd": null,
-   "low": 30,
-   "high": 40,
+   "low": 40,
+   "high": 55,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
+    "kang2016",
     "rudolph2009"
    ],
    "grade": "B/C",
    "model_readout": "Monitor.minmax.pap_pres_max",
-   "notes": "Fig 14.2: PA 40/20 m28 with aortic systolic 90; 'mildly or moderately elevated' (Rudolph). Scaled to systolic ~74 at 72 h."
+   "notes": "Derived (revised 2026-10-30, step 3.2): the 72 h PA pressure at normal flow (Kang 2016: 36/13 m25) with Qp:Qs ~1.5 through a still-high neonatal PVR; Rudolph: 'mildly or moderately elevated'. Fig 14.2 (PA 40/20 m28) is an older infant whose PVR has fallen."
   },
   {
    "key": "pap_m",
    "group": "hemodynamics",
    "label": "PA mean pressure",
    "unit": "mmHg",
-   "mean": 25,
+   "mean": 33,
    "sd": null,
-   "low": 20,
-   "high": 30,
+   "low": 28,
+   "high": 38,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
+    "kang2016",
     "rudolph2009"
    ],
    "grade": "B/C",
    "model_readout": "Monitor.minmax.pap_pres_mean",
-   "notes": "Fig 14.2: PA 40/20 m28 with aortic systolic 90; 'mildly or moderately elevated' (Rudolph). Scaled to systolic ~74 at 72 h."
+   "notes": "Derived (revised 2026-10-30, step 3.2): the 72 h PA pressure at normal flow (Kang 2016: 36/13 m25) with Qp:Qs ~1.5 through a still-high neonatal PVR; Rudolph: 'mildly or moderately elevated'. Fig 14.2 (PA 40/20 m28) is an older infant whose PVR has fallen."
   },
   {
    "key": "rvot_grad",
    "group": "tof",
    "label": "RVOT peak-to-peak gradient",
    "unit": "mmHg",
-   "mean": 42,
+   "mean": 25,
    "sd": null,
-   "low": 35,
-   "high": 50,
+   "low": 15,
+   "high": 35,
    "range_type": "target range",
    "method": "catheter / Doppler",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
     "rudolph2009",
-    "echo_convention"
+    "kang2016"
    ],
    "grade": "C",
    "model_readout": "per-beat max RV.pres - per-beat max PA.pres",
-   "notes": "Fig 14.2: RV 90 - PA 40 = 50 at aortic 90; at our systolic ~74 -> ~35-50. Neonatal gradients underestimate the obstruction (high PVR)."
+   "notes": "Derived (revised 2026-10-30): with a non-restrictive VSD the gradient is systemic systolic (~74) minus PA systolic. Neonatal gradients underestimate the obstruction while PVR is high (Rudolph); Fig 14.2's 50 mmHg is an older infant."
   },
   {
    "key": "rvot_v",
    "group": "tof",
-   "label": "RVOT peak velocity (derived)",
+   "label": "RVOT peak jet velocity",
    "unit": "m/s",
-   "mean": 3.2,
+   "mean": 2.5,
    "sd": null,
-   "low": 3.0,
-   "high": 3.5,
+   "low": 1.9,
+   "high": 3.0,
    "range_type": "target range",
    "method": "modified Bernoulli from the gradient",
    "age": "72 h (by assumption)",
@@ -571,8 +578,8 @@
     "echo_convention"
    ],
    "grade": "C (derived)",
-   "model_readout": "sqrt(rvot_grad / 4) (RV_PA is a linear resistor without a Doppler read-out)",
-   "notes": "From the gradient band; 'mild/moderate' Doppler band 3-3.5 m/s."
+   "model_readout": "peak RV_PA jet velocity per beat, jet_velocity(RV_PA.r_k, flow) (the RVOT orifice); sqrt(rvot_grad / 4) if r_k is 0",
+   "notes": "From the peak-to-peak gradient band (v = sqrt(dP/4)); the model's jet velocity (peak instantaneous) reads ~0.3 m/s higher."
   },
   {
    "key": "rv_step_up",

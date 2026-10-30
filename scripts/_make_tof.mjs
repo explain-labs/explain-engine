@@ -6,8 +6,12 @@
 // ToF is one malformation (anterior-cephalad deviation of the outlet septum) that gives four features, each
 // mapped onto an existing lever:
 //   1. a large malaligned VSD (non-restrictive)    -> Shunts.diameter_vsd
-//   2. RVOT obstruction                            -> RV_PA.r_for (valve + infundibulum lumped into one linear
-//                                                     resistance); pulmonary atresia = RV_PA disabled
+//   2. RVOT obstruction                            -> an orifice on RV_PA: r_k = the Bernoulli coefficient of an
+//                                                     effective RVOT diameter (valve + infundibulum lumped,
+//                                                     discharge coefficient RVOT_CD), so the pressure drop rises
+//                                                     with the square of the flow (dP = r_for Q + r_k Q^2, solved
+//                                                     exactly per step by Resistor); r_for keeps the baseline
+//                                                     valve resistance. Pulmonary atresia = RV_PA disabled
 //   3. an aorta overriding the VSD                 -> the pre-wired RV_AA valve (RV -> AA) enabled next to
 //                                                     LV_AA, so both ventricles eject into the aorta
 //   4. a right ventricle built for systemic pressure -> HeartFunction.wall_frac_rv = wall_frac_lv. The RV has
@@ -28,19 +32,21 @@
 //   --write writes model_definitions/<key>.json and adds the key to index.json; --out writes DIR/<key>.json
 //   (a prototype, probe it with --file); neither = dry run.
 import fs from "node:fs";
+import { orifice_b } from "../helpers/Orifice.js";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
 import { addChordConnector, addVsdConnector, hideConnectors, narrowConnector } from "./_diagram.mjs";
 
 // ---- lever table ---------------------------------------------------------------------------------------
 //   vsd     Shunts.diameter_vsd, mm (large, non-restrictive)
-//   rvot    RV_PA.r_for in mmHg·s/L (term baseline 41.4); null = pulmonary atresia (RV_PA disabled)
+//   rvot    effective RVOT orifice diameter, mm; null = pulmonary atresia (RV_PA disabled)
 //   rvot_w  diagram width of the RV_PA connector (standard 7 px), narrowed with the obstruction
 //   duct    Pda diameter in mm when held open on PGE1 (diameter_relative 1); 0 = closed
 const VSD_MM = 8;
+const RVOT_CD = 0.7; // discharge coefficient of the RVOT orifice (between a sharp-edged hole, ~0.64, and a funnel)
 const TOF = {
   tof_pink: {
-    vsd: VSD_MM, rvot: 300, rvot_w: 5, duct: 0,
+    vsd: VSD_MM, rvot: 6, rvot_w: 5, duct: 0,
     title: "TETRALOGY OF FALLOT - PINK",
     desc: "Term neonate (3.5 kg, 72 h) with a mild ('pink') tetralogy of Fallot: a large malaligned " +
       "ventricular septal defect with an overriding aorta and only mild right ventricular outflow tract " +
@@ -48,7 +54,7 @@ const TOF = {
       "flow and the baby is acyanotic. The ductus arteriosus has closed.",
   },
   tof: {
-    vsd: VSD_MM, rvot: 1000, rvot_w: 4, duct: 0,
+    vsd: VSD_MM, rvot: 4.5, rvot_w: 4, duct: 0,
     title: "TETRALOGY OF FALLOT - MODERATE",
     desc: "Term neonate (3.5 kg, 72 h) with tetralogy of Fallot and moderate right ventricular outflow " +
       "tract obstruction: a large malaligned ventricular septal defect, an overriding aorta receiving output " +
@@ -56,7 +62,7 @@ const TOF = {
       "with mild to moderate cyanosis. Not duct-dependent; the ductus arteriosus has closed.",
   },
   tof_severe: {
-    vsd: VSD_MM, rvot: 6000, rvot_w: 2, duct: 2.5,
+    vsd: VSD_MM, rvot: 2, rvot_w: 2, duct: 2.5,
     title: "TETRALOGY OF FALLOT - SEVERE (PGE1)",
     desc: "Term neonate (3.5 kg, 72 h) with severe tetralogy of Fallot: critical right ventricular outflow " +
       "tract obstruction leaves little antegrade pulmonary flow and the ventricular shunt runs right-to-left " +
@@ -108,7 +114,7 @@ for (const key of keys) {
     M.RV_PA.no_flow = true;
     M.RV_PA.is_enabled = false;
   } else {
-    M.RV_PA.r_for = cfg.rvot;
+    M.RV_PA.r_k = orifice_b(cfg.rvot, RVOT_CD);
   }
   // 4. RV free wall as thick as the LV's (see the header)
   M.HeartFunction.wall_frac_rv = M.HeartFunction.wall_frac_lv;
@@ -142,7 +148,7 @@ for (const key of keys) {
   JSON.parse(text);
 
   const Mon = M.Monitor;
-  say(`${key}: VSD ${cfg.vsd} mm, RV_PA ${cfg.rvot ?? "atretic"}, duct ${cfg.duct || "closed"}; after ${SECONDS} s ` +
+  say(`${key}: VSD ${cfg.vsd} mm, RVOT ${cfg.rvot === null ? "atretic" : cfg.rvot + " mm"}, duct ${cfg.duct || "closed"}; after ${SECONDS} s ` +
     `SpO2 ${Mon.sao2_pre.toFixed(1)}, HR ${Mon.heart_rate.toFixed(0)}, MAP ${Mon.minmax.abp_pre_pres_mean.toFixed(1)}`);
   if (WRITE) {
     fs.writeFileSync(new URL(`${key}.json`, dir), text);
