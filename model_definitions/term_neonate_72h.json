@@ -2486,7 +2486,7 @@
           "label": {
             "pos_x": 0,
             "pos_y": -13,
-            "size": 11,
+            "size": 9,
             "rotation": 0,
             "color": "#b8b8b8",
             "visible": true,
@@ -3390,7 +3390,7 @@
           "label": {
             "pos_x": 0,
             "pos_y": -13,
-            "size": 11,
+            "size": 9,
             "rotation": 0,
             "color": "#b8b8b8",
             "visible": true,

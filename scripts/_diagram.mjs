@@ -130,14 +130,14 @@ export function patchDiagram(dd, spec) {
 // the shunt lines a shade warmer than the grey vessels (#4a4a4a), so they stand apart without drawing the eye
 export const SHUNT_TONE = "#6a5d48";
 // a connector caption: light grey, turned along the line (`along`) and nudged off it; `at` is the fraction along
-// the line from its start; written-out names are a bit smaller (11) than short ones (13)
+// the line from its start; written-out names are smaller (DA/FO 9, overriding aorta 11) than short ones (13)
 export const pathCaption = (at, size = 13) => ({ visible: true, along: true, at, pos_x: 0, pos_y: -13, size, color: "#b8b8b8" });
 // the duct and the foramen ovale in that style, and flow arrows instead of dots: the simplifyDiagram spec parts
 // both the term baby and the ToF scenarios use
 export const SHUNT_STYLE = {
   layout: {
-    DA: { path: { accent: SHUNT_TONE }, label: pathCaption(0.72, 11) },
-    FO: { path: { accent: SHUNT_TONE }, label: pathCaption(0.3, 11) },
+    DA: { path: { accent: SHUNT_TONE }, label: pathCaption(0.72, 9) },
+    FO: { path: { accent: SHUNT_TONE }, label: pathCaption(0.3, 9) },
   },
   labels: { DA: "DUCTUS ARTERIOSUS", FO: "FORAMEN OVALE" },
   settings: { flowMarker: "arrow" },
