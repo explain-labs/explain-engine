@@ -24,6 +24,14 @@
 // The duct is closed in the mild and moderate grades and held open on PGE1 in the duct-dependent ones.
 // No weight scaling and no contractility change: the scenario keeps the term baby's size and heart.
 //
+// Breathing is adapted to the chronic hypoxaemia: the hypoxic ventilatory depression (Breathing.hvd_*)
+// is an acute newborn response, tuned to the term baby (threshold 70 mmHg, resting PaO2 ~72). Every ToF
+// baby rests below it, so the depression sat at its floor (factor 0.2) and the chemoreflex wound up
+// against it (EF_MV ~5): ventilation stayed at the term level and PaCO2 rose to ~44, where cyanotic
+// babies are hyperpnoeic with a normal or low PaCO2 (Rudolph ch 14). The threshold is re-anchored just
+// below the baby's own resting PaO2 (HVD_REST_FRAC), so it rests undepressed and an acute fall (duct
+// closure) still triggers the depression. The chemoreflex keeps the term setpoints (hypoxic drive at rest).
+//
 // The lesion is applied to the live model, which is then warmed to steady state and serialized (the
 // equilibrium gas/volume seeds are baked in, as in the app's save-state).
 //
@@ -44,6 +52,7 @@ import { addChordConnector, addVsdConnector, hideConnectors, narrowConnector } f
 //   duct    Pda diameter in mm when held open on PGE1 (diameter_relative 1); 0 = closed
 const VSD_MM = 8;
 const RVOT_CD = 0.7; // discharge coefficient of the RVOT orifice (between a sharp-edged hole, ~0.64, and a funnel)
+const HVD_REST_FRAC = 0.95; // hypoxic ventilatory depression threshold as a fraction of the resting PaO2 (see the header)
 const TOF = {
   tof_pink: {
     vsd: VSD_MM, rvot: 6, rvot_w: 5, duct: 0,
@@ -126,6 +135,13 @@ for (const key of keys) {
   }
 
   eng.calc(SECONDS); // warm to the new steady state
+  // 6. breathing adapted to the chronic hypoxaemia: re-anchor the depression threshold to the resting PaO2.
+  // Twice, because the extra ventilation lowers PaCO2 and, through the Bohr shift, the PaO2 it rests at
+  for (let pass = 0; pass < 2; pass++) {
+    M.Breathing.hvd_po2_threshold = Math.min(M.Breathing.hvd_po2_threshold, HVD_REST_FRAC * M[M.Breathing.hvd_model].po2);
+    M.Breathing.hvd_factor = 1.0;
+    eng.calc(SECONDS);
+  }
   model.name = key;
   model.description = cfg.desc;
 
