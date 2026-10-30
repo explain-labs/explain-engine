@@ -7025,6 +7025,7 @@
         "k_setpoint": 3.452,
         "renin_gain": 3,
         "renin_vol_gain": 3,
+        "renin_min": 0.35,
         "angiotensin_tc": 30,
         "aldo_gain": 1,
         "aldo_k_in_gain": 2,

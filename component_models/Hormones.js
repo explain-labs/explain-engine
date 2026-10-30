@@ -76,6 +76,13 @@ export class Hormones extends BaseModelClass {
     // hormone dynamics: input gains, time constants (s), and activity clamps
     this.renin_gain = 3.0; // angiotensin drive per fractional perfusion deficit
     this.renin_vol_gain = 3.0; // angiotensin drive per fractional volume deficit
+    // floor on renin SUPPRESSION: the newborn RAAS cannot be switched off by a volume load. Conscious
+    // newborn lambs given isotonic saline at 5 % of body weight fell to 38 % of baseline plasma renin
+    // activity and 37 % of baseline aldosterone (Smith 1989, doi:10.1152/ajpregu.1989.257.6.R1519);
+    // fetal sheep given 18 mL/kg dextran reached 59 % (Smith 1990, doi:10.1152/ajpregu.1990.259.5.R1050);
+    // Spitzer 1982 (doi:10.1038/ki.1982.60) states the principle, and ties the blunted natriuretic
+    // response of the newborn to it. With aldo_gain 1.0 this floor carries to aldosterone unchanged.
+    this.renin_min = 0.35;
     this.angiotensin_tc = 30.0; // s — AngII responds over ~tens of seconds
 
     this.aldo_gain = 1.0; // aldosterone drive per (angiotensin − 1) (cascade)
@@ -215,7 +222,9 @@ export class Hormones extends BaseModelClass {
 
     // --- renin / angiotensin II (low perfusion and/or low volume → constrict + retain) ---
     if (this.raas_enabled) {
-      this.renin = this._clamp(1.0 + this.renin_gain * perf_err + this.renin_vol_gain * vol_err, this.hormone_min, this.hormone_max);
+      let renin_target = 1.0 + this.renin_gain * perf_err + this.renin_vol_gain * vol_err;
+      if (renin_target < this.renin_min) renin_target = this.renin_min; // suppression floor (see renin_min)
+      this.renin = this._clamp(renin_target, this.hormone_min, this.hormone_max);
       this.angiotensin = this._lag(this.angiotensin, this.renin, u, this.angiotensin_tc);
 
       // --- aldosterone (driven by angiotensin cascade + hyperkalemia; slow) ---
