@@ -35,15 +35,21 @@
 // The lesion is applied to the live model, which is then warmed to steady state and serialized (the
 // equilibrium gas/volume seeds are baked in, as in the app's save-state).
 //
+// The diagram is a simplified teaching version of the term baby's (TOF_DIAGRAM below): the lower body with its
+// organs and veins and the upper body with the brain and veins each one disc, the coronaries and the
+// intrapulmonary shunt hidden, the shunts in a muted tone with captions, the overriding aorta and the RVOT
+// captioned, and flow arrows instead of dots. It changes the drawing only, not the model.
+//
 // Usage:
-//   node scripts/_make_tof.mjs <key|--all> [--seconds 300] [--write | --out DIR]
+//   node scripts/_make_tof.mjs <key|--all> [--seconds 300] [--write | --out DIR] [--diagram-only]
 //   --write writes model_definitions/<key>.json and adds the key to index.json; --out writes DIR/<key>.json
-//   (a prototype, probe it with --file); neither = dry run.
+//   (a prototype, probe it with --file); neither = dry run. --diagram-only rebuilds just the diagram of the
+//   existing model_definitions/<key>.json (no simulation; the model is left byte-for-byte as it is).
 import fs from "node:fs";
 import { orifice_b } from "../helpers/Orifice.js";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
-import { addChordConnector, addVsdConnector, hideConnectors, narrowConnector } from "./_diagram.mjs";
+import { addChordConnector, addVsdConnector, hideConnectors, narrowConnector, simplifyDiagram } from "./_diagram.mjs";
 
 // ---- lever table ---------------------------------------------------------------------------------------
 //   vsd     Shunts.diameter_vsd, mm (large, non-restrictive)
@@ -88,20 +94,77 @@ const TOF = {
   },
 };
 
+// ---- teaching diagram (see simplifyDiagram in _diagram.mjs) ---------------------------------------------
+// the shunt lines a shade warmer than the grey vessels (#4a4a4a), so they stand apart without drawing the eye
+const SHUNT_TONE = "#6a5d48";
+// captions: light grey, turned along the line (`along`) and nudged off it; `at` is the fraction along the line
+// from its start, so the FO (LA->RA) and VSD (LV->RV), two nearly parallel lines across the ring, carry theirs
+// at opposite ends instead of side by side; written-out names are a bit smaller
+const caption = (at, size = 13) => ({ visible: true, along: true, at, pos_x: 0, pos_y: -13, size, color: "#b8b8b8" });
+const TOF_DIAGRAM = {
+  hide: ["IPS", "COR"],
+  lump: [
+    { name: "RLB", label: "LOWER\nBODY", members: ["RLB", "LS", "KID", "INT", "VLB"] },
+    { name: "RUB", label: "UPPER\nBODY", members: ["RUB", "BR", "VUB"], layout: { sprite: { pos: { y: 0.32 } } } }, // was y 0.25
+  ],
+  layout: {
+    // the venae cavae a little closer to their body discs (SVC was x -0.7 y 0.1, IVC 160 deg)
+    SVC: { sprite: { pos: { x: -0.56, y: 0.2 } } },
+    IVCI: { sprite: { pos: { dgs: 145 } } },
+    DA: { path: { accent: SHUNT_TONE }, label: caption(0.72, 11) },
+    FO: { path: { accent: SHUNT_TONE }, label: caption(0.3, 11) },
+    VSD: { path: { accent: SHUNT_TONE }, label: caption(0.7) },
+    // the overriding aorta and the RVOT keep the vessel grey (the RVOT stays narrowed)
+    RV_AA: { label: caption(0.5, 11) },
+    RV_PA: { label: caption(0.5) },
+  },
+  labels: { IVCI: "IVC", DA: "DUCTUS ARTERIOSUS", FO: "FORAMEN OVALE", RV_AA: "OVERRIDING AORTA", RV_PA: "RVOT", VSD: "VSD" },
+  settings: { flowMarker: "arrow" }, // arrows instead of dots show the flow direction
+};
+
+// the ToF diagram from the term baby's: draw the VSD and the RV -> aorta pathway (a chord: an arc from RV to AA
+// would run along the ring over the RV_PA path), narrow or hide the RVOT, title, then the teaching simplification
+function tofDiagram(baseDiagram, cfg) {
+  const dd = structuredClone(baseDiagram);
+  const dc = dd.components;
+  addVsdConnector(dc);
+  addChordConnector(dc, "RV_AA", ["RV_AA"], "RV", "AA");
+  if (cfg.rvot === null) hideConnectors(dc, "RV_PA");
+  else narrowConnector(dc, "RV_PA", cfg.rvot_w);
+  if (dc.TITLE) dc.TITLE.label = cfg.title;
+  return simplifyDiagram(dd, TOF_DIAGRAM);
+}
+
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
 const SECONDS = Number(opt("--seconds", 300));
 const WRITE = argv.includes("--write");
 const OUT = opt("--out", null);
+const DIAGRAM_ONLY = argv.includes("--diagram-only");
 const keys = argv.includes("--all") ? Object.keys(TOF) : argv.filter((a, i) => !a.startsWith("-") && !argv[i - 1]?.startsWith("--"));
 if (keys.length === 0 || keys.some((k) => !TOF[k])) {
-  console.error(`usage: node scripts/_make_tof.mjs <key|--all> [--seconds N] [--write | --out DIR]\nkeys: ${Object.keys(TOF).join(", ")}`);
+  console.error(`usage: node scripts/_make_tof.mjs <key|--all> [--seconds N] [--write | --out DIR] [--diagram-only]\nkeys: ${Object.keys(TOF).join(", ")}`);
   process.exit(1);
 }
 
 const dir = new URL("../model_definitions/", import.meta.url);
-const eng = await createEngine();
 const say = (...a) => process.stderr.write(a.join(" ") + "\n");
+
+if (DIAGRAM_ONLY) {
+  const base = JSON.parse(fs.readFileSync(new URL("term_neonate_72h.json", dir), "utf8")).diagram_definition;
+  for (const key of keys) {
+    const file = new URL(`${key}.json`, dir);
+    const j = JSON.parse(fs.readFileSync(file, "utf8"));
+    j.diagram_definition = tofDiagram(base, TOF[key]);
+    if (j.model_definition?.diagram_definition !== undefined) j.model_definition.diagram_definition = j.diagram_definition;
+    const text = JSON.stringify(j, null, 2);
+    if (WRITE) { fs.writeFileSync(file, text); say(`${key}: diagram rewritten`); }
+    else say(`${key}: diagram rebuilt, dry run (pass --write)`);
+  }
+  process.exit(0);
+}
+
+const eng = await createEngine();
 
 for (const key of keys) {
   const cfg = TOF[key];
@@ -145,14 +208,7 @@ for (const key of keys) {
   model.name = key;
   model.description = cfg.desc;
 
-  // diagram: draw the VSD and the RV -> aorta pathway (a chord: an arc from RV to AA would run along the ring
-  // over the RV_PA path), narrow or hide the RVOT, title
-  const dc = j.diagram_definition.components;
-  addVsdConnector(dc);
-  addChordConnector(dc, "RV_AA", ["RV_AA"], "RV", "AA");
-  if (cfg.rvot === null) hideConnectors(dc, "RV_PA");
-  else narrowConnector(dc, "RV_PA", cfg.rvot_w);
-  if (dc.TITLE) dc.TITLE.label = cfg.title;
+  j.diagram_definition = tofDiagram(j.diagram_definition, cfg);
 
   j.name = key;
   j.description = cfg.desc;
