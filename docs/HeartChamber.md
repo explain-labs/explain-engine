@@ -44,7 +44,7 @@ Elastance, volume, activation and factor props are inherited: see [TimeVaryingEl
 | Property | Unit | Default | Written by | Effect |
 |---|---|---|---|---|
 | `ans_sens` | – | 1.0 | `Heart` (its own `ans_sens`), every step | Sensitivity to `ans_activity`. |
-| `ans_activity` | – | 1.0 | `Heart`: `ans_activity · ans_activity_factor` (`EF_HEART` drive scaled by `Mob`), every step | > 1 raises `el_max` and lowers `el_min`. |
+| `ans_activity` | – | 1.0 | `Heart`: `1 + (ans_activity − 1) · ans_activity_factor` (`EF_HEART` drive; `Mob` scales its deviation from rest), every step | > 1 raises `el_max` and lowers `el_min`. |
 | `el_max_mob_factor` | – | 1.0 | `Mob` (all chambers) | Hypoxic contractility depression. |
 | `el_max_drug_factor` | – | 1.0 | `Drugs` (all chambers) | Inotropy. |
 | `el_min_drug_factor` | – | 1.0 | `Drugs` (all chambers) | Lusitropy; < 1 = better relaxation. |
