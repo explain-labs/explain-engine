@@ -25,7 +25,8 @@
       "shuntOptionsVisible": true,
       "deviceBand": 0.85,
       "to2_lo": 3,
-      "to2_hi": 9.8
+      "to2_hi": 9.8,
+      "flowMarker": "arrow"
     },
     "components": {
       "LV": {
@@ -2443,7 +2444,7 @@
       },
       "DA": {
         "type": "Connector",
-        "label": "ductus arteriosus",
+        "label": "DUCTUS ARTERIOSUS",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -2461,7 +2462,8 @@
           "path": {
             "type": "straight",
             "width": 7,
-            "color": "#333333"
+            "color": "#333333",
+            "accent": "#6a5d48"
           },
           "sprite": {
             "color": "#ffffff",
@@ -2482,11 +2484,14 @@
             "rotation": 0
           },
           "label": {
-            "pos_x": -50,
-            "pos_y": -43,
-            "size": 8,
+            "pos_x": 0,
+            "pos_y": -13,
+            "size": 11,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.72
           }
         }
       },
@@ -3342,7 +3347,7 @@
       },
       "FO": {
         "type": "Connector",
-        "label": "foramen ovale",
+        "label": "FORAMEN OVALE",
         "picto": "container.png",
         "enabled": true,
         "models": [
@@ -3361,7 +3366,8 @@
           "path": {
             "type": "straight",
             "width": 7,
-            "color": "#333333"
+            "color": "#333333",
+            "accent": "#6a5d48"
           },
           "sprite": {
             "color": "#ffffff",
@@ -3383,10 +3389,13 @@
           },
           "label": {
             "pos_x": 0,
-            "pos_y": 0,
-            "size": 10,
+            "pos_y": -13,
+            "size": 11,
             "rotation": 0,
-            "color": "#ffffff"
+            "color": "#b8b8b8",
+            "visible": true,
+            "along": true,
+            "at": 0.3
           }
         }
       },
