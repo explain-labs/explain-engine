@@ -165,4 +165,5 @@ Not tied to a single class — physiology/clinical background and scenario-build
 | Doc | What it covers |
 |---|---|
 | [TermNeonateReference](./TermNeonateReference.md) | Literature reference values for a healthy term neonate at ~72 h (hemodynamics, heart, flows, breathing, gases, metabolism, shunts), graded by evidence, with the matching JSON for validating `term_neonate_72h`. |
+| [TofReference](./TofReference.md) | Literature reference values for tetralogy of Fallot at 72 h in four grades (pink, moderate, severe on PGE1, pulmonary atresia), built on Rudolph ch 14, with the matching JSONs for validating `tof_pink`, `tof`, `tof_severe`, `tof_pa`. |
 | [chd_duct_fo_dependent](./chd_duct_fo_dependent.md) | Duct- & foramen-ovale-dependent CHD taxonomy, lesion catalog, engine-lever mapping, build roadmap, bibliography. |
