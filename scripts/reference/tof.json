@@ -1,0 +1,671 @@
+{
+ "name": "tof",
+ "title": "Tetralogy of Fallot, moderate RVOT obstruction",
+ "description": "Term neonate 3.545 kg at 72 h with ToF and moderate RVOT obstruction: bidirectional VSD shunt, Qp ~ Qs, mild-moderate cyanosis; not duct-dependent, ductus closed.",
+ "state": "calm, mixed sleep/awake",
+ "compiled": "2026-10-30",
+ "doc": "docs/TofReference.md",
+ "base": "term_neonate_72h",
+ "grades": "A = neonatal ToF primary data/definition; B = infant ToF, textbook figure or fetal; C = derived, interpolated or borrowed from term_neonate_72h",
+ "sources": {
+  "agata1994": {
+   "cite": "Agata Y et al. Pediatr Res 1994;36:805-10 (n=23 term, 2862 g, GA 38 wk; Fig 2 read at 96 h)",
+   "doi": "10.1203/00006450-199412000-00022",
+   "pmid": "7898989"
+  },
+  "cousineau2005": {
+   "cite": "Cousineau J et al. Clin Biochem 2005;38:905-7",
+   "doi": "10.1016/j.clinbiochem.2005.07.006",
+   "pmid": "16109393"
+  },
+  "echo_convention": {
+   "cite": "Doppler RVOT obstruction bands (mild <3 m/s, moderate 3-4 m/s, severe >4 m/s), pedecho.org ToF page",
+   "doi": null,
+   "pmid": null
+  },
+  "glow2020": {
+   "cite": "Harris DL et al. J Pediatr 2020;223:34-41 (GLOW)",
+   "doi": "10.1016/j.jpeds.2020.02.079",
+   "pmid": "32381469"
+  },
+  "glow2021": {
+   "cite": "Harris DL et al. J Pediatr 2021;231:81-86 (GLOW)",
+   "doi": "10.1016/j.jpeds.2020.12.063",
+   "pmid": "33373670"
+  },
+  "hannover2018": {
+   "cite": "Healthy term neonates during quiet sleep, Hannover. Acta Paediatr 2019;108:231-8",
+   "doi": "10.1111/apa.14470",
+   "pmid": "29926973"
+  },
+  "he2011": {
+   "cite": "He SR et al. Chin Med J 2011;124:2284-9",
+   "doi": null,
+   "pmid": "21933558"
+  },
+  "hirji2010": {
+   "cite": "Hirji A et al. Can J Cardiol 2010;26:e1-6 (PMC2827225)",
+   "doi": "10.1016/s0828-282x(10)70330-5",
+   "pmid": "20101358"
+  },
+  "jopling2009": {
+   "cite": "Jopling J et al. Pediatrics 2009;123:e333-7",
+   "doi": "10.1542/peds.2008-2654",
+   "pmid": "19171584"
+  },
+  "mini2024": {
+   "cite": "Mini N et al. Front Cardiovasc Med 2024;11:1489413 (PMC11602471)",
+   "doi": "10.3389/fcvm.2024.1489413",
+   "pmid": "39610973"
+  },
+  "norway2021": {
+   "cite": "Heart rate during the first 24 hours in term-born infants. Arch Dis Child Fetal Neonatal Ed 2021;106:489-93",
+   "doi": "10.1136/archdischild-2020-320761",
+   "pmid": "33452220"
+  },
+  "reddy1995": {
+   "cite": "Reddy VM et al. Ann Thorac Surg 1995;60:S592-6",
+   "doi": "10.1016/0003-4975(95)00732-6",
+   "pmid": "8604943"
+  },
+  "rudolph2009": {
+   "cite": "Rudolph AM. Congenital Diseases of the Heart: Clinical-Physiological Considerations, 3rd ed. Wiley-Blackwell 2009; ch 14 (Figs 14.2-14.4, catheterization section)",
+   "doi": null,
+   "pmid": null
+  },
+  "satoh2016": {
+   "cite": "Satoh M et al. J Hypertens 2016;34:1578-85",
+   "doi": "10.1097/HJH.0000000000000976",
+   "pmid": "27228430"
+  },
+  "textbook": {
+   "cite": "General neonatal textbook range; no healthy-term primary source found",
+   "doi": null,
+   "pmid": null
+  },
+  "vanzadelhoff2023": {
+   "cite": "van Zadelhoff AC et al. Br J Anaesth 2023;130:585-94",
+   "doi": "10.1016/j.bja.2023.01.024",
+   "pmid": null
+  },
+  "vetten2025": {
+   "cite": "Vetten Z et al. Prenat Diagn 2025;45:743-51 (PMC12137033)",
+   "doi": "10.1002/pd.6796",
+   "pmid": "40286196"
+  }
+ },
+ "variables": [
+  {
+   "key": "hr",
+   "group": "hemodynamics",
+   "label": "Heart rate",
+   "unit": "bpm",
+   "mean": 118,
+   "sd": 16.6,
+   "low": 91,
+   "high": 145,
+   "range_type": "P5-P95",
+   "method": "oscillometric monitor pulse; mixed sleep/awake (state chosen: calm, mixed)",
+   "age": "day 3",
+   "n": 2628,
+   "sources": [
+    "satoh2016",
+    "hannover2018",
+    "norway2021",
+    "he2011"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "Monitor.heart_rate",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Quiet sleep 112 (87-133, Hannover); resting day 1 120-122 (Norway); USCOM 126 to 120 from day 1 to 3 (He). Mean set between Satoh 117 and He 120. Agata 1994 (echo, n=23): 121 +/- 12 at 24 h, ~120 at 96 h."
+  },
+  {
+   "key": "sbp",
+   "group": "hemodynamics",
+   "label": "Systolic BP",
+   "unit": "mmHg",
+   "mean": 74,
+   "sd": null,
+   "low": 60,
+   "high": 89,
+   "range_type": "P2.3-P97.7",
+   "method": "oscillometric NIBP",
+   "age": "GA 40, day 3",
+   "n": 607,
+   "sources": [
+    "vanzadelhoff2023",
+    "satoh2016"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "Monitor.minmax.abp_pre_pres_max",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Read off Fig 4a (GA 39/41 curves interpolated, +/-2 mmHg). Satoh day 3: 70.5 +/- 7.4 (P5-P95 58-83)."
+  },
+  {
+   "key": "dbp",
+   "group": "hemodynamics",
+   "label": "Diastolic BP",
+   "unit": "mmHg",
+   "mean": 46,
+   "sd": null,
+   "low": 31,
+   "high": 61,
+   "range_type": "P2.3-P97.7",
+   "method": "oscillometric NIBP",
+   "age": "GA 40, day 3",
+   "n": 607,
+   "sources": [
+    "vanzadelhoff2023",
+    "satoh2016"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "Monitor.minmax.abp_pre_pres_min",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Fig 4c. Satoh day 3: 44.3 +/- 6.7 (P5-P95 35-57)."
+  },
+  {
+   "key": "map",
+   "group": "hemodynamics",
+   "label": "Mean arterial pressure",
+   "unit": "mmHg",
+   "mean": 58,
+   "sd": null,
+   "low": 45,
+   "high": 72,
+   "range_type": "P2.3-P97.7",
+   "method": "oscillometric NIBP",
+   "age": "GA 40, day 3",
+   "n": 607,
+   "sources": [
+    "vanzadelhoff2023"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "Monitor.minmax.abp_pre_pres_mean",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Fig 4b. BP still rises steeply between day 2 and 4 at term; exact values via bloodpressure-neonate.com."
+  },
+  {
+   "key": "cvp",
+   "group": "hemodynamics",
+   "label": "Right atrial mean pressure",
+   "unit": "mmHg",
+   "mean": 5,
+   "sd": null,
+   "low": 2,
+   "high": 8,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "Monitor.minmax.cvp_pres_mean",
+   "notes": "Rudolph: RA mean usually normal (a6 v4 m5 in Figs 14.2-14.4); a wave may rise to 8-10."
+  },
+  {
+   "key": "rv_lv_peak",
+   "group": "tof",
+   "label": "RV minus LV peak systolic pressure",
+   "unit": "mmHg",
+   "mean": 0,
+   "sd": null,
+   "low": -5,
+   "high": 5,
+   "range_type": "target range",
+   "method": "catheter rule",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B",
+   "model_readout": "per-beat max RV.pres - per-beat max LV.pres",
+   "notes": "Non-restrictive VSD: RV and LV systolic pressures identical, square-topped RV contour (Rudolph, catheterization section). Tests that the VSD is non-restrictive."
+  },
+  {
+   "key": "ph",
+   "group": "gases",
+   "label": "pH",
+   "unit": "-",
+   "mean": 7.395,
+   "sd": 0.037,
+   "low": 7.312,
+   "high": 7.473,
+   "range_type": "P2.5-P97.5",
+   "method": "capillary (warmed heel)",
+   "age": "48 +/- 12 h",
+   "n": 119,
+   "sources": [
+    "cousineau2005"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "AA.ph",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Capillary pH ~ arterial pH."
+  },
+  {
+   "key": "pco2",
+   "group": "gases",
+   "label": "pCO2",
+   "unit": "mmHg",
+   "mean": 38.7,
+   "sd": 5.1,
+   "low": 28.5,
+   "high": 48.7,
+   "range_type": "P2.5-P97.5",
+   "method": "capillary",
+   "age": "48 +/- 12 h",
+   "n": 119,
+   "sources": [
+    "cousineau2005"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "AA.pco2",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Rudolph: PCO2 usually normal or decreased to ~35 mmHg in cyanotic infants (hyperventilation)."
+  },
+  {
+   "key": "glucose",
+   "group": "metabolism",
+   "label": "Plasma glucose",
+   "unit": "mmol/L",
+   "mean": 4,
+   "sd": 0.7,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "heel-prick plasma (glucose oxidase)",
+   "age": "72 h (between 48 h plateau 3.3 +/- 0.6 and day 4 plateau 4.6 +/- 0.7)",
+   "n": 67,
+   "sources": [
+    "glow2020",
+    "cousineau2005"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "AA.solutes.glucose",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Cousineau 48 h whole blood: 3.8 +/- 0.8 (2.1-5.3)."
+  },
+  {
+   "key": "lactate",
+   "group": "metabolism",
+   "label": "Lactate",
+   "unit": "mmol/L",
+   "mean": 1.4,
+   "sd": null,
+   "low": 0.8,
+   "high": 3.3,
+   "range_type": "median (range)",
+   "method": "plasma (heel prick)",
+   "age": "> 48 h",
+   "n": 67,
+   "sources": [
+    "glow2021",
+    "cousineau2005"
+   ],
+   "grade": "C (borrowed: A)",
+   "model_readout": "Lactate.arterial_lactate",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Cousineau capillary whole blood 48 h: 2.6 +/- 0.7 (1.4-4.1). A target of ~1.5-2.0 covers both methods."
+  },
+  {
+   "key": "hb",
+   "group": "blood",
+   "label": "Hemoglobin",
+   "unit": "g/dL",
+   "mean": 17,
+   "sd": null,
+   "low": 12.8,
+   "high": 21.2,
+   "range_type": "P5-P95",
+   "method": "clinical analyser (reference set, not volunteers)",
+   "age": "day 3, 35-42 wk",
+   "n": 39559,
+   "sources": [
+    "jopling2009",
+    "cousineau2005"
+   ],
+   "grade": "C (borrowed: B)",
+   "model_readout": "AA.solutes.hemoglobin (mmol/L x 1.611)",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Read off Fig 3B; Utah altitude 800-1520 m. Cousineau capillary 20.4 (14.5-23.9)."
+  },
+  {
+   "key": "hct",
+   "group": "blood",
+   "label": "Hematocrit",
+   "unit": "%",
+   "mean": 49.5,
+   "sd": null,
+   "low": 37,
+   "high": 62.5,
+   "range_type": "P5-P95",
+   "method": "clinical analyser",
+   "age": "day 3, 35-42 wk",
+   "n": 41957,
+   "sources": [
+    "jopling2009"
+   ],
+   "grade": "C (borrowed: B)",
+   "model_readout": "Hb / MCHC",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). Fig 3A."
+  },
+  {
+   "key": "temp",
+   "group": "metabolism",
+   "label": "Core temperature",
+   "unit": "degC",
+   "mean": 37,
+   "sd": null,
+   "low": 36.5,
+   "high": 37.5,
+   "range_type": "range",
+   "method": "-",
+   "age": "-",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C (borrowed: C)",
+   "model_readout": "Monitor.temp",
+   "notes": "Borrowed from term_neonate_72h (no ToF-specific neonatal data; compensated-neonate assumption, user decision 2026-10-30). "
+  },
+  {
+   "key": "qs",
+   "group": "flows",
+   "label": "Systemic output (Qs)",
+   "unit": "mL/kg/min",
+   "mean": 196,
+   "sd": null,
+   "low": 108,
+   "high": 284,
+   "range_type": "target range",
+   "method": "",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009",
+    "agata1994"
+   ],
+   "grade": "C",
+   "model_readout": "(LV_AA + RV_AA flow) - ductal Ao->PA flow, per kg",
+   "notes": "Rudolph: systemic flow usually normal, up to 5-6 L/min/m2 (~1.2 L/min at 0.22 m2) when hypoxaemia is marked. Range borrowed from the term LVO row."
+  },
+  {
+   "key": "override",
+   "group": "tof",
+   "label": "RV share of aortic inflow (override)",
+   "unit": "%",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [],
+   "grade": "-",
+   "model_readout": "RV_AA flow / (RV_AA + LV_AA flow)",
+   "notes": "No quantitative source found. Reported only; RV_AA.r_for is a structural lever."
+  },
+  {
+   "key": "vsd_size",
+   "group": "tof",
+   "label": "VSD",
+   "unit": "mm",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "-",
+   "model_readout": "Shunts.diameter_vsd",
+   "notes": "Large malaligned, non-restrictive by definition; no neonatal mm data. Judged by rv_lv_peak, not by diameter."
+  },
+  {
+   "key": "spo2",
+   "group": "gases",
+   "label": "SpO2 (pre-ductal)",
+   "unit": "%",
+   "mean": 84,
+   "sd": null,
+   "low": 75,
+   "high": 90,
+   "range_type": "target range",
+   "method": "pulse oximetry / catheter",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "reddy1995",
+    "rudolph2009"
+   ],
+   "grade": "A (definition)",
+   "model_readout": "Monitor.sao2_pre",
+   "notes": "Reddy 1995 'adequate pulmonary blood flow' group: SaO2 75-90 %. Rudolph: moderate stenosis is only mildly cyanotic after birth."
+  },
+  {
+   "key": "svo2",
+   "group": "gases",
+   "label": "Mixed venous O2 saturation",
+   "unit": "%",
+   "mean": 65,
+   "sd": null,
+   "low": 60,
+   "high": 70,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "Monitor.svo2",
+   "notes": "Between Fig 14.2 (65-70) and Fig 14.3 (55-60)."
+  },
+  {
+   "key": "qp_qs",
+   "group": "tof",
+   "label": "Qp:Qs",
+   "unit": "-",
+   "mean": 1.0,
+   "sd": null,
+   "low": 0.8,
+   "high": 1.2,
+   "range_type": "target range",
+   "method": "Fick from figure saturations",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "C (derived)",
+   "model_readout": "pulmonary venous return (LL_VEN_PV + RL_VEN_PV) / qs",
+   "notes": "Interpolated between Fig 14.2 (1.5) and Fig 14.3 (0.6); bidirectional shunting at ventricular level in milder stenosis (Rudolph)."
+  },
+  {
+   "key": "pap_s",
+   "group": "hemodynamics",
+   "label": "PA systolic pressure",
+   "unit": "mmHg",
+   "mean": 25,
+   "sd": null,
+   "low": 20,
+   "high": 30,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.minmax.pap_pres_max",
+   "notes": "Interpolated between Fig 14.2 (40/20 m28) and Fig 14.3 (20/10 m15)."
+  },
+  {
+   "key": "pap_m",
+   "group": "hemodynamics",
+   "label": "PA mean pressure",
+   "unit": "mmHg",
+   "mean": 18,
+   "sd": null,
+   "low": 14,
+   "high": 22,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.minmax.pap_pres_mean",
+   "notes": "Interpolated between Fig 14.2 (40/20 m28) and Fig 14.3 (20/10 m15)."
+  },
+  {
+   "key": "rvot_grad",
+   "group": "tof",
+   "label": "RVOT peak-to-peak gradient",
+   "unit": "mmHg",
+   "mean": 52,
+   "sd": null,
+   "low": 45,
+   "high": 60,
+   "range_type": "target range",
+   "method": "catheter / Doppler",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009",
+    "mini2024",
+    "echo_convention"
+   ],
+   "grade": "B/C",
+   "model_readout": "per-beat max RV.pres - per-beat max PA.pres",
+   "notes": "Mini 2024 cyanotic infants (median 35 d) mean gradient 50 (32-72); moderate Doppler band 36-64 mmHg."
+  },
+  {
+   "key": "rvot_v",
+   "group": "tof",
+   "label": "RVOT peak velocity (derived)",
+   "unit": "m/s",
+   "mean": 3.6,
+   "sd": null,
+   "low": 3.4,
+   "high": 3.9,
+   "range_type": "target range",
+   "method": "modified Bernoulli from the gradient",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "echo_convention"
+   ],
+   "grade": "C (derived)",
+   "model_readout": "sqrt(rvot_grad / 4) (RV_PA is a linear resistor without a Doppler read-out)",
+   "notes": "From the gradient band (moderate 3-4 m/s)."
+  },
+  {
+   "key": "rv_step_up",
+   "group": "tof",
+   "label": "O2 step-up at RV (RV so2 - svo2)",
+   "unit": "%",
+   "mean": 2,
+   "sd": null,
+   "low": 0,
+   "high": 5,
+   "range_type": "target range",
+   "method": "catheter, textbook figure",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "RV.so2 - Monitor.svo2",
+   "notes": "Bidirectional shunt: little net step-up."
+  },
+  {
+   "key": "vsd_net",
+   "group": "shunts",
+   "label": "VSD net flow (L->R positive)",
+   "unit": "mL/kg/min",
+   "mean": 0,
+   "sd": null,
+   "low": -30,
+   "high": 30,
+   "range_type": "target range",
+   "method": "direction rule",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "Shunts.flow_vsd per kg",
+   "notes": "Bidirectional, net near zero (band is a C-grade choice: +/-30 mL/kg/min)."
+  },
+  {
+   "key": "rvpa",
+   "group": "shunts",
+   "label": "Antegrade RVOT flow",
+   "unit": "mL/kg/min",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": "target range",
+   "method": "reported",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "C",
+   "model_readout": "RV_PA.flow per kg",
+   "notes": "Reported; = Qp with the duct closed."
+  },
+  {
+   "key": "duct",
+   "group": "shunts",
+   "label": "Ductal flow (Ao->PA positive)",
+   "unit": "mL/kg/min",
+   "mean": 0,
+   "sd": null,
+   "low": 0,
+   "high": 0,
+   "range_type": "target range",
+   "method": "structural / direction",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "rudolph2009"
+   ],
+   "grade": "B/C",
+   "model_readout": "Pda.flow per kg (Ao->PA positive)",
+   "notes": "Ductus closed (not duct-dependent)."
+  },
+  {
+   "key": "pv_z",
+   "group": "tof",
+   "label": "Pulmonary valve annulus z-score",
+   "unit": "z",
+   "mean": -2.6,
+   "sd": null,
+   "low": -4.2,
+   "high": -1.0,
+   "range_type": "target range",
+   "method": "fetal echo 25-32 wk",
+   "age": "72 h (by assumption)",
+   "n": null,
+   "sources": [
+    "vetten2025",
+    "hirji2010",
+    "mini2024"
+   ],
+   "grade": "B (fetal)",
+   "model_readout": "none (structural; RV_PA lumps valve + infundibulum)",
+   "notes": "Fetal later-intervention group -2.6 +/- 1.6 (Vetten 2025); postnatal cyanotic infants -3.7 (-6.1 to -1.3) (Mini 2024)."
+  }
+ ]
+}
