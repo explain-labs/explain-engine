@@ -111,6 +111,11 @@ export class Heart extends BaseModelClass {
     // -----------------------------------------------
     this.prev_cardiac_cycle_running = 0;
     this.prev_cardiac_cycle_state = 0;
+    // largest / smallest ventricular volumes of the current beat (end-diastolic / end-systolic volume, see analyze)
+    this._lv_vol_max = -Infinity;
+    this._lv_vol_min = Infinity;
+    this._rv_vol_max = -Infinity;
+    this._rv_vol_min = Infinity;
     this._temp_cardiac_cycle_time = 0.0;
     this._sa_node_interval = 1.0;
     this._sa_node_timer = null; // null = not started: the SA node fires on the first step
@@ -189,15 +194,25 @@ export class Heart extends BaseModelClass {
   }
 
   analyze() {
+    // The ventricular EDV and ESV are the largest and smallest volume of the beat (the echo definition),
+    // tracked from one systole start to the next. Sampling them at the elastance switches instead fails
+    // when a VSD keeps filling the ventricle after the switch to systole and emptying it after the switch
+    // to diastole (the ToF RV read an EF of ~0.27 against a true ~0.5). The pressures stay sampled at the
+    // switches.
+    const lv_vol = this._lv ? this._lv.vol : 0;
+    const rv_vol = this._rv ? this._rv.vol : 0;
+    if (lv_vol > this._lv_vol_max) this._lv_vol_max = lv_vol;
+    if (lv_vol < this._lv_vol_min) this._lv_vol_min = lv_vol;
+    if (rv_vol > this._rv_vol_max) this._rv_vol_max = rv_vol;
+    if (rv_vol < this._rv_vol_min) this._rv_vol_min = rv_vol;
+
     // state going from systole to diastole (end systolic)
     if (this.prev_cardiac_cycle_state === 1 && this.cardiac_cycle_state === 0) {
-      this.lv_esv = this._lv ? this._lv.vol : 0;
       this.lv_esp = this._lv ? this._lv.pres_in : 0;
 
       this.la_esv = this._la ? this._la.vol : 0;
       this.la_esp = this._la ? this._la.pres_in : 0;
       
-      this.rv_esv = this._rv ? this._rv.vol : 0;
       this.rv_esp = this._rv ? this._rv.pres_in : 0;
       
       this.ra_esv = (this._raivci ? this._raivci.vol : 0) + (this._rasvc ? this._rasvc.vol : 0)
@@ -211,13 +226,11 @@ export class Heart extends BaseModelClass {
 
     // state going from diastole to systole (end diastolic)
     if (this.prev_cardiac_cycle_state === 0 && this.cardiac_cycle_state === 1) {
-      this.lv_edv = this._lv ? this._lv.vol : 0;
       this.lv_edp = this._lv ? this._lv.pres_in : 0;
 
       this.la_edv = this._la ? this._la.vol : 0;
       this.la_edp = this._la ? this._la.pres_in : 0;
 
-      this.rv_edv = this._rv ? this._rv.vol : 0;
       this.rv_edp = this._rv ? this._rv.pres_in : 0;
 
       this.ra_edv = (this._raivci ? this._raivci.vol : 0) + (this._rasvc ? this._rasvc.vol : 0);
@@ -227,6 +240,16 @@ export class Heart extends BaseModelClass {
         this.ra_edv = this._ra.vol
         this.ra_edp = this._ra.pres_in
       }
+
+      // close the beat that just ended (skipped before the first full beat has been tracked)
+      if (this._lv_vol_max >= this._lv_vol_min) {
+        this.lv_edv = this._lv_vol_max;
+        this.lv_esv = this._lv_vol_min;
+        this.rv_edv = this._rv_vol_max;
+        this.rv_esv = this._rv_vol_min;
+      }
+      this._lv_vol_max = this._lv_vol_min = lv_vol;
+      this._rv_vol_max = this._rv_vol_min = rv_vol;
 
       // store the other parameters (guard ejection fraction against a zero end-diastolic volume)
       this.lv_sv = this.lv_edv - this.lv_esv
