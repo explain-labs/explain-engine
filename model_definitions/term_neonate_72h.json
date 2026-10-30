@@ -3403,7 +3403,7 @@
         "type": "Connector",
         "label": "IPS",
         "picto": "gfx/container.png",
-        "enabled": true,
+        "enabled": false,
         "models": [
           "IPSL",
           "IPSR"
