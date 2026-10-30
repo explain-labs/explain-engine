@@ -137,6 +137,12 @@ saturation definition.
 - 2026-10-30: `tof_severe` and `tof_pa` have the duct held open on PGE1, 2.5 mm.
 - 2026-10-30: HR, BP, Hb and lactate borrowed from the term set.
 - 2026-10-30: Rudolph Fig 14.2 (labelled moderate, physiologically pink) used for `tof_pink`.
+- 2026-10-30 (step 3.1): RV free wall as thick as the LV's (`HeartFunction.wall_frac_rv` = `wall_frac_lv`,
+  0.35 instead of the term baby's 0.15). The ToF RV has worked at systemic pressure since fetal life and
+  does not thin after birth; with the thin postnatal wall HeartFunction read the systemic RV pressure as an
+  afterload mismatch and cut RV contractility to 0.2–0.6 (blood pressure and output fell with severity, the
+  atresia baby decompensated). Contractility itself is unchanged (a ×1.5 RV `el_max` was prototyped and
+  not taken: no source for the number).
 
 ## References
 

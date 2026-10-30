@@ -10,8 +10,13 @@
 //                                                     resistance); pulmonary atresia = RV_PA disabled
 //   3. an aorta overriding the VSD                 -> the pre-wired RV_AA valve (RV -> AA) enabled next to
 //                                                     LV_AA, so both ventricles eject into the aorta
-//   4. right ventricular hypertrophy               -> not applied: it develops after birth under systemic RV
-//                                                     loading, so at 72 h the RV keeps its baseline stiffness
+//   4. a right ventricle built for systemic pressure -> HeartFunction.wall_frac_rv = wall_frac_lv. The RV has
+//                                                     worked at systemic pressure since fetal life, so it never
+//                                                     thins after birth: its free wall stays about as thick as
+//                                                     the LV's. With the term baby's thin postnatal wall (0.15),
+//                                                     HeartFunction read the systemic RV pressure as an
+//                                                     afterload mismatch and cut RV contractility to 0.2-0.6.
+//                                                     Contractility (el_max) and stiffness are not changed
 // The duct is closed in the mild and moderate grades and held open on PGE1 in the duct-dependent ones.
 // No weight scaling and no contractility change: the scenario keeps the term baby's size and heart.
 //
@@ -105,7 +110,9 @@ for (const key of keys) {
   } else {
     M.RV_PA.r_for = cfg.rvot;
   }
-  // 4. ductus arteriosus: closed, or held open on PGE1
+  // 4. RV free wall as thick as the LV's (see the header)
+  M.HeartFunction.wall_frac_rv = M.HeartFunction.wall_frac_lv;
+  // 5. ductus arteriosus: closed, or held open on PGE1
   if (cfg.duct > 0) {
     M.Pda.diameter_ao_max = cfg.duct;
     M.Pda.diameter_pa_max = cfg.duct;
