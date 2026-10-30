@@ -1,7 +1,7 @@
 {
  "name": "tof_severe",
  "title": "Tetralogy of Fallot, severe RVOT obstruction on PGE1",
- "description": "Term neonate 3.545 kg at 72 h with ToF and severe RVOT obstruction: little antegrade flow, R->L VSD shunt, duct-dependent pulmonary flow; ductus held open on PGE1 (2.5 mm).",
+ "description": "Term neonate 3.545 kg at 72 h with ToF and severe RVOT obstruction: little antegrade flow, R->L VSD shunt, duct-dependent pulmonary flow; ductus held open on PGE1 (2.2 mm).",
  "state": "calm, mixed sleep/awake",
  "compiled": "2026-10-30",
  "doc": "docs/TofReference.md",
@@ -52,6 +52,11 @@
    "cite": "Jopling J et al. Pediatrics 2009;123:e333-7",
    "doi": "10.1542/peds.2008-2654",
    "pmid": "19171584"
+  },
+  "kang2016": {
+   "cite": "Kang C et al. Medicine (Baltimore) 2016;95:e2599 (76 healthy term newborns, echo 2-72 h)",
+   "doi": "10.1097/MD.0000000000002599",
+   "pmid": "26817918"
   },
   "li2023": {
    "cite": "Li et al. Zhong Nan Da Xue Xue Bao Yi Xue Ban 2023 (RVOT stenting in ToF)",
@@ -509,40 +514,42 @@
    "group": "hemodynamics",
    "label": "PA systolic pressure",
    "unit": "mmHg",
-   "mean": 20,
+   "mean": 28,
    "sd": null,
-   "low": 15,
-   "high": 25,
+   "low": 20,
+   "high": 36,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
+    "kang2016",
     "rudolph2009"
    ],
    "grade": "B/C",
    "model_readout": "Monitor.minmax.pap_pres_max",
-   "notes": "Fig 14.3: PA 20/10 m15; low PA pressure with a flat trace when hypoxaemic (Rudolph)."
+   "notes": "Derived (revised 2026-10-30, step 3.3) by the step 3.2 rule: Qp:Qs ~0.8 through the 72 h PVR (term PA mean 25 at normal flow, Kang 2016), with the open duct narrowing the PA pulse pressure. Fig 14.3 (PA 20/10 m15) has Qp:Qs ~0.6."
   },
   {
    "key": "pap_m",
    "group": "hemodynamics",
    "label": "PA mean pressure",
    "unit": "mmHg",
-   "mean": 15,
+   "mean": 22,
    "sd": null,
-   "low": 12,
-   "high": 18,
+   "low": 16,
+   "high": 28,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
+    "kang2016",
     "rudolph2009"
    ],
    "grade": "B/C",
    "model_readout": "Monitor.minmax.pap_pres_mean",
-   "notes": "Fig 14.3: PA 20/10 m15; low PA pressure with a flat trace when hypoxaemic (Rudolph)."
+   "notes": "Derived (revised 2026-10-30, step 3.3) by the step 3.2 rule: Qp:Qs ~0.8 through the 72 h PVR (term PA mean 25 at normal flow, Kang 2016), with the open duct narrowing the PA pulse pressure. Fig 14.3 (PA 20/10 m15) has Qp:Qs ~0.6."
   },
   {
    "key": "rvot_grad",
@@ -681,7 +688,7 @@
    ],
    "grade": "B/C",
    "model_readout": "Pda.flow per kg (Ao->PA positive)",
-   "notes": "Ao->PA (positive). Structural: 2.5 mm on PGE1 (user decision; Matter 2012 narrowest pre-stent 1.9 +/- 0.6 mm, length 12.2 mm; ToF ducts are small, Rudolph)."
+   "notes": "Ao->PA (positive). Structural: 2.2 mm on PGE1 (step 3.3 duct sweep, user decision; Matter 2012 narrowest pre-stent 1.9 +/- 0.6 mm, length 12.2 mm; ToF ducts are small, Rudolph)."
   },
   {
    "key": "pv_z",
@@ -729,10 +736,10 @@
    "group": "test",
    "label": "Qp:Qs after duct closure",
    "unit": "-",
-   "mean": 0.2,
+   "mean": null,
    "sd": null,
-   "low": 0.1,
-   "high": 0.35,
+   "low": null,
+   "high": null,
    "range_type": "target range",
    "method": "Fick from figure saturations",
    "age": "72 h (by assumption)",
@@ -742,7 +749,7 @@
    ],
    "grade": "C (derived)",
    "model_readout": "probe --close-duct",
-   "notes": "Fig 14.4 Fick: (50 - 40)/(96 - 40) = 0.18. PA 15/10 m12."
+   "notes": "Reported only (revised 2026-10-30, step 3.3): after an acute closure the systemic output falls with the pulmonary flow, so the ratio stays ~0.4-0.5 in the model. Fig 14.4 (Fick 0.18, PA 15/10 m12) is an older infant after the duct has closed."
   }
  ]
 }

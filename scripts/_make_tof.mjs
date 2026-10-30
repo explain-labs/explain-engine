@@ -62,7 +62,7 @@ const TOF = {
       "with mild to moderate cyanosis. Not duct-dependent; the ductus arteriosus has closed.",
   },
   tof_severe: {
-    vsd: VSD_MM, rvot: 2, rvot_w: 2, duct: 2.5,
+    vsd: VSD_MM, rvot: 2, rvot_w: 2, duct: 2.2,
     title: "TETRALOGY OF FALLOT - SEVERE (PGE1)",
     desc: "Term neonate (3.5 kg, 72 h) with severe tetralogy of Fallot: critical right ventricular outflow " +
       "tract obstruction leaves little antegrade pulmonary flow and the ventricular shunt runs right-to-left " +

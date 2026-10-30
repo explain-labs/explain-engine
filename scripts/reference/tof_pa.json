@@ -48,6 +48,11 @@
    "doi": "10.1542/peds.2008-2654",
    "pmid": "19171584"
   },
+  "kang2016": {
+   "cite": "Kang C et al. Medicine (Baltimore) 2016;95:e2599 (76 healthy term newborns, echo 2-72 h)",
+   "doi": "10.1097/MD.0000000000002599",
+   "pmid": "26817918"
+  },
   "matter2012": {
    "cite": "Matter et al. Pediatr Cardiol 2012 (ductal stenting in duct-dependent pulmonary blood flow)",
    "doi": "10.1007/s00246-012-0608-x",
@@ -493,40 +498,42 @@
    "group": "hemodynamics",
    "label": "PA systolic pressure",
    "unit": "mmHg",
-   "mean": 20,
+   "mean": 28,
    "sd": null,
-   "low": 15,
-   "high": 28,
+   "low": 20,
+   "high": 36,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
+    "kang2016",
     "rudolph2009"
    ],
    "grade": "C",
    "model_readout": "Monitor.minmax.pap_pres_max",
-   "notes": "C: by analogy (restrictive 2.5 mm duct as sole supply). No data."
+   "notes": "Derived (revised 2026-10-30, step 3.3) by the step 3.2 rule: Qp:Qs ~1 through the 72 h PVR (term PA mean 25 at normal flow, Kang 2016), the duct narrowing the PA pulse pressure. No ToF-PA data."
   },
   {
    "key": "pap_m",
    "group": "hemodynamics",
    "label": "PA mean pressure",
    "unit": "mmHg",
-   "mean": 15,
+   "mean": 22,
    "sd": null,
-   "low": 10,
-   "high": 20,
+   "low": 16,
+   "high": 28,
    "range_type": "target range",
    "method": "catheter, textbook figure",
    "age": "72 h (by assumption)",
    "n": null,
    "sources": [
+    "kang2016",
     "rudolph2009"
    ],
    "grade": "C",
    "model_readout": "Monitor.minmax.pap_pres_mean",
-   "notes": "C: by analogy (restrictive 2.5 mm duct as sole supply). No data."
+   "notes": "Derived (revised 2026-10-30, step 3.3) by the step 3.2 rule: Qp:Qs ~1 through the 72 h PVR (term PA mean 25 at normal flow, Kang 2016), the duct narrowing the PA pulse pressure. No ToF-PA data."
   },
   {
    "key": "rvot_grad",

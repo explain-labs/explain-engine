@@ -9,7 +9,7 @@ repository) and a PubMed search.
 |---|---|---|---|
 | `tof_pink` | mild RVOT obstruction, net L→R VSD, acyanotic | closed | [`tof_pink.json`](../scripts/reference/tof_pink.json) |
 | `tof` | moderate RVOT obstruction, bidirectional VSD | closed | [`tof.json`](../scripts/reference/tof.json) |
-| `tof_severe` | severe RVOT obstruction, R→L VSD, duct-dependent | 2.5 mm on PGE1 | [`tof_severe.json`](../scripts/reference/tof_severe.json) |
+| `tof_severe` | severe RVOT obstruction, R→L VSD, duct-dependent | 2.2 mm on PGE1 | [`tof_severe.json`](../scripts/reference/tof_severe.json) |
 | `tof_pa` | pulmonary atresia, no MAPCAs, duct the sole Qp | 2.5 mm on PGE1 | [`tof_pa.json`](../scripts/reference/tof_pa.json) |
 
 Each JSON has one entry per variable, in the same format as
@@ -110,15 +110,15 @@ inflow) and the VSD diameter are reported only: no quantitative source was found
 | Systemic venous sat (%) | 70 (65–75) | 65 (60–70) | 60 (55–65) | 60 (55–65) |
 | PA sat (%) | 80 (75–85) | reported | reported | = aortic |
 | Qp:Qs | 1.5 (1.2–2.0) | 1.0 (0.8–1.2) | 0.8 (0.6–1.1) | 1.0 (0.8–1.3) |
-| PA systolic / mean (mmHg) | 47 (40–55) / 33 (28–38) | 36 (30–42) / 24 (20–28) | 20 (15–25) / 15 (12–18) | 20 (15–28) / 15 (10–20) |
+| PA systolic / mean (mmHg) | 47 (40–55) / 33 (28–38) | 36 (30–42) / 24 (20–28) | 28 (20–36) / 22 (16–28) | 28 (20–36) / 22 (16–28) |
 | RVOT gradient (mmHg) | 25 (15–35) | 38 (30–45) | ~55, reported | – |
 | RVOT velocity (m/s) | 2.5 (1.9–3.0) | 3.1 (2.7–3.35) | ~3.7, reported | – |
 | RV − venous sat step-up (%) | 8 (3–15) | 2 (0–5) | 0 (−3 to +3) | – |
 | Net ventricular shunt | L→R (> 0) | ≈ 0 (±30 mL/kg/min) | R→L (< 0) | R→L, whole venous return |
 | Antegrade RVOT flow | = Qp | = Qp | small | 0 (atresia) |
-| Duct | closed | closed | 2.5 mm, Ao→PA | 2.5 mm, Ao→PA = Qp |
+| Duct | closed | closed | 2.2 mm, Ao→PA | 2.5 mm, Ao→PA = Qp |
 | Pulmonary valve z (fetal) | often normal annulus | −2.6 ± 1.6 | −5.3 ± 2.4 | – |
-| Duct closed (test) | – | – | SpO₂ 50 (35–60), Qp:Qs 0.2 | SpO₂ < 40, collapse |
+| Duct closed (test) | – | – | SpO₂ 50 (35–60); Qp:Qs reported | SpO₂ < 40, collapse |
 
 Grades and sources per value:
 
@@ -127,8 +127,8 @@ Grades and sources per value:
   (85–92 % on an open duct); Li 2023, 75 ± 17 % before RVOT stenting. `tof_pa`: Matter 2012,
   75.1 ± 13.2 % on PGE1 before duct stenting (n = 33, 20 PA-VSD); the abstract also quotes "45–61 %",
   which contradicts the mean and is not used.
-- **Mixed venous, PA pressures, step-up** (B/C): Rudolph Figs 14.2–14.4, scaled; `tof` is
-  interpolated between Figs 14.2 and 14.3; `tof_pa` by analogy.
+- **Venous saturation, step-up** (B/C): Rudolph Figs 14.2–14.4, scaled; `tof` is interpolated between
+  Figs 14.2 and 14.3; `tof_pa` by analogy. PA pressures: see the next item.
 - **Qp:Qs** (C): Fick from the figures; `tof_pa` from the complete-mixing relation at SaO₂ 80 %.
 - **PA pressure and RVOT gradient** (C for `tof_pink`/`tof`, B/C for `tof_severe`): derived for 72 h from the
   term PA pressure (Kang 2016) and the pulmonary flow; `tof_severe` from Rudolph Fig 14.3 (a newborn).
@@ -139,8 +139,10 @@ Grades and sources per value:
   PGE1-dependent / intervention ≤ 7 days, cut-off ≤ −3.5; Arya 2014, −5.38 ± 2.95 duct-dependent vs
   −3.51 ± 1.66; Hirji 2010, −3.0 ± 2.0 whole cohort, PV/AoV 0.65 ± 0.10.
 - **Ductus** (B): Matter 2012, narrowest diameter 1.9 ± 0.6 mm (0.8–2.9), length 12.2 ± 3.7 mm before
-  stenting; 2.5 mm chosen by the user for an open duct on PGE1.
-- **Duct-closure test** (B/C): Rudolph Fig 14.4 and text; Jo 2018 defines "severe" as SpO₂ < 70 %.
+  stenting; 2.5 mm chosen by the user for an open duct on PGE1, then set by the step 3.3 duct sweep to
+  2.2 mm (`tof_severe`) and 2.5 mm (`tof_pa`).
+- **Duct-closure test** (B/C): SpO₂ from Rudolph Fig 14.4 and text; Jo 2018 defines "severe" as SpO₂ < 70 %.
+  Qp:Qs after closure is reported only (step 3.3).
 
 ## Gaps
 
@@ -164,6 +166,11 @@ saturation definition.
 - 2026-10-30 (step 3.2): PA pressure and gradient targets of `tof_pink` and `tof` re-derived for 72 h
   (see "PA pressure and gradient at 72 h"); the RVOT is an orifice with an effective diameter (6 mm pink,
   4.5 mm moderate, 2 mm severe) instead of a linear resistance.
+- 2026-10-30 (step 3.3): duct sweep (1.5–3 mm). `tof_severe` duct 2.2 mm (SpO₂ 78, Qp:Qs 1.0; 2.5 mm gave
+  Qp:Qs 1.2), `tof_pa` duct 2.5 mm (SpO₂ 75, Qp:Qs 1.0; below 2 mm the atresia baby collapses). PA pressure
+  targets of both re-derived from their pulmonary flow at 72 h by the step 3.2 rule (Fig 14.3's PA 20/10
+  has Qp:Qs ~0.6). Qp:Qs after duct closure is reported only: after an acute closure the systemic output
+  falls with the pulmonary flow, so the ratio stays ~0.4–0.5; Fig 14.4's 0.18 is an older infant.
 
 ## References
 
