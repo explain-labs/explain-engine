@@ -19,13 +19,14 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
     volume     = Circulation.total_blood_volume → renin + non-osmotic ADH
     plasma Na  = AA.solutes.na  (osm ≈ 2·Na)  → ADH (osmotic) ; also drives nothing else
     plasma K   = AA.solutes.k                 → aldosterone (hyperkalemia)
-    arterial   = AAR.pres (interval mean)      → catecholamines (sympathoadrenal)
+    arterial   = AAR.pres (interval mean)      → catecholamines (cat_input "pressure")
+    volume     (as above)                      → catecholamines (cat_input "volume", default)
 
   HORMONES (readouts, 1.0 = baseline):
     angiotensin ← low perfusion + low volume          (renin = its instantaneous drive)
     aldosterone ← angiotensin (cascade) + hyperkalemia (slow tc)
     adh         ← plasma osmolality + low volume       (osmotic + baroregulated)
-    catecholamine ← arterial pressure deficit beyond a threshold (adrenal medulla)
+    catecholamine ← volume (or arterial pressure) deficit beyond a threshold (adrenal medulla)
 
   EFFECTORS (owned channels; all default-neutral, all independent of Ans `ans_activity`):
     Circulation.svr_factor_hormones_art / _ven    → systemic arteriolar / venular constriction (its own channels)
@@ -42,7 +43,11 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   Plasma catecholamines rise after haemorrhage in lambs (Rose 1987, doi:10.1152/ajpregu.1987.252.2.R306)
   and adrenal adrenaline drives the newborn heart rate (Padbury 1987, doi:10.1172/JCI113166).
   No newborn haemorrhage concentration data were found, so the arm is fitted to the HR outcome.
-  Default cat_hr_gain 0.0 = off; a scenario switches it on and anchors pressure_setpoint.
+  The default input is the blood-volume deficit: after a bleed the volume stays low for the hour
+  while the pressure partly recovers, so a volume drive is sustained where a pressure drive fades,
+  and the lambs' threshold (no rise at 10 %) is a threshold in volume lost.
+  Default cat_hr_gain 0.0 = off; a scenario switches it on (and, for cat_input "pressure",
+  anchors pressure_setpoint).
 
   NOTE the renal afferent (KID_ART.r_factor_ps) is deliberately NOT touched — it is owned by the
   Kidneys autoregulation loop. AngII acts renally through the efferent instead (physiologic).
@@ -112,8 +117,9 @@ export class Hormones extends BaseModelClass {
     this.adh_gain_baro = 1.0; // ADH drive per fractional volume deficit (non-osmotic)
     this.adh_tc = 120.0; // s — ADH responds over ~minutes
 
-    this.cat_gain = 0.0; // catecholamine drive per fractional arterial pressure deficit beyond the threshold
-    this.cat_threshold = 0.0; // fractional pressure deficit below which there is no release
+    this.cat_input = "volume"; // catecholamine stimulus: "volume" (blood-volume deficit) or "pressure" (arterial)
+    this.cat_gain = 0.0; // catecholamine drive per fractional deficit (of cat_input) beyond the threshold
+    this.cat_threshold = 0.0; // fractional deficit below which there is no release
     this.catecholamine_tc = 60.0; // s — adrenal release and plasma build-up over ~a minute
 
     this.hormone_min = 0.0; // floor for each hormone activity level
@@ -290,10 +296,11 @@ export class Hormones extends BaseModelClass {
       this.adh = 1.0;
     }
 
-    // --- catecholamines (sustained arterial pressure fall beyond the threshold → adrenal release) ---
+    // --- catecholamines (sustained volume or pressure deficit beyond the threshold → adrenal release) ---
     // one-sided: a pressure above the setpoint does not suppress them below rest
     if (this.catecholamines_enabled) {
-      const cat_target = this._clamp(1.0 + this.cat_gain * Math.max(0.0, pres_err - this.cat_threshold), this.hormone_min, this.hormone_max);
+      const cat_err = this.cat_input === "pressure" ? pres_err : vol_err;
+      const cat_target = this._clamp(1.0 + this.cat_gain * Math.max(0.0, cat_err - this.cat_threshold), this.hormone_min, this.hormone_max);
       this.catecholamine = this._lag(this.catecholamine, cat_target, u, this.catecholamine_tc);
     } else {
       this.catecholamine = 1.0;

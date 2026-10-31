@@ -7066,7 +7066,11 @@
         "sensed_volume": 0.30084896124844257,
         "sensed_na": 138.1785273444572,
         "sensed_osmolality": 276.3570546889144,
-        "sensed_k": 3.4533544923710013
+        "sensed_k": 3.4533544923710013,
+        "cat_input": "volume",
+        "cat_gain": 20,
+        "cat_threshold": 0.07,
+        "cat_hr_gain": 0.175
       },
       "Ans": {
         "name": "Ans",
