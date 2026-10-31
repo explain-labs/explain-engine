@@ -2,11 +2,15 @@
 // (Fluids.remove_volume from AD), traced for 60 min: MAP, HR, CVP, LV output, SVR, blood volume,
 // the hormones, the ANS and lactate.
 //
-// Newborn reference (piglets/lambs, grade C):
-//   20 mL/kg (~24 %): MAP -17 %, HR +27 % at once, cardiac output not significantly changed
-//                     (2-day-old piglets, Chandler 1991, doi:10.1016/0041-008x(91)90112-r)
+// Newborn reference (grade C):
+//   conscious newborn lambs (Smith & Abu-Amarah 1997, doi:10.1152/ajpheart.1997.273.1.H339):
+//     20 %: MAP -20 % and HR +25 %, both sustained for 60 min; 10 %: no sustained HR rise
 //   MAP at 60 % of baseline only after ~35 % of the blood volume (Bauer 1997, doi:10.1016/S0940-2993(97)80139-X)
 //   restitution ~53 % of the shed volume by 30 min (fetal sheep, Brace 1983, doi:10.1161/01.res.52.6.730)
+//   (2-day-old piglets under N2O, Chandler 1991, doi:10.1016/0041-008x(91)90112-r, report output unchanged
+//    at ~24 %; conscious lambs lose output (Rose 1987, doi:10.1152/ajpregu.1987.252.2.R306), so Chandler
+//    is no longer the target.)
+// The PASS/FAIL lines check the bleeds in TARGETS that were run (windows in % change from before the bleed).
 //
 // Usage: node scripts/probe_haemorrhage.mjs [--scenario term_neonate_72h] [--bleed 0.1,0.2,0.35]
 
@@ -32,6 +36,13 @@ await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 const base = JSON.parse(fs.readFileSync(new URL(`../model_definitions/${SCENARIO}.json`, import.meta.url), "utf8")).model_definition;
 const r = (x, n = 1) => Number((x ?? NaN).toFixed(n));
+const TARGETS = [
+  { id: "10 % no sustained HR rise (Smith 1997)", bleed: 0.1, sig: "dHR_pct", t: [15, 30, 60], lo: -5, hi: 5 },
+  { id: "20 % MAP -20 % sustained (Smith 1997)", bleed: 0.2, sig: "dMAP_pct", t: [15, 30, 60], lo: -25, hi: -15 },
+  { id: "20 % HR +25 % sustained (Smith 1997)", bleed: 0.2, sig: "dHR_pct", t: [15, 30, 60], lo: 18, hi: 32 },
+  { id: "35 % MAP ~60 % of baseline (Bauer 1997)", bleed: 0.35, sig: "dMAP_pct", t: [5], lo: -50, hi: -30 },
+];
+const checks = [];
 
 for (const frac of BLEEDS) {
   send("POST", "build", structuredClone(base));
@@ -65,7 +76,7 @@ for (const frac of BLEEDS) {
       SVRi: r(((a.map - a.cvp) / a.lvo) * 100, 1),
       BV: r((M.Circulation.total_blood_volume * 1000) / W, 1),
       ans: r(M.Circulation.ans_activity, 2), ang: r(M.Hormones.angiotensin, 2), adh: r(M.Hormones.adh, 2),
-      lact: r(M.AD.solutes.lact, 2),
+      cat: r(M.Hormones.catecholamine, 2), lact: r(M.AD.solutes.lact, 2),
     };
     if (!ref) ref = row;
     else {
@@ -88,4 +99,11 @@ for (const frac of BLEEDS) {
   console.log(`\n${SCENARIO}: arterial bleed ${frac * 100} % of blood volume (${r((shed * 1000) / W)} mL/kg) over 5 min`);
   console.table(rows);
   console.log = () => {};
+  for (const tg of TARGETS.filter((x) => x.bleed === frac)) {
+    const vs = tg.t.map((T) => rows.find((x) => x.t === `${T} min`)[tg.sig]);
+    const low = vs.some((v) => v < tg.lo), high = vs.some((v) => v > tg.hi);
+    checks.push(`${!low && !high ? "PASS     " : low && high ? "FAIL both" : low ? "FAIL low " : "FAIL high"}  ${tg.id}`);
+  }
 }
+console.log = _log;
+if (checks.length) console.log(`\n${checks.join("\n")}`);
