@@ -1,6 +1,6 @@
 # Fluids
 
-`Fluids` gives fluids into the blood: timed **boluses and infusions** of named fluids (saline, Ringer's lactate, packed red cells, albumin, dextrose), and a continuous **maintenance** intake that replaces what the kidneys excrete. Each fluid is a composition (solutes in mmol/L, albumin in g/L, no O2 or CO2) mixed into a blood compartment through its normal `volume_in`, so everything it carries spreads with the circulation.
+`Fluids` gives fluids into the blood: timed **boluses and infusions** of named fluids (saline, Ringer's lactate, packed red cells, albumin, dextrose), and a continuous **maintenance** intake that replaces what the kidneys excrete. It also takes whole blood out: a timed **loss** (haemorrhage, blood sampling). Each fluid is a composition (solutes in mmol/L, albumin in g/L, no O2 or CO2) mixed into a blood compartment through its normal `volume_in`, so everything it carries spreads with the circulation.
 
 ## Physiology
 
@@ -40,6 +40,7 @@ BaseModelClass
 | Property | Description |
 |---|---|
 | `running_fluids` | Boluses and infusions in progress: `{vol, time_left, delta, site, to2, tco2, temp, solutes, drugs}` each. A state saved mid-bolus finishes it after reload. |
+| `running_losses` | Blood losses in progress: `{vol, time_left, delta, site}` each. Saved the same way. |
 
 ### The fluid library (every scenario)
 
@@ -56,8 +57,10 @@ BaseModelClass
 
 **`add_volume(volume, in_time = 10, fluid_in = "normal_saline", site = "VLB")`** (mL, s) queues a fluid: `delta = volume / (in_time / 0.015)` per update, with the fluid's composition copied from the library (an unknown name gives pure water).
 
+**`remove_volume(volume, out_time = 10, site = "AD")`** (mL, s) queues a whole-blood loss, the counterpart of `add_volume`: `delta = volume / (out_time / 0.015)` per update, taken with `site.volume_out`, so the blood leaves with its own composition.
+
 **Every 15 ms:**
-1. Finished entries are dropped. For each running entry, `site.volume_in(delta, fluid)` mixes the increment in, then `time_left` counts down. A missing site is skipped.
+1. Finished entries are dropped. Each running loss takes its `delta` out of its site. For each running entry, `site.volume_in(delta, fluid)` mixes the increment in, then `time_left` counts down. A missing site is skipped.
 2. **Maintenance:** `maintenance_rate · weight / 1000 · Δt / 3600` L of the maintenance fluid into `maintenance_site`.
 
 **Effects** (term_neonate_72h, 20 mL/kg over 10 min, read 1 min later):
@@ -77,13 +80,14 @@ None.
 ## Inputs and outputs
 
 - **Reads:** the fluid library; `model.weight`.
-- **Writes:** the target compartment, through `volume_in` (volume and composition).
-- **Written by:** the user and bot (`add_volume`, rates); the scenario generators (maintenance rate and composition).
+- **Writes:** the target compartment, through `volume_in` (volume and composition) or `volume_out` (a loss).
+- **Written by:** the user and bot (`add_volume`, `remove_volume`, rates); the scenario generators (maintenance rate and composition).
 - **Read by:** `DataCollector` watchers.
 
 ## Assumptions and limitations
 
-- **Everything stays in the blood.** There is no interstitial compartment, so all of a crystalloid bolus stays intravascular, where in vivo most leaves within minutes. Dilution and its acid–base effect are therefore stronger than in vivo, and albumin draws no fluid in.
+- **Where a fluid goes depends on the scenario.** With an [Interstitium](./Interstitium.md) (term_neonate_72h) a crystalloid bolus leaves the blood within minutes (21 % of 20 mL/kg saline left at 30 min) and albumin draws fluid in. Without one (the ToF scenarios) everything stays intravascular, so dilution and its acid–base effect are stronger than in vivo.
+- **A loss needs the Interstitium to refill.** Without it the shed volume is not restored at all; with it, ~45 % of a 14 % bleed is back at 30 min.
 - **Gas-free fluids:** a bolus dilutes O2 and CO2 content and haemoglobin (and so viscosity), as intended.
 - **Packed cells are a fresh unit:** no storage lesion (high K, low pH, lactate), no citrate effect on calcium.
 - **Ringer's lactate's lactate is cleared by [Lactate](./Lactate.md)** toward its baseline (half-life ~6 min), standing in for hepatic metabolism; no bicarbonate is generated beyond what the lower lactate implies.
