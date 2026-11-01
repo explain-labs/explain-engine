@@ -41,6 +41,7 @@ export { Thermoregulation } from "./component_models/Thermoregulation";
 export { Glucose } from "./component_models/Glucose";
 export { Lactate } from "./component_models/Lactate";
 export { Kidneys } from "./component_models/Kidneys";
+export { Interstitium } from "./component_models/Interstitium";
 export { Uterus } from "./component_models/Uterus";
 export { Hormones } from "./component_models/Hormones";
 export { Drugs } from "./component_models/Drugs";

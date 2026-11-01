@@ -93,6 +93,7 @@ BaseModelClass
 | `hr_temp_factor` | – | 1.0 | `Thermoregulation`: temperature effect on rate. |
 | `hr_drug_factor` | – | 1.0 | `Drugs`: chronotropy. |
 | `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent: hypoxic bradycardia (in no shipped scenario). |
+| `hr_cat_factor` | – | 1.0 | [Hormones](./Hormones.md): circulating catecholamines (sustained rise after a blood loss). |
 
 ### Outputs
 
@@ -135,7 +136,8 @@ BaseModelClass
 3. **Heart rate**:
    ```
    HR = HR_ref · (1 + (ans_activity_hr − 1)·ans_sens + (hr_factor − 1) + (hr_mob_factor − 1)
-                    + (hr_temp_factor − 1) + (hr_drug_factor − 1) + (hr_chemo_factor − 1))
+                    + (hr_temp_factor − 1) + (hr_drug_factor − 1) + (hr_chemo_factor − 1)
+                    + (hr_cat_factor − 1))
    ```
    With `hr_override` it is `HR_ref`. It is floored at 0; at 0 the sinus node is silent.
 4. **Conduction timers**:

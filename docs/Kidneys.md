@@ -116,7 +116,7 @@ Each step (nothing while off; skipped if `KID_CAP` or `URINE` is missing):
 - **Oncotic pressure is linear in albumin.**
 - **Reabsorption fractions are static per solute:** no transport maxima, no secretion, no acid–base handling (bicarbonate, ammonium), no concentrating mechanism.
 - **The bladder never empties** (`URINE` accumulates).
-- **Urine water comes from `KID_CAP` only;** the rest of the body equilibrates through the circulation (no interstitial compartment).
+- **Urine water comes from `KID_CAP` only;** the rest of the body equilibrates through the circulation and, where a scenario has one, the [Interstitium](./Interstitium.md) (the kidney does not filter into it).
 
 ### Calibration
 

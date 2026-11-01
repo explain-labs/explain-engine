@@ -97,7 +97,7 @@ The reusable physical primitives every component model is built from.
 | [Ans](./Ans.md) | Autonomic nervous system controller; hub doc for the afferent→efferent baro/chemoreflex loop. |
 | [AnsAfferent](./AnsAfferent.md) | Afferent receptor (input → firing rate, piecewise linear with a time constant). |
 | [AnsEfferent](./AnsEfferent.md) | Efferent pathway (summed, clamped firing rate → effect factor on a target). |
-| [Hormones](./Hormones.md) | RAAS/ADH controllers acting on vascular tone & fluid balance. |
+| [Hormones](./Hormones.md) | RAAS/ADH controllers acting on vascular tone & fluid balance; circulating catecholamines on heart rate. |
 | [Kidneys](./Kidneys.md) | Renal filtration (NFP/GFR autoregulation, reabsorption, urine, per-solute mass balance). |
 | [Brain](./Brain.md) | Cerebral autoregulation (CBF control) + ICP / Monro-Kellie. |
 
@@ -110,7 +110,8 @@ The reusable physical primitives every component model is built from.
 | [Glucose](./Glucose.md) | Glucose/insulin homeostasis; IV dextrose. |
 | [Lactate](./Lactate.md) | Hypoxia-driven lactate production → Stewart SID → metabolic acidosis. |
 | [Drugs](./Drugs.md) | Pharmacology PK/PD (adrenaline, noradrenaline, PGE1): circuit transport, clearance, ke0, effect sites. |
-| [Fluids](./Fluids.md) | IV fluid/infusion administration into blood compartments. |
+| [Fluids](./Fluids.md) | IV fluid/infusion administration into blood compartments; timed blood loss. |
+| [Interstitium](./Interstitium.md) | Starling capillary filtration into an interstitial pool, drained by lymph (bolus redistribution, haemorrhage refill). |
 
 ## Respiratory
 

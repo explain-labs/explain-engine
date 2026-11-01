@@ -6903,6 +6903,61 @@
         "sensed_pressure": 41.81004928708462,
         "tgf_signal": 621.6173522284926
       },
+      "Interstitium": {
+        "name": "Interstitium",
+        "description": "interstitial fluid: capillary filtration, interstitial pool, lymph",
+        "is_enabled": true,
+        "model_type": "Interstitium",
+        "isf_volume_per_kg": 0.36,
+        "pif_rest": -1,
+        "compliance_above": 40,
+        "compliance_below": 4,
+        "kf_per_kg": 0.08,
+        "sigma": 0.85,
+        "oncotic_base": 18,
+        "albumin_ref": 25,
+        "isf_albumin_ratio": 0.6,
+        "lymph_flow_rest": 0.1,
+        "lymph_gain": 1,
+        "lymph_gain_below": 0.3,
+        "lymph_pv_gain": 0.127,
+        "lymph_max_ratio": 3.4,
+        "lymph_site": "SVC",
+        "pc_art_fraction": 0.2,
+        "seed_delay": 30,
+        "filtration_sites": [
+          {
+            "bed": "RUB",
+            "vein": "VUB",
+            "share": 0.4
+          },
+          {
+            "bed": "RLB",
+            "vein": "VLB",
+            "share": 0.4
+          },
+          {
+            "bed": "INT_CAP",
+            "vein": "",
+            "share": 0.12
+          },
+          {
+            "bed": "LS_CAP",
+            "vein": "",
+            "share": 0.08
+          }
+        ],
+        "filterable_solutes": [
+          "na",
+          "k",
+          "ca",
+          "cl",
+          "lact",
+          "mg",
+          "phosphates",
+          "uma"
+        ]
+      },
       "Brain": {
         "name": "Brain",
         "description": "cerebral autoregulation + intracranial pressure",
@@ -6970,6 +7025,7 @@
         "k_setpoint": 3.452,
         "renin_gain": 3,
         "renin_vol_gain": 3,
+        "renin_min": 0.35,
         "angiotensin_tc": 30,
         "aldo_gain": 1,
         "aldo_k_in_gain": 2,
@@ -7010,7 +7066,11 @@
         "sensed_volume": 0.30084896124844257,
         "sensed_na": 138.1785273444572,
         "sensed_osmolality": 276.3570546889144,
-        "sensed_k": 3.4533544923710013
+        "sensed_k": 3.4533544923710013,
+        "cat_input": "volume",
+        "cat_gain": 20,
+        "cat_threshold": 0.07,
+        "cat_hr_gain": 0.175
       },
       "Ans": {
         "name": "Ans",

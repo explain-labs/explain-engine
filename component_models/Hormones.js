@@ -19,17 +19,36 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
     volume     = Circulation.total_blood_volume → renin + non-osmotic ADH
     plasma Na  = AA.solutes.na  (osm ≈ 2·Na)  → ADH (osmotic) ; also drives nothing else
     plasma K   = AA.solutes.k                 → aldosterone (hyperkalemia)
+    arterial   = AAR.pres (interval mean)      → catecholamines (cat_input "pressure")
+    volume     (as above)                      → catecholamines (cat_input "volume", default)
 
   HORMONES (readouts, 1.0 = baseline):
     angiotensin ← low perfusion + low volume          (renin = its instantaneous drive)
     aldosterone ← angiotensin (cascade) + hyperkalemia (slow tc)
     adh         ← plasma osmolality + low volume       (osmotic + baroregulated)
+    catecholamine ← volume (or arterial pressure) deficit beyond a threshold (adrenal medulla)
 
   EFFECTORS (owned channels; all default-neutral, all independent of Ans `ans_activity`):
     Circulation.svr_factor_hormones_art / _ven    → systemic arteriolar / venular constriction (its own channels)
     KID_CAP_KID_VEN.r_factor_ps                  → renal EFFERENT constriction (AngII defends GFR)
     Kidneys.reabsorption_factors.na / .k         → aldosterone Na retention / K wasting
     Kidneys.reabs_factor_adh                     → ADH water retention (antidiuresis)
+    Heart.hr_cat_factor                          → catecholamine chronotropy (heart rate only)
+  The catecholamine arm is the slow, sustained counterpart of the fast baroreflex heart-rate arm
+  (Ans EF_HR, tc 0.5 s). Being slow (catecholamine_tc), it leaves the beat-to-beat baroreflex
+  sensitivity untouched and only shows in a sustained pressure fall such as a haemorrhage. Conscious
+  newborn lambs keep HR +25 % for 60 min after a 20 % bleed, with only a transient rise at 15 % and
+  none at 10 % (Smith & Abu-Amarah 1997, doi:10.1152/ajpheart.1997.273.1.H339); the newborn shows
+  this and the 11-week-old sheep does not (Smith 2000, doi:10.1111/j.1469-445x.2000.02009.x).
+  Plasma catecholamines rise after haemorrhage in lambs (Rose 1987, doi:10.1152/ajpregu.1987.252.2.R306)
+  and adrenal adrenaline drives the newborn heart rate (Padbury 1987, doi:10.1172/JCI113166).
+  No newborn haemorrhage concentration data were found, so the arm is fitted to the HR outcome.
+  The default input is the blood-volume deficit: after a bleed the volume stays low for the hour
+  while the pressure partly recovers, so a volume drive is sustained where a pressure drive fades,
+  and the lambs' threshold (no rise at 10 %) is a threshold in volume lost.
+  Default cat_hr_gain 0.0 = off; a scenario switches it on (and, for cat_input "pressure",
+  anchors pressure_setpoint).
+
   NOTE the renal afferent (KID_ART.r_factor_ps) is deliberately NOT touched — it is owned by the
   Kidneys autoregulation loop. AngII acts renally through the efferent instead (physiologic).
 
@@ -51,6 +70,7 @@ export class Hormones extends BaseModelClass {
     this.hormones_running = true; // master gate (false → all channels released to neutral)
     this.raas_enabled = true; // renin/angiotensin + aldosterone pathway
     this.adh_enabled = true; // vasopressin pathway
+    this.catecholamines_enabled = true; // sympathoadrenal pathway (effect needs cat_hr_gain > 0)
 
     // -----------------------------------------------
     // sensor wiring (resolved lazily)
@@ -59,11 +79,14 @@ export class Hormones extends BaseModelClass {
     this.volume_model = "Circulation"; // circulating volume source (renin + baro-ADH driver)
     this.volume_prop = "total_blood_volume";
     this.plasma_model = "AA"; // representative arterial plasma for solutes (na, k)
+    this.pressure_model = "AAR"; // arterial pressure source (catecholamine driver; the baroreceptor site)
+    this.pressure_prop = "pres";
 
     // effector target names (resolved lazily)
     this.circulation_name = "Circulation"; // systemic vasoconstriction fan-out (svr_factor_*)
     this.kidneys_name = "Kidneys"; // renal Na/water reabsorption channels
     this.efferent_name = "KID_CAP_KID_VEN"; // renal efferent arteriole (a Resistor)
+    this.heart_name = "Heart"; // catecholamine chronotropy (hr_cat_factor)
 
     // -----------------------------------------------
     // setpoints — anchor to the scenario's RESTING values so the controller is near-neutral at rest
@@ -71,11 +94,19 @@ export class Hormones extends BaseModelClass {
     this.volume_setpoint = 0.4; // L   (≈ baseline Circulation.total_blood_volume)
     this.osmo_na_setpoint = 138.0; // mmol/L plasma Na (osmolality proxy setpoint)
     this.k_setpoint = 3.5; // mmol/L plasma K
+    this.pressure_setpoint = 60.0; // mmHg (≈ baseline time-averaged AAR.pres)
 
     // -----------------------------------------------
     // hormone dynamics: input gains, time constants (s), and activity clamps
     this.renin_gain = 3.0; // angiotensin drive per fractional perfusion deficit
     this.renin_vol_gain = 3.0; // angiotensin drive per fractional volume deficit
+    // floor on renin SUPPRESSION: the newborn RAAS cannot be switched off by a volume load. Conscious
+    // newborn lambs given isotonic saline at 5 % of body weight fell to 38 % of baseline plasma renin
+    // activity and 37 % of baseline aldosterone (Smith 1989, doi:10.1152/ajpregu.1989.257.6.R1519);
+    // fetal sheep given 18 mL/kg dextran reached 59 % (Smith 1990, doi:10.1152/ajpregu.1990.259.5.R1050);
+    // Spitzer 1982 (doi:10.1038/ki.1982.60) states the principle, and ties the blunted natriuretic
+    // response of the newborn to it. With aldo_gain 1.0 this floor carries to aldosterone unchanged.
+    this.renin_min = 0.35;
     this.angiotensin_tc = 30.0; // s — AngII responds over ~tens of seconds
 
     this.aldo_gain = 1.0; // aldosterone drive per (angiotensin − 1) (cascade)
@@ -85,6 +116,11 @@ export class Hormones extends BaseModelClass {
     this.adh_gain_osmo = 4.0; // ADH drive per fractional osmolality (Na) excess
     this.adh_gain_baro = 1.0; // ADH drive per fractional volume deficit (non-osmotic)
     this.adh_tc = 120.0; // s — ADH responds over ~minutes
+
+    this.cat_input = "volume"; // catecholamine stimulus: "volume" (blood-volume deficit) or "pressure" (arterial)
+    this.cat_gain = 0.0; // catecholamine drive per fractional deficit (of cat_input) beyond the threshold
+    this.cat_threshold = 0.0; // fractional deficit below which there is no release
+    this.catecholamine_tc = 60.0; // s — adrenal release and plasma build-up over ~a minute
 
     this.hormone_min = 0.0; // floor for each hormone activity level
     this.hormone_max = 8.0; // ceiling for each hormone activity level
@@ -98,6 +134,7 @@ export class Hormones extends BaseModelClass {
     this.aldo_k_gain = 0.1; // K reabsorption-factor DROP per (aldo − 1) (K wasting)
     this.adh_water_gain = 0.015; // water reabsorption-factor rise per (adh − 1)
     this.adh_svr_gain = 0.05; // mild systemic constriction per (adh − 1) at high ADH
+    this.cat_hr_gain = 0.0; // heart rate factor rise per (catecholamine − 1); 0.0 = arm off
 
     this.svr_factor_min = 0.5; // clamps on the applied effector factors
     this.svr_factor_max = 5.0;
@@ -109,6 +146,8 @@ export class Hormones extends BaseModelClass {
     this.k_factor_max = 1.5;
     this.water_factor_min = 0.5;
     this.water_factor_max = 1.03;
+    this.hr_factor_min = 1.0;
+    this.hr_factor_max = 1.6;
 
     // -----------------------------------------------
     // dependent parameters (read-outs, 1.0 = baseline activity)
@@ -116,6 +155,7 @@ export class Hormones extends BaseModelClass {
     this.angiotensin = 1.0; // effective angiotensin II activity (lagged)
     this.aldosterone = 1.0; // aldosterone activity
     this.adh = 1.0; // ADH / vasopressin activity
+    this.catecholamine = 1.0; // circulating catecholamine activity
 
     // applied effector factors (diagnostic read-outs)
     this.svr_factor = 1.0; // → Circulation.svr_factor_hormones_art
@@ -124,6 +164,7 @@ export class Hormones extends BaseModelClass {
     this.na_reabs_factor = 1.0; // → Kidneys.reabsorption_factors.na
     this.k_reabs_factor = 1.0; // → Kidneys.reabsorption_factors.k
     this.water_reabs_factor = 1.0; // → Kidneys.reabs_factor_adh
+    this.hr_cat_factor = 1.0; // → Heart.hr_cat_factor
 
     // sensed values (diagnostic read-outs)
     this.sensed_perfusion = 0.0;
@@ -131,6 +172,7 @@ export class Hormones extends BaseModelClass {
     this.sensed_na = 0.0;
     this.sensed_osmolality = 0.0; // ≈ 2 · sensed_na
     this.sensed_k = 0.0;
+    this.sensed_pressure = 0.0; // mean arterial pressure over the last update interval
 
     // -----------------------------------------------
     // local parameters
@@ -138,11 +180,15 @@ export class Hormones extends BaseModelClass {
     this._update_counter = 0.0;
     this._perf_sum = 0.0; // time integral of the sensed perfusion pressure since the last update (mmHg·s)
     this._perf_time = 0.0; // time covered by _perf_sum (s)
+    this._pres_sum = 0.0; // the same integral for the arterial pressure (mmHg·s)
+    this._pres_time = 0.0;
     this._was_active = false; // tracks active→inactive for the one-shot channel release
     this._circ = null;
     this._kidneys = null;
     this._efferent = null;
+    this._heart = null;
     this._perf = null;
+    this._pres = null;
     this._vol = null;
     this._plasma = null;
   }
@@ -170,6 +216,13 @@ export class Hormones extends BaseModelClass {
         this._perf_time += this._t;
       }
     }
+    if (this._pres) {
+      const p = this._pres[this.pressure_prop];
+      if (Number.isFinite(p)) {
+        this._pres_sum += p * this._t;
+        this._pres_time += this._t;
+      }
+    }
 
     // run the (slow) control logic on the update interval, not every step
     this._update_counter += this._t;
@@ -187,6 +240,8 @@ export class Hormones extends BaseModelClass {
     if (!this._circ) this._circ = this._model_engine.models[this.circulation_name] ?? null;
     if (!this._kidneys) this._kidneys = this._model_engine.models[this.kidneys_name] ?? null;
     if (!this._efferent) this._efferent = this._model_engine.models[this.efferent_name] ?? null;
+    if (!this._heart) this._heart = this._model_engine.models[this.heart_name] ?? null;
+    if (!this._pres) this._pres = this._model_engine.models[this.pressure_model] ?? null;
     if (!this._perf) this._perf = this._model_engine.models[this.perfusion_model] ?? null;
     if (!this._vol) this._vol = this._model_engine.models[this.volume_model] ?? null;
     if (!this._plasma) this._plasma = this._model_engine.models[this.plasma_model] ?? null;
@@ -200,6 +255,9 @@ export class Hormones extends BaseModelClass {
     if (this._perf_time > 0.0) this.sensed_perfusion = this._perf_sum / this._perf_time;
     this._perf_sum = 0.0;
     this._perf_time = 0.0;
+    if (this._pres_time > 0.0) this.sensed_pressure = this._pres_sum / this._pres_time;
+    this._pres_sum = 0.0;
+    this._pres_time = 0.0;
     if (this._vol) this.sensed_volume = this._vol[this.volume_prop] ?? this.sensed_volume;
     if (this._plasma?.solutes) {
       this.sensed_na = this._plasma.solutes.na ?? this.sensed_na;
@@ -212,10 +270,13 @@ export class Hormones extends BaseModelClass {
     const vol_err = this.volume_setpoint > 0 ? (this.volume_setpoint - this.sensed_volume) / this.volume_setpoint : 0.0;
     const osmo_err = this.osmo_na_setpoint > 0 ? (this.sensed_na - this.osmo_na_setpoint) / this.osmo_na_setpoint : 0.0;
     const k_err = this.k_setpoint > 0 ? (this.sensed_k - this.k_setpoint) / this.k_setpoint : 0.0;
+    const pres_err = this.pressure_setpoint > 0 ? (this.pressure_setpoint - this.sensed_pressure) / this.pressure_setpoint : 0.0;
 
     // --- renin / angiotensin II (low perfusion and/or low volume → constrict + retain) ---
     if (this.raas_enabled) {
-      this.renin = this._clamp(1.0 + this.renin_gain * perf_err + this.renin_vol_gain * vol_err, this.hormone_min, this.hormone_max);
+      let renin_target = 1.0 + this.renin_gain * perf_err + this.renin_vol_gain * vol_err;
+      if (renin_target < this.renin_min) renin_target = this.renin_min; // suppression floor (see renin_min)
+      this.renin = this._clamp(renin_target, this.hormone_min, this.hormone_max);
       this.angiotensin = this._lag(this.angiotensin, this.renin, u, this.angiotensin_tc);
 
       // --- aldosterone (driven by angiotensin cascade + hyperkalemia; slow) ---
@@ -233,6 +294,16 @@ export class Hormones extends BaseModelClass {
       this.adh = this._lag(this.adh, adh_target, u, this.adh_tc);
     } else {
       this.adh = 1.0;
+    }
+
+    // --- catecholamines (sustained volume or pressure deficit beyond the threshold → adrenal release) ---
+    // one-sided: a pressure above the setpoint does not suppress them below rest
+    if (this.catecholamines_enabled) {
+      const cat_err = this.cat_input === "pressure" ? pres_err : vol_err;
+      const cat_target = this._clamp(1.0 + this.cat_gain * Math.max(0.0, cat_err - this.cat_threshold), this.hormone_min, this.hormone_max);
+      this.catecholamine = this._lag(this.catecholamine, cat_target, u, this.catecholamine_tc);
+    } else {
+      this.catecholamine = 1.0;
     }
   }
 
@@ -261,6 +332,10 @@ export class Hormones extends BaseModelClass {
       }
       this._kidneys.reabs_factor_adh = this.water_reabs_factor;
     }
+
+    // catecholamine chronotropy
+    this.hr_cat_factor = this._clamp(1.0 + this.cat_hr_gain * (this.catecholamine - 1.0), this.hr_factor_min, this.hr_factor_max);
+    if (this._heart) this._heart.hr_cat_factor = this.hr_cat_factor;
   }
 
   // release every owned channel back to neutral exactly once (on disable), so no stale hormonal
@@ -279,16 +354,19 @@ export class Hormones extends BaseModelClass {
       }
       this._kidneys.reabs_factor_adh = 1.0;
     }
+    if (this._heart) this._heart.hr_cat_factor = 1.0;
     this.renin = 1.0;
     this.angiotensin = 1.0;
     this.aldosterone = 1.0;
     this.adh = 1.0;
+    this.catecholamine = 1.0;
     this.svr_factor = 1.0;
     this.svr_ven_factor = 1.0;
     this.efferent_factor = 1.0;
     this.na_reabs_factor = 1.0;
     this.k_reabs_factor = 1.0;
     this.water_reabs_factor = 1.0;
+    this.hr_cat_factor = 1.0;
   }
 
   // first-order lag of x toward target over elapsed time u with time constant tc (s)

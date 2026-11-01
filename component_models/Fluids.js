@@ -19,6 +19,8 @@ export class Fluids extends BaseModelClass {
     // initialize dependent properties
     // boluses / infusions in progress (plain data, saved with the state so a reloaded bolus finishes)
     this.running_fluids = [];
+    // blood losses in progress ({vol, time_left, delta, site}, saved like running_fluids)
+    this.running_losses = [];
 
     // initialize local properties (preceded with _)
     this._default_time = 10; // default bolus time (s); the UI reads it as the add_volume default
@@ -36,6 +38,7 @@ export class Fluids extends BaseModelClass {
         const elapsed = this._update_counter;
         this._update_counter = 0;
         this.process_fluid_list();
+        this.process_losses();
         this.process_maintenance(elapsed);
     }
   }
@@ -54,6 +57,31 @@ export class Fluids extends BaseModelClass {
       drugs: {}
     }
     this.running_fluids.push(fluid)
+  }
+
+  // whole blood lost from a compartment (haemorrhage, blood sampling, exchange): its composition stays,
+  // only the volume falls. Default site the descending aorta, as an arterial bleed
+  remove_volume(volume, out_time = 10, site = "AD") {
+    this.running_losses.push({
+      vol: volume / 1000.0,
+      time_left: out_time,
+      delta: (volume / 1000.0) / (out_time / this._update_interval),
+      site: site,
+    });
+  }
+
+  process_losses() {
+    if (this.running_losses.length === 0) return;
+    this.running_losses = this.removeByProperty(this.running_losses, "time_left", 0.0);
+    this.running_losses.forEach((l) => {
+      this._model_engine.models[l.site]?.volume_out(l.delta);
+      l.vol -= l.delta;
+      l.time_left -= this._update_interval;
+      if (l.time_left <= 0) {
+        l.delta = 0.0;
+        l.time_left = 0.0;
+      }
+    });
   }
 
   process_fluid_list() {
