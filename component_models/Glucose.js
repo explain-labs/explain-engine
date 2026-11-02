@@ -51,7 +51,7 @@ export class Glucose extends BaseModelClass {
 
     // set-point + controller dynamics (1.0 = baseline activity)
     this.glucose_setpoint = 0.0; // mmol/L; a stored value is kept, <= 0 → auto-seeded to the resting arterial value
-    this.insulin_gain = 0.54; // insulin drive per fractional glucose excess (newborn: blunted secretion; a dextrose load decays at ~1.5 %/min)
+    this.insulin_gain = 0.6; // insulin drive per fractional glucose excess (newborn: blunted secretion; a dextrose load decays at ~1.5 %/min)
     this.insulin_suppression_gain = 6.0; // insulin fall per fractional glucose deficit (suppression stays prompt)
     this.counterreg_gain = 6.0; // counter-regulatory drive per fractional glucose deficit
     this.insulin_tc = 120.0; // s — insulin responds over a couple of minutes
@@ -71,7 +71,7 @@ export class Glucose extends BaseModelClass {
 
     // interstitial pool: glucose distributes through the extracellular fluid, not only the blood. The
     // pool exchanges with the blood at the consumption sites (same shares as the uptake)
-    this.isf_volume = 0.31; // L/kg — interstitial fluid (term ECF ~0.40 L/kg minus the blood)
+    this.isf_volume = 0.36; // L/kg — interstitial fluid (term ECF ~0.40 L/kg minus the plasma, as Interstitium)
     this.isf_tc = 300.0; // s — time constant of the interstitial pool's equilibration with the blood
     this.isf_glucose = 0.0; // mmol/L — interstitial glucose (state); <= 0 → seeded at the sites' mean
 

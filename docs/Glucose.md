@@ -26,7 +26,7 @@ BaseModelClass
 | `glu_use_rate` | mmol/kg/min | 0.03 | Tissue glucose use (5.4 mg/kg/min). |
 | `hgp_rate` | mmol/kg/min | 0.03 | Hepatic glucose production (equal to use, so neutral at rest). |
 | `glucose_setpoint` | mmol/L | 0 | Set-point; ≤ 0 = captured 30 s after build. Stored in every scenario. |
-| `insulin_gain` | – | 0.54 | Insulin rise per fractional glucose excess (blunted newborn secretion: a dextrose load decays at ~1.5 %/min). |
+| `insulin_gain` | – | 0.6 | Insulin rise per fractional glucose excess (blunted newborn secretion: a dextrose load decays at ~1.5 %/min). |
 | `insulin_suppression_gain` | – | 6 | Insulin fall per fractional glucose deficit (suppression stays prompt). |
 | `counterreg_gain` | – | 6 | Counter-regulation rise per fractional glucose deficit (it does not fall above the set-point). |
 | `insulin_tc`, `counterreg_tc` | s | 120, 120 | Time constants. |
@@ -36,7 +36,7 @@ BaseModelClass
 | `uptake_factor_min`, `uptake_factor_max` | – | 0.1, 5 | Clamp on the uptake factor. |
 | `production_factor_min`, `production_factor_max` | – | 0, 8 | Clamp on the production factor. |
 | `glucose_default` | mmol/L | 4.0 | Seed for any blood compartment without a glucose key. |
-| `isf_volume` | L/kg | 0.31 | Interstitial glucose pool (term ECF ~0.40 L/kg minus the blood). |
+| `isf_volume` | L/kg | 0.36 | Interstitial glucose pool (term ECF ~0.40 L/kg minus the plasma, the same volume as [Interstitium](./Interstitium.md), but a separate fixed value that doesn't follow its fluid shifts). |
 | `isf_tc` | s | 300 | Time constant of the pool's equilibration with the blood. |
 | `isf_glucose` | mmol/L | 0 | Interstitial glucose (state, saved); ≤ 0 = seeded at the consumption sites' mean. |
 | `insulin_independent_sites` | list | `["BR_CAP"]` | Beds whose uptake insulin does not scale (brain: GLUT1/3). |
@@ -87,9 +87,9 @@ None; its own uptake and production factors.
 
   | Test | Glucose (mmol/L) |
   |---|---|
-  | Rest, 30 min | 4.00 → 4.00; interstitial pool 3.70 |
-  | Hepatic output stopped, 1 / 10 / 30 / 60 / 90 min | 3.68 / 3.27 / 2.72 / 1.95 / 1.25 (insulin 0.03 by 10 min; the brain keeps its use) |
-  | D10 2 mL/kg (0.2 g/kg) over 1 min, 2 / 10 / 30 / 60 min | 10.1 / 6.1 / 5.6 / 5.0; K 1.54 %/min from 10 to 40 min, no rebound |
+  | Rest, 30 min | 4.00 → 4.00; interstitial pool 3.73 |
+  | Hepatic output stopped, 1 / 10 / 30 / 60 / 90 min | 3.68 / 3.34 / 2.92 / 2.31 / 1.73 (insulin ≈ 0 at 90 min; the brain keeps its use) |
+  | D10 2 mL/kg (0.2 g/kg) over 1 min, 2 / 10 / 30 / 60 min | 9.3 / 5.8 / 5.4 / 4.9; K 1.53 %/min from 10 to 40 min (of the excess above the resting 4.0) |
 
   Before the re-validation glucose lived only in the blood (changes 3–4× too fast; hepatic output stopped: 2.82 at 10 min, 0.01 at 90), insulin scaled the brain's uptake too, and a falling counter-regulation added to insulin's hepatic suppression: the same D10 bolus was cleared in ~8 min (K ~10 %/min) with a rebound to 1.99 mmol/L. The newborn insulin response to an IV glucose load is poor (Salle 1976); K ~1.5 %/min is a judgement within the 1–2 %/min usually reported. The brain's share (31 %, Metabolism's map) is near the 37 % of production used by the newborn dog's cerebral cortex, whose uptake stays constant across a wide glucose range (Huang 1989).
 - **Only the brain's use depends on the glucose level** (saturable); the other beds' use depends on insulin only. A depleted bed's missing use is counted out of `glucose_use_step`.
