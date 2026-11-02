@@ -98,7 +98,7 @@ On 100 % O2 the newborn's ventilation dips for the first half minute and then ri
 1 + hox_max · min((pO2 − hox_po2_threshold) / (hox_po2_full − hox_po2_threshold), 1)     while pO2 > hox_po2_threshold, else 1
 ```
 
-This term is descriptive: the mechanism behind the rise is unproven (Davi 1980 proposes one from the CSF). It lives in `Breathing`, so it also acts with `Ans` disabled, where neither the O2 brake nor the CO2 feedback opposes it.
+This term is descriptive: the mechanism behind the rise is unproven (Davi 1980 also found CSF pCO2 falling, 51 → 44 mmHg). It lives in `Breathing`, so it also acts with `Ans` disabled, where neither the O2 brake nor the CO2 feedback opposes it.
 
 `hox_max` is fitted to one number: PaCO2 about 4 mmHg below rest on FiO₂ 1.0, from Davi 1980 (n = 7, 10–20 min, PACO2 42 → 38 mmHg; term status not in the abstract). The threshold, the full-effect pO2 and `hox_tc` are model choices.
 
