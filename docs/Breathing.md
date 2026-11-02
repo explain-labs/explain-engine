@@ -41,6 +41,13 @@ BaseModelClass
 | `hvd_max` | – | 0.8 | Largest fractional reduction of the drive. |
 | `hvd_tc` | s | 120 | Time constant of the depression (onset and offset). |
 | `hvd_factor` | – | 1.0 | Applied factor on the drive (state, saved; 1 = none). |
+| `hox_enabled` | boolean | `true` | Late rise of the drive under hyperoxia (below). |
+| `hox_model` | – | `"AA"` | Arterial compartment whose pO2 is sensed. |
+| `hox_po2_threshold` | mmHg | 90 | No effect below this pO2 (above the resting PaO2). |
+| `hox_po2_full` | mmHg | 300 | Full effect from this pO2. |
+| `hox_max` | – | 1.3 | Largest fractional rise of the drive. |
+| `hox_tc` | s | 120 | Time constant of the rise (onset and offset). |
+| `hox_factor` | – | 1.0 | Applied factor on the drive (state, saved; 1 = no rise). |
 
 ### Outputs
 
@@ -64,7 +71,7 @@ BaseModelClass
 
 ```
 MV_ref               = minute_volume_ref · minute_volume_ref_factor · minute_volume_ref_scaling_factor · weight
-target_minute_volume = (MV_ref + (mv_ans_factor − 1) · MV_ref) · ans_activity_factor · hvd_factor
+target_minute_volume = (MV_ref + (mv_ans_factor − 1) · MV_ref) · ans_activity_factor · hvd_factor · hox_factor
 resp_rate            = √( target_minute_volume / (vt_rr_ratio' · weight) )        Mecklenburgh: MV = ratio · RR²
 target_tidal_volume  = target_minute_volume / resp_rate
 ```
@@ -82,6 +89,32 @@ Under sustained hypoxaemia the newborn's ventilation rises within a minute (the 
 term_neonate_72h (re-validation): FiO₂ 0.15 → ventilation +16 % at 30 s, +18 % at 1 min, back to +4 % by 5 min (12 % below the peak; data ~14–16 %); the chemoreflex re-drives against the depression (factor 0.51 at 5 min), so the net fall is smaller than the factor. FiO₂ 0.07 (`probe_lactate`): pH 7.44 at 1 min (early hyperventilation), then 7.33 at 7 min as the depression lets the lactic acidosis show. Without it, the stronger peripheral chemoreflex of re-validation (l) kept that baby alkalotic (pH 7.41 at 7 min).
 
 **term_neonate_72h calibration (2026-10):** `ie_ratio` 0.40; `vt_rr_ratio` set on 2026-10-18 for RR 40 / Vt 5.3 mL/kg at 213 mL/kg/min. The O2-use steps of 2026-10-27 raised `minute_volume_ref` to 0.2546 L/kg/min, with the chemoreceptor set-points re-anchored each time so the chemoreflex is neutral at rest: RR 44.3, Vt 5.77 mL/kg, MV 256 mL/kg/min (reference 215 ± 52 in quiet sleep), PaCO2 39.3, peak flows 0.86 / 0.75 L/min/kg (reference 0.83 / 0.64). See `scripts/_fix_term_breathing_pattern.mjs` and [TermNeonateReference](./TermNeonateReference.md).
+
+### Late rise under hyperoxia
+
+On 100 % O2 the newborn's ventilation dips for the first half minute and then rises above the room-air level within minutes, and the alveolar PCO2 ends lower (Rigatto 1975, 1982; Davi 1980). The chemoreflex alone gives only the dip: `CR_PO2` saturates within about 10 s and stays saturated, so only rising CO2 brings ventilation back. `hox_factor` relaxes over `hox_tc` towards
+
+```
+1 + hox_max · min((pO2 − hox_po2_threshold) / (hox_po2_full − hox_po2_threshold), 1)     while pO2 > hox_po2_threshold, else 1
+```
+
+This term is descriptive: the mechanism behind the rise is unproven (Davi 1980 also found CSF pCO2 falling, 51 → 44 mmHg). It lives in `Breathing`, so it also acts with `Ans` disabled, where neither the O2 brake nor the CO2 feedback opposes it.
+
+`hox_max` is fitted to one number: PaCO2 about 4 mmHg below rest on FiO₂ 1.0, from Davi 1980 (n = 7, 10–20 min, PACO2 42 → 38 mmHg; term status not in the abstract). The threshold, the full-effect pO2 and `hox_tc` are model choices.
+
+term_neonate_72h, FiO₂ 1.0 (rest: MV 256 mL/kg/min, PaCO2 39.4, pH 7.365):
+
+| | Without | With | Reference |
+|---|---|---|---|
+| Ventilation, first 30 s | −16 % | −12 % | −9.8 % (term, 2–6 days; Hertzberg 1987) |
+| Ventilation, 5 min | −14 % | +10 % | +27 to +49 % (preterm; Rigatto 1982) |
+| Ventilation, 10 min | −14 % | +10 % | +31 % (Davi 1980) |
+| PaCO2, 10 min (mmHg) | 47.4 | 35.3 | about 35.4 (fit target) |
+| pH, 10 min | 7.299 | 7.404 | no blood value found |
+
+Ventilation stays below Davi's +31 % because that rise with a 10 % fall in PACO2 is not consistent with an unchanged CO2 output, so the fit follows the CO2. The factor reaches 2.29 at 10 min because it works against the chemoreflex, which falls to `mv_ans_factor` 0.49 as PaCO2 drops: the net rise is much smaller than the factor. In between, with no data to check against: FiO₂ 0.3 → MV 247, PaCO2 40.9; FiO₂ 0.4 → MV 247, PaCO2 41.0; FiO₂ 0.6 → MV 270, PaCO2 37.1. FiO₂ 0.15 is unchanged. A sudden acid load can lift pO2 briefly past the threshold (the Bohr shift), which gives a negligible `hox_factor` of about 1.007.
+
+References: Davi 1980 (doi:10.1159/000241346); Rigatto 1982 (doi:10.1016/0378-3782(82)90002-0); Rigatto 1975 (Pediatrics 55:604); Hertzberg 1987 (doi:10.1136/adc.62.12.1238).
 
 ### Response to CO2
 

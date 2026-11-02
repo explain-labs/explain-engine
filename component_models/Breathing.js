@@ -47,6 +47,14 @@ export class Breathing extends BaseModelClass {
     this.hvd_max = 0.8; // largest fractional reduction of the drive
     this.hvd_tc = 120.0; // s — time constant of the depression (onset and offset)
     this.hvd_factor = 1.0; // applied factor on the drive (state, saved; 1 = no depression)
+    // late rise of the drive under sustained hyperoxia: descriptive, the mechanism is unproven (Davi 1980)
+    this.hox_enabled = true;
+    this.hox_model = "AA"; // arterial compartment whose pO2 is sensed
+    this.hox_po2_threshold = 90.0; // mmHg — no effect below this (above the resting PaO2)
+    this.hox_po2_full = 300.0; // mmHg — full effect from this pO2
+    this.hox_max = 1.3; // largest fractional rise of the drive (fitted: PaCO2 about -4 mmHg on 100 % O2, Davi 1980)
+    this.hox_tc = 120.0; // s — time constant of the rise (onset and offset); the chemoreflex dip comes first
+    this.hox_factor = 1.0; // applied factor on the drive (state, saved; 1 = no rise)
 
     // initialize dependent properties
     this.target_minute_volume = 0.0; // target minute volume (L/min)
@@ -99,6 +107,20 @@ export class Breathing extends BaseModelClass {
     this.exp_running = v;
   }
 
+  // slow rise of the drive under sustained hyperoxia (see hox_* above)
+  calc_hyperoxic_rise() {
+    let target = 1.0;
+    if (this.hox_enabled) {
+      const po2 = this._model_engine.models[this.hox_model]?.po2;
+      const span = this.hox_po2_full - this.hox_po2_threshold;
+      if (po2 > this.hox_po2_threshold && span > 0.0) {
+        target = 1.0 + this.hox_max * Math.min((po2 - this.hox_po2_threshold) / span, 1.0);
+      }
+    }
+    const frac = this.hox_tc > 0.0 ? Math.min(1.0, this._t / this.hox_tc) : 1.0;
+    this.hox_factor += (target - this.hox_factor) * frac;
+  }
+
   // slow central depression of the drive under sustained hypoxaemia (see hvd_* above)
   calc_hypoxic_depression() {
     let target = 1.0;
@@ -130,6 +152,8 @@ export class Breathing extends BaseModelClass {
     this.target_minute_volume = (_minute_volume_ref + (this.mv_ans_factor - 1.0) * _minute_volume_ref) * this.ans_activity_factor;
     this.calc_hypoxic_depression();
     this.target_minute_volume *= this.hvd_factor;
+    this.calc_hyperoxic_rise();
+    this.target_minute_volume *= this.hox_factor;
     this.vt_rr_controller(_weight);
 
     const v_lung = this._lung_volume();
