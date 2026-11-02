@@ -5853,7 +5853,7 @@
         "glu_use_rate": 0.03,
         "hgp_rate": 0.03,
         "glucose_setpoint": 3.998,
-        "insulin_gain": 0.54,
+        "insulin_gain": 0.6,
         "insulin_suppression_gain": 6,
         "counterreg_gain": 6,
         "insulin_tc": 120,
@@ -5868,7 +5868,7 @@
         "production_factor_min": 0,
         "production_factor_max": 8,
         "glucose_default": 4,
-        "isf_volume": 0.31,
+        "isf_volume": 0.36,
         "isf_tc": 300,
         "isf_glucose": 3.7206590609685186,
         "insulin_independent_sites": [
