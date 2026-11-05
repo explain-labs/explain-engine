@@ -20,6 +20,7 @@ BaseModelClass
 | Property | Unit | Default | Description |
 |---|---|---|---|
 | `input_model`, `input_prop` | – | `""` | The quantity sensed, e.g. `AAR` / `pres`, `AA` / `pco2`. |
+| `gate_model`, `gate_prop` | – | `""` | Optional 0–1 gate that scales the sent deviation from the 0.5 set-point: 0 sends the neutral 0.5, and a missing gate counts as 1. `CR_PO2_HR` uses `Respiration.unventilated`. |
 | `min_value` | input unit | 0 | Input at which the firing rate is 0. |
 | `set_value` | input unit | 0 | Set-point: firing rate 0.5. Re-anchored per scenario to its calibrated rest. |
 | `max_value` | input unit | 0 | Input at which the firing rate is 1. |
@@ -90,7 +91,7 @@ From `term_neonate_72h.json`, `models.Ans.components.BR_MAP` (trimmed to the con
 
 ## Usage in the scenarios
 
-`BR_MAP`, `CR_PCO2`, `CR_PO2` and `CR_PH` in every scenario; `CR_PO2_HR` (hypoxic bradycardia) in none. Their settings are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
+`BR_MAP`, `CR_PCO2`, `CR_PO2`, `CR_PH` and `CR_PO2_HR` (apnoeic bradycardia) in every scenario. Their settings are tabled in [Ans → The reflex network](./Ans.md#the-reflex-network-in-the-scenarios).
 
 ## References
 

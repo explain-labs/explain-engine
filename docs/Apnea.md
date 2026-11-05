@@ -72,7 +72,7 @@ Each step:
 
 **Desaturation and bradycardia** are emergent:
 - the lungs stop refreshing alveolar gas, so [GasExchanger](./GasExchanger.md) loads less O2 and the arterial saturation falls;
-- where the scenario has one, a pO2 heart-rate chemoreceptor (`CR_PO2_HR`, reading `AA.po2`) drives `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` (see [Ans](./Ans.md));
+- a pO2 heart-rate chemoreceptor (`CR_PO2_HR`, reading `AA.po2`) drives `EF_HR_CHEMO` onto `Heart.hr_chemo_factor` (see [Ans](./Ans.md)); It is gated by `Respiration.unventilated`, so it acts only while no gas moves through the airways.
 - its set-point is a few mmHg below the baseline pO2, so the reflex is neutral at rest.
 
 ## Factor system

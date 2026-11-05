@@ -38,7 +38,7 @@ BaseModelClass
 | `hvd_model` | – | `"AA"` | Arterial compartment whose pO2 is sensed. |
 | `hvd_po2_threshold` | mmHg | 70 | The depression grows as pO2 falls below this (term rests at ~75). |
 | `hvd_gain` | – | 2.0 | Drive reduction per fractional pO2 deficit below the threshold. |
-| `hvd_max` | – | 0.8 | Largest fractional reduction of the drive. |
+| `hvd_max` | – | 0.5 | Largest fractional reduction of the drive (see below). |
 | `hvd_tc` | s | 120 | Time constant of the depression (onset and offset). |
 | `hvd_factor` | – | 1.0 | Applied factor on the drive (state, saved; 1 = none). |
 | `hox_enabled` | boolean | `true` | Late rise of the drive under hyperoxia (below). |
@@ -85,6 +85,8 @@ Under sustained hypoxaemia the newborn's ventilation rises within a minute (the 
 ```
 1 − min(hvd_gain · (hvd_po2_threshold − pO2) / hvd_po2_threshold, hvd_max)     while pO2 < hvd_po2_threshold, else 1
 ```
+
+`hvd_max` was 0.8 until 2026-11-05. At FiO₂ 0.10 the drive then fell to 0.2, ventilation returned to its resting level, PaCO2 rose to 40 and SaO2 kept falling (22 % at 30 min, lactate 10). With 0.5, FiO₂ 0.10 settles at ventilation +15 %, PaCO2 33, SaO2 58 % at 30 min and lactate 2.1, against piglets at about +10 % at 10 min (Soliz 1994; Suguihara 1994 found half above baseline and half below) and SaO2 59 ± 12 % in ventilated piglets (Groner 1997). The other way: term babies born at 3,800 m had the same ventilation as lowland babies (Mortola 1992). FiO₂ 0.15 stays close (+5 % at 5 min, 30 min SaO2 91.4 %); FiO₂ 0.12 settles at SaO2 82 % (67 % before). The numbers in the next sentence date from `hvd_max` 0.8.
 
 term_neonate_72h (re-validation): FiO₂ 0.15 → ventilation +16 % at 30 s, +18 % at 1 min, back to +4 % by 5 min (12 % below the peak; data ~14–16 %); the chemoreflex re-drives against the depression (factor 0.51 at 5 min), so the net fall is smaller than the factor. FiO₂ 0.07 (`probe_lactate`): pH 7.44 at 1 min (early hyperventilation), then 7.33 at 7 min as the depression lets the lactic acidosis show. Without it, the stronger peripheral chemoreflex of re-validation (l) kept that baby alkalotic (pH 7.41 at 7 min).
 
@@ -246,4 +248,8 @@ The term breathing pattern (rate, tidal volume, minute ventilation, Ti/Ttot, pea
 - Rigatto H, Desai U, Leahy F, Kalapesi Z, Cates D. The effect of 2% CO2, 100% O2, theophylline and 15% O2 on "inspiratory drive" and "effective" timing in preterm infants. *Early Hum Dev* 1981;5:63–70. doi:10.1016/0378-3782(81)90071-2 (2 % CO2: Vt up, rate little changed)
 
 - De Boeck C, Van Reempts P, Rigatto H, Chernick V. Naloxone reduces decrease in ventilation induced by hypoxia in newborn infants. *J Appl Physiol* 1984;56:1507–11. doi:10.1152/jappl.1984.56.6.1507 (term newborns on 15 % O2: ventilation ~14 % below its early peak)
+- Groner JI. Endotoxin and transient hypoxia cause severe acidosis in the piglet. 1997. doi:10.1016/s0022-3468(97)90413-9
+- Mortola JP et al. Ventilation and gaseous metabolism in infants born at high altitude. 1992. doi:10.1164/ajrccm/146.5_pt_1.1206
+- Soliz A et al. Effect of amino acid infusion on the ventilatory response to hypoxia in protein-deprived neonatal piglets. 1994. doi:10.1203/00006450-199403000-00007
+- Suguihara C et al. Changes in ventilation and oxygen consumption during acute hypoxia in sedated newborn piglets. 1994. doi:10.1203/00006450-199405000-00004
 - Rehan V, Haider AZ, Alvaro RE, et al. The biphasic ventilatory response to hypoxia in preterm infants is not due to a decrease in metabolism. *Pediatr Pulmonol* 1996;22:287–94. doi:10.1002/(SICI)1099-0496(199611)22:5<287::AID-PPUL1>3.0.CO;2-I (−16 ± 2 % from the peak at 5 min; likely central)

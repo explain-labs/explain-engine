@@ -57,7 +57,7 @@ Every scenario (term_neonate_72h values; the set-points are re-anchored per scen
 
 So a fall in pressure (low baroreceptor firing) raises heart rate, vascular tone and contractility, and a rise in pCO2 raises minute ventilation. A fall in pO2 raises it too, through the negative weight on `CR_PO2`.
 
-**Hypoxic bradycardia** (in no shipped scenario): `CR_PO2_HR` (`AA.po2`, set-point a few mmHg below the resting pO2) → `EF_HR_CHEMO` → `Heart.hr_chemo_factor`, with effect 0.5 at firing 0 and 1 at 1, so it only slows the heart. See [Apnea](./Apnea.md).
+**Apnoeic bradycardia:** `CR_PO2_HR` (`AA.po2`) → `EF_HR_CHEMO` → `Heart.hr_chemo_factor`, effect 0.5 at firing 0 and 1 from firing 0.5 up, so it only slows the heart. The afferent is gated by `Respiration.unventilated`, so it is silent while gas moves through the airways. In term_neonate_72h the range is 60 down to 30 mmHg; each ToF scenario scales it to its own resting pO2. The chemoreflex slows the heart only when breathing is absent or ineffective (Henderson-Smart 1986; Daly 1979), while breathing newborn piglets on 10 % O2 speed up (Elnazir 1996). The range and the 50 % floor are model choices: only the timing has data, and that in preterms. See [Apnea](./Apnea.md).
 
 ## Factor system
 
@@ -99,13 +99,16 @@ From `term_neonate_72h.json`, `models.Ans` (trimmed; `components` holds the eigh
 
 ## Usage in the scenarios
 
-One instance in every scenario, with the network above. No shipped scenario has the hypoxic-bradycardia arc.
+One instance in every scenario, with the network above, including the apnoeic-bradycardia arc.
 
 ## References
 
 - Andriessen P, et al. Baroreceptor reflex sensitivity in human neonates: the effect of postmenstrual age. *J Physiol* 2005;568:333–41. doi:10.1113/jphysiol.2005.093641
 - Yiallourou SR, Sands SA, Walker AM, Horne RSC. Postnatal development of baroreflex sensitivity in infancy. *J Physiol* 2010;588:2193–203. doi:10.1113/jphysiol.2010.187070
 - Rigatto H, et al. Ventilatory response to 100% and 15% O2 during wakefulness and sleep in preterm infants. *Early Hum Dev* 1982;7:1–10. doi:10.1016/0378-3782(82)90002-0
+- Daly MD et al. Role of carotid-body chemoreceptors and their reflex interactions in bradycardia and cardiac arrest. *Lancet* 1979. doi:10.1016/s0140-6736(79)91218-2
+- Elnazir B et al. Postnatal development of the pattern of respiratory and cardiovascular response to systemic hypoxia in the piglet. *J Physiol* 1996. doi:10.1113/jphysiol.1996.sp021330
+- Henderson-Smart DJ et al. Incidence and mechanism of bradycardia during apnoea in preterm infants. *Arch Dis Child* 1986. doi:10.1136/adc.61.3.227
 - De Boeck C, Van Reempts P, Rigatto H, Chernick V. Naloxone reduces decrease in ventilation induced by hypoxia in newborn infants. *J Appl Physiol* 1984;56:1507–11. doi:10.1152/jappl.1984.56.6.1507
 
 The baroreflex HR dynamics and the peripheral chemoreceptor weight are set from the references above; the set-points are each scenario's calibrated rest, and the other ranges and gains are model choices.

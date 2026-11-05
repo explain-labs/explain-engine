@@ -6610,7 +6610,7 @@
         "hvd_model": "AA",
         "hvd_po2_threshold": 70,
         "hvd_gain": 2,
-        "hvd_max": 0.8,
+        "hvd_max": 0.5,
         "hvd_tc": 120,
         "hvd_factor": 1,
         "hox_enabled": true,
@@ -7239,6 +7239,39 @@
             "ans_active": true,
             "firing_rate": 0.500119880744849,
             "effector": 1.000597084543457
+          },
+          "CR_PO2_HR": {
+            "name": "CR_PO2_HR",
+            "description": "chemoreceptor po2 afferent of the apnoeic bradycardia, silent while the lungs are ventilated",
+            "is_enabled": true,
+            "model_type": "AnsAfferent",
+            "components": {},
+            "input_model": "AA",
+            "input_prop": "po2",
+            "efferents": [
+              "EF_HR_CHEMO"
+            ],
+            "effect_weight": 1,
+            "min_value": 30.0,
+            "set_value": 60.0,
+            "max_value": 150,
+            "tc": 1,
+            "ans_active": true,
+            "gate_model": "Respiration",
+            "gate_prop": "unventilated"
+          },
+          "EF_HR_CHEMO": {
+            "name": "EF_HR_CHEMO",
+            "description": "ans effector pathway of the apnoeic bradycardia on heartrate",
+            "is_enabled": true,
+            "model_type": "AnsEfferent",
+            "components": {},
+            "target_model": "Heart",
+            "target_prop": "hr_chemo_factor",
+            "effect_at_max_firing_rate": 1,
+            "effect_at_min_firing_rate": 0.5,
+            "tc": 1,
+            "ans_active": true
           }
         },
         "ans_active": true,
@@ -7430,6 +7463,13 @@
         "ans_factor_min": 0.01,
         "ans_tc": 5,
         "ans_activity_factor": 1,
+        "cor_reg_enabled": true,
+        "cor_ext_ref": 0.5523,
+        "cor_gain": 0.2,
+        "cor_ext_tc": 2,
+        "cor_factor_min": 0.12,
+        "cor_factor_max": 2,
+        "cor_factor": 1,
         "hr_g": 4.954954954954955,
         "cont_g": 4.954954954954955,
         "ans_g": 4.954954954954955,
@@ -12892,6 +12932,9 @@
         "thorax": [
           "THORAX"
         ],
+        "upper_airway_paths": ["MOUTH_DS", "VENT_ETTUBE"],
+        "lung_ventilation_tc": 3,
+        "ventilated_mv_per_kg": 100,
         "lungs": [
           "ALL",
           "ALR"

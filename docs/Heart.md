@@ -92,7 +92,7 @@ BaseModelClass
 | `hr_mob_factor` | – | 1.0 | `Mob`: myocardial-oxygen-balance effect on rate. |
 | `hr_temp_factor` | – | 1.0 | `Thermoregulation`: temperature effect on rate. |
 | `hr_drug_factor` | – | 1.0 | `Drugs`: chronotropy. |
-| `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent: hypoxic bradycardia (in no shipped scenario). |
+| `hr_chemo_factor` | – | 1.0 | `EF_HR_CHEMO` efferent: apnoeic bradycardia. |
 | `hr_cat_factor` | – | 1.0 | [Hormones](./Hormones.md): circulating catecholamines (sustained rise after a blood loss). |
 
 ### Outputs
