@@ -3,7 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
-//     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.6] [--rv-el 1] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
+//     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.5] [--rv-el 1.3] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -43,8 +43,8 @@ const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 const NAME = "term_neonate_12h";
 const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule), within-study rule
 const PDA_MM = Number(opt("--pda-mm", 1.6)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
-const PVR = Number(opt("--pvr", 1.6)); // user decision 2026-11-05 (grid 1.6/1.8 mm x 1.3/1.6/2.0)
-const RV_EL = Number(opt("--rv-el", 1.0));
+const PVR = Number(opt("--pvr", 1.5)); // user decision 2026-11-05: x1.5 with RV x1.3 and the 1.6 mm duct (PA 63/35, mean 44)
+const RV_EL = Number(opt("--rv-el", 1.3)); // user decision 2026-11-05: RV output 194, RV EF 48 at PVR x1.5
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
@@ -53,7 +53,7 @@ const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth:
 // Each: { why, apply(M, model), settle? }. Added one at a time (step 3 onwards of the 12 h plan).
 const LEVERS = {
   // 1. the duct, open at its 12 h size. USER DECISION 2026-11-05: an effective pulmonary-end lumen of 1.6 mm
-  //    (with PVR x1.6, lever 3): at Kang's 2.47 the model carried ~106 mL/kg/min against the within-study
+  //    (with PVR x1.5 and RV x1.3, levers 3-4; first chosen with PVR x1.6): at Kang's 2.47 the model carried ~106 mL/kg/min against the within-study
   //    target 25-47; 1.6 mm gives 45, peak 2.03 / end-diastolic 1.23 m/s, a closing spectrum. 1.6 is -1.8 SD
   //    against Kang 2016 (2.47 +/- 0.49), near Tohoku 2002 (2.1 +/- 0.6) and between Ha 2018's 0-12 h and 12-24 h
   //    medians (2.24, 1.34); colour Doppler tends to overestimate a small duct.
@@ -120,7 +120,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["duct", "pvr", "map"]; // "output" is opt-in (prototyping)
+const DEFAULT = ["duct", "pvr", "rv", "map"]; // "output" is opt-in (prototyping)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
