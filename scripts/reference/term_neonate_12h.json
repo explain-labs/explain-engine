@@ -1800,7 +1800,7 @@
       ],
       "grade": "A",
       "model_readout": "Pda.diameter_relative x diameter_pa_max",
-      "notes": "Kang 2016: 4.60 at 2 h, 3.37 at 6 h, 2.47 +/- 0.49 at 12 h, 1.89 at 24 h; open in 100 % at 12 h. Tohoku 2002: 2.1 +/- 0.6 at 12 h. Ha 2018 medians: 2.24 (1.72-2.71) over 0-12 h, 1.34 (1.2-1.73) over 12-24 h. Narrowing starts as a focal protrusion at the pulmonary end (96 % by 8 h) with a jet in and beyond it, then spreads along the duct (Hiraishi 1987; Rudolph). Target accepted by the user 2026-11-05 (Kang)."
+      "notes": "Kang 2016: 4.60 at 2 h, 3.37 at 6 h, 2.47 +/- 0.49 at 12 h, 1.89 at 24 h; open in 100 % at 12 h. Tohoku 2002: 2.1 +/- 0.6 at 12 h. Ha 2018 medians: 2.24 (1.72-2.71) over 0-12 h, 1.34 (1.2-1.73) over 12-24 h. Narrowing starts as a focal protrusion at the pulmonary end (96 % by 8 h) with a jet in and beyond it, then spreads along the duct (Hiraishi 1987; Rudolph). Target accepted by the user 2026-11-05 (Kang). MODEL (user decision 2026-11-05): an effective lumen of 1.6 mm with PVR x1.6 meets the shunt (25-47) and Doppler targets; at 2.47 mm the shunt was ~106. 1.6 is -1.8 SD against Kang, near Tohoku 2.1 +/- 0.6 and between Ha's 0-12 h / 12-24 h medians."
     },
     {
       "key": "pda_rtol_pct",
