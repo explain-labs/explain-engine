@@ -3,6 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
+//     prototyping: [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the output lever)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -40,11 +41,13 @@ const SOURCE = opt("--source", "term_neonate_72h");
 const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 const NAME = "term_neonate_12h";
+const MAP_TARGET = 50.2; // Taiwo 2022, 12 h, dia + PP/3
+const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
 
 // --- levers (applied to the live 72 h model, in this order) -------------------------------------
-// Each: { why, apply(M, model) }. Added one at a time (step 3 onwards of the 12 h plan).
+// Each: { why, apply(M, model), settle? }. Added one at a time (step 3 onwards of the 12 h plan).
 const LEVERS = {
   // 1. the duct, open at its 12 h size. Kang 2016: 2.47 +/- 0.49 mm at 12 h (narrowest, pulmonary end).
   //    Constriction starts as a focal narrowing at the pulmonary end (Hiraishi 1987) and leaves the
@@ -61,6 +64,33 @@ const LEVERS = {
       P.constriction_length = 2.0;
       P.discharge_coeff = 0.9;
       M.AAR_DA.no_flow = false;
+    },
+  },
+  // 2. the baroreflex defends the 12 h blood pressure while the levers settle (it is then folded and
+  //    re-anchored as always). Taiwo 2022 at 12 h: 69.8/40.4, MAP 50.2 by the 1/3 rule; the reflex senses
+  //    the time-averaged pressure, so its set-point is the target plus the current gap between the two
+  //    means (as helpers/Calibrator.js). Without it the 72 h set-point (60.6) fights every lever that
+  //    moves the pressure, and the fold then bakes that fight in as tachycardia and vasoconstriction.
+  map: {
+    why: "baroreflex set-point at the 12 h MAP 50.2 (Taiwo 2022, 1/3 rule) while settling",
+    settle: true, // re-applied during the settle (the gap moves with the waveform)
+    apply(M) {
+      const mm = M.Monitor?.minmax;
+      const gap = Number.isFinite(mm?.abp_pre_pres_mean_int) && Number.isFinite(mm?.abp_pre_pres_mean) ? mm.abp_pre_pres_mean_int - mm.abp_pre_pres_mean : 0;
+      M.BR_MAP.set_value = MAP_TARGET + gap;
+    },
+  },
+  // 3. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
+  //    lower body (and the systemic conduits) dilate, the organ beds (brain, gut, liver + spleen, kidneys)
+  //    keep their 72 h resistance (Agata 1994: organ flows not higher on day 1), and contractility and rate
+  //    rise. Starting values from the 2026-10 12 h work; re-tuned here.
+  output: {
+    why: `systemic resistance x${OUT_SVR} outside the organ beds, chamber el_max x${OUT_EL_MAX} (not COR), heart_rate_ref x${OUT_HR}`,
+    apply(M) {
+      const beds = new Set(["BR_ART", "BR_CAP", "BR_VEN", "INT_ART", "INT_CAP", "INT_VEN", "LS_ART", "LS_CAP", "LS_VEN", "KID_ART", "KID_CAP", "KID_VEN"]);
+      for (const n of model.scaler_config.blood_systemic.resistance) if (!beds.has(n)) M[n].r_factor_scaling_ps = OUT_SVR;
+      for (const n of ["LA", "LV", "RAIVCI", "RASVC", "RV"]) M[n].el_max_factor_scaling_ps = OUT_EL_MAX;
+      M.Heart.heart_rate_ref *= OUT_HR;
     },
   },
 };
@@ -87,7 +117,9 @@ for (const k of active) {
 }
 if (hbChanged) M.Blood.calibrate_viscosity_ref();
 if (active.length) reseedInterstitium();
-eng.calc(SETTLE);
+// settle in steps; levers flagged `settle` are re-applied in between
+const settleLevers = active.filter((k) => LEVERS[k].settle);
+for (let t = 0; t < SETTLE; t += 60) { eng.calc(Math.min(60, SETTLE - t)); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
 
 // --- re-anchor ----------------------------------------------------------------------------------
 const log = [];
