@@ -6,8 +6,8 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   process controller in the same family as Kidneys (renal autoregulation): it holds no compartment,
   resolves refs lazily, runs on an update interval, owns its effector channels, and is NEUTRAL at the
   scenario's baseline (auto-seeded setpoint + baseline cerebral blood volume), so enabling it does not
-  disturb the calibrated circulation. It only diverges when blood pressure changes, autoregulation is
-  impaired, or intracranial volume rises.
+  disturb the calibrated circulation. It only diverges when blood pressure, arterial pCO2 or arterial O2
+  content changes, autoregulation is impaired, or intracranial volume rises.
 
   THE CEREBRAL BED (pre-wired in the scenarios): AA → AA_BR_ART(resistor) → BR_ART → BR_CAP → BR_VEN →
   VUB. CBF = AA_BR_ART.flow. BR_CAP is the dominant neonatal O2 sink (Metabolism fvo2 ~0.45), so a fall
@@ -19,6 +19,10 @@ import { BaseModelClass } from "../base_models/BaseModelClass";
   autoreg_factor_min..max; beyond those limits the circulation is PRESSURE-PASSIVE (CBF follows
   pressure: the surge -> IVH / drop -> ischaemia of the sick or premature neonate).
   `autoregulation_gain` in [0,1] blends between intact (1) and pressure-passive (0).
+
+  CO2 AND O2 REACTIVITY. The flow held is cbf_setpoint * co2_factor * o2_factor, so the same controller
+  moves CBF with arterial pCO2 (linear, co2_gain per mmHg) and with arterial O2 content (o2_ref / to2,
+  which holds cerebral O2 delivery constant). Each factor has its own lag and clamps.
 
   ICP (Monro-Kellie, exponential intracranial compliance). CBV = BR_ART + BR_CAP + BR_VEN volume;
   dV = (CBV - cbv0) + edema_volume (mL), icp_excess = icp_e0 * (exp(icp_k * dV) - 1), ICP =
@@ -76,6 +80,29 @@ export class Brain extends BaseModelClass {
                         // so CPP tracks MEAN arterial pressure, not the instantaneous value)
 
     // -----------------------------------------------
+    // CO2 reactivity: arterial pCO2 moves the flow the autoregulation holds (hypercapnia dilates,
+    // hypocapnia constricts). It acts through the controller, so it is lost when autoregulation is off.
+    this.co2_enabled = true; // CO2 reactivity on/off
+    this.co2_model = "AA"; // arterial compartment whose pCO2 is sensed
+    this.co2_ref = 0.0; // mmHg — pCO2 at which the factor is 1; <= 0 → seeded after the warm-up
+    this.co2_gain = 0.04; // fractional change of the CBF target per mmHg (preterm infants on day 2 ~0.043, Pryds 1989)
+    this.co2_factor_min = 0.5; // lowest factor on the CBF target
+    this.co2_factor_max = 2.0; // highest factor on the CBF target
+    this.co2_tc = 30.0; // s — time constant of the response
+    this.co2_factor = 1.0; // applied factor on the CBF target (state, saved; 1 = neutral)
+
+    // -----------------------------------------------
+    // O2 reactivity: as arterial O2 content falls the flow held rises in proportion, which keeps cerebral
+    // O2 delivery constant (newborn lambs, Koehler 1982, 1984). Also lost when autoregulation is off.
+    this.o2_enabled = true; // O2 reactivity on/off
+    this.o2_model = "AA"; // arterial compartment whose O2 content is sensed
+    this.o2_ref = 0.0; // mmol/L - O2 content at which the factor is 1; <= 0 -> seeded after the warm-up
+    this.o2_factor_min = 0.8; // lowest factor on the CBF target
+    this.o2_factor_max = 2.0; // highest factor on the CBF target (the lamb data reach about half the control content)
+    this.o2_tc = 30.0; // s - time constant of the response (model choice, no neonatal measurement found)
+    this.o2_factor = 1.0; // applied factor on the CBF target (state, saved; 1 = neutral)
+
+    // -----------------------------------------------
     // ICP parameters (exponential intracranial compliance)
     this.icp_baseline = 5.0; // mmHg — normal neonatal ICP (read-out anchor; not applied as pressure)
     this.edema_volume = 0.0; // mL — settable oedema / mass / haemorrhage lever
@@ -100,6 +127,8 @@ export class Brain extends BaseModelClass {
     this._update_counter = 0.0;
     this._warmup_delay = 30.0; // s before seeding the baseline CPP / CBV
     this._warmup_counter = 0.0;
+    this._co2_warmup_counter = 0.0;
+    this._o2_warmup_counter = 0.0;
     this._seeded = false;
     this._map_smooth = null; // smoothed mean arterial pressure state
     this._cbf_smooth = null; // smoothed cerebral blood flow state (L/min)
@@ -224,12 +253,16 @@ export class Brain extends BaseModelClass {
       }
     }
 
+    this._update_co2_factor(u);
+    this._update_o2_factor(u);
+
     // --- autoregulation: closed-loop control of the arteriole resistance to hold CBF at setpoint ---
     if (this._seeded && this.cbf_setpoint > 0) {
       if (this.autoregulation_enabled && this.autoregulation_gain > 0) {
         // leaky integral control: too much flow (err>0) → constrict; the leak pulls the integrator back
         // to neutral so the baseline (err≈0) is collision-free/neutral
-        const err = (this._cbf_smooth - this.cbf_setpoint) / this.cbf_setpoint;
+        const target = this.cbf_setpoint * this.co2_factor * this.o2_factor; // the flow held moves with arterial pCO2 and O2 content
+        const err = (this._cbf_smooth - target) / target;
         const d = this.autoreg_control_gain * err - this.autoreg_leak * (this._ar_int - 1.0);
         this._ar_int = this._clamp(this._ar_int + d * u, this.autoreg_factor_min, this.autoreg_factor_max);
       } else {
@@ -242,9 +275,40 @@ export class Brain extends BaseModelClass {
     if (this._arteriole) this._arteriole.r_factor_ps = this.autoreg_factor;
   }
 
+  _update_co2_factor(u) {
+    const pco2 = this._model_engine.models[this.co2_model]?.pco2;
+    if (!(this.co2_ref > 0.0)) {
+      // no stored reference: take the arterial pCO2 once the circuit has settled
+      this._co2_warmup_counter += u;
+      if (this._co2_warmup_counter >= this._warmup_delay && pco2 > 0.0) this.co2_ref = pco2;
+    }
+    let target = 1.0;
+    if (this.co2_enabled && this.co2_ref > 0.0 && pco2 > 0.0) {
+      target = this._clamp(1.0 + this.co2_gain * (pco2 - this.co2_ref), this.co2_factor_min, this.co2_factor_max);
+    }
+    this.co2_factor = this._lag(this.co2_factor, target, u, this.co2_tc);
+  }
+
+  _update_o2_factor(u) {
+    const to2 = this._model_engine.models[this.o2_model]?.to2;
+    if (!(this.o2_ref > 0.0)) {
+      // no stored reference: take the arterial O2 content once the circuit has settled
+      this._o2_warmup_counter += u;
+      if (this._o2_warmup_counter >= this._warmup_delay && to2 > 0.0) this.o2_ref = to2;
+    }
+    let target = 1.0;
+    if (this.o2_enabled && this.o2_ref > 0.0) {
+      // no arterial O2 at all gives the upper clamp, not a division by zero
+      target = to2 > 0.0 ? this._clamp(this.o2_ref / to2, this.o2_factor_min, this.o2_factor_max) : this.o2_factor_max;
+    }
+    this.o2_factor = this._lag(this.o2_factor, target, u, this.o2_tc);
+  }
+
   _release_channels() {
     this._resolve_refs();
     this.autoreg_factor = 1.0;
+    this.co2_factor = 1.0;
+    this.o2_factor = 1.0;
     this.icp_excess = 0.0;
     this.icp = this.icp_baseline;
     if (this._arteriole) this._arteriole.r_factor_ps = 1.0;
