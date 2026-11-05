@@ -164,15 +164,17 @@ It owns `AA_BR_ART.r_factor_ps` (inflow), and writes the non-persistent `BR_VEN_
   | 2 % CO2, 10 min (PaCO2 42.4, O2 reactivity not yet added) | 33.4 | not measured | 0.27 |
   | 4 % CO2, 10 min (PaCO2 47.3) | 39.2 | +31 % | 0.24 |
   | Drive ×1.7, 10 min (PaCO2 31.9) | 21.0 | −29 % | 0.43 |
-  | FiO2 0.15, 2 min | 26.9 | −14 % | 0.36 |
-  | FiO2 0.15, 15 min (SaO2 90 %) | 31.6 | −2 % | 0.31 |
-  | FiO2 0.12, 2 min | 26.2 | −23 % | 0.40 |
-  | FiO2 0.12, 15 min (SaO2 67 %) | 44.2 | +2 % | 0.30 |
-  | FiO2 1.0, 15 min (PaCO2 35.2) | 22.8 | −16 % | 0.37 |
+  | FiO2 0.15, 2 min | 26.8 | −14 % | 0.36 |
+  | FiO2 0.15, 30 min (SaO2 91 %, PaCO2 36.9) | 28.6 | −10 % | 0.34 |
+  | FiO2 0.12, 2 min | 25.6 | −23 % | 0.40 |
+  | FiO2 0.12, 30 min (SaO2 82 %, PaCO2 34.0) | 27.9 | −21 % | 0.39 |
+  | FiO2 0.10, 30 min (SaO2 58 %, PaCO2 33.3) | 37.6 | −25 % | 0.41 |
+  | FiO2 1.0, 30 min (PaCO2 35.2) | 22.8 | −16 % | 0.37 |
 
-  With CO2 reactivity alone, FiO2 0.12 at 15 min gave CBF 30.9, delivery −29 % and extraction 0.43. With both switched off the model matches the version before either was added.
-- **Early dip in hypoxia.** Hypoxic hyperventilation lowers PaCO2 before O2 content has fallen far, so CBF first falls. At FiO2 0.12 brain capillary O2 stays below its value without reactivity for about 4 minutes, then above it. No neonatal data confirm or refute this dip.
-- **Severe hypoxia.** At FiO2 0.10 the circulation collapses at 10–12 min (MAP about 26) and then cycles, with or without this reactivity; the raised CBF target cannot be met once pressure falls.
+  With both switched off the model matches the version before either was added.
+- **In sustained hypoxia the two effects pull apart, so O2 delivery is not constant.** Since `Breathing.hvd_max` went to 0.5, hypoxia keeps PaCO2 low (33–37), which offsets the O2 rise: CBF stays below rest at FiO2 0.15 and 0.12, and rises only from about FiO2 0.10. The lamb data behind the O2 rule are isocapnic, and Massik's lower PaCO2 was 33, so the size of this offset at hypocapnia is an assumption of multiplying the factors.
+- **Early dip in hypoxia.** Hypoxic hyperventilation lowers PaCO2 before O2 content has fallen far, so CBF first falls (about −14 % at 2 min, FiO2 0.15). No neonatal data confirm or refute this dip.
+- **Severe hypoxia.** The raised target cannot be met once pressure falls (FiO2 0.07 at 30 min: MAP 44, CBF 25.7), and from about FiO2 0.09 the capillary O2 becomes very low with MAP still normal (0.94 mmol/L at 30 min, MAP 58).
 - **One cerebral bed:** no regional flow, no venous haemorrhage model.
 
 ## Example definition (JSON)

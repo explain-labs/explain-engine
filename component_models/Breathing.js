@@ -44,7 +44,7 @@ export class Breathing extends BaseModelClass {
     this.hvd_model = "AA"; // arterial compartment whose pO2 is sensed
     this.hvd_po2_threshold = 70.0; // mmHg — the depression grows as pO2 falls below this (term rests at ~75)
     this.hvd_gain = 2.0; // drive reduction per fractional pO2 deficit below the threshold
-    this.hvd_max = 0.8; // largest fractional reduction of the drive
+    this.hvd_max = 0.5; // largest fractional reduction of the drive
     this.hvd_tc = 120.0; // s — time constant of the depression (onset and offset)
     this.hvd_factor = 1.0; // applied factor on the drive (state, saved; 1 = no depression)
     // late rise of the drive under sustained hyperoxia: descriptive, the mechanism is unproven (Davi 1980)

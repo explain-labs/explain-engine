@@ -26,6 +26,10 @@ export class Mob extends BaseModelClass {
 
   Drives hypoxia feedback to the Heart via hr_mob_factor, el_max_mob_factor,
   and ans_activity_factor.
+
+  Coronary regulation: an integral controller on AA_COR.r_factor_ps holds the fractional O2 extraction
+  at its resting value, so coronary flow rises as arterial O2 content falls or the heart's O2 use rises,
+  until the dilation limit. Only past that limit does COR run out of O2 and the hypoxia effects start.
   */
 
   constructor(model_ref, name = "") {
@@ -64,6 +68,16 @@ export class Mob extends BaseModelClass {
     this.ans_tc = 5;
     this.ans_activity_factor = 1;
 
+    // coronary regulation: holds the fractional O2 extraction at cor_ext_ref through AA_COR.r_factor_ps
+    this.cor_reg_enabled = true; // coronary regulation on/off
+    this.cor_ext_ref = 0.0; // fractional O2 extraction held; <= 0 -> seeded after the warm-up
+    this.cor_gain = 0.2; // 1/s per unit of extraction error: rate of change of ln(factor)
+    this.cor_ext_tc = 2.0; // s - smoothing of the sensed extraction (averages out the beat)
+    this.cor_factor_min = 0.12; // lowest factor on the inflow resistance (maximal dilation)
+    this.cor_factor_max = 2.0; // highest factor on the inflow resistance (maximal constriction)
+    this.cor_factor = 1.0; // applied factor on AA_COR.r_factor_ps (state, saved; 1 = neutral)
+    this.cor_extraction = 0.0; // smoothed fractional O2 extraction across the coronary bed
+
     // hypoxia gains (rebuilt every step from the *_min/*_max bounds)
     this.hr_g = 0.0;
     this.cont_g = 0.0;
@@ -93,6 +107,7 @@ export class Mob extends BaseModelClass {
     this._d_hr = 0.0;
     this._d_cont = 0.0;
     this._d_ans = 0.0;
+    this._cor_seed_timer = 0.0; // s since the build, for seeding cor_ext_ref
     this._sw_vo2_per_beat = 0.0;
     this._beat_timer = 0.0; // s since the last beat started
     this._prev_lv_vol = 0.0;
@@ -106,7 +121,10 @@ export class Mob extends BaseModelClass {
   }
 
   calc_model() {
-    if (!this.mob_active) return;
+    if (!this.mob_active) {
+      this.release_coronary_regulation();
+      return;
+    }
 
     // Heart weight (g) from body weight (kg)
     this.hw = this.hw_intercept + this.hw_slope * this._model_engine.weight * 1000.0;
@@ -147,6 +165,9 @@ export class Mob extends BaseModelClass {
     // Hypoxia-driven feedback to Heart
     this.calc_hypoxia_effects();
 
+    // Coronary inflow resistance follows the O2 extraction
+    this.calc_coronary_regulation(to2_cor);
+
     // Instantaneous oxygen balance reporter
     const o2_inflow = this._aa_cor.flow * this._aa.to2;
     const o2_use = this.mvo2_step / this._t;
@@ -160,6 +181,34 @@ export class Mob extends BaseModelClass {
       this._cor.tco2 = (tco2_cor * vol_cor + used * this.resp_q) / vol_cor;
       this.o2_deficit = (this.mvo2_step - used) / this._t;
     }
+  }
+
+  calc_coronary_regulation(to2_cor) {
+    const to2_art = this._aa.to2;
+    const ext = to2_art > 0.0 ? 1.0 - Math.max(to2_cor, 0.0) / to2_art : 1.0;
+    this.cor_extraction = this.cor_extraction > 0.0 ? this.cor_extraction + (this._t / this.cor_ext_tc) * (ext - this.cor_extraction) : ext;
+
+    if (!(this.cor_ext_ref > 0.0)) {
+      // no stored reference: take the extraction once the circuit has settled
+      this._cor_seed_timer += this._t;
+      if (this._cor_seed_timer >= 30.0) this.cor_ext_ref = this.cor_extraction;
+      return;
+    }
+    if (!this.cor_reg_enabled) {
+      this.release_coronary_regulation();
+      return;
+    }
+    // extraction above the reference dilates; integrating ln(factor) makes the gain proportional
+    const f = this.cor_factor * Math.exp(-this.cor_gain * (this.cor_extraction - this.cor_ext_ref) * this._t);
+    this.cor_factor = Math.min(Math.max(f, this.cor_factor_min), this.cor_factor_max);
+    this._aa_cor.r_factor_ps = this.cor_factor;
+  }
+
+  release_coronary_regulation() {
+    if (this.cor_factor === 1.0) return;
+    this.cor_factor = 1.0;
+    const aa_cor = this._model_engine.models["AA_COR"];
+    if (aa_cor) aa_cor.r_factor_ps = 1.0;
   }
 
   calc_sw_vo2() {

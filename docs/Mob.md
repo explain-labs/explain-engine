@@ -33,6 +33,11 @@ BaseModelClass
 | `hr_factor_min`, `hr_factor_max`, `hr_tc` | –, s | 0.01, 1, 5 | Heart-rate channel range and time constant. |
 | `cont_factor_min`, `cont_factor_max`, `cont_tc` | –, s | 0.01, 1, 5 | Contractility channel. |
 | `ans_factor_min`, `ans_factor_max`, `ans_tc` | –, s | 0.01, 1, 5 | Sympathetic-responsiveness channel. |
+| `cor_reg_enabled` | boolean | `true` | Coronary regulation (below). |
+| `cor_ext_ref` | – | 0 | Fractional O2 extraction held; ≤ 0 = captured 30 s after build. Stored in every scenario at its resting value. |
+| `cor_gain` | 1/s | 0.2 | Rate of change of ln(factor) per unit of extraction error. |
+| `cor_ext_tc` | s | 2 | Smoothing of the sensed extraction. |
+| `cor_factor_min`, `cor_factor_max` | – | 0.12, 2.0 | Limits on the factor: maximal dilation and constriction. |
 
 ### Outputs
 
@@ -47,6 +52,8 @@ BaseModelClass
 | `o2_deficit` | mmol/s | Demand `COR` could not supply this step (0 at rest). |
 | `hr_factor`, `cont_factor`, `ans_activity_factor` | – | Applied hypoxia effects (1 = none). |
 | `hr_g`, `cont_g`, `ans_g` | – | Hypoxia gains (rebuilt every step). |
+| `cor_factor` | – | Applied factor on `AA_COR.r_factor_ps` (saved; 1 = neutral). |
+| `cor_extraction` | – | Smoothed fractional O2 extraction, `1 − COR.to2 / AA.to2`. |
 
 ## Calculation
 
@@ -65,9 +72,15 @@ Each step (skipped if `AA`, `AA_COR`, `COR`, `Heart`, `LV` or `RV` is missing):
    - each chamber's `el_max_mob_factor` = `cont_factor` (LV, RV, LA and the right-atrial halves);
    - `Heart.ans_activity_factor` = `ans_activity_factor` (scales the sympathetic drive the Heart passes to the chambers).
 
+5. **Coronary regulation:** extraction above `cor_ext_ref` dilates and below it constricts:
+   ```
+   cor_factor → cor_factor · exp(−cor_gain · (cor_extraction − cor_ext_ref) · dt)     clamped to the limits
+   AA_COR.r_factor_ps = cor_factor
+   ```
+
 ## Factor system
 
-None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is one of HeartChamber's additive `el_max` layers.
+None of its own; it writes the hypoxia channels above and `AA_COR.r_factor_ps`. `el_max_mob_factor` is one of HeartChamber's additive `el_max` layers.
 
 ## Inputs and outputs
 
@@ -85,6 +98,9 @@ None of its own; it writes the hypoxia channels above. `el_max_mob_factor` is on
 
   The term flow (25.9 mL/min since the MVO2 raise of 2026-10-27, `scripts/_fix_term_mvo2.mjs`) sits at the upper end of the ~18–26 mL/min whole-heart flow that Aburawi's healthy-neonate LAD flow of 8.2 mL/min suggests. The flow is a fixed resistance (plus the systolic compression): it does not follow MVO2 when demand rises (no metabolic coronary regulation).
 - **The hypoxia effects start only at a very low `COR.to2`** (0.2 mmol/L, ~2 % saturation). At rest they are inactive, and they engage only in profound coronary hypoxia.
+- **Coronary regulation holds extraction, so O2 delivery stays matched to O2 use.** With a fixed resistance the heart's demand emptied `COR` once `AA.to2` fell to about 5.6 mmol/L (SaO2 about 57 %), and Mob then collapsed the circulation: FiO₂ 0.10 reached MAP 26 at 10–12 min and cycled. Ventilated newborn lambs raise LV flow by 277 % at maximal hypoxemia, with LV O2 delivery and consumption maintained (Bernstein 1990; also Fisher 1983, 1984), and call FiO₂ 0.09 moderate (Sidi 1988). Now flow rises as far as 3.75 × rest at the dilation limit, and only past it do the hypoxia effects start. FiO₂ 0.10 at 30 min: MAP 60, HR 119, SaO2 58 %, coronary flow 47.5 mL/min. `cor_gain` and the limits are model choices; the maximal flow sits by construction close to Bernstein's 3.77 ×. Myocardial O2 use stays independent of arterial O2, though it rises in hypoxemic lambs (Fisher 1989).
+- **A cyanotic patient's own resting extraction counts as neutral** (ToF 0.68–0.80), which assumes adaptation. A cyanotic baby's real coronary bed may instead be dilated at rest.
+- **Tolerance may now be too good.** `tof_severe` with the duct closed holds MAP 61 at 20 min (SaO2 40 %, lactate 5.7, pH 7.30), where it used to collapse within 3 min. A slow course is plausible, but the model has no acidotic depression of the heart, so nothing ends it.
 - **Hypoxia depresses contractility through `cont_factor` only.** `ans_activity_factor` scales just the sympathetic deviation from rest (`Heart` passes `1 + (ans_activity − 1) · ans_activity_factor`), so it removes the adrenergic reserve but cannot push `el_max` below rest. Before 2026-10-30 `Heart` passed `ans_activity · ans_activity_factor`: in the chambers' additive `el_max` sum that counted the hypoxia twice and drove contractility to zero after ~2 min of severe hypoxia, with no recovery (e.g. `tof_severe` with the duct closed for 3 min).
 - **Heart weight follows body weight only** (no hypertrophy).
 
@@ -131,4 +147,7 @@ Until 2026-10-27 the term baby had the default (3.7e-5): 10.7 mL/100 g/min, an a
 
 - Aburawi EH, Malcus P, Thuring A, Fellman V, Pesonen E. Coronary flow in neonates with impaired intrauterine growth. *J Am Soc Echocardiogr* 2012;25(3):313–8. doi:10.1016/j.echo.2011.11.019 (healthy controls: LAD flow 8.2 ± 3.0 mL/min at 1 week).
 - Yasuoka K, Harada K, Tamura M, Takada G. Left anterior descending coronary artery flow and its relation to age in children. *J Am Soc Echocardiogr* 2002;15:69–75. doi:10.1067/mje.2002.115537 (LAD flow per gram of LV highest in young infants).
+- Bernstein D et al. 1990, myocardial and systemic oxygenation during severe hypoxemia in ventilated lambs. doi:10.1152/ajpheart.1990.258.6.h1856
+- Fisher DJ. 1983, left ventricular oxygen consumption and function in hypoxemia in conscious lambs, doi:10.1152/ajpheart.1983.244.5.h664; 1984, increased regional myocardial blood flows and oxygen deliveries during hypoxemia in lambs, doi:10.1203/00006450-198407000-00007; 1989, doi:10.1203/00006450-198906000-00007.
+- Sidi D et al. 1988, effect of beta-adrenergic receptor blockade on responses to acute hypoxemia in lambs. doi:10.1203/00006450-198802000-00020
 - Smolich JJ, Berger PJ, Walker AM. Interrelation between ventricular function, myocardial blood flow, and O2 consumption changes at birth in lambs. *Am J Physiol* 1996;270:H741–9. doi:10.1152/ajpheart.1996.270.2.H741 (LV myocardial flow 234 → 199 mL/min/100 g fetus → 4 h; LV AV O2 difference 3.6 → 7.5 mL/dL).

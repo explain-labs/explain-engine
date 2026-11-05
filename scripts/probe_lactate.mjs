@@ -89,8 +89,8 @@ console.log("\nNEUTRALITY (rest): lact≈baseline:", Math.abs(base.AA_lact - L.l
   "| pH normal:", base.pH > 7.2 && base.pH < 7.5);
 console.log("HYPOXIA: tissue to2↓ → anaerobic:", peak.anaer_max > 0,
   "| lactate↑:", peak.AA_lact > base.AA_lact + 0.3,
-  "| pH↓:", peak.pH < base.pH - 0.01,
+  "| pH↓ (lowest during hypoxia or recovery, hyperventilation can hide it at first):", Math.min(...rows.slice(1).map((x) => x.pH)) < base.pH - 0.01,
   "| BE↓:", peak.BE < base.BE - 1,
   "| HCO3↓:", peak.HCO3 < base.HCO3 - 0.5);
 console.log("RECOVERY: lactate clears:", rec.AA_lact < peak.AA_lact,
-  "| pH recovers:", rec.pH > peak.pH);
+  "| pH recovers:", rec.pH > Math.min(...rows.slice(1).map((x) => x.pH)));

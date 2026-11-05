@@ -38,6 +38,11 @@ export class Respiration extends BaseModelClass {
     this.dead_space = ["DS"]
     this.thorax = ["THORAX"]
     this.lungs = ["ALL", "ALR"]
+    this.upper_airway_paths = ["MOUTH_DS", "VENT_ETTUBE"]; // gas paths from the outside to the dead space
+    this.lung_ventilation_tc = 3.0; // s - smoothing of the measured lung ventilation (averages out the breath)
+    this.ventilated_mv_per_kg = 100.0; // mL/kg/min - ventilation from which the lungs count as fully ventilated
+    this.lung_ventilation = 0.0; // L/min - measured gas movement of the lungs
+    this.unventilated = 0.0; // 1 with no gas moving, 0 from ventilated_mv_per_kg up (gates the apnoeic bradycardia)
     this.left_lung = ["ALL"]
     this.right_lung = ["ALR"]
     this.gas_exchangers = ["GASEX_LL", "GASEX_RL"]
@@ -131,6 +136,22 @@ export class Respiration extends BaseModelClass {
     }
   }
 
+  // Gas actually moving between the outside and the lungs, whatever moves it: breathing, a ventilator or
+  // a bag. It has to pass both the upper and the lower airways, so the smaller of the two counts: an
+  // effort against a closed airway only shifts dead-space gas and compresses the lungs. Half the mean
+  // |flow| is the minute ventilation.
+  calc_lung_ventilation(dt) {
+    const models = this._model_engine.models;
+    const sum = (names) => names.reduce((total, name) => {
+      const r = models[name];
+      return r && r.is_enabled !== false && Number.isFinite(r.flow) ? total + Math.abs(r.flow) : total;
+    }, 0.0);
+    const rate = Math.min(sum(this.upper_airway_paths), sum(this.lower_airways)) * 30.0; // L/s -> L/min, halved
+    this.lung_ventilation += (dt / this.lung_ventilation_tc) * (rate - this.lung_ventilation);
+    const full = (this.ventilated_mv_per_kg * this._model_engine.weight) / 1000.0; // L/min
+    this.unventilated = full > 0.0 ? Math.min(Math.max(1.0 - this.lung_ventilation / full, 0.0), 1.0) : 0.0;
+  }
+
   calc_model() {
     // the blood side of atelectasis rides on non-persistent resistor factors, so it is re-written
     // every step (not throttled); it is skipped entirely while both lungs are aerated
@@ -141,6 +162,8 @@ export class Respiration extends BaseModelClass {
     if (this._update_counter > this._update_interval) {
       const dt_update = this._update_counter;
       this._update_counter = 0.0;
+
+      this.calc_lung_ventilation(dt_update);
 
       // series dead space configuration (live-editable): the dead-space compartments carry their
       // composition through sub-tanks, with the lungs as their distal end

@@ -48,6 +48,16 @@ Multipliers around 1; a change is added as a delta to the members' persistent la
 | `res_lower_airways_factor` | 1.0 | lower airways' `r_factor_ps` |
 | `gex_factor` | 1.0 | gas exchangers' `dif_o2_factor_ps` and `dif_co2_factor_ps` |
 
+### Config: lung ventilation
+
+| Property | Unit | Default | Description |
+|---|---|---|---|
+| `upper_airway_paths` | – | `["MOUTH_DS", "VENT_ETTUBE"]` | Gas paths from the outside to the dead space. |
+| `lung_ventilation_tc` | s | 3 | Smoothing of the measured ventilation. |
+| `ventilated_mv_per_kg` | mL/kg/min | 100 | Ventilation from which the lungs count as fully ventilated. |
+| `lung_ventilation` | L/min | – | Output: half the mean of the smaller of the upper and lower airway flows, so an effort against a closed airway counts as none. |
+| `unventilated` | – | – | Output: 1 with no gas moving, 0 from `ventilated_mv_per_kg` up. Gate of the apnoeic bradycardia ([Ans](./Ans.md)). After breathing stops it reaches about 0.5 within 5 s and 0.9 within 10 s; it returns to 0 within 5 s of breathing again. |
+
 ### Config: series dead space
 
 | Property | Unit | Default | Description |

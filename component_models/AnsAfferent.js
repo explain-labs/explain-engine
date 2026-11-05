@@ -17,6 +17,8 @@ export class AnsAfferent extends BaseModelClass {
     this.max_value = 0.0; // maximum of the input (firing rate is 1.0)
     this.tc = 1.0; // time constant of the firing rate change (s)
     this.ans_active = true; // copied from Ans; the afferent keeps firing, the efferents apply the gate
+    this.gate_model = ""; // optional: model whose gate_prop (0-1) scales what this afferent sends
+    this.gate_prop = ""; // 0 = no effect on the efferents, 1 = full effect; a missing gate means 1
     
     // Initialize dependent properties
     this.input_value = 0.0; // input value
@@ -78,12 +80,17 @@ export class AnsAfferent extends BaseModelClass {
         this.firing_rate = _new_firing_rate;
       }
 
+      // a gate scales the deviation from the set-point, so a closed gate sends the neutral 0.5
+      const _gate_value = this.gate_model ? this._model_engine.models[this.gate_model]?.[this.gate_prop] : 1.0;
+      const _gate = typeof _gate_value === "number" && Number.isFinite(_gate_value) ? Math.min(Math.max(_gate_value, 0.0), 1.0) : 1.0;
+      const _sent_firing_rate = this._set_firing_rate + _gate * (this.firing_rate - this._set_firing_rate);
+
       // apply the firing rate to each effector that resolves to a model with an update_effector hook
       this.efferents.forEach((effector) => {
         const _eff = this._model_engine.models[effector];
         if (_eff && typeof _eff.update_effector === "function") {
           // Update the effector with the firing rate and effect weight
-          _eff.update_effector(this.firing_rate, this.effect_weight, this.name);
+          _eff.update_effector(_sent_firing_rate, this.effect_weight, this.name);
         }
       });
       
