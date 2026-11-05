@@ -45,7 +45,25 @@ const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth:
 
 // --- levers (applied to the live 72 h model, in this order) -------------------------------------
 // Each: { why, apply(M, model) }. Added one at a time (step 3 onwards of the 12 h plan).
-const LEVERS = {};
+const LEVERS = {
+  // 1. the duct, open at its 12 h size. Kang 2016: 2.47 +/- 0.49 mm at 12 h (narrowest, pulmonary end).
+  //    Constriction starts as a focal narrowing at the pulmonary end (Hiraishi 1987) and leaves the
+  //    aortic ampulla (Rudolph): the ampulla keeps the 72 h anatomic maximum (3 mm over the 14 mm length),
+  //    the last constriction_length mm (default 2) narrow to the pulmonary-end diameter. Cd 0.9 (smooth
+  //    converging duct); the earlier Cd 0.3 was a workaround for the pre-#131 cylinder.
+  duct: {
+    why: "Pda pulmonary end 2.47 mm (Kang 2016), aortic ampulla 3 mm, constriction length 2 mm, Cd 0.9",
+    apply(M) {
+      const P = M.Pda;
+      P.diameter_ao_max = 3.0;
+      P.diameter_pa_max = 3.0;
+      P.diameter_relative = 2.47 / P.diameter_pa_max;
+      P.constriction_length = 2.0;
+      P.discharge_coeff = 0.9;
+      M.AAR_DA.no_flow = false;
+    },
+  },
+};
 const pick = opt("--levers", "all");
 const active = pick === "none" ? [] : pick === "all" ? Object.keys(LEVERS) : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
