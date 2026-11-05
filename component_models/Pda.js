@@ -47,14 +47,24 @@ Closure
         Clinical correlation – even when closure is incomplete, angiography shows a residual aortic
         ampulla while the pulmonary end is already sealed off.
 
+Closure geometry (modelled)
+
+    Closure starts at the pulmonary end and leaves the aortic ampulla open. The duct is therefore two
+    segments in series: an ampulla of diameter_ao_max over (length - constriction_length), and a
+    constricting cone over the last constriction_length mm that narrows from diameter_ao_max to the
+    pulmonary-end diameter diameter_relative x diameter_pa_max. Only the pulmonary end narrows. A short
+    constriction keeps the viscous loss small, so the Bernoulli (jet) term carries most of the
+    aorto-pulmonary pressure difference and the Doppler velocity rises as the duct closes, as measured
+    (Musewe 1987, doi 10.1161/01.cir.76.5.1081: 4v^2 ~ the catheter gradient, slope 1.03-1.12; 70 % of
+    ducts narrowest at the pulmonary end). At full patency with equal end diameters the two segments
+    are one cylinder of the full length, as before.
+
 Not modelled
 
-    The duct here is a resistor (conical Poiseuille + Bernoulli orifice) whose size is set by
-    diameter_relative (and PGE1 through diameter_drug_factor). Its O2/PGE2-driven constriction, the
-    order of closure along its length, and the passive/active elastance of its wall are physiology
-    background only: nothing in this class computes them. Closure is a scenario or user setting.
+    The size is a scenario or user setting: diameter_relative (and PGE1 through diameter_drug_factor).
+    The O2/PGE2-driven constriction and the passive/active elastance of the duct wall are physiology
+    background only: nothing in this class computes them.
 
-    See also: docs/Pda-velocity.md for the rationale behind the velocity outputs.
 */
 
 // Hagen-Poiseuille resistance unit conversion: Pa·s/m^3 → mmHg·s/L.
@@ -84,6 +94,9 @@ export class Pda extends BaseModelClass {
     this.diameter_pa_max = 2.0;   // max diameter at pulmonary end (mm)
     this.diameter_relative = 0.0; // relative diameter [0..1], scales both ends together
     this.length = 20;             // length (mm)
+    // constriction_length: length (mm) of the pulmonary-end segment that narrows as the duct closes;
+    // the rest of the duct is the aortic ampulla at diameter_ao_max (clamped to length)
+    this.constriction_length = 2;
     // discharge_coeff: effective vena-contracta contraction of the pulmonary-end orifice (Cd, 0..1).
     // The Bernoulli coefficient uses the *effective* orifice area A_eff = Cd · A_pa, so B scales as
     // 1/Cd². This is the single tuning knob for peak jet velocity (lower Cd → tighter jet → higher
@@ -207,13 +220,13 @@ export class Pda extends BaseModelClass {
       return;
     }
 
-    // ----- geometry: diameters scale together along the effective relative diameter -----
-    // PGE1 (via Drugs → diameter_drug_factor) widens a constricting duct; clamp the factor's effect to
-    // the anatomic max so the duct can never exceed full patency.
+    // ----- geometry: closure from the pulmonary end -----
+    // diameter_relative (times the PGE1 factor, capped at the anatomic max) sets the pulmonary-end
+    // diameter; the aortic ampulla stays at diameter_ao_max (never narrower than the pulmonary end).
     const eff_rel = this.diameter_relative * this.diameter_drug_factor;
     this.diameter_relative_eff = eff_rel;
-    const d_ao = Math.min(eff_rel * this.diameter_ao_max, this.diameter_ao_max);
     const d_pa = Math.min(eff_rel * this.diameter_pa_max, this.diameter_pa_max);
+    const d_ao = Math.max(this.diameter_ao_max, d_pa);
     this.diameter_ao = d_ao;
     this.diameter_pa = d_pa;
 
@@ -224,8 +237,13 @@ export class Pda extends BaseModelClass {
     aar_da.no_flow = d_pa === 0;
 
     // ----- quadratic stenosis element on the single resistor: ΔP = res·Q + B·Q² -----
-    // res: viscous Hagen-Poiseuille loss over the full linearly tapered cone (AAR end -> PA end).
-    const res = this.calc_conical_resistance(d_ao, d_pa, this.length, this.viscosity);
+    // res: viscous Hagen-Poiseuille loss of the ampulla (a cylinder at d_ao) plus the constricting cone
+    // (d_ao -> d_pa over constriction_length).
+    const l_c = Math.min(Math.max(this.constriction_length, 0.0), this.length);
+    const l_amp = this.length - l_c;
+    const res =
+      (l_amp > 0 ? this.calc_resistance(d_ao, l_amp, this.viscosity) : 0.0) +
+      (l_c > 0 ? this.calc_conical_resistance(d_ao, d_pa, l_c, this.viscosity) : 0.0);
     this.res = res;
 
     // B: convective / Bernoulli orifice loss at the narrowest (pulmonary) end, the vena contracta.
