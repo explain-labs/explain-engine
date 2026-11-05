@@ -59,7 +59,9 @@ excess Agata predicts at that age (~+5 %). Jhaveri's mean birth weight, 3545 g, 
 **Gaps (72 h kept for now):** blood gases (no longitudinal 12 h and ~72 h study found), CVP, RV volumes,
 breathing pattern, compliance (direction only: lower on day 0), SpO2, temperature, glucose (GLOW and the 72 h
 Cousineau value are different methods), urine (direction only), VO2 and SvO2. The earlier 12 h rows for VO2 and
-SvO2 came from the brown-fat derivation of 2026-10-27, not from a within-study pair.
+SvO2 came from the brown-fat derivation of 2026-10-27, not from a within-study pair. Mixed venous
+saturation is judged at the right heart, as the 72 h source measured it: with the duct open the pulmonary
+artery also carries oxygenated aortic blood and reads ~4 points higher at a shunt of ~45 mL/kg/min.
 
 **Grades**
 - **A**: within-study pair, healthy term babies, at the two ages
@@ -188,7 +190,8 @@ The 12 h baby is the same baby as the 72 h scenario (user decision, 2026-11-05).
 | Base excess | mmol/L | -4–2 | kept | C | textbook | -4–2 |
 | PaO2 | mmHg | 60–90 | kept | C | textbook | 60–90 |
 | End-tidal CO2 | mmHg | ref. only | kept | C | lopez2011 | ref. only |
-| Mixed venous O2 saturation | % | 76 (70–80) | kept | C | vanderhoeven1996, wolfsberger2023, carmichael2025, liu2014, bailey2013 | 76 (70–80) |
+| Mixed venous O2 saturation (right heart, before the duct) | % | 76 (70–80) | kept | C | vanderhoeven1996, wolfsberger2023, carmichael2025, liu2014, bailey2013 | – |
+| Pulmonary artery O2 saturation (includes the ductal admixture) | % | ref. only | kept | C | vanderhoeven1996, wolfsberger2023, carmichael2025, liu2014, bailey2013 | 76 (70–80) |
 | SpO2 post-ductal | % | ref. only | kept | C |  | – |
 
 ### Metabolism

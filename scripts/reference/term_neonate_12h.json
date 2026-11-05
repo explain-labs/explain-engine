@@ -1474,9 +1474,9 @@
       }
     },
     {
-      "key": "svo2",
+      "key": "svo2_ra",
       "group": "gases",
-      "label": "Mixed venous O2 saturation",
+      "label": "Mixed venous O2 saturation (right heart, before the duct)",
       "unit": "%",
       "mean": 76,
       "sd": null,
@@ -1494,8 +1494,35 @@
         "bailey2013"
       ],
       "grade": "C",
+      "model_readout": "right-ventricular inflow so2 (probe svo2_ra)",
+      "notes": "USER DECISION 2026-11-05: judged at the right heart, as the 72 h source measured it (van der Hoeven 1996, right-atrial fibre-optic catheter). The 72 h value is kept (no within-study pair). With a left-to-right duct the pulmonary artery carries oxygenated aortic blood, so it reads higher than the systemic venous return (at a shunt of ~45 mL/kg/min: RA 76.9, PA 80.9); at 72 h, duct closed, RA = PA. No within-study pair; the 72 h value is kept. Cross-check: Wolfsberger 2023: peripheral extraction constant over the first 24 h. The earlier 12 h row (78, brown-fat derivation 2026-10-27) had no within-study pair.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "svo2",
+      "group": "gases",
+      "label": "Pulmonary artery O2 saturation (includes the ductal admixture)",
+      "unit": "%",
+      "mean": null,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "pulmonary artery (the probe read-out)",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "vanderhoeven1996",
+        "wolfsberger2023",
+        "carmichael2025",
+        "liu2014",
+        "bailey2013"
+      ],
+      "grade": "C",
       "model_readout": "Monitor.svo2",
-      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Wolfsberger 2023: peripheral extraction constant over the first 24 h. The earlier 12 h row (78, brown-fat derivation 2026-10-27) had no within-study pair.",
+      "notes": "Reference only: with the duct open the PA mixes the systemic venous return with the left-to-right ductal flow (fully oxygenated), so it reads above the mixed venous saturation; the target is the svo2_ra row.",
       "derivation": {
         "method": "no within-study 12 h / 72 h pair: 72 h value kept"
       }
