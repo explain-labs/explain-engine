@@ -1,7 +1,7 @@
 # Term neonate in transition: reference values at 12 h
 
 Reference values for `term_neonate_12h`: a healthy term neonate of about 3.5 kg, **12 h** after an
-uncomplicated **vaginal birth with delayed cord clamping (~1 min)**. The baby breathes room air, is
+uncomplicated **vaginal birth**. It is the **same baby as `term_neonate_72h`**, 60 h younger (same cord clamping, same red cell mass). The baby breathes room air, is
 **dressed or skin-to-skin at room temperature**, and breastfeeding has started. The 72 h column is the
 `term_neonate_72h` set ([TermNeonateReference](./TermNeonateReference.md)). Compiled 2026-11-05 from PubMed, the
 engine's `reference-value-papers` and NeoCardioLab. It rebuilds the first transition set, which was
@@ -56,9 +56,13 @@ NeoCardioLab's restrictive example. But on day 0 (2–12 h) the aortic valve ope
 valve (Shiraishi 1987: RPEP 94 > LPEP 77 ms), which argues against a dip. The probe reports the beat
 minimum as `pda_v_ed`, so a dip would show there.
 
+## Blood volume and haematocrit
+
+The 12 h baby is the same baby as the 72 h scenario (user decision, 2026-11-05). Its red cell mass (~42 mL/kg) is held. After a placental transfusion, plasma leaves within ~2 h and Hct peaks. Plasma then slowly returns, and Hct drifts down: 58 → 56 → 54 % at 2 h, 24 h and day 5 (Nelle 1993, 3-min clamping), and 63 → 59 % at 2 h and 24 h (Linderkamp 1992). Interpolated, Hct is ~57.1 % at 12 h and ~55.0 % at 72 h, a ratio of 1.038. The 12 h targets are the 72 h ones scaled by it: Hct 51.4 %, Hb 17.6 g/dL, blood volume ~82 mL/kg. Blood volume is lowest in the first hours and rises slightly by day 3, by ~4 mL/kg, not 8. An earlier derivation (1-min delayed clamping, Hct 57 %, 77 mL/kg) compared two clamping strategies, not one baby at two ages, and was dropped.
+
 ## Reference values
 
-Rows marked "PENDING USER CHOICE" in the JSON are the duct targets still to be decided.
+The duct targets were accepted by the user on 2026-11-05.
 
 ### Hemodynamics
 
@@ -147,9 +151,9 @@ Rows marked "PENDING USER CHOICE" in the JSON are the duct targets still to be d
 
 | Variable | Unit | 12 h | Grade | Sources | 72 h |
 |---|---|---|---|---|---|
-| Hemoglobin | g/dL | 19.1 (16.5–21.7) | C | ceriani2006 | 17 (12.8–21.2) |
-| Hematocrit | % | 57 (50–64) | B | ceriani2006, christensen2009 | 49.5 (37–62.5) |
-| Blood volume | mL/kg | 77 (72–82) | B | linderkamp1992, nelle1995 | 80–90 |
+| Hemoglobin | g/dL | 17.6 (13.3–22) | C | nelle1993 | 17 (12.8–21.2) |
+| Hematocrit | % | 51.4 (38.4–64.9) | C | nelle1993, linderkamp1992 | 49.5 (37–62.5) |
+| Blood volume | mL/kg | 82 (77–87) | C | nelle1993, linderkamp1992 | 80–90 |
 
 ### Kidneys
 
@@ -175,8 +179,6 @@ Rows marked "PENDING USER CHOICE" in the JSON are the duct targets still to be d
 - `aburawi2012`: Aburawi EH et al. Coronary flow in neonates with impaired intrauterine growth. J Am Soc Echocardiogr 2012;25:313-8 ([doi](https://doi.org/10.1016/j.echo.2011.11.019))
 - `agata1991`: Agata Y et al. Changes in left ventricular output from fetal to early neonatal life. J Pediatr 1991;119:441-5 ([doi](https://doi.org/10.1016/s0022-3476(05)82060-8))
 - `agata1994`: Agata Y et al. Regional blood flow distribution and left ventricular output during early neonatal life. Pediatr Res 1994;36:805-10 ([doi](https://doi.org/10.1203/00006450-199412000-00022))
-- `ceriani2006`: Ceriani Cernadas JM et al. The effect of timing of cord clamping on neonatal venous hematocrit. Pediatrics 2006;117:e779-86 ([doi](https://doi.org/10.1542/peds.2005-1156))
-- `christensen2009`: Jopling J, Christensen RD et al. Reference ranges for hematocrit and blood hemoglobin. Pediatrics 2009;123:e333-7 ([doi](https://doi.org/10.1542/peds.2008-2654))
 - `cohen1991`: Cohen G, Xu C, Henderson-Smart D. Ventilatory response of the sleeping newborn to CO2 during normoxic rebreathing. J Appl Physiol 1991;71:168-74 ([doi](https://doi.org/10.1152/jappl.1991.71.1.168))
 - `drayton1987`: Drayton MR, Skidmore R. Ductus arteriosus blood flow during first 48 hours of life. Arch Dis Child 1987;62:1030-4 ([doi](https://doi.org/10.1136/adc.62.10.1030))
 - `fleming2011`: Fleming S et al. Lancet 2011;377:1011-8 ([doi](https://doi.org/10.1016/S0140-6736(10)62226-X))
@@ -202,7 +204,7 @@ Rows marked "PENDING USER CHOICE" in the JSON are the duct targets still to be d
 - `milner1978`: Milner AD et al. Effects of delivery by caesarean section on lung mechanics and lung volume. Arch Dis Child 1978;53:545-8 ([doi](https://doi.org/10.1136/adc.53.7.545))
 - `moriette1985`: Moriette G, Van Reempts P, Moore M, Cates D, Rigatto H. The effect of rebreathing CO2 on ventilation and diaphragmatic electromyography in newborn infants. Respir Physiol 1985;62:387-97 ([doi](https://doi.org/10.1016/0034-5687(85)90093-3))
 - `mortola1996`: Mortola JP, Lanthier C. The ventilatory and metabolic response to hypercapnia in newborn mammalian species. Respir Physiol 1996;103:263-70 ([doi](https://doi.org/10.1016/0034-5687(95)00093-3))
-- `nelle1995`: Nelle M et al. Effect of Leboyer childbirth on cardiac output, cerebral and gastrointestinal blood flow velocities in full-term neonates. Am J Perinatol 1995;12:212-6 ([doi](https://doi.org/10.1055/s-2007-994455))
+- `nelle1993`: Nelle M et al. The effect of Leboyer delivery on blood viscosity and other hemorheologic parameters in term neonates. Am J Obstet Gynecol 1993;169:189-93 ([doi](https://doi.org/10.1016/0002-9378(93)90161-b))
 - `nikkola2002`: Nikkola E et al. Baseline SpO2 after vaginal and caesarean delivery. Acta Paediatr 2002 ([doi](https://doi.org/10.1080/080352502760272605))
 - `nowotny1998`: Nowotny T et al. Pediatr Pulmonol 1998;26:138-44 (9 term controls) ([doi](https://doi.org/10.1002/(sici)1099-0496(199808)26:2<138::aid-ppul12>3.0.co;2-2))
 - `obrien2000`: O'Brien LM et al. Oxygen saturation during the first 24 hours of life. Arch Dis Child Fetal Neonatal Ed 2000;83:F35-8 ([doi](https://doi.org/10.1136/fn.83.1.f35))
