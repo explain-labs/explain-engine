@@ -102,7 +102,7 @@ None of its own. It writes the **base** `r_for`/`r_back`/`r_k`/`no_flow` of `AAR
 
 - **No closure physiology.** Constriction by oxygen and falling PGE2 and the wall's passive and active elastance aren't computed. The duct's size is a scenario or user setting; only its geometry (closure from the pulmonary end) is modelled.
 - **Fixed constriction length.** The narrowing segment keeps its length while it narrows. With the shipped 6 cP blood the fully open 3 mm × 14 mm duct still has 4v²/ΔP 0.79 at peak and 0.57 at end-diastole (viscous loss along the ampulla).
-- **Doppler shape follows the pressures.** The velocity follows the aorta–pulmonary pressure difference, so the early-systolic dip and the saw-tooth come from the aortic and PA pressure curves, not from the duct. In term_neonate_72h the pulmonary and aortic valves open together and both pressures peak together, so the dip is small (velocity falls to about 95 % of its value at activation, against 40–60 % in NeoCardioLab's examples) and the pressure difference swings only about 8 mmHg per beat (catheter example 27).
+- **Doppler shape follows the pressures.** The velocity follows the aorta–pulmonary pressure difference, so the early-systolic dip and the saw-tooth come from the aortic and PA pressure curves, not from the duct. In term_neonate_72h the pulmonary and aortic valves open together and both pressures peak together, so the dip is small (velocity falls to about 95 % of its value at activation, against 40–60 % in NeoCardioLab's examples) and the pressure difference swings only about 8 mmHg per beat (catheter example 27). Raising PVR until the peak difference is about 17 mmHg doesn't create a dip either: the pulmonary valve then opens about 30 ms after the aortic valve, as in term babies on day 0 (Shiraishi 1987: right pre-ejection period 94 ms, left 77 ms). The restrictive early-systolic dip probably needs preterm physiology, with blood pressure close to PA pressure and the RV ejecting first. It is left for the preterm scenarios; Walther 1986 (doi 10.1111/j.1651-2227.1986.tb10251.x) has preterm and term pre-ejection periods of both ventricles.
 - **Absolute millimetres.** The diameters and `length` aren't scaled with body size; each scenario sets them.
 - **PGE1 cannot reopen a closed duct** (`diameter_relative` 0 is a hard stop).
 - **Reopening transient.** On the first step after reopening, the Bernoulli term is 0 (no previous flow), so flow briefly overshoots for one step.
@@ -142,6 +142,7 @@ One instance in every scenario, owning `AAR_DA` (`AAR` → `PA`, implicit):
 ## References
 
 - Musewe NN, Smallhorn JF, Benson LN, Burrows PE, Freedom RM. Validation of Doppler-derived pulmonary arterial pressure in patients with ductus arteriosus under different hemodynamic states. Circulation 1987;76:1081–91. [doi](https://doi.org/10.1161/01.cir.76.5.1081)
+- Shiraishi H, Yanagisawa M. Pulsed Doppler echocardiographic evaluation of neonatal circulatory changes. Br Heart J 1987;57:161–7. [doi](https://doi.org/10.1136/hrt.57.2.161)
 - Altit G. Understanding PDA spectral Doppler; Restrictive vs unrestrictive. NeoCardioLab, 2025. https://www.neocardiolab.com/tnecho-and-neonatal-hemodynamics/patent-ductus-arteriosus
 
 The orifice constant is derived in [Orifice](./Orifice.md).
