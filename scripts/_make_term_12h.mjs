@@ -3,7 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
-//     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.6] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
+//     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.6] [--rv-el 1] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -44,6 +44,7 @@ const NAME = "term_neonate_12h";
 const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule), within-study rule
 const PDA_MM = Number(opt("--pda-mm", 1.6)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
 const PVR = Number(opt("--pvr", 1.6)); // user decision 2026-11-05 (grid 1.6/1.8 mm x 1.3/1.6/2.0)
+const RV_EL = Number(opt("--rv-el", 1.0));
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
@@ -97,7 +98,14 @@ const LEVERS = {
       M.Shunts.ips_res *= PVR;
     },
   },
-  // 4. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
+  // 4. the transitional right ventricle: just out of fetal life, where it was the dominant, systemic-pressure
+  //    ventricle, so it still ejects well against the raised 12 h pulmonary resistance (the 72 h RV, at PVR x1.6,
+  //    fell to EF ~40 % and an output ~173). RV contractility only, so the LV keeps Ha 2018's unchanged EF.
+  rv: {
+    why: `RV el_max x${RV_EL} (scaling layer)`,
+    apply(M) { M.RV.el_max_factor_scaling_ps = RV_EL; },
+  },
+  // 5. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
   //    lower body (and the systemic conduits) dilate, the organ beds (brain, gut, liver + spleen, kidneys)
   //    keep their 72 h resistance (Agata 1994: organ flows not higher on day 1), and contractility and rate
   //    rise. Starting values from the 2026-10 12 h work; re-tuned here.
