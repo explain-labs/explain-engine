@@ -14,6 +14,7 @@
 // scenario -> class; a scenario not listed is classified by weight in classify()
 export const SCENARIO_CLASS = {
   term_neonate_72h: "term",
+  term_neonate_12h: "term", // same targets: its breathing and gas targets are the 72 h ones (within-study rule, docs/TermTransitionReference.md)
 };
 
 export function classify(name, def) {
