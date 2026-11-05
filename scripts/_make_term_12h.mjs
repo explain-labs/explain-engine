@@ -3,7 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
-//     prototyping: [--pda-mm 2.47] [--pda-lc 2] [--pda-cd 0.9] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
+//     prototyping: [--pda-mm 2.47] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -43,6 +43,7 @@ const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 const NAME = "term_neonate_12h";
 const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule), within-study rule
 const PDA_MM = Number(opt("--pda-mm", 2.47)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
+const PVR = Number(opt("--pvr", 1.0));
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
@@ -81,7 +82,18 @@ const LEVERS = {
       M.BR_MAP.set_value = MAP_TARGET + gap;
     },
   },
-  // 3. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
+  // 3. pulmonary vascular resistance still raised at 12 h (Kang 2016: PA 52.5/23.4, mean 40.9 vs 25.3 at 72 h).
+  //    The pulmonary vessels' scaling layer (as ModelScaler.scale_pulmonary_resistances) and the
+  //    intrapulmonary shunt resistance alike, so the shunt fraction stays (raising PVR alone pushed blood
+  //    through the foramen ovale right-to-left in the 2026-10 work). Baked before saving.
+  pvr: {
+    why: `pulmonary resistance x${PVR} (scaling layer of blood_pulmonary.resistance) and Shunts.ips_res alike`,
+    apply(M, model) {
+      for (const n of model.scaler_config.blood_pulmonary.resistance) M[n].r_factor_scaling_ps = PVR;
+      M.Shunts.ips_res *= PVR;
+    },
+  },
+  // 4. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
   //    lower body (and the systemic conduits) dilate, the organ beds (brain, gut, liver + spleen, kidneys)
   //    keep their 72 h resistance (Agata 1994: organ flows not higher on day 1), and contractility and rate
   //    rise. Starting values from the 2026-10 12 h work; re-tuned here.
@@ -136,6 +148,9 @@ eng.calc(FINAL);
 // the phase the cycle restarts in
 const H = M.Heart;
 for (let i = 0; i < 400; i++) { const b = H._sa_node_timer; eng.calc(model.modeling_stepsize); if (H._sa_node_timer < b) break; }
+// bake the scaling layer into the base values (the scaler's groups are absolute, so a scaling stored in the
+// file would be wiped by the first scale command in the app)
+eng.scale("incorporate", 1);
 log.forEach((l) => say("  " + l));
 
 const Mon = M.Monitor;
