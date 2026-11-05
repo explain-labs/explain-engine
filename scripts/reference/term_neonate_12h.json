@@ -859,10 +859,10 @@
       "group": "flows",
       "label": "Left ventricular output",
       "unit": "mL/kg/min",
-      "mean": 229.3,
+      "mean": 221.5,
       "sd": null,
-      "low": 126.36,
-      "high": 332.28,
+      "low": 122.0,
+      "high": 320.9,
       "range_type": "72 h range x ratio",
       "method": "Doppler echo, ascending aorta",
       "age": "12 h",
@@ -876,11 +876,11 @@
       ],
       "grade": "B",
       "model_readout": "Monitor.flows.lvo / weight",
-      "notes": "Agata 1994 LVO 301 (4-8 h) / 272 (24 h) -> ~291 at 12 h vs 258 at 96 h (x1.13); Ha 2018 LV CO/kg 205.5 (12 h bins 212/199) vs 165 (48-72 h) or 175 (60-72 h) (x1.17-1.25); central 1.17. Ratio 12 h / 72 h = 1.170, applied to the 72 h reference. Cross-check: Same-method check: Jhaveri 2023 MRI at 31.8 +/- 14 h, 177 mL/kg/min, not above Groves term (~190-196): no sign of a large excess by MRI. Second Agata cohort (1991, 34 term): 327 at 1 h, 245 at 24 h, unchanged at 96 h; linear between 1 and 24 h gives ~288 at 12 h (x1.17), an upper estimate because the fall is fastest in the first hours (1994: 365 -> 301 by 4-8 h).",
+      "notes": "USER DECISION 2026-11-05: x1.13, the low end of the within-study changes, because the 72 h base is MRI (Groves, Jhaveri) and every 12 h change comes from echo. Agata 1994: LVO 301 (4-8 h) / 272 (24 h) -> ~291 at 12 h vs 258 at 96 h (x1.13). Agata 1991: 327 at 1 h, 245 at 24 h, unchanged at 96 h; linear -> ~288 at 12 h (x1.17, an upper estimate). Ha 2018: 205.5 (12 h bins) vs 165-175 (48-72 h) (x1.17-1.25). Absolute levels differ by method (Agata ~30 % above MRI, Ha ~10 % below); only the ratios are used. Same-method check: Jhaveri 2023 MRI at 31.8 +/- 14 h, 176 mL/kg/min at HR 100 (asleep), stroke volume 1.75 vs 1.6 at 72 h; Agata predicts ~+5 % at 32 h, compatible.",
       "derivation": {
         "method": "72 h x within-study ratio",
-        "pair": "Agata 1994 LVO 301 (4-8 h) / 272 (24 h) -> ~291 at 12 h vs 258 at 96 h (x1.13); Ha 2018 LV CO/kg 205.5 (12 h bins 212/199) vs 165 (48-72 h) or 175 (60-72 h) (x1.17-1.25); central 1.17",
-        "ratio": 1.17,
+        "pair": "Agata 1994 x1.13 (low end; Agata 1991 x1.17 upper estimate, Ha 2018 x1.17-1.25)",
+        "ratio": 1.13,
         "base": "72 h reference",
         "model_72h": 201.067
       }

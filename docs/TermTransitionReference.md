@@ -33,6 +33,29 @@ within Agata the change is +13 %. So:
 age, so it gives no 12 h change. **Jhaveri 2023** (MRI at 31.8 ± 14 h, LV output 177 mL/kg/min) is a
 same-method cross-check: by MRI, the output on day 1–2 is not clearly above Groves' term values.
 
+**Methods behind the 72 h base, and what that means for the 12 h changes.** The 72 h baby is MRI-based
+for its heart and central flows; the rest comes from other methods, because MRI does not measure it.
+
+| Part of the 72 h base | Method | Source | The 12 h change from |
+|---|---|---|---|
+| LV and RV volumes, stroke volume, EF; LV and RV output; SVC and descending aorta flow | MRI (cine and phase contrast) | Groves 2011, Jhaveri 2023 | echo (Agata, Ha): **different method, the weakest link** |
+| Cerebral blood flow | phase-contrast MRA (carotids + basilar) | Kooi 2019, Liu 2014 | Agata Doppler (MCA): different method |
+| Gut, kidney and liver flow | Doppler volume flow | Agata 1994, van Bel 1990 | Agata Doppler: same method and study |
+| Blood pressure, heart rate | oscillometric cuff, monitor pulse | van Zadelhoff 2023, Satoh 2016 | Taiwo cuff; Agata, Ha: same kind of method |
+| PA pressure | echo, ductal gradient + arm BP | Kang 2016 | Kang: same study |
+| GFR | measured clearance | Smeets 2022 | Smeets: same study |
+| Coronary flow | echo (LAD), scaled | Aburawi 2012 | none (kept) |
+| Breathing, lung volumes | pneumotachography, helium dilution, occlusion | Schmalisch, Yüksel, Katier | Lee 1999 (FRC); otherwise none (kept) |
+| Gases, glucose, lactate, Hb | capillary / heel-prick samples | Cousineau 2005, GLOW, Jopling | GLOW (lactate), Nelle (Hct); otherwise none (kept) |
+| SvO2, VO2, blood volume, CVP, temperature | catheter data in preterms, derived, textbook | grade C | none (kept), Nelle (blood volume) |
+
+Absolute echo outputs scatter around MRI in both directions (Agata ~30 % above, Ha ~10 % below; Groves: repeated
+echo LV output agrees only within ±109 mL/kg/min, MRI within ±50). Each echo study's own 12 h / 72 h ratio
+cancels most of its offset, but the size of the change is still uncertain. So the LV output change takes the low
+end (×1.13, Agata 1994; user decision 2026-11-05), and the ductal shunt derived from it inherits that uncertainty.
+There is no MRI at 12 h. Jhaveri's MRI at ~32 h (stroke volume 1.75 vs 1.6 mL/kg) is compatible with the small
+excess Agata predicts at that age (~+5 %). Jhaveri's mean birth weight, 3545 g, is the model's weight.
+
 **Gaps (72 h kept for now):** blood gases (no longitudinal 12 h and ~72 h study found), CVP, RV volumes,
 breathing pattern, compliance (direction only: lower on day 0), SpO2, temperature, glucose (GLOW and the 72 h
 Cousineau value are different methods), urine (direction only), VO2 and SvO2. The earlier 12 h rows for VO2 and
@@ -126,7 +149,7 @@ The 12 h baby is the same baby as the 72 h scenario (user decision, 2026-11-05).
 
 | Variable | Unit | 12 h | × change | Grade | Sources | 72 h |
 |---|---|---|---|---|---|---|
-| Left ventricular output | mL/kg/min | 229.3 (126.36–332.28) | ×1.17 | B | agata1994, ha2018, jhaveri2023, groves2011 | 196 (108–284) |
+| Left ventricular output | mL/kg/min | 221.5 (122–320.9) | ×1.13 | B | agata1994, agata1991, ha2018, jhaveri2023, groves2011 | 196 (108–284) |
 | Right ventricular output | mL/kg/min | 199 (100–298) | kept | C | groves2011, jhaveri2023 | 199 (100–298) |
 | SVC flow | mL/kg/min | 84.7 (28.56–140.76) | ×1.02 | B | ha2018, lee2009, groves2011 | 83 (28–138) |
 | Descending aorta flow | mL/kg/min | 99 (57–141) | kept | C | groves2011 | 99 (57–141) |
@@ -208,7 +231,8 @@ The 12 h baby is the same baby as the 72 h scenario (user decision, 2026-11-05).
 ## Sources
 
 - `aburawi2012`: Aburawi EH et al. Coronary flow in neonates with impaired intrauterine growth. J Am Soc Echocardiogr 2012;25:313-8 ([doi](https://doi.org/10.1016/j.echo.2011.11.019))
-- `agata1994`: Agata Y et al. Regional blood flow distribution and left ventricular output during early neonatal life. Pediatr Res 1994;36:805-10 ([doi](https://doi.org/10.1203/00006450-199412000-00022))
+- `agata1991`: Agata Y, Hiraishi S, Oguchi K et al. Changes in left ventricular output from fetal to early neonatal life. J Pediatr 1991;119:441-5 (34 term, fetal, 1, 24, 96 h) ([doi](https://doi.org/10.1016/s0022-3476(05)82060-8))
+- `agata1994`: Agata Y, Hiraishi S, Misawa H et al. Regional blood flow distribution and left ventricular output during early neonatal life: a quantitative ultrasonographic assessment. Pediatr Res 1994;36:805-10 (23 term, pulsed Doppler at 1, 4-8, 24, 96 h; PDF in reference-value-papers) ([doi](https://doi.org/10.1203/00006450-199412000-00022))
 - `bailey2013`: Bailey SM et al. Am J Perinatol 2014;31:339-44 ([doi](https://doi.org/10.1055/s-0033-1349894))
 - `brockmann2011`: Brockmann PE et al. Arch Dis Child Fetal Neonatal Ed 2011;96:F335-8 ([doi](https://doi.org/10.1136/adc.2010.196758))
 - `carmichael2025`: Carmichael TG et al. The application of magnetic susceptibility separation for measuring cerebral oxygenation in preterm neonates. Pediatr Res 2025;98:715-22 ([doi](https://doi.org/10.1038/s41390-025-03966-6))
