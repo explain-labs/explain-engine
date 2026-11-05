@@ -1446,18 +1446,22 @@
       "unit": "mL/kg/min",
       "mean": null,
       "sd": null,
-      "low": 5,
-      "high": 40,
+      "low": 60,
+      "high": 100,
       "range_type": "derived",
-      "method": "volumetric Doppler",
+      "method": "LV output minus systemic flow; orifice physics",
       "age": "12 h",
-      "n": 10,
+      "n": null,
       "sources": [
+        "agata1991",
+        "agata1994",
+        "kang2016",
+        "ha2018",
         "drayton1987"
       ],
       "grade": "C",
       "model_readout": "AAR_DA flow",
-      "notes": "Drayton 1987 (10 term): 62 (43-82) shortly after birth, falling rapidly over the first 12 h, unmeasurable by 48 h (no 12 h number in the abstract). Area scaling at 2.47 mm gives ~18; range derived. All L->R."
+      "notes": "USER DECISION 2026-11-05 (option A), replaces 5-40 (area scaling of Drayton, which ignored the rising gradient). Two estimates: (1) Agata LVO ~290 at 12 h (301 at 4-8 h, 245-272 at 24 h) against a systemic flow of ~200 (the 72 h LVO with the duct closed) leaves ~90 through the duct; (2) a 2.47 mm pulmonary end (Kang) with a ~2 m/s jet (Ha 2018) carries ~100-150 by orifice continuity, less with the viscous loss. Drayton 1987 (10 term): 62 (43-82) shortly after birth, falling rapidly over the first 12 h (direction only). Colour Doppler tends to overestimate small ductal diameters, which would put the true shunt at the low end. All L->R."
     },
     {
       "key": "fo",

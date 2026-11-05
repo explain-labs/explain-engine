@@ -41,10 +41,16 @@ constricting fast:
   ~17 mmHg (~2.1 m/s). That is a flat, "closing" spectrum; it is derived, so grade C.
 - **Pattern class** (van Laere 2018, after Su): closing means peak / end-diastolic velocity < 2;
   pulsatile means ≥ 2; growing means right-to-left for < 30 % of the cycle.
+- **Shunt volume:** no study measures it at 12 h. Drayton's volumetric shunt, 62 (43–82) mL/kg/min
+  shortly after birth, "decreased rapidly over the first 12 h"; the abstract gives no 12 h number, and
+  the full text isn't in PMC. The target, 60–100 mL/kg/min (grade C, user decision 2026-11-05), comes
+  from two estimates. Agata's LV output at 12 h (~290) minus a systemic flow of ~200 (the 72 h output
+  with the duct closed) leaves ~90. And a 2.47 mm pulmonary end with a ~2 m/s jet carries ~100–150 by
+  orifice continuity. An earlier 5–40 target, scaled from Drayton by duct area alone, ignored the
+  rising gradient, and could not coexist with Kang's diameter and Ha's velocity. Colour Doppler tends
+  to overestimate small ductal diameters, which would put the true shunt at the low end.
 - **Not found:** NeoCardioLab has no page on the healthy term transition, and no study reports a
-  measured end-diastolic velocity at 12 h. Drayton's volumetric shunt, 62 (43–82) mL/kg/min shortly
-  after birth, "decreased rapidly over the first 12 h". The abstract gives no 12 h number, and the
-  full text isn't in PMC.
+  measured end-diastolic velocity at 12 h.
 
 The expected 12 h picture is therefore a constricting duct of ~2.2–2.5 mm with continuous
 left-to-right flow. The peak is ~1.5–2 m/s, the end-diastolic velocity is high, and peak/ED sits at
@@ -166,7 +172,7 @@ The duct targets were accepted by the user on 2026-11-05.
 
 | Variable | Unit | 12 h | Grade | Sources | 72 h |
 |---|---|---|---|---|---|
-| Ductal net left-to-right flow | mL/kg/min | 5–40 | C | drayton1987 | 4 |
+| Ductal net left-to-right flow | mL/kg/min | 60–100 | C | agata1991, agata1994, kang2016, ha2018, drayton1987 | 4 |
 | Foramen ovale | mL/kg/min | ref. only | A | hiraishi1991 | ref. only |
 | Ductal diameter | mm | 2.47 ± 0.49 (1.49–3.45) | A | kang2016, tohoku2002, ha2018 | – |
 | Ductal right-to-left time | % of steps | 0–10 | A | kang2016, shiraishi1991, walther1993 | – |
