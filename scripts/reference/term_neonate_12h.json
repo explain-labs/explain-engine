@@ -61,9 +61,9 @@
       "pmid": "2403678"
     },
     "agata1994": {
-      "cite": "Agata Y et al. Regional blood flow distribution and left ventricular output during early neonatal life. Pediatr Res 1994;36:805-10",
+      "cite": "Agata Y, Hiraishi S, Misawa H et al. Regional blood flow distribution and left ventricular output during early neonatal life: a quantitative ultrasonographic assessment. Pediatr Res 1994;36:805-10 (23 term, pulsed Doppler at 1, 4-8, 24, 96 h; PDF in reference-value-papers)",
       "doi": "10.1203/00006450-199412000-00022",
-      "pmid": null
+      "pmid": "7898989"
     },
     "ha2018": {
       "cite": "Ha KS et al. J Korean Med Sci 2018;33:e155",
@@ -176,7 +176,7 @@
       "pmid": "1993129"
     },
     "agata1991": {
-      "cite": "Agata Y et al. Changes in left ventricular output from fetal to early neonatal life. J Pediatr 1991;119:441-5",
+      "cite": "Agata Y, Hiraishi S, Oguchi K et al. Changes in left ventricular output from fetal to early neonatal life. J Pediatr 1991;119:441-5 (34 term, fetal, 1, 24, 96 h)",
       "doi": "10.1016/s0022-3476(05)82060-8",
       "pmid": "1880660"
     },
@@ -869,13 +869,14 @@
       "n": 57,
       "sources": [
         "agata1994",
+        "agata1991",
         "ha2018",
         "jhaveri2023",
         "groves2011"
       ],
       "grade": "B",
       "model_readout": "Monitor.flows.lvo / weight",
-      "notes": "Agata 1994 LVO 301 (4-8 h) / 272 (24 h) -> ~291 at 12 h vs 258 at 96 h (x1.13); Ha 2018 LV CO/kg 205.5 (12 h bins 212/199) vs 165 (48-72 h) or 175 (60-72 h) (x1.17-1.25); central 1.17. Ratio 12 h / 72 h = 1.170, applied to the 72 h reference. Cross-check: Same-method check: Jhaveri 2023 MRI at 31.8 +/- 14 h, 177 mL/kg/min, not above Groves term (~190-196): no sign of a large excess by MRI.",
+      "notes": "Agata 1994 LVO 301 (4-8 h) / 272 (24 h) -> ~291 at 12 h vs 258 at 96 h (x1.13); Ha 2018 LV CO/kg 205.5 (12 h bins 212/199) vs 165 (48-72 h) or 175 (60-72 h) (x1.17-1.25); central 1.17. Ratio 12 h / 72 h = 1.170, applied to the 72 h reference. Cross-check: Same-method check: Jhaveri 2023 MRI at 31.8 +/- 14 h, 177 mL/kg/min, not above Groves term (~190-196): no sign of a large excess by MRI. Second Agata cohort (1991, 34 term): 327 at 1 h, 245 at 24 h, unchanged at 96 h; linear between 1 and 24 h gives ~288 at 12 h (x1.17), an upper estimate because the fall is fastest in the first hours (1994: 365 -> 301 by 4-8 h).",
       "derivation": {
         "method": "72 h x within-study ratio",
         "pair": "Agata 1994 LVO 301 (4-8 h) / 272 (24 h) -> ~291 at 12 h vs 258 at 96 h (x1.13); Ha 2018 LV CO/kg 205.5 (12 h bins 212/199) vs 165 (48-72 h) or 175 (60-72 h) (x1.17-1.25); central 1.17",
