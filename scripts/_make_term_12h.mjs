@@ -3,7 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
-//     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.5] [--rv-el 1.3] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
+//     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.5] [--rv-el 1.3] [--kf 1] [--rq 0.889] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -45,6 +45,7 @@ const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 202
 const PDA_MM = Number(opt("--pda-mm", 1.6)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
 const PVR = Number(opt("--pvr", 1.5)); // user decision 2026-11-05: x1.5 with RV x1.3 and the 1.6 mm duct (PA 63/35, mean 44)
 const RV_EL = Number(opt("--rv-el", 1.3)); // user decision 2026-11-05: RV output 194, RV EF 48 at PVR x1.5
+const KF = Number(opt("--kf", 1.0)), RQ = Number(opt("--rq", 0.889));
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
@@ -105,7 +106,19 @@ const LEVERS = {
     why: `RV el_max x${RV_EL} (scaling layer)`,
     apply(M) { M.RV.el_max_factor_scaling_ps = RV_EL; },
   },
-  // 5. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
+  // 5. glomerular filtration on day 1: Smeets 2022, 19.6 on day 1 vs 30 on day 3 (x0.653). The filtration
+  //    coefficient is the lever; the renal autoregulation set-points stay at 72 h (user decision; re-anchoring
+  //    them collapsed GFR in the 2026-10 work).
+  kidney: {
+    why: `Kidneys.kf x${KF}`,
+    apply(M) { M.Kidneys.kf *= KF; },
+  },
+  // 6. respiratory quotient before milk: Zoppi 1998, 0.94 at 6 h, 0.88 at 30 h -> 72 h target x1.045 (0.889)
+  rq: {
+    why: `Metabolism.resp_q ${RQ}`,
+    apply(M) { M.Metabolism.resp_q = RQ; },
+  },
+  // 7. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
   //    lower body (and the systemic conduits) dilate, the organ beds (brain, gut, liver + spleen, kidneys)
   //    keep their 72 h resistance (Agata 1994: organ flows not higher on day 1), and contractility and rate
   //    rise. Starting values from the 2026-10 12 h work; re-tuned here.
