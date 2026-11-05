@@ -3,7 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
-//     prototyping: [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
+//     prototyping: [--pda-mm 2.47] [--pda-lc 2] [--pda-cd 0.9] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -42,6 +42,7 @@ const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 const NAME = "term_neonate_12h";
 const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule), within-study rule
+const PDA_MM = Number(opt("--pda-mm", 2.47)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
@@ -55,14 +56,14 @@ const LEVERS = {
   //    the last constriction_length mm (default 2) narrow to the pulmonary-end diameter. Cd 0.9 (smooth
   //    converging duct); the earlier Cd 0.3 was a workaround for the pre-#131 cylinder.
   duct: {
-    why: "Pda pulmonary end 2.47 mm (Kang 2016), aortic ampulla 3 mm, constriction length 2 mm, Cd 0.9",
+    why: `Pda pulmonary end ${PDA_MM} mm (Kang 2016: 2.47), aortic ampulla 3 mm, constriction length ${PDA_LC} mm, Cd ${PDA_CD}`,
     apply(M) {
       const P = M.Pda;
       P.diameter_ao_max = 3.0;
       P.diameter_pa_max = 3.0;
-      P.diameter_relative = 2.47 / P.diameter_pa_max;
-      P.constriction_length = 2.0;
-      P.discharge_coeff = 0.9;
+      P.diameter_relative = PDA_MM / P.diameter_pa_max;
+      P.constriction_length = PDA_LC;
+      P.discharge_coeff = PDA_CD;
       M.AAR_DA.no_flow = false;
     },
   },
