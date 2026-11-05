@@ -3,7 +3,7 @@
 //   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
 //
 //   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
-//     prototyping: [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the output lever)
+//     prototyping: [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
@@ -41,7 +41,7 @@ const SOURCE = opt("--source", "term_neonate_72h");
 const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 const NAME = "term_neonate_12h";
-const MAP_TARGET = 50.2; // Taiwo 2022, 12 h, dia + PP/3
+const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule), within-study rule
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
   "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
@@ -67,12 +67,12 @@ const LEVERS = {
     },
   },
   // 2. the baroreflex defends the 12 h blood pressure while the levers settle (it is then folded and
-  //    re-anchored as always). Taiwo 2022 at 12 h: 69.8/40.4, MAP 50.2 by the 1/3 rule; the reflex senses
+  //    re-anchored as always). Target: the 72 h MAP x Taiwo's 12 h / 72 h change (55.4 by the 1/3 rule); the reflex senses
   //    the time-averaged pressure, so its set-point is the target plus the current gap between the two
   //    means (as helpers/Calibrator.js). Without it the 72 h set-point (60.6) fights every lever that
   //    moves the pressure, and the fold then bakes that fight in as tachycardia and vasoconstriction.
   map: {
-    why: "baroreflex set-point at the 12 h MAP 50.2 (Taiwo 2022, 1/3 rule) while settling",
+    why: `baroreflex set-point at the 12 h MAP ${MAP_TARGET} (72 h x Taiwo 12/72 h change, 1/3 rule) while settling`,
     settle: true, // re-applied during the settle (the gap moves with the waveform)
     apply(M) {
       const mm = M.Monitor?.minmax;
