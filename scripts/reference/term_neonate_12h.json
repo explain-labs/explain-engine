@@ -1955,10 +1955,11 @@
       ],
       "grade": "C",
       "model_readout": "AA_COR flow",
-      "notes": "No within-study pair; the 72 h value is kept.",
+      "notes": "ACCEPTED DEVIATION (user, 2026-11-05): the model reads ~29 mL/min, above this carried 72 h range. Coronary extraction is held at the 72 h value (55 %), so coronary flow follows myocardial O2 use; at 12 h the RV pumps against ~twice the PA pressure (RV stroke volume x PA mean +65 %, total pumping work ~+30 %), MVO2 +10 % (14.0 -> 15.4), coronary flow +12 % (26.0 -> 29.1). No within-study 12 h / 72 h data. No within-study pair; the 72 h value is kept.",
       "derivation": {
         "method": "no within-study 12 h / 72 h pair: 72 h value kept"
-      }
+      },
+      "accepted_deviation": true
     },
     {
       "key": "mvo2",
