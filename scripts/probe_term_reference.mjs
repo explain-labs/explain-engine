@@ -82,6 +82,22 @@ let ivciSo2 = 0, svcSo2 = 0, paSo2 = 0;
 const beatPk = { rv: -Infinity, lv: -Infinity, pa: -Infinity, q: -Infinity }, pkList = { rv: [], lv: [], pa: [], q: [] };
 // ductal flow direction and Doppler per beat (open duct only): time right-to-left, peak systolic and end-diastolic velocity
 let daRtoL = 0, daSteps = 0, beatVmax = -Infinity, beatVmin = Infinity; const vPeaks = [], vEnds = [];
+// ventricular dP/dt per beat. Peak: the largest rate of pressure rise in the chamber. Echo: the mean rate while the
+// ventricle-atrium gradient climbs the range a regurgitant jet is timed over, 4->36 mmHg left (1->3 m/s) and 4->16 mmHg
+// right (1->2 m/s), so it compares with echo thresholds; it is much lower than the peak.
+const dpdtSides = [
+  { key: "lv", v: M.LV, a: () => M.LA?.pres, lo: 4, hi: 36 },
+  { key: "rv", v: M.RV, a: () => (M.RAIVCI?.pres + M.RASVC?.pres) / 2, lo: 4, hi: 16 },
+].map((d) => ({ ...d, prev: null, prevG: null, tLo: null, peak: -Infinity, peaks: [], echo: [] }));
+// isovolumic and ejection times per beat, from the valve flows: contraction runs from inflow stopping to outflow starting,
+// ejection while outflow runs, relaxation from outflow stopping to inflow starting. A VSD makes the "isovolumic" phases
+// nominal, since the ventricle can still eject through the defect.
+const timingSides = [
+  { key: "lv", inn: ["LA_LV"], out: ["LV_AA"] },
+  { key: "rv", inn: ["RAIVCI_RV", "RASVC_RV"], out: ["RV_PA", "RV_AA"] },
+].map((d) => ({ ...d, prevIn: 0, prevOut: 0, tInEnd: null, tOut: null, tOutEnd: null, ivct: [], ej: [], ivrt: [] }));
+// atrial gradient LA - RA (positive drives left-to-right flow through the FO): mean, and peak per beat
+let foGradSum = 0, foGradPk = -Infinity; const foGradPks = [];
 for (let i = 0; i < steps; i++) {
   for (const k in M) M[k].step_model();
   model.model_time_total += dt;
@@ -92,6 +108,28 @@ for (let i = 0; i < steps; i++) {
   if (M.Heart?.ncc_ventricular === 1) {
     for (const k in beatPk) { if (Number.isFinite(beatPk[k])) pkList[k].push(beatPk[k]); beatPk[k] = -Infinity; }
   }
+  for (const d of dpdtSides) {
+    const p = d.v?.pres, g = p - d.a();
+    if (d.prev !== null && (p - d.prev) / dt > d.peak) d.peak = (p - d.prev) / dt;
+    if (d.prevG !== null) {
+      if (d.prevG < d.lo && g >= d.lo) d.tLo = i;
+      if (d.tLo !== null && d.prevG < d.hi && g >= d.hi) { d.echo.push((d.hi - d.lo) / ((i - d.tLo) * dt)); d.tLo = null; }
+      if (g < d.lo) d.tLo = null;
+    }
+    d.prev = p; d.prevG = g;
+    if (M.Heart?.ncc_ventricular === 1) { if (Number.isFinite(d.peak)) d.peaks.push(d.peak); d.peak = -Infinity; }
+  }
+  for (const d of timingSides) {
+    const qIn = d.inn.reduce((q, n) => q + (M[n]?.flow ?? 0), 0), qOut = d.out.reduce((q, n) => q + (M[n]?.flow ?? 0), 0);
+    if (d.prevIn > 0 && qIn <= 0) d.tInEnd = i;
+    if (d.prevOut <= 0 && qOut > 0) { if (d.tInEnd !== null) d.ivct.push((i - d.tInEnd) * dt * 1000); d.tInEnd = null; d.tOut = i; }
+    if (d.prevOut > 0 && qOut <= 0 && d.tOut !== null) { d.ej.push((i - d.tOut) * dt * 1000); d.tOutEnd = i; d.tOut = null; }
+    if (d.prevIn <= 0 && qIn > 0 && d.tOutEnd !== null) { d.ivrt.push((i - d.tOutEnd) * dt * 1000); d.tOutEnd = null; }
+    d.prevIn = qIn; d.prevOut = qOut;
+  }
+  const foGrad = M.LA?.pres - (M.RAIVCI?.pres + M.RASVC?.pres) / 2;
+  foGradSum += foGrad; if (foGrad > foGradPk) foGradPk = foGrad;
+  if (M.Heart?.ncc_ventricular === 1) { if (Number.isFinite(foGradPk)) foGradPks.push(foGradPk); foGradPk = -Infinity; }
   // mixed right-atrial blood (both RA halves) as it enters the RV: SvO2 for patients with a left-to-right duct, where
   // the PA (the Monitor's SvO2 site) also receives oxygenated aortic blood
   if (M.Pda && M.Pda.diameter_relative > 0) {
@@ -218,6 +256,9 @@ const extras = {
   cbf_pct_lvo: (100 * acc.AA_BR_ART) / acc.LV_AA, sma_pct_lvo: (100 * acc.AD_INT_ART) / acc.LV_AA,
   renal_pct_lvo: (100 * acc.AD_KID_ART) / acc.LV_AA, ls_pct_lvo: (100 * acc.AD_LS_ART) / acc.LV_AA,
   vd_vt: acc.ds_vol / acc.vt, vo2_setting: M.Metabolism?.vo2, bsa,
+  ...Object.fromEntries(dpdtSides.flatMap((d) => [[`${d.key}_dpdt_peak`, meanOf(d.peaks.slice(1))], [`${d.key}_dpdt_echo`, meanOf(d.echo.slice(1))]])), // mmHg/s
+  ...Object.fromEntries(timingSides.flatMap((d) => ["ivct", "ej", "ivrt"].map((t) => [`${d.key}_${t}`, meanOf(d[t].slice(1))]))), // ms
+  fo_grad_mean: foGradSum / steps, fo_grad_peak: meanOf(foGradPks.slice(1)), // mmHg, LA - RA
   pda_no_flow: M.AAR_DA?.no_flow, fo_no_flow: M.LA_RAIVCI?.no_flow && M.LA_RASVC?.no_flow,
 };
 
