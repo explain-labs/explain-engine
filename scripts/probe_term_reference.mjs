@@ -5,6 +5,7 @@
 // deviation in SD where an SD exists, and a flag (ok / LOW / HIGH / ref = no numeric reference,
 // n/a = no model read-out). Reference sets:
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
+//   scripts/reference/term_neonate_12h.json    (docs/TermTransitionReference.md)
 //   scripts/reference/tof_pink.json, tof.json, tof_severe.json, tof_pa.json   (docs/TofReference.md)
 //   The probe also reads rows no current set uses (read-outs when the placenta runs, svo2_ra, pda_v_rtl,
 //   spo2_post), for sets made later.
@@ -213,6 +214,7 @@ const model_values = {
   spo2: vit.spo2_pre, ph: vit.ph, pco2: vit.pco2, hco3: vit.hco3, be: vit.be, po2: vit.po2, etco2: vit.etco2, svo2: vit.svo2,
   svo2_ra: raSo2 / raN,
   pda_rtol_pct: daSteps ? (100 * daRtoL) / daSteps : NaN, pda_v_peak: meanOf(vPeaks.slice(1)), pda_v_ed: meanOf(vEnds.slice(1)),
+  pda_v_ratio: meanOf(vPeaks.slice(1)) / meanOf(vEnds.slice(1)), // peak / end-diastolic (beat minimum) ductal velocity
   pda_v_rtl: meanOf(vEnds.slice(1).map((v) => -v)), spo2_post: vit.spo2_post,
   vo2: (acc.o2_uptake / dt) * 60 * O2_ML_PER_MMOL / W, temp: vit.temp, glucose: AA?.solutes?.glucose, lactate: M.Lactate?.arterial_lactate,
   hb, hct: hb / MCHC * 100, blood_volume: toKgMl(bloodVol),
