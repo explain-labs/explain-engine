@@ -58,11 +58,12 @@ const PROFILES = {
       "early in the transition (wide bidirectional duct, near-systemic pulmonary pressure, high output, acidosis of birth); room air",
     map: 52.1, // 72 h MAP 58 x 0.898 (Taiwo 2022: 47.2 within 1 h of birth vs ~52.55 at 72 h)
     pda_mm: 4.85, pda_ao: 5.3, // Agata 1994 5.1 at 1 h, Kang 2016 4.6 at 2 h: a wide, unrestrictive duct
-    pvr: 1.2, // starting point: with a wide duct the PA follows the aorta (2026-10 lesson)
+    pvr: 1.6, // user decision 2026-11-06: net shunt ~73 (grid 1.4/1.6 x RV lead 0/20/35 ms)
+    rv_delay: -0.035, // user decision 2026-11-06: the RV activates 35 ms before the LV -> early-systolic R->L, then L->R (Rudolph)
     rv_el: 1.3, // starting point (as 12 h)
     kf: 0.6, rq: 0.908,
     hr: 1.13, bvf: 1.039, lact: 2.2, uma: 1.8, pco2: 36, mv: 1.08,
-    levers: ["duct", "pvr", "rv", "kidney", "rq", "hr", "blood", "acidbase", "vent", "map"],
+    levers: ["duct", "pvr", "rv", "rvdelay", "kidney", "rq", "hr", "blood", "acidbase", "vent", "map"],
   },
   24: {
     description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth: the term_neonate_72h baby 48 h younger, " +
