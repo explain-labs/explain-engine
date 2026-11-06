@@ -15,6 +15,7 @@
 export const SCENARIO_CLASS = {
   term_neonate_72h: "term",
   term_neonate_12h: "term", // same targets: its breathing and gas targets are the 72 h ones (within-study rule, docs/TermTransitionReference.md)
+  term_neonate_24h: "term", // as term_neonate_12h
 };
 
 export function classify(name, def) {

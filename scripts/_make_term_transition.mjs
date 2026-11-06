@@ -57,9 +57,9 @@ const PROFILES = {
     description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth: the term_neonate_72h baby 48 h younger, " +
       "late in the transition (small closing duct, pulmonary pressure falling); room air, dressed at room temperature",
     map: 56.5, // 72 h MAP 58 x 0.974 (Taiwo 2022: 51.2 at 24 h vs ~52.55 at 72 h)
-    pda_mm: 1.22, // starting point: the 12 h lumen x Kang's 12 -> 24 h narrowing (1.89 / 2.47)
-    pvr: 1.25, // starting point (Kang PA mean x1.36 vs x1.62 at 12 h)
-    rv_el: 1.15, // starting point, between 72 h (1.0) and 12 h (1.3)
+    pda_mm: 1.1, // user decision 2026-11-06 (grid 0.9-1.22 mm x PVR 1.2/1.3): shunt 32, inside Kang's range (1.89 +/- 0.41)
+    pvr: 1.2, // user decision 2026-11-06: PA mean 34.4 (Kang 24 h)
+    rv_el: 1.15, // between 72 h (1.0) and 12 h (1.3): RV output ~203, RV EF ~51
     kf: 0.6, // GFR target the same Smeets value (19.6)
     rq: 0.864, // Zoppi 1998 x1.017
   },
