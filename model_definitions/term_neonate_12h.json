@@ -3,7 +3,7 @@
   "user": "timothy",
   "description": "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature",
   "provenance": "script-generated",
-  "provenance_note": "derived from term_neonate_72h by scripts/_make_term_12h.mjs; reference values in docs/TermTransitionReference.md",
+  "provenance_note": "derived from term_neonate_72h by scripts/_make_term_transition.mjs --age 12; reference values in docs/TermTransitionReference.md",
   "diagram_definition": {
     "settings": {
       "name": "baseline_neonate_diagram_exp",

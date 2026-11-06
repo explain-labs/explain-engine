@@ -1,11 +1,12 @@
-// Generate term_neonate_12h (a healthy term neonate 12 h after birth, in transition) from term_neonate_72h.
-// Reference values: docs/TermTransitionReference.md and scripts/reference/term_neonate_12h.json; check with
-//   node scripts/probe_term_reference.mjs term_neonate_12h --ref scripts/reference/term_neonate_12h.json
+// Generate the transitional term neonates term_neonate_12h / term_neonate_24h (a healthy term neonate 12 or 24 h
+// after birth) from term_neonate_72h. Reference values: docs/TermTransitionReference.md and
+// scripts/reference/term_neonate_<age>h.json; check with
+//   node scripts/probe_term_reference.mjs term_neonate_24h --ref scripts/reference/term_neonate_24h.json
 //
-//   node scripts/_make_term_12h.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
+//   node scripts/_make_term_transition.mjs --age 12|24 [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
 //     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.5] [--rv-el 1.3] [--kf 0.6] [--rq 0.889] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
-// The 12 h baby is the SAME baby as term_neonate_72h, 60 h younger (same cord clamping, same red cell mass).
+// The 12 h (24 h) baby is the SAME baby as term_neonate_72h, 60 h (48 h) younger (same cord clamping, same red cell mass).
 // The scenario is a SNAPSHOT of that age: the levers (LEVERS below, factors relative to 72 h) are applied,
 // the model settles, and then every controller is re-anchored to the new resting state, so the loaded
 // scenario holds it instead of drifting back toward 72 h. Controller inventory (engine 838e959):
@@ -40,15 +41,40 @@ const OUT = opt("--out", null);
 const SOURCE = opt("--source", "term_neonate_72h");
 const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
-const NAME = "term_neonate_12h";
-const MAP_TARGET = Number(opt("--map", 55.4)); // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule), within-study rule
-const PDA_MM = Number(opt("--pda-mm", 1.6)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
-const PVR = Number(opt("--pvr", 1.5)); // user decision 2026-11-05: x1.5 with RV x1.3 and the 1.6 mm duct (PA 63/35, mean 44)
-const RV_EL = Number(opt("--rv-el", 1.3)); // user decision 2026-11-05: RV output 194, RV EF 48 at PVR x1.5
-const KF = Number(opt("--kf", 0.6)), RQ = Number(opt("--rq", 0.889));
+// Profiles per postnatal age (h). Each value can be overridden on the command line (prototyping).
+const PROFILES = {
+  12: {
+    description: "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
+      "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature",
+    map: 55.4, // 72 h MAP 58 x 0.955 (Taiwo 2022: 50.2 at 12 h vs ~52.55 at 72 h, 1/3 rule)
+    pda_mm: 1.6, // user decision 2026-11-05 (Kang 2.47; the shunt target needs the narrower effective lumen)
+    pvr: 1.5, // user decision 2026-11-05: x1.5 with RV x1.3 and the 1.6 mm duct (PA 63/35, mean 44)
+    rv_el: 1.3, // user decision 2026-11-05: RV output 194, RV EF 48 at PVR x1.5
+    kf: 0.6, // user decision 2026-11-05: GFR ~23, urine ~1.0
+    rq: 0.889, // Zoppi 1998 x1.045
+  },
+  24: {
+    description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth: the term_neonate_72h baby 48 h younger, " +
+      "late in the transition (small closing duct, pulmonary pressure falling); room air, dressed at room temperature",
+    map: 56.5, // 72 h MAP 58 x 0.974 (Taiwo 2022: 51.2 at 24 h vs ~52.55 at 72 h)
+    pda_mm: 1.1, // user decision 2026-11-06 (grid 0.9-1.22 mm x PVR 1.2/1.3): shunt 32, inside Kang's range (1.89 +/- 0.41)
+    pvr: 1.2, // user decision 2026-11-06: PA mean 34.4 (Kang 24 h)
+    rv_el: 1.15, // between 72 h (1.0) and 12 h (1.3): RV output ~203, RV EF ~51
+    kf: 0.6, // GFR target the same Smeets value (19.6)
+    rq: 0.864, // Zoppi 1998 x1.017
+  },
+};
+const AGE = Number(opt("--age", 12));
+const P = PROFILES[AGE];
+if (!P) { say(`usage: _make_term_transition.mjs --age <${Object.keys(PROFILES).join("|")}> ...`); process.exit(1); }
+const NAME = `term_neonate_${AGE}h`;
+const MAP_TARGET = Number(opt("--map", P.map));
+const PDA_MM = Number(opt("--pda-mm", P.pda_mm)), PDA_LC = Number(opt("--pda-lc", 2.0)), PDA_CD = Number(opt("--pda-cd", 0.9));
+const PVR = Number(opt("--pvr", P.pvr));
+const RV_EL = Number(opt("--rv-el", P.rv_el));
+const KF = Number(opt("--kf", P.kf)), RQ = Number(opt("--rq", P.rq));
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
-const DESCRIPTION = "healthy term neonate (3.545 kg) 12 h after a vaginal birth: the term_neonate_72h baby 60 h younger, " +
-  "in transition (constricting duct, raised pulmonary pressure, higher output); room air, dressed at room temperature";
+const DESCRIPTION = P.description;
 
 // --- levers (applied to the live 72 h model, in this order) -------------------------------------
 // Each: { why, apply(M, model), settle? }. Added one at a time (step 3 onwards of the 12 h plan).
@@ -80,7 +106,7 @@ const LEVERS = {
   //    means (as helpers/Calibrator.js). Without it the 72 h set-point (60.6) fights every lever that
   //    moves the pressure, and the fold then bakes that fight in as tachycardia and vasoconstriction.
   map: {
-    why: `baroreflex set-point at the 12 h MAP ${MAP_TARGET} (72 h x Taiwo 12/72 h change, 1/3 rule) while settling`,
+    why: `baroreflex set-point at the ${AGE} h MAP ${MAP_TARGET} (72 h x Taiwo ${AGE}/72 h change, 1/3 rule) while settling`,
     settle: true, // re-applied during the settle (the gap moves with the waveform)
     apply(M) {
       const mm = M.Monitor?.minmax;
@@ -183,13 +209,13 @@ const Mon = M.Monitor;
 say(`${NAME}: levers [${active.join(", ") || "none"}]; after ${SETTLE}+${FINAL} s HR ${Mon.heart_rate.toFixed(1)}, ` +
   `MAP ${Mon.abp_pre?.toFixed?.(1) ?? "?"}, SpO2 ${Mon.sao2_pre.toFixed(1)}`);
 
-model.age = 12 / (24 * 365); // years (12 h), as the scenario format stores it
+model.age = AGE / (24 * 365); // years, as the scenario format stores it
 model.name = NAME;
 model.description = DESCRIPTION;
 j.name = NAME;
 j.description = DESCRIPTION;
 j.provenance = "script-generated";
-j.provenance_note = `derived from ${SOURCE} by scripts/_make_term_12h.mjs; reference values in docs/TermTransitionReference.md`;
+j.provenance_note = `derived from ${SOURCE} by scripts/_make_term_transition.mjs --age ${AGE}; reference values in docs/TermTransitionReference.md`;
 j.model_definition = serializeState(model);
 if (baselineWeight !== undefined) j.model_definition._baseline_weight = baselineWeight;
 const text = JSON.stringify(j, null, 2);
