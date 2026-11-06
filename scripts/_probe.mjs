@@ -55,7 +55,7 @@ export function measureVitals(model, send, { window = 20 } = {}) {
   return acc;
 }
 
-// normal resting ranges by profile; [low, high]. Verbatim from probe_vitals.mjs.
+// normal resting ranges by profile; [low, high]. probe_vitals.mjs uses these (with rangesFor).
 export const RANGES = {
   adult: {
     hr: [60, 100], rr: [12, 20], sys: [90, 130], dia: [60, 85], map: [70, 100],
@@ -91,10 +91,12 @@ export function selectProfile({ weight, profile } = {}) {
 
 // Pulmonary artery pressure falls steeply over the first days, so the term neonate's PAP ranges
 // follow postnatal age. Mean ± 2 SD of healthy term newborns by echo (Medicine 2016, PMID 26817918:
-// systolic 43.8 ± 7.9 at 24 h, 38.1 ± 8.3 at 48 h, upper 95 % limit 40 at 72 h; diastolic
-// 19.7 ± 8.5 and 13.9 ± 5.6; mean 34.4 ± 9.9 and 26.2 ± 7.5), low bounds kept at the table's floors.
+// systolic 52.5 ± 9.1 at 12 h, 43.8 ± 7.9 at 24 h, 38.1 ± 8.3 at 48 h, upper 95 % limit 40 at 72 h; diastolic
+// 23.4 ± 7.4, 19.7 ± 8.5 and 13.9 ± 5.6; mean 40.9 ± 9.3, 34.4 ± 9.9 and 26.2 ± 7.5), low bounds kept at the
+// table's floors. The 12 h row is term_neonate_12h's reference (docs/TermTransitionReference.md).
 // From 60 h on the `neonate` table's own values apply.
 export const NEONATE_PAP_BY_AGE = [
+  { upToHours: 18, pap_s: [34, 71], pap_d: [9, 38], pap_m: [22, 60] },
   { upToHours: 36, pap_s: [28, 60], pap_d: [5, 37], pap_m: [15, 54] },
   { upToHours: 60, pap_s: [22, 55], pap_d: [5, 25], pap_m: [11, 41] },
 ];

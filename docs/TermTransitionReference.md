@@ -153,7 +153,7 @@ CO2/O2 references, the coronary extraction and the renal autoregulation set-poin
 **Checks (2026-11-05):**
 - **Drift:** loaded, it holds for 10 min (MAP 52.9, HR 121.4, PA mean 44.0, pCO2 40.7; BE −2.72 → −2.79). The first minute after loading reads HR ~133; `term_neonate_72h` shows the same load transient (129).
 - **Respiratory battery:** 24/24 (`validate_respiratory`, class `term`: its breathing and gas targets are the 72 h ones).
-- **`probe_vitals`:** flags PAP and SvO2 HIGH, because it applies the day-1 to day-3 neonate table and reads SvO2 in the pulmonary artery. Use the reference probe for this scenario.
+- **`probe_vitals`:** clean. Its neonate PAP ranges follow the scenario's age, with a 12 h row from Kang (`NEONATE_PAP_BY_AGE` in `scripts/_probe.mjs`). With the duct open it judges SvO2 at the right heart (77.0); the PA value (80.3) is printed unflagged.
 
 ## Reference values
 
