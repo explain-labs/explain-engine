@@ -9,6 +9,7 @@
 
 import fs from "node:fs";
 import { register } from "node:module";
+import { rangesFor } from "./_probe.mjs";
 register("./resolve-extensionless.mjs", import.meta.url);
 
 const argv = process.argv.slice(2);
@@ -32,6 +33,7 @@ const _log = console.log;
 if (!VERBOSE) console.log = () => {};
 
 await import("../ModelEngine.js");
+const { calc_blood_composition } = await import("./../component_models/BloodComposition.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 
 const path = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
@@ -93,6 +95,9 @@ const round = (x, n = 2) => (typeof x === "number" && isFinite(x) ? Number(x.toF
 // warm up to steady state, then cycle-average the pulsatile signals over WINDOW seconds
 send("POST", "calc", SECONDS);
 const SLICE = 0.02;
+// with the duct open the PA also carries oxygenated aortic blood (left-to-right), so the PA saturation reads
+// above the mixed venous return; SvO2 is then judged at the right heart (docs/TermTransitionReference.md)
+const DUCT_OPEN = (model.models.Pda?.diameter_relative ?? 0) > 0;
 const N = Math.round(WINDOW / SLICE);
 const acc = {};
 const add = (k, v) => { acc[k] = (acc[k] || 0) + (v ?? 0); };
@@ -104,41 +109,27 @@ for (let i = 0; i < N; i++) {
   add("cvp", M.minmax?.cvp_pres_mean);
   add("spo2_pre", M.sao2_pre); add("spo2_post", M.sao2_post); add("svo2", M.svo2); // mixed-venous (PA) saturation, already in %
   add("q_da", model.models.Pda?.flow_pa); // ductal shunt at the PA end (L/s); +ve = left-to-right
+  if (DUCT_OPEN) { calc_blood_composition(model.models.RV); add("svo2_rh", model.models.RV.so2); } // right-heart (pre-ductal) mixed venous saturation
   add("temp", M.temp); add("etco2", M.etco2);
   add("lvo", M.flows?.lvo); add("rvo", M.flows?.rvo);
   add("ph", AA?.ph); add("pco2", AA?.pco2); add("po2", AA?.po2); add("hco3", AA?.hco3); add("be", AA?.be); add("so2_aa", AA?.so2);
 }
 for (const k in acc) acc[k] /= N;
 
-// normal resting ranges by profile; [low, high]. Auto-selected from body weight (neonate under 10 kg)
-// unless overridden with --profile adult|neonate.
-const RANGES = {
-  adult: {
-    hr: [60, 100], rr: [12, 20], sys: [90, 130], dia: [60, 85], map: [70, 100],
-    pap_s: [15, 30], pap_d: [4, 12], pap_m: [9, 18], cvp: [2, 8],
-    spo2_pre: [95, 100], svo2: [65, 75], temp: [36.5, 37.5], etco2: [35, 45],
-    ph: [7.35, 7.45], pco2: [35, 45], po2: [80, 100], hco3: [22, 26], be: [-2, 2],
-  },
-  // the healthy term neonate at ~72 h: the ranges of docs/TermNeonateReference.md
-  // (scripts/reference/term_neonate_72h.json) where it gives one; SpO2 mean - 2 SD; pap_* stay the
-  // age-dependent table (rangesFor in _probe.mjs); hco3 and etco2 have no reference range
-  neonate: {
-    hr: [91, 145], rr: [32, 57], sys: [60, 89], dia: [31, 61], map: [45, 72],
-    pap_s: [18, 40], pap_d: [5, 20], pap_m: [12, 30], cvp: [2, 8],
-    spo2_pre: [94.5, 100], svo2: [70, 80], temp: [36.5, 37.5], etco2: [35, 45],
-    ph: [7.31, 7.47], pco2: [28.5, 48.7], po2: [60, 90], hco3: [18, 24], be: [-4, 2],
-  },
-};
+// normal resting ranges by profile ([low, high], RANGES in _probe.mjs). Auto-selected from body weight
+// (neonate under 10 kg) unless overridden with --profile adult|neonate. The neonate's PAP ranges follow
+// the scenario's postnatal age (model_definition.age, years; rangesFor in _probe.mjs).
 const profileArg = (() => { const i = argv.indexOf("--profile"); return i >= 0 ? argv[i + 1] : null; })();
 const profile = profileArg || (weight < 10 ? "neonate" : "adult");
-const ranges = RANGES[profile] || RANGES.adult;
+const ageDays = typeof model.age === "number" ? model.age * 365 : null;
+const ranges = rangesFor(profile, { ageDays });
 const flagOf = (k, v) => { const r = ranges[k]; if (!r || typeof v !== "number") return ""; return v < r[0] ? " LOW" : v > r[1] ? " HIGH" : " ok"; };
 const bsa = Math.sqrt((heightCm * weight) / 3600); // Mosteller
 const ci = acc.lvo ? acc.lvo / bsa : null;
 
 console.log = _log;
 const line = (label, k, unit) => `${label.padEnd(22)} ${String(round(acc[k])).padStart(8)} ${unit.padEnd(12)}${flagOf(k, acc[k])}`;
-console.log(`\n=== ${scenario}  (weight ${weight} kg, profile ${profile}, ANS ${model.models.Ans?.is_enabled ? "ON" : "OFF"}, warmup ${SECONDS}s) ===\n`);
+console.log(`\n=== ${scenario}  (weight ${weight} kg, profile ${profile}${ageDays != null ? `, age ${round(ageDays * 24, 1)} h` : ""}, ANS ${model.models.Ans?.is_enabled ? "ON" : "OFF"}, warmup ${SECONDS}s) ===\n`);
 console.log("-- Hemodynamics --");
 console.log(line("Heart rate", "hr", "bpm"));
 console.log(line("ABP systolic", "sys", "mmHg"));
@@ -158,7 +149,10 @@ console.log(line("SpO2 pre-ductal", "spo2_pre", "%"));
 console.log(`${"SpO2 post-ductal".padEnd(22)} ${String(round(acc.spo2_post)).padStart(8)} %`);
 const qDaMlMin = (acc.q_da || 0) * 60 * 1000;
 console.log(`${"PDA shunt (PA end)".padEnd(22)} ${String(round(qDaMlMin, 0)).padStart(8)} mL/min  ${qDaMlMin > 1 ? "L->R" : qDaMlMin < -1 ? "R->L" : "~nil"}  (${round(qDaMlMin / weight, 0)} mL/kg/min)`);
-console.log(line("SvO2", "svo2", "%"));
+if (DUCT_OPEN) {
+  console.log(`${"SvO2 (PA)".padEnd(22)} ${String(round(acc.svo2)).padStart(8)} %            (includes the ductal admixture; not flagged)`);
+  console.log(`${"SvO2 (right heart)".padEnd(22)} ${String(round(acc.svo2_rh)).padStart(8)} ${"%".padEnd(12)}${flagOf("svo2", acc.svo2_rh)}`);
+} else console.log(line("SvO2", "svo2", "%"));
 console.log(line("Resp rate", "rr", "/min"));
 console.log(line("etCO2", "etco2", "mmHg"));
 console.log(line("Temp", "temp", "°C"));

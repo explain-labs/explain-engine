@@ -22,7 +22,7 @@
 //   closed                - no flow.
 //
 // Usage:
-//   node scripts/probe_pda.mjs <scenario> [--seconds N] [--beats B] [--trace] [--no-ans] [--verbose]
+//   node scripts/probe_pda.mjs <scenario | file.json> [--seconds N] [--beats B] [--trace] [--no-ans] [--verbose]
 
 import fs from "node:fs";
 import { register } from "node:module";
@@ -52,7 +52,8 @@ if (!VERBOSE) console.log = () => {};
 await import("../ModelEngine.js");
 const send = (type, message, payload) => self.onmessage({ data: { type, message, payload } });
 
-const path = new URL(`../model_definitions/${scenario}.json`, import.meta.url);
+// a scenario name in model_definitions/, or a path to a scenario JSON file (e.g. a generator dry run)
+const path = scenario.endsWith(".json") ? scenario : new URL(`../model_definitions/${scenario}.json`, import.meta.url);
 const json = JSON.parse(fs.readFileSync(path, "utf8"));
 const def = json.model_definition || json;
 
