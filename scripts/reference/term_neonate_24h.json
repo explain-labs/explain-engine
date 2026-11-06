@@ -1,0 +1,2046 @@
+{
+  "name": "term_neonate_24h",
+  "description": "Reference values for term_neonate_24h: the term_neonate_72h baby 48 h younger. RULE (user, 2026-11-05): a 24 h target is the 72 h target times the change between ~24 h and ~72 h measured WITHIN one longitudinal study (same cohort, same method); without such a pair the 72 h value is kept; absolute values only where the 72 h baby has no counterpart (the open duct). Other cohorts' absolute 12 h values are cross-checks in the notes. Grades: A = within-study pair, healthy term, at the ages; B = within-study pair with interpolation or an age proxy (48 h, 96 h) or two studies disagreeing; C = no pair (72 h kept), derived or carried.",
+  "state": "calm, quiet awake or asleep, dressed/skin-to-skin at room temperature",
+  "compiled": "2026-11-06 (72 h x within-study change, as term_neonate_12h)",
+  "doc": "docs/TermTransitionReference.md",
+  "sources": {
+    "satoh2016": {
+      "cite": "Satoh M et al. J Hypertens 2016;34:1578-85",
+      "doi": "10.1097/HJH.0000000000000976",
+      "pmid": "27228430"
+    },
+    "hannover2018": {
+      "cite": "Healthy term neonates during quiet sleep, Hannover. Acta Paediatr 2019;108:231-8",
+      "doi": "10.1111/apa.14470",
+      "pmid": "29926973"
+    },
+    "norway2021": {
+      "cite": "Heart rate during the first 24 hours in term-born infants. Arch Dis Child Fetal Neonatal Ed 2021;106:489-93",
+      "doi": "10.1136/archdischild-2020-320761",
+      "pmid": "33452220"
+    },
+    "he2011": {
+      "cite": "He SR et al. Chin Med J 2011;124:2284-9",
+      "doi": null,
+      "pmid": "21933558"
+    },
+    "fleming2011": {
+      "cite": "Fleming S et al. Lancet 2011;377:1011-8",
+      "doi": "10.1016/S0140-6736(10)62226-X",
+      "pmid": "21411136"
+    },
+    "vanzadelhoff2023": {
+      "cite": "van Zadelhoff AC et al. Br J Anaesth 2023;130:585-94",
+      "doi": "10.1016/j.bja.2023.01.024",
+      "pmid": null
+    },
+    "jhaveri2023": {
+      "cite": "Jhaveri S et al. J Cardiovasc Magn Reson 2023;25:26",
+      "doi": "10.1186/s12968-023-00932-1",
+      "pmid": null
+    },
+    "groves2011": {
+      "cite": "Groves AM et al. Arch Dis Child Fetal Neonatal Ed 2011;96:F86-91",
+      "doi": "10.1136/adc.2010.189142",
+      "pmid": null
+    },
+    "kooi2019": {
+      "cite": "Kooi EMW et al. Neonatology 2019;115:271",
+      "doi": "10.1159/000494368",
+      "pmid": "30669149"
+    },
+    "liu2014": {
+      "cite": "Liu P et al. NMR Biomed 2014;27:332",
+      "doi": "10.1002/nbm.3067",
+      "pmid": "24399806"
+    },
+    "vanbel1990": {
+      "cite": "Van Bel F et al. Radiology 1990;174:165-9",
+      "doi": "10.1148/radiology.174.1.2403678",
+      "pmid": "2403678"
+    },
+    "agata1994": {
+      "cite": "Agata Y, Hiraishi S, Misawa H et al. Regional blood flow distribution and left ventricular output during early neonatal life: a quantitative ultrasonographic assessment. Pediatr Res 1994;36:805-10 (23 term, pulsed Doppler at 1, 4-8, 24, 96 h; PDF in reference-value-papers)",
+      "doi": "10.1203/00006450-199412000-00022",
+      "pmid": "7898989"
+    },
+    "ha2018": {
+      "cite": "Ha KS et al. J Korean Med Sci 2018;33:e155",
+      "doi": "10.3346/jkms.2018.33.e155",
+      "pmid": "29805338"
+    },
+    "schmalisch2005": {
+      "cite": "Schmalisch G et al. BMC Pediatr 2005;5:36",
+      "doi": "10.1186/1471-2431-5-36",
+      "pmid": "16150146"
+    },
+    "schmalisch2001": {
+      "cite": "Schmalisch G et al. Eur Respir J 2001;17:108-14",
+      "doi": "10.1183/09031936.01.17101080",
+      "pmid": "11307739"
+    },
+    "katier2006": {
+      "cite": "Katier N et al. Pediatr Pulmonol 2006;41:1058-64",
+      "doi": "10.1002/ppul.20492",
+      "pmid": "16998930"
+    },
+    "stocks1994": {
+      "cite": "Stocks J et al. Eur Respir J 1994;7:11-6",
+      "doi": "10.1183/09031936.94.07010011",
+      "pmid": "8143808"
+    },
+    "migdal1987": {
+      "cite": "Migdal M et al. Pediatr Pulmonol 1987;3:214-8",
+      "doi": "10.1002/ppul.1950030404",
+      "pmid": "3658525"
+    },
+    "nowotny1998": {
+      "cite": "Nowotny T et al. Pediatr Pulmonol 1998;26:138-44 (9 term controls)",
+      "doi": "10.1002/(sici)1099-0496(199808)26:2<138::aid-ppul12>3.0.co;2-2",
+      "pmid": "9727767"
+    },
+    "yuksel1995": {
+      "cite": "Yuksel B, Greenough A. Respir Med 1995;89:429-33",
+      "doi": "10.1016/0954-6111(95)90212-0",
+      "pmid": "7644774"
+    },
+    "stokes1986": {
+      "cite": "Stokes GM et al. Pediatr Pulmonol 1986;2:89-93",
+      "doi": "10.1002/ppul.1950020206",
+      "pmid": "3086826"
+    },
+    "brockmann2011": {
+      "cite": "Brockmann PE et al. Arch Dis Child Fetal Neonatal Ed 2011;96:F335-8",
+      "doi": "10.1136/adc.2010.196758",
+      "pmid": "21242243"
+    },
+    "poets1996": {
+      "cite": "Poets CF et al. Eur J Pediatr 1996;155:219-23",
+      "doi": "10.1007/BF01953942",
+      "pmid": "8929732"
+    },
+    "cousineau2005": {
+      "cite": "Cousineau J et al. Clin Biochem 2005;38:905-7",
+      "doi": "10.1016/j.clinbiochem.2005.07.006",
+      "pmid": "16109393"
+    },
+    "lopez2011": {
+      "cite": "Lopez E et al. Pediatr Pulmonol 2011;46:896-902",
+      "doi": "10.1002/ppul.21445",
+      "pmid": "21465676"
+    },
+    "bailey2013": {
+      "cite": "Bailey SM et al. Am J Perinatol 2014;31:339-44",
+      "doi": "10.1055/s-0033-1349894",
+      "pmid": "23873114"
+    },
+    "glow2020": {
+      "cite": "Harris DL et al. Glucose profiles in healthy term infants in the first 5 days (GLOW). J Pediatr 2020;223:34-41",
+      "doi": "10.1016/j.jpeds.2020.02.079",
+      "pmid": "32381469"
+    },
+    "glow2021": {
+      "cite": "Harris DL et al. Lactate, ketones and glucose in healthy term infants (GLOW). J Pediatr 2021",
+      "doi": "10.1016/j.jpeds.2020.12.063",
+      "pmid": "33373670"
+    },
+    "photo2001": {
+      "cite": "Oxygen consumption during phototherapy, Arch Dis Child Fetal Neonatal Ed 2001;85:F49-52",
+      "doi": "10.1136/fn.85.1.f49",
+      "pmid": "11420323"
+    },
+    "jopling2009": {
+      "cite": "Jopling J et al. Pediatrics 2009;123:e333-7",
+      "doi": "10.1542/peds.2008-2654",
+      "pmid": "19171584"
+    },
+    "smeets2022": {
+      "cite": "Smeets NJL et al. J Am Soc Nephrol 2022;33:1277-92",
+      "doi": "10.1681/ASN.2021101326",
+      "pmid": "35474022"
+    },
+    "textbook": {
+      "cite": "General neonatal textbook range; no healthy-term primary source found",
+      "doi": null,
+      "pmid": null
+    },
+    "kang2016": {
+      "cite": "Kang C et al. Pulmonary artery pressure and ductus arteriosus closure in term neonates. Medicine 2016;95:e2599",
+      "doi": "10.1097/MD.0000000000002599",
+      "pmid": "26817918"
+    },
+    "hiraishi1991": {
+      "cite": "Hiraishi S et al. Interatrial shunt flow profiles in newborn infants. Br Heart J 1991;65:41-5",
+      "doi": "10.1136/hrt.65.1.41",
+      "pmid": "1993129"
+    },
+    "agata1991": {
+      "cite": "Agata Y, Hiraishi S, Oguchi K et al. Changes in left ventricular output from fetal to early neonatal life. J Pediatr 1991;119:441-5 (34 term, fetal, 1, 24, 96 h)",
+      "doi": "10.1016/s0022-3476(05)82060-8",
+      "pmid": "1880660"
+    },
+    "tveiten2021": {
+      "cite": "Tveiten L et al. Heart rate during the first 24 hours in term-born infants. Arch Dis Child Fetal Neonatal Ed 2021",
+      "doi": "10.1136/archdischild-2020-320761",
+      "pmid": "33452220"
+    },
+    "kent2007": {
+      "cite": "Kent AL et al. Normative blood pressure data in the early neonatal period. Pediatr Nephrol 2007;22:1335-41",
+      "doi": "10.1007/s00467-007-0480-8",
+      "pmid": "17437131"
+    },
+    "drayton1987": {
+      "cite": "Drayton MR, Skidmore R. Ductus arteriosus blood flow during first 48 hours of life. Arch Dis Child 1987;62:1030-4",
+      "doi": "10.1136/adc.62.10.1030",
+      "pmid": "3314720"
+    },
+    "skinner1991": {
+      "cite": "Skinner JR et al. Doppler echocardiographic estimates of pulmonary artery pressure in the first days of life. Arch Dis Child 1991;66:386-90",
+      "doi": "10.1136/adc.66.4_spec_no.386",
+      "pmid": "2025029"
+    },
+    "lee2009": {
+      "cite": "Lee A et al. Superior vena cava flow in healthy term infants. Arch Dis Child Fetal Neonatal Ed 2010",
+      "doi": "10.1136/adc.2009.176883",
+      "pmid": "19996328"
+    },
+    "lee1999": {
+      "cite": "Lee S et al. Functional residual capacity after vaginal and caesarean delivery. Pediatr Pulmonol 1999;27:318-21",
+      "doi": "10.1002/(sici)1099-0496(199905)27:5<318::aid-ppul4>3.0.co;2-e",
+      "pmid": "10344710"
+    },
+    "milner1978": {
+      "cite": "Milner AD et al. Effects of delivery by caesarean section on lung mechanics and lung volume. Arch Dis Child 1978;53:545-8",
+      "doi": "10.1136/adc.53.7.545",
+      "pmid": "686790"
+    },
+    "lodrup1993": {
+      "cite": "Lodrup Carlsen KC et al. Lung function in awake healthy infants: the first five days of life. Eur Respir J 1993",
+      "doi": null,
+      "pmid": "8112445"
+    },
+    "nikkola2002": {
+      "cite": "Nikkola E et al. Baseline SpO2 after vaginal and caesarean delivery. Acta Paediatr 2002",
+      "doi": "10.1080/080352502760272605",
+      "pmid": "12412867"
+    },
+    "obrien2000": {
+      "cite": "O'Brien LM et al. Oxygen saturation during the first 24 hours of life. Arch Dis Child Fetal Neonatal Ed 2000;83:F35-8",
+      "doi": "10.1136/fn.83.1.f35",
+      "pmid": "10873169"
+    },
+    "mariani2007": {
+      "cite": "Mariani G et al. Pre-ductal and post-ductal O2 saturation in healthy term neonates after birth. J Pediatr 2007;150:418-21",
+      "doi": "10.1016/j.jpeds.2006.12.015",
+      "pmid": "17382123"
+    },
+    "hoseth2000": {
+      "cite": "Hoseth E et al. Blood glucose levels in a population of healthy, breast fed, term infants. Arch Dis Child Fetal Neonatal Ed 2000;83:F117-9",
+      "doi": "10.1136/fn.83.2.f117",
+      "pmid": "10952705"
+    },
+    "ceriani2006": {
+      "cite": "Ceriani Cernadas JM et al. The effect of timing of cord clamping on neonatal venous hematocrit. Pediatrics 2006;117:e779-86",
+      "doi": "10.1542/peds.2005-1156",
+      "pmid": "16567393"
+    },
+    "christensen2009": {
+      "cite": "Jopling J, Christensen RD et al. Reference ranges for hematocrit and blood hemoglobin. Pediatrics 2009;123:e333-7",
+      "doi": "10.1542/peds.2008-2654",
+      "pmid": "19171584"
+    },
+    "karlsson1996": {
+      "cite": "Karlsson H. Skin to skin care: heat balance. Arch Dis Child Fetal Neonatal Ed 1996;75:F130-2",
+      "doi": "10.1136/fn.75.2.f130",
+      "pmid": "8949698"
+    },
+    "ogala1986": {
+      "cite": "Ogala WN et al. Time of first urine passage in healthy newborns (Nigeria) 1986",
+      "doi": null,
+      "pmid": "3810846"
+    },
+    "hill1968": {
+      "cite": "Hill JR, Robinson DC. Oxygen consumption in normally grown, small-for-dates and large-for-dates new-born infants. J Physiol 1968;199:685-703",
+      "doi": "10.1113/jphysiol.1968.sp008673",
+      "pmid": "5751613"
+    },
+    "linderkamp1992": {
+      "cite": "Linderkamp O et al. The effect of early and late cord-clamping on blood viscosity and other hemorheological parameters in full-term neonates. Acta Paediatr 1992;81:745-50",
+      "doi": "10.1111/j.1651-2227.1992.tb12095.x",
+      "pmid": "1421876"
+    },
+    "nelle1995": {
+      "cite": "Nelle M et al. Effect of Leboyer childbirth on cardiac output, cerebral and gastrointestinal blood flow velocities in full-term neonates. Am J Perinatol 1995;12:212-6",
+      "doi": "10.1055/s-2007-994455",
+      "pmid": "7612098"
+    },
+    "eliot1980": {
+      "cite": "Eliot RJ et al. Plasma catecholamine concentrations in infants at birth and during the first 48 hours of life. J Pediatr 1980;96:311-5",
+      "doi": "10.1016/s0022-3476(80)80836-5",
+      "pmid": "7351604"
+    },
+    "siassi1980": {
+      "cite": "Siassi B et al. Central venous pressure in preterm infants. Biol Neonate 1980;37:285-90",
+      "doi": "10.1159/000241288",
+      "pmid": "7388082"
+    },
+    "hogg1977": {
+      "cite": "Hogg MI et al. Urinary excretion and metabolism of pethidine and norpethidine in the newborn. Br J Anaesth 1977;49:891-9",
+      "doi": "10.1093/bja/49.9.891",
+      "pmid": "20914"
+    },
+    "lorenz1995": {
+      "cite": "Lorenz JM et al. Phases of fluid and electrolyte homeostasis in the extremely low birth weight infant. Pediatrics 1995;96:484-9",
+      "pmid": "7651782"
+    },
+    "taiwo2022": {
+      "cite": "Taiwo AB et al. Blood pressure profile and trends in the neonatal transitioning period. Glob Pediatr Health 2022;9:2333794X221099263",
+      "doi": "10.1177/2333794X221099263",
+      "pmid": "35592790"
+    },
+    "vanderhoeven1996": {
+      "cite": "van der Hoeven MA, Maertzdorf WJ, Blanco CE. Continuous central venous oxygen saturation (ScvO2) measurement using a fibre optic catheter in newborn infants. Arch Dis Child Fetal Neonatal Ed 1996;74:F177-81",
+      "doi": "10.1136/fn.74.3.f177",
+      "pmid": "8777680"
+    },
+    "wolfsberger2023": {
+      "cite": "Wolfsberger CH et al. Peripheral muscle fractional tissue oxygen extraction in stable term and preterm neonates during the first 24 h after birth. Front Pediatr 2023;11:1276769",
+      "doi": "10.3389/fped.2023.1276769",
+      "pmid": "38034828"
+    },
+    "carmichael2025": {
+      "cite": "Carmichael TG et al. The application of magnetic susceptibility separation for measuring cerebral oxygenation in preterm neonates. Pediatr Res 2025;98:715-22",
+      "doi": "10.1038/s41390-025-03966-6",
+      "pmid": "40108431"
+    },
+    "zoppi1998": {
+      "cite": "Zoppi G et al. Respiratory quotient changes in full term newborn infants within 30 hours from birth before start of milk feeding. Eur J Clin Nutr 1998;52:360-2",
+      "doi": "10.1038/sj.ejcn.1600564",
+      "pmid": "9630387"
+    },
+    "aburawi2012": {
+      "cite": "Aburawi EH et al. Coronary flow in neonates with impaired intrauterine growth. J Am Soc Echocardiogr 2012;25:313-8",
+      "doi": "10.1016/j.echo.2011.11.019",
+      "pmid": "22177908"
+    },
+    "yasuoka2002": {
+      "cite": "Yasuoka K et al. Left anterior descending coronary artery flow and its relation to age in children. J Am Soc Echocardiogr 2002;15:69-75",
+      "doi": "10.1067/mje.2002.115537",
+      "pmid": "11781557"
+    },
+    "smolich1996": {
+      "cite": "Smolich JJ, Berger PJ, Walker AM. Interrelation between ventricular function, myocardial blood flow, and O2 consumption changes at birth in lambs. Am J Physiol 1996;270:H741-9",
+      "doi": "10.1152/ajpheart.1996.270.2.H741",
+      "pmid": "8779852"
+    },
+    "stettler1992": {
+      "cite": "Stettler N et al. Energetic and metabolic cost of growth in Gambian infants. Eur J Clin Nutr 1992;46:329-35",
+      "doi": null,
+      "pmid": "1600931"
+    },
+    "cohen1991": {
+      "cite": "Cohen G, Xu C, Henderson-Smart D. Ventilatory response of the sleeping newborn to CO2 during normoxic rebreathing. J Appl Physiol 1991;71:168-74",
+      "doi": "10.1152/jappl.1991.71.1.168",
+      "pmid": "1917739"
+    },
+    "moriette1985": {
+      "cite": "Moriette G, Van Reempts P, Moore M, Cates D, Rigatto H. The effect of rebreathing CO2 on ventilation and diaphragmatic electromyography in newborn infants. Respir Physiol 1985;62:387-97",
+      "doi": "10.1016/0034-5687(85)90093-3",
+      "pmid": "3937194"
+    },
+    "rigatto1991": {
+      "cite": "Rigatto H, Kwiatkowski KA, Hasan SU, Cates DB. The ventilatory response to endogenous CO2 in preterm infants. Am Rev Respir Dis 1991;143:101-4",
+      "doi": "10.1164/ajrccm/143.1.101",
+      "pmid": "1898842"
+    },
+    "mortola1996": {
+      "cite": "Mortola JP, Lanthier C. The ventilatory and metabolic response to hypercapnia in newborn mammalian species. Respir Physiol 1996;103:263-70",
+      "doi": "10.1016/0034-5687(95)00093-3",
+      "pmid": "8738902"
+    },
+    "gerhardt1987": {
+      "cite": "Gerhardt T, Reifenberg L, Hehre D, Feller R, Bancalari E. Pulmonary mechanics in normal infants and young children during first 5 years of life. Pediatr Pulmonol 1987;3:309-16",
+      "doi": "10.1002/ppul.1950030506",
+      "pmid": "3670905"
+    },
+    "papastamelos1995": {
+      "cite": "Papastamelos C, Panitch HB, England SE, Allen JL. Developmental changes in chest wall compliance in infancy and early childhood. J Appl Physiol 1995;78:179-84",
+      "doi": "10.1152/jappl.1995.78.1.179",
+      "pmid": "7713809"
+    },
+    "yau1994": {
+      "cite": "Yau KI, Fang LJ. Pulmonary mechanics and the energetics of breathing in healthy infants. J Formos Med Assoc 1994;93:110-6",
+      "doi": null,
+      "pmid": "7912580"
+    },
+    "tohoku2002": {
+      "cite": "Left ventricular systolic and diastolic function during early neonatal period. Tohoku J Exp Med 2002;197:151",
+      "doi": "10.1620/tjem.197.151",
+      "pmid": "12365556"
+    },
+    "shiraishi1991": {
+      "cite": "Shiraishi H, Yanagisawa M. Bidirectional flow through the ductus arteriosus in normal newborns. Pediatr Cardiol 1991;12:201",
+      "doi": "10.1007/BF02310566",
+      "pmid": "1946007"
+    },
+    "mandorla1990": {
+      "cite": "Mandorla S et al. The ductus arteriosus in healthy newborn infants studied by continuous Doppler. G Ital Cardiol 1990 (abstract)",
+      "doi": null,
+      "pmid": "2272416"
+    },
+    "walther1993": {
+      "cite": "Walther FJ, Benders MJ, Leighton JO. Early changes in the neonatal circulatory transition. J Pediatr 1993;123:625",
+      "doi": "10.1016/s0022-3476(05)80966-7",
+      "pmid": "8410520"
+    },
+    "hiraishi1987": {
+      "cite": "Hiraishi S et al. Two-dimensional Doppler echocardiographic assessment of closure of the ductus arteriosus in normal newborn infants. J Pediatr 1987;111:755",
+      "doi": "10.1016/s0022-3476(87)80263-9",
+      "pmid": "3668746"
+    },
+    "vanlaere2018": {
+      "cite": "van Laere D et al. Application of NPE in the assessment of a patent ductus arteriosus. Pediatr Res 2018;84:S46",
+      "doi": "10.1038/s41390-018-0077-x",
+      "pmid": null
+    },
+    "rudolph2009": {
+      "cite": "Rudolph AM. Congenital Diseases of the Heart, 3rd ed., ch. 6 (the ductus arteriosus)",
+      "doi": null,
+      "pmid": null
+    },
+    "nelle1993": {
+      "cite": "Nelle M et al. The effect of Leboyer delivery on blood viscosity and other hemorheologic parameters in term neonates. Am J Obstet Gynecol 1993;169:189-93",
+      "doi": "10.1016/0002-9378(93)90161-b",
+      "pmid": "8333451"
+    }
+  },
+  "variables": [
+    {
+      "key": "hr",
+      "group": "hemodynamics",
+      "label": "Heart rate",
+      "unit": "bpm",
+      "mean": 118.5,
+      "sd": 16.67,
+      "low": 91.36,
+      "high": 145.58,
+      "range_type": "72 h range x ratio",
+      "method": "auscultation at 2 h, healthy term, any delivery mode",
+      "age": "24 h",
+      "n": 953,
+      "sources": [
+        "agata1994",
+        "ha2018",
+        "tveiten2021"
+      ],
+      "grade": "B",
+      "model_readout": "Monitor.heart_rate",
+      "notes": "Agata 1994 HR 121 at 24 h vs ~120 at 96 h (x1.008); Ha 2018 138 (12-24/24-36 h bins 136/140) vs 138 (60-72 h) (x1.00). Ratio 24 h / 72 h = 1.004. Cross-check: Tveiten 2021: P50 ~121 at 24 h.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Agata 1994 HR 121 at 24 h vs ~120 at 96 h (x1.008); Ha 2018 138 (12-24/24-36 h bins 136/140) vs 138 (60-72 h) (x1.00)",
+        "ratio": 1.004,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "sbp",
+      "group": "hemodynamics",
+      "label": "Systolic BP",
+      "unit": "mmHg",
+      "mean": 73.2,
+      "sd": null,
+      "low": 59.38,
+      "high": 88.07,
+      "range_type": "72 h range x ratio",
+      "method": "oscillometric, healthy term controls, ward",
+      "age": "24 h",
+      "n": 123,
+      "sources": [
+        "taiwo2022"
+      ],
+      "grade": "A",
+      "model_readout": "Monitor.minmax.abp_pre_pres_max",
+      "notes": "Taiwo 2022: 71.3 at 24 h vs ~72.05 at 72 h. Ratio 24 h / 72 h = 0.990.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Taiwo 2022: 71.3 at 24 h vs ~72.05 at 72 h",
+        "ratio": 0.9896,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "dbp",
+      "group": "hemodynamics",
+      "label": "Diastolic BP",
+      "unit": "mmHg",
+      "mean": 44.3,
+      "sd": null,
+      "low": 29.88,
+      "high": 58.79,
+      "range_type": "72 h range x ratio",
+      "method": "oscillometric, healthy term controls, ward",
+      "age": "24 h",
+      "n": 123,
+      "sources": [
+        "taiwo2022"
+      ],
+      "grade": "A",
+      "model_readout": "Monitor.minmax.abp_pre_pres_min",
+      "notes": "Taiwo 2022: 41.2 at 24 h vs ~42.75 at 72 h. Ratio 24 h / 72 h = 0.964.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Taiwo 2022: 41.2 at 24 h vs ~42.75 at 72 h",
+        "ratio": 0.9637,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "map",
+      "group": "hemodynamics",
+      "label": "Mean arterial pressure",
+      "unit": "mmHg",
+      "mean": 56.5,
+      "sd": null,
+      "low": 43.84,
+      "high": 70.15,
+      "range_type": "72 h range x ratio",
+      "method": "oscillometric, healthy term controls, ward",
+      "age": "24 h",
+      "n": 123,
+      "sources": [
+        "taiwo2022"
+      ],
+      "grade": "A",
+      "model_readout": "Monitor.minmax.abp_pre_pres_mean",
+      "notes": "Taiwo 2022 (1/3 rule): 51.2 at 24 h vs ~52.55 at 72 h. Ratio 24 h / 72 h = 0.974.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Taiwo 2022 (1/3 rule): 51.2 at 24 h vs ~52.55 at 72 h",
+        "ratio": 0.9743,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "pp",
+      "group": "hemodynamics",
+      "label": "Pulse pressure",
+      "unit": "mmHg",
+      "mean": 28.8,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "from sbp - dbp",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "taiwo2022"
+      ],
+      "grade": "B",
+      "model_readout": "sbp - dbp",
+      "notes": "Taiwo 2022: SBP - DBP 30.1 at 24 h vs ~29.3 at 72 h. Ratio 24 h / 72 h = 1.027.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Taiwo 2022: SBP - DBP 30.1 at 24 h vs ~29.3 at 72 h",
+        "ratio": 1.0273,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "cvp",
+      "group": "hemodynamics",
+      "label": "Central venous pressure",
+      "unit": "mmHg",
+      "mean": null,
+      "sd": null,
+      "low": 2,
+      "high": 8,
+      "range_type": "range",
+      "method": "right atrial mean pressure, umbilical venous catheter",
+      "age": "72 h kept",
+      "n": 24,
+      "sources": [
+        "textbook"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.minmax.cvp_pres_mean",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Siassi 1980: 1.6 (-3 to 4) over 2-24 h in healthy preterms (no 72 h pair).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "pap_s",
+      "group": "hemodynamics",
+      "label": "Pulmonary artery pressure, systolic",
+      "unit": "mmHg",
+      "mean": 43.83,
+      "sd": 7.9,
+      "low": 28.0,
+      "high": 59.6,
+      "range_type": "Kang 24 h mean +/- 2SD",
+      "method": "0.9 x systemic",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "kang2016"
+      ],
+      "grade": "A",
+      "model_readout": "Monitor.minmax.pap_pres_max",
+      "notes": "Kang 2016 (the 72 h source too): 43.83 +/- 7.9 at 24 h vs 36.0 at 72 h.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Kang 2016 (the 72 h source too): 43.83 at 24 h vs 36.0 at 72 h",
+        "ratio": 1.2175,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "pap_m",
+      "group": "hemodynamics",
+      "label": "Pulmonary artery pressure, mean",
+      "unit": "mmHg",
+      "mean": 34.39,
+      "sd": 9.89,
+      "low": 14.6,
+      "high": 54.2,
+      "range_type": "Kang 24 h mean +/- 2SD",
+      "method": "Doppler TR / ductal gradient",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "kang2016"
+      ],
+      "grade": "A",
+      "model_readout": "Monitor.minmax.pap_pres_mean",
+      "notes": "Kang 2016 (the 72 h source too): 34.39 +/- 9.89 at 24 h vs 25.25 at 72 h.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Kang 2016 (the 72 h source too): 34.39 at 24 h vs 25.25 at 72 h",
+        "ratio": 1.362,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "pap_d",
+      "group": "hemodynamics",
+      "label": "Pulmonary artery pressure, diastolic",
+      "unit": "mmHg",
+      "mean": 19.7,
+      "sd": 8.51,
+      "low": 2.7,
+      "high": 36.7,
+      "range_type": "Kang 24 h mean +/- 2SD",
+      "method": "no data",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "kang2016"
+      ],
+      "grade": "A",
+      "model_readout": "Monitor.minmax.pap_pres_min",
+      "notes": "Kang 2016 (the 72 h source too): 19.7 +/- 8.51 at 24 h vs 13.25 at 72 h.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Kang 2016 (the 72 h source too): 19.7 at 24 h vs 13.25 at 72 h",
+        "ratio": 1.4868,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "lv_edv",
+      "group": "heart",
+      "label": "LV end-diastolic volume",
+      "unit": "mL/kg",
+      "mean": 2.5,
+      "sd": 0.3,
+      "low": 1.9,
+      "high": 3.1,
+      "range_type": "mean+/-2SD",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "jhaveri2023",
+        "groves2011"
+      ],
+      "grade": "C",
+      "model_readout": "Heart.lv_edv / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "lv_esv",
+      "group": "heart",
+      "label": "LV end-systolic volume",
+      "unit": "mL/kg",
+      "mean": 0.9,
+      "sd": 0.2,
+      "low": 0.5,
+      "high": 1.3,
+      "range_type": "mean+/-2SD",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "jhaveri2023",
+        "groves2011"
+      ],
+      "grade": "C",
+      "model_readout": "Heart.lv_esv / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "lv_sv",
+      "group": "heart",
+      "label": "LV stroke volume",
+      "unit": "mL/kg",
+      "mean": 1.68,
+      "sd": 0.11,
+      "low": 1.47,
+      "high": 1.99,
+      "range_type": "72 h range x ratio",
+      "method": "Doppler/echo LVO / HR",
+      "age": "24 h",
+      "n": 34,
+      "sources": [
+        "agata1994",
+        "ha2018"
+      ],
+      "grade": "B",
+      "model_readout": "Heart.lv_sv / weight",
+      "notes": "Agata 1994 SV 2.2 at 24 h vs 2.2 at 96 h (x1.0); Ha 2018 SV/kg 1.46 (bins 1.46/1.46) vs 1.33 (48-72 h) (x1.10); mean. Ratio 24 h / 72 h = 1.050.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Agata 1994 SV 2.2 at 24 h vs 2.2 at 96 h (x1.0); Ha 2018 SV/kg 1.46 (bins 1.46/1.46) vs 1.33 (48-72 h) (x1.10); mean",
+        "ratio": 1.05,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "lv_ef",
+      "group": "heart",
+      "label": "LV ejection fraction",
+      "unit": "%",
+      "mean": 62.7,
+      "sd": 3.37,
+      "low": 55.92,
+      "high": 69.31,
+      "range_type": "72 h range x ratio",
+      "method": "no 1 h data",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "ha2018",
+        "jhaveri2023",
+        "groves2011"
+      ],
+      "grade": "A",
+      "model_readout": "Heart.lv_ef * 100",
+      "notes": "Ha 2018 LV EF ~62.0 (12-24/24-36 h bins 61.95/61.97) vs 62.5 (48-72 h). Ratio 24 h / 72 h = 0.992.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Ha 2018 LV EF ~62.0 (12-24/24-36 h bins 61.95/61.97) vs 62.5 (48-72 h)",
+        "ratio": 0.9915,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "rv_edv",
+      "group": "heart",
+      "label": "RV end-diastolic volume",
+      "unit": "mL/kg",
+      "mean": 3.1,
+      "sd": 0.3,
+      "low": 2.5,
+      "high": 3.7,
+      "range_type": "mean+/-2SD",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "jhaveri2023"
+      ],
+      "grade": "C",
+      "model_readout": "Heart.rv_edv / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "rv_esv",
+      "group": "heart",
+      "label": "RV end-systolic volume",
+      "unit": "mL/kg",
+      "mean": 1.5,
+      "sd": 0.2,
+      "low": 1.1,
+      "high": 1.9,
+      "range_type": "mean+/-2SD",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "jhaveri2023"
+      ],
+      "grade": "C",
+      "model_readout": "Heart.rv_esv / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "rv_sv",
+      "group": "heart",
+      "label": "RV stroke volume",
+      "unit": "mL/kg",
+      "mean": 1.6,
+      "sd": 0.2,
+      "low": 1.2,
+      "high": 2,
+      "range_type": "mean+/-2SD",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "jhaveri2023"
+      ],
+      "grade": "C",
+      "model_readout": "Heart.rv_sv / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "rv_ef",
+      "group": "heart",
+      "label": "RV ejection fraction",
+      "unit": "%",
+      "mean": 52.5,
+      "sd": 3.3,
+      "low": 45.9,
+      "high": 59.1,
+      "range_type": "mean+/-2SD",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "jhaveri2023"
+      ],
+      "grade": "C",
+      "model_readout": "Heart.rv_ef * 100",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "lvo",
+      "group": "flows",
+      "label": "Left ventricular output",
+      "unit": "mL/kg/min",
+      "mean": 206.6,
+      "sd": null,
+      "low": 113.86,
+      "high": 299.41,
+      "range_type": "72 h range x ratio",
+      "method": "Doppler echo, ascending aorta",
+      "age": "24 h",
+      "n": 57,
+      "sources": [
+        "agata1994",
+        "agata1991",
+        "ha2018",
+        "jhaveri2023",
+        "groves2011"
+      ],
+      "grade": "B",
+      "model_readout": "Monitor.flows.lvo / weight",
+      "notes": "USER DECISION 2026-11-06: the low end, as at 12 h. Agata 1994 LVO 272 at 24 h vs 258 at 96 h (x1.054); Agata 1991 245 at 24 h, unchanged at 96 h (x1.0); Ha 2018 199.5 (bins 199/200) vs 165-175 (48-72 h) (x1.14-1.21). Ratio 24 h / 72 h = 1.054.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "USER DECISION 2026-11-06: the low end, as at 12 h. Agata 1994 LVO 272 at 24 h vs 258 at 96 h (x1.054); Agata 1991 245 at 24 h, unchanged at 96 h (x1.0); Ha 2018 199.5 (bins 199/200) vs 165-175 (48-72 h) (x1.14-1.21)",
+        "ratio": 1.0543,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "rvo",
+      "group": "flows",
+      "label": "Right ventricular output",
+      "unit": "mL/kg/min",
+      "mean": 199,
+      "sd": null,
+      "low": 100,
+      "high": 298,
+      "range_type": "regression +/-2SD at CGA 40",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "groves2011",
+        "jhaveri2023"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.flows.rvo / weight",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: The ductal L->R shunt adds to LVO, not RVO; no within-study RVO pair.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "svc",
+      "group": "flows",
+      "label": "SVC flow",
+      "unit": "mL/kg/min",
+      "mean": 85.6,
+      "sd": null,
+      "low": 28.88,
+      "high": 142.36,
+      "range_type": "72 h range x ratio",
+      "method": "Doppler",
+      "age": "24 h",
+      "n": 48,
+      "sources": [
+        "ha2018",
+        "lee2009",
+        "groves2011"
+      ],
+      "grade": "B",
+      "model_readout": "Monitor.flows.svc_flow / weight",
+      "notes": "Ha 2018 SVC flow 98 (bins 103/93) vs 95 (48-72 h). Ratio 24 h / 72 h = 1.032. Cross-check: Lee 2009: 99 on day 1 vs 77 on day 3 (x1.29) disagrees.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Ha 2018 SVC flow 98 (bins 103/93) vs 95 (48-72 h)",
+        "ratio": 1.0316,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "dao",
+      "group": "flows",
+      "label": "Descending aorta flow",
+      "unit": "mL/kg/min",
+      "mean": 99,
+      "sd": null,
+      "low": 57,
+      "high": 141,
+      "range_type": "regression +/-2SD at CGA 40",
+      "method": "no 1 h data",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "groves2011"
+      ],
+      "grade": "C",
+      "model_readout": "AAR_AD.flow / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "cbf",
+      "group": "flows",
+      "label": "Cerebral blood flow",
+      "unit": "mL/kg/min",
+      "mean": 27.9,
+      "sd": null,
+      "low": 9.59,
+      "high": 92.0,
+      "range_type": "72 h range x ratio",
+      "method": "no 1 h data",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "agata1994"
+      ],
+      "grade": "B",
+      "model_readout": "AA_BR_ART.flow / weight",
+      "notes": "Agata 1994 MCA flow ~46 at 24 h vs ~47 at 96 h (Fig 2). Ratio 24 h / 72 h = 0.979.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Agata 1994 MCA flow ~46 at 24 h vs ~47 at 96 h (Fig 2)",
+        "ratio": 0.9787,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "sma",
+      "group": "flows",
+      "label": "Intestinal (SMA) flow",
+      "unit": "mL/kg/min",
+      "mean": 39.4,
+      "sd": 11.92,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "no 1 h data",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "agata1994"
+      ],
+      "grade": "B",
+      "model_readout": "AD_INT_ART.flow / weight",
+      "notes": "Agata 1994 SMA flow ~44 at 24 h vs ~48 at 96 h (Fig 2). Ratio 24 h / 72 h = 0.917.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Agata 1994 SMA flow ~44 at 24 h vs ~48 at 96 h (Fig 2)",
+        "ratio": 0.9167,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "renal",
+      "group": "flows",
+      "label": "Renal blood flow",
+      "unit": "mL/kg/min",
+      "mean": 24.3,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "Doppler volume flow, LEFT renal artery only",
+      "age": "24 h",
+      "n": 23,
+      "sources": [
+        "agata1994"
+      ],
+      "grade": "B",
+      "model_readout": "AD_KID_ART.flow / weight",
+      "notes": "Agata 1994 renal flow ~32 at 24 h vs ~37 at 96 h (Fig 2; no significant change). Ratio 24 h / 72 h = 0.865.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Agata 1994 renal flow ~32 at 24 h vs ~37 at 96 h (Fig 2; no significant change)",
+        "ratio": 0.8649,
+        "base": "72 h model (the 72 h reference has no mean)",
+        "model_72h": 28.095
+      }
+    },
+    {
+      "key": "hepatic_art",
+      "group": "flows",
+      "label": "Hepatic arterial / coeliac flow",
+      "unit": "mL/kg/min",
+      "mean": 28.2,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "Doppler volume flow, coeliac artery",
+      "age": "24 h",
+      "n": 23,
+      "sources": [
+        "agata1994"
+      ],
+      "grade": "B",
+      "model_readout": "AD_LS_ART.flow / weight",
+      "notes": "Agata 1994 coeliac flow ~74 at 24 h vs ~71 at 96 h (Fig 2). Ratio 24 h / 72 h = 1.042.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Agata 1994 coeliac flow ~74 at 24 h vs ~71 at 96 h (Fig 2)",
+        "ratio": 1.0423,
+        "base": "72 h model (the 72 h reference has no mean)",
+        "model_72h": 27.1
+      }
+    },
+    {
+      "key": "rr",
+      "group": "breathing",
+      "label": "Respiratory rate",
+      "unit": "/min",
+      "mean": 44,
+      "sd": null,
+      "low": 32,
+      "high": 57,
+      "range_type": "P3-P97",
+      "method": "ECG/thoracic movement, quiet sleep",
+      "age": "72 h kept",
+      "n": 215,
+      "sources": [
+        "hannover2018",
+        "schmalisch2005",
+        "fleming2011"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.resp_rate",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "vt",
+      "group": "breathing",
+      "label": "Tidal volume",
+      "unit": "mL/kg",
+      "mean": 5.57,
+      "sd": 1.06,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "dead-space-free flow-through pneumotachography, quiet sleep",
+      "age": "72 h kept",
+      "n": 48,
+      "sources": [
+        "schmalisch2005",
+        "schmalisch2001"
+      ],
+      "grade": "C",
+      "model_readout": "Breathing.exp_tidal_volume / weight",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Lodrup Carlsen 1993: Vt and compliance lower on day 0 than day 1 (direction only).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "mv",
+      "group": "breathing",
+      "label": "Minute ventilation",
+      "unit": "mL/kg/min",
+      "mean": 215,
+      "sd": 51.7,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "dead-space-free flow-through",
+      "age": "72 h kept",
+      "n": 48,
+      "sources": [
+        "schmalisch2005"
+      ],
+      "grade": "C",
+      "model_readout": "Breathing.minute_volume / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "ti_ttot",
+      "group": "breathing",
+      "label": "Inspiratory time fraction (Ti/Ttot)",
+      "unit": "-",
+      "mean": 0.4,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "flow-through; Ti 0.65 +/- 0.14 s, Te 0.98 +/- 0.24 s",
+      "age": "72 h kept",
+      "n": 48,
+      "sources": [
+        "schmalisch2005"
+      ],
+      "grade": "C",
+      "model_readout": "Breathing.ie_ratio (used as Ti/Ttot)",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "ptif",
+      "group": "breathing",
+      "label": "Peak tidal inspiratory flow",
+      "unit": "L/min/kg",
+      "mean": 0.83,
+      "sd": 0.2,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "dead-space-free flow-through, quiet sleep",
+      "age": "72 h kept",
+      "n": 48,
+      "sources": [
+        "schmalisch2005"
+      ],
+      "grade": "C",
+      "model_readout": "per-breath max of MOUTH_DS.flow / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "ptef",
+      "group": "breathing",
+      "label": "Peak tidal expiratory flow",
+      "unit": "L/min/kg",
+      "mean": 0.64,
+      "sd": 0.19,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "dead-space-free flow-through, quiet sleep",
+      "age": "72 h kept",
+      "n": 48,
+      "sources": [
+        "schmalisch2005"
+      ],
+      "grade": "C",
+      "model_readout": "per-breath min of MOUTH_DS.flow / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "crs",
+      "group": "breathing",
+      "label": "Respiratory system compliance",
+      "unit": "mL/cmH2O",
+      "mean": 3.6,
+      "sd": null,
+      "low": 3.2,
+      "high": 4,
+      "range_type": "consensus of four studies",
+      "method": "single-breath occlusion",
+      "age": "72 h kept",
+      "n": 24,
+      "sources": [
+        "katier2006",
+        "stocks1994",
+        "migdal1987",
+        "nowotny1998"
+      ],
+      "grade": "C",
+      "model_readout": "series(2 x ALL/ALR, THORAX)",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Lodrup Carlsen 1993: Vt and compliance lower on day 0 than day 1 (direction only).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "rrs",
+      "group": "breathing",
+      "label": "Respiratory system resistance",
+      "unit": "cmH2O/L/s",
+      "mean": 52,
+      "sd": 5.6,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "passive occlusion",
+      "age": "72 h kept",
+      "n": 9,
+      "sources": [
+        "nowotny1998",
+        "katier2006"
+      ],
+      "grade": "C",
+      "model_readout": "MOUTH_DS + DS_ALL||DS_ALR",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "frc",
+      "group": "breathing",
+      "label": "Functional residual capacity",
+      "unit": "mL/kg",
+      "mean": 27.1,
+      "sd": null,
+      "low": 23.8,
+      "high": 32.0,
+      "range_type": "72 h range x ratio",
+      "method": "argon dilution FRC; TGV by plethysmography",
+      "age": "24 h",
+      "n": 36,
+      "sources": [
+        "lee1999"
+      ],
+      "grade": "B",
+      "model_readout": "ALL.vol + ALR.vol at end-expiration / weight",
+      "notes": "Lee 1999 (vaginal): 24.9 at 24 h; no 72 h value, assumed unchanged after 24 h. Ratio 24 h / 72 h = 1.000.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Lee 1999 (vaginal): 24.9 at 24 h; no 72 h value, assumed unchanged after 24 h",
+        "ratio": 1.0,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "vd",
+      "group": "breathing",
+      "label": "Anatomic dead space",
+      "unit": "mL/kg",
+      "mean": 2.2,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "nasal mask, added dead space method",
+      "age": "72 h kept",
+      "n": 10,
+      "sources": [
+        "stokes1986"
+      ],
+      "grade": "C",
+      "model_readout": "DS.vol / weight",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "spo2",
+      "group": "gases",
+      "label": "SpO2 (pre-ductal)",
+      "unit": "%",
+      "mean": 97.3,
+      "sd": 1.4,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "pulse oximetry, vaginal",
+      "age": "72 h kept",
+      "n": 10,
+      "sources": [
+        "brockmann2011",
+        "poets1996",
+        "hannover2018"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.sao2_pre",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: O'Brien 2000 median 98.3 over 0-24 h; Nikkola 2002 96 +/- 1 at 1.5-13.5 h.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "ph",
+      "group": "gases",
+      "label": "pH",
+      "unit": "-",
+      "mean": 7.395,
+      "sd": 0.037,
+      "low": 7.312,
+      "high": 7.473,
+      "range_type": "P2.5-P97.5",
+      "method": "textbook",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "cousineau2005"
+      ],
+      "grade": "C",
+      "model_readout": "AA.ph",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: No longitudinal gas study with 12 h and ~72 h found yet (gap); the earlier 12 h values were textbook (pH 7.36, pCO2 35, BE -4).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "pco2",
+      "group": "gases",
+      "label": "pCO2",
+      "unit": "mmHg",
+      "mean": 38.7,
+      "sd": 5.1,
+      "low": 28.5,
+      "high": 48.7,
+      "range_type": "P2.5-P97.5",
+      "method": "textbook",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "cousineau2005"
+      ],
+      "grade": "C",
+      "model_readout": "AA.pco2",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: No longitudinal gas study with 12 h and ~72 h found yet (gap); the earlier 12 h values were textbook (pH 7.36, pCO2 35, BE -4).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "hco3",
+      "group": "gases",
+      "label": "HCO3",
+      "unit": "mmol/L",
+      "mean": 23.4,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "textbook",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "cousineau2005"
+      ],
+      "grade": "C",
+      "model_readout": "AA.hco3",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "be",
+      "group": "gases",
+      "label": "Base excess",
+      "unit": "mmol/L",
+      "mean": null,
+      "sd": null,
+      "low": -4,
+      "high": 2,
+      "range_type": "range",
+      "method": "textbook",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "textbook"
+      ],
+      "grade": "C",
+      "model_readout": "AA.be",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: No longitudinal gas study with 12 h and ~72 h found yet (gap); the earlier 12 h values were textbook (pH 7.36, pCO2 35, BE -4).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "po2",
+      "group": "gases",
+      "label": "PaO2",
+      "unit": "mmHg",
+      "mean": null,
+      "sd": null,
+      "low": 60,
+      "high": 90,
+      "range_type": "range",
+      "method": "arterial",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "textbook"
+      ],
+      "grade": "C",
+      "model_readout": "AA.po2",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "etco2",
+      "group": "gases",
+      "label": "End-tidal CO2",
+      "unit": "mmHg",
+      "mean": null,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "capnography; gap to PCO2 0 +/- 7 in healthy lungs",
+      "age": "72 h kept",
+      "n": 8,
+      "sources": [
+        "lopez2011"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.etco2",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "svo2_ra",
+      "group": "gases",
+      "label": "Mixed venous O2 saturation (right heart, before the duct)",
+      "unit": "%",
+      "mean": 76,
+      "sd": null,
+      "low": 70,
+      "high": 80,
+      "range_type": "range",
+      "method": "pulmonary artery (the probe read-out)",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "vanderhoeven1996",
+        "wolfsberger2023",
+        "carmichael2025",
+        "liu2014",
+        "bailey2013"
+      ],
+      "grade": "C",
+      "model_readout": "right-ventricular inflow so2 (probe svo2_ra)",
+      "notes": "USER DECISION 2026-11-05: judged at the right heart, as the 72 h source measured it (van der Hoeven 1996, right-atrial fibre-optic catheter). The 72 h value is kept (no within-study pair). With a left-to-right duct the pulmonary artery carries oxygenated aortic blood, so it reads higher than the systemic venous return (at a shunt of ~45 mL/kg/min: RA 76.9, PA 80.9); at 72 h, duct closed, RA = PA. No within-study pair; the 72 h value is kept. Cross-check: Wolfsberger 2023: peripheral extraction constant over the first 24 h. The earlier 12 h row (78, brown-fat derivation 2026-10-27) had no within-study pair.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "svo2",
+      "group": "gases",
+      "label": "Pulmonary artery O2 saturation (includes the ductal admixture)",
+      "unit": "%",
+      "mean": null,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "pulmonary artery (the probe read-out)",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "vanderhoeven1996",
+        "wolfsberger2023",
+        "carmichael2025",
+        "liu2014",
+        "bailey2013"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.svo2",
+      "notes": "Reference only: with the duct open the PA mixes the systemic venous return with the left-to-right ductal flow (fully oxygenated), so it reads above the mixed venous saturation; the target is the svo2_ra row.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "vo2",
+      "group": "metabolism",
+      "label": "Oxygen consumption",
+      "unit": "mL/kg/min",
+      "mean": 8.4,
+      "sd": 1.51,
+      "low": 6.3,
+      "high": 9.5,
+      "range_type": "range",
+      "method": "user decision 2026-10-25",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "photo2001",
+        "zoppi1998",
+        "vanderhoeven1996"
+      ],
+      "grade": "C",
+      "model_readout": "Metabolism.vo2",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Zoppi 1998: energy expenditure 6.6-7.2 at 6 and 30 h (no 72 h). The earlier 12 h row (9.5, brown-fat derivation) had no within-study pair.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "temp",
+      "group": "metabolism",
+      "label": "Core temperature",
+      "unit": "degC",
+      "mean": 37,
+      "sd": null,
+      "low": 36.5,
+      "high": 37.5,
+      "range_type": "range",
+      "method": "rectal/axillary, skin-to-skin",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "textbook"
+      ],
+      "grade": "C",
+      "model_readout": "Monitor.temp",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Fransson 2005: rectal temperature lower on day 1 than day 2 (direction only).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "glucose",
+      "group": "metabolism",
+      "label": "Plasma glucose",
+      "unit": "mmol/L",
+      "mean": 4,
+      "sd": 0.7,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "heel-prick plasma",
+      "age": "72 h kept",
+      "n": 67,
+      "sources": [
+        "glow2020",
+        "cousineau2005"
+      ],
+      "grade": "C",
+      "model_readout": "AA.solutes.glucose",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: GLOW 2020: rising over the first 18 h to a 3.3 +/- 0.6 plateau to 48 h, but the 72 h value (4.0) is Cousineau capillary whole blood; no within-study 12/72 h pair.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "lactate",
+      "group": "metabolism",
+      "label": "Lactate",
+      "unit": "mmol/L",
+      "mean": 1.8,
+      "sd": null,
+      "low": 1.03,
+      "high": 4.24,
+      "range_type": "72 h range x ratio",
+      "method": "plasma",
+      "age": "24 h",
+      "n": 67,
+      "sources": [
+        "glow2021"
+      ],
+      "grade": "B",
+      "model_readout": "Lactate.arterial_lactate",
+      "notes": "GLOW 2021: 2.2 (1.1-6.2) over 0-12 h, 1.4 (0.8-3.3) after 48 h; ~1.8 at 24 h, interpolated. Ratio 24 h / 72 h = 1.286.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "GLOW 2021: 2.2 (1.1-6.2) over 0-12 h, 1.4 (0.8-3.3) after 48 h; ~1.8 at 24 h, interpolated",
+        "ratio": 1.2857,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "hb",
+      "group": "blood",
+      "label": "Hemoglobin",
+      "unit": "g/dL",
+      "mean": 17.3,
+      "sd": null,
+      "low": 13.03,
+      "high": 21.59,
+      "range_type": "72 h range x ratio",
+      "method": "Hct/3",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "nelle1993",
+        "linderkamp1992"
+      ],
+      "grade": "B",
+      "model_readout": "AA.solutes.hemoglobin (mmol/L x 1.611)",
+      "notes": "Nelle 1993 Hct 56 at 24 h vs ~55.0 at 72 h, same red cell mass. Ratio 24 h / 72 h = 1.018.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Nelle 1993 Hct 56 at 24 h vs ~55.0 at 72 h, same red cell mass",
+        "ratio": 1.0182,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "hct",
+      "group": "blood",
+      "label": "Hematocrit",
+      "unit": "%",
+      "mean": 50.4,
+      "sd": null,
+      "low": 37.67,
+      "high": 63.64,
+      "range_type": "72 h range x ratio",
+      "method": "venous",
+      "age": "24 h",
+      "n": 276,
+      "sources": [
+        "nelle1993",
+        "linderkamp1992"
+      ],
+      "grade": "B",
+      "model_readout": "Hb / MCHC",
+      "notes": "Nelle 1993 Hct 56 at 24 h vs ~55.0 at 72 h, same red cell mass. Ratio 24 h / 72 h = 1.018.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Nelle 1993 Hct 56 at 24 h vs ~55.0 at 72 h, same red cell mass",
+        "ratio": 1.0182,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "blood_volume",
+      "group": "blood",
+      "label": "Blood volume",
+      "unit": "mL/kg",
+      "mean": 83.5,
+      "sd": null,
+      "low": 78.57,
+      "high": 88.39,
+      "range_type": "72 h range x ratio",
+      "method": "placental residual volume + Hct rise",
+      "age": "24 h",
+      "n": 30,
+      "sources": [
+        "nelle1993",
+        "linderkamp1992"
+      ],
+      "grade": "B",
+      "model_readout": "sum of blood compartment volumes / weight",
+      "notes": "Nelle 1993 Hct 56 at 24 h vs ~55.0 at 72 h, same red cell mass (plasma not yet fully re-expanded). Ratio 24 h / 72 h = 0.982.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Nelle 1993 Hct 56 at 24 h vs ~55.0 at 72 h, same red cell mass (plasma not yet fully re-expanded)",
+        "ratio": 0.9821,
+        "base": "72 h reference (range midpoint 85)"
+      }
+    },
+    {
+      "key": "gfr",
+      "group": "kidneys",
+      "label": "GFR",
+      "unit": "mL/min/1.73m2",
+      "mean": 19.6,
+      "sd": null,
+      "low": 13.07,
+      "high": 26.13,
+      "range_type": "72 h range x ratio",
+      "method": "measured GFR / creatinine clearance (IPD meta-analysis)",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "smeets2022"
+      ],
+      "grade": "A",
+      "model_readout": "Kidneys.gfr x 1.73 / BSA",
+      "notes": "Smeets 2022 (the 72 h source too): 19.6 at day 1 (24 h) vs 30 at day 3. Ratio 24 h / 72 h = 0.653.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Smeets 2022 (the 72 h source too): 19.6 at day 1 (24 h) vs 30 at day 3",
+        "ratio": 0.6533,
+        "base": "72 h reference"
+      }
+    },
+    {
+      "key": "urine",
+      "group": "kidneys",
+      "label": "Urine output",
+      "unit": "mL/kg/h",
+      "mean": null,
+      "sd": null,
+      "low": 1,
+      "high": 3,
+      "range_type": "range",
+      "method": "urine production before the postnatal diuresis",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "textbook"
+      ],
+      "grade": "C",
+      "model_readout": "Kidneys.urine_flow x 60 / weight",
+      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Hogg 1977: urine flow low before the postnatal diuresis that starts at 7-22 h (direction).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "pda",
+      "group": "shunts",
+      "label": "Ductal net left-to-right flow",
+      "unit": "mL/kg/min",
+      "mean": 20,
+      "sd": null,
+      "low": 10,
+      "high": 35,
+      "range_type": "derived",
+      "method": "LV output minus systemic flow; orifice physics",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "agata1994",
+        "ha2018",
+        "agata1991"
+      ],
+      "grade": "B",
+      "model_readout": "AAR_DA flow",
+      "notes": "USER DECISION 2026-11-06: target 20 (10-35). Assumes the systemic flow at 24 h equals the 72 h flow (Ha SVC x1.03). Agata 1994: 272 vs 258 -> +5.4 % -> 11; Ha 2018: 199.5 vs 165-175 -> +14-21 % -> 28-41; Agata 1991: 245 vs 245 -> 0. Drayton 1987: \"decreased rapidly over the first 12 h\", unmeasurable by 48 h.",
+      "derivation": {
+        "method": "within-study LVO excess at 24 h over the closed-duct LVO, as a fraction, times the 72 h LVO (196)"
+      }
+    },
+    {
+      "key": "fo",
+      "group": "shunts",
+      "label": "Foramen ovale",
+      "unit": "mL/kg/min",
+      "mean": null,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "colour Doppler",
+      "age": "72 h kept",
+      "n": 36,
+      "sources": [
+        "he2011",
+        "hiraishi1991",
+        "jhaveri2023",
+        "groves2011"
+      ],
+      "grade": "C",
+      "model_readout": "Shunts.flow_fo / weight (L->R positive)",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "pda_diam",
+      "group": "shunts",
+      "label": "Ductal diameter",
+      "unit": "mm",
+      "mean": 1.89,
+      "sd": 0.41,
+      "low": 1.07,
+      "high": 2.71,
+      "range_type": "mean +/- 2SD",
+      "method": "echo",
+      "age": "24 h",
+      "n": 76,
+      "sources": [
+        "kang2016",
+        "ha2018",
+        "shiraishi1991"
+      ],
+      "grade": "A",
+      "model_readout": "Pda.diameter_relative x diameter_pa_max",
+      "notes": "Kang 2016: 1.89 +/- 0.41 mm at 24 h (2.47 at 12 h, 1.61 at 48 h), closed in 38 %; Shiraishi 1991: 44 % closed by 24 h; Ha 2018: 1.34 (1.2-1.73) over 12-24 h, all open, 22 % open at 24-36 h. USER DECISION 2026-11-06: the typical 24 h baby still has a small open duct. Model: an effective lumen of 1.6 mm x Kang's 12 -> 24 h narrowing (x0.765) ~ 1.22 mm as the starting point."
+    },
+    {
+      "key": "pda_rtol_pct",
+      "group": "shunts",
+      "label": "Ductal right-to-left time",
+      "unit": "% of steps",
+      "mean": null,
+      "low": 0,
+      "high": 5,
+      "range_type": "bidirectional",
+      "method": "colour Doppler direction",
+      "age": "12 h",
+      "n": 76,
+      "sources": [
+        "kang2016",
+        "shiraishi1991"
+      ],
+      "grade": "A",
+      "model_readout": "AAR_DA flow < 0",
+      "notes": "Kang 2016: all left-to-right by 24 h (bidirectional 12 % at 12 h); Shiraishi 1991: 3/19 bidirectional at 12-24 h. Left-to-right only."
+    },
+    {
+      "key": "pda_v_peak",
+      "group": "shunts",
+      "label": "Ductal peak L->R velocity",
+      "unit": "m/s",
+      "mean": 2.15,
+      "sd": null,
+      "low": 1.5,
+      "high": 2.55,
+      "range_type": "IQR span 12-36 h",
+      "method": "PW/CW Doppler at the pulmonary end",
+      "age": "24 h",
+      "n": 56,
+      "sources": [
+        "ha2018",
+        "mandorla1990"
+      ],
+      "grade": "A/B",
+      "model_readout": "beat maximum of Pda.velocity_doppler",
+      "notes": "Ha 2018 medians (IQR): 2.02 (1.49-2.26) over 12-24 h, 2.27 (2.04-2.54) over 24-36 h; 24 h between. Mandorla 1990: 2.3 +/- 0.6 just before closure. Velocity rises as the duct closes."
+    },
+    {
+      "key": "pda_v_ed",
+      "group": "shunts",
+      "label": "Ductal end-diastolic L->R velocity",
+      "unit": "m/s",
+      "mean": null,
+      "sd": null,
+      "low": 0.8,
+      "high": 2.3,
+      "range_type": "derived",
+      "method": "Bernoulli from the aorta-PA diastolic gradient",
+      "age": "12 h",
+      "n": null,
+      "sources": [
+        "kang2016",
+        "taiwo2022",
+        "mandorla1990"
+      ],
+      "grade": "C",
+      "model_readout": "beat minimum of Pda.velocity_doppler (a dip would show here)",
+      "notes": "No measured end-diastolic velocity at 24 h. Kang PA diastolic 19.7 against Taiwo DBP 41.2: ~21.5 mmHg, ~2.3 m/s (upper end, derived). Closing spectrum: high end-diastolic flow."
+    },
+    {
+      "key": "pda_v_ratio",
+      "group": "shunts",
+      "label": "Ductal peak / end-diastolic velocity",
+      "unit": "-",
+      "mean": null,
+      "sd": null,
+      "low": 1.0,
+      "high": 2.2,
+      "range_type": "pattern class",
+      "method": "Doppler pattern classification",
+      "age": "first days",
+      "n": null,
+      "sources": [
+        "vanlaere2018",
+        "kang2016"
+      ],
+      "grade": "C",
+      "model_readout": "pda_v_peak / pda_v_ed",
+      "notes": "van Laere 2018 (after Su): closing < 2, pulsatile >= 2. A closing duct at 24 h."
+    },
+    {
+      "key": "spo2_post",
+      "group": "gases",
+      "label": "SpO2 post-ductal",
+      "unit": "%",
+      "mean": null,
+      "sd": null,
+      "low": null,
+      "high": null,
+      "range_type": null,
+      "method": "pulse oximetry",
+      "age": "72 h kept",
+      "n": 10,
+      "sources": [],
+      "grade": "C",
+      "model_readout": "Monitor post-ductal SpO2",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "cor_flow",
+      "group": "flows",
+      "label": "Coronary flow (whole heart)",
+      "unit": "mL/min",
+      "mean": 22,
+      "sd": null,
+      "low": 18,
+      "high": 28,
+      "range_type": "derived",
+      "method": "LAD volume flow by transthoracic Doppler (healthy controls, 1 week), scaled to the whole heart",
+      "age": "72 h kept",
+      "n": 15,
+      "sources": [
+        "aburawi2012",
+        "yasuoka2002"
+      ],
+      "grade": "C",
+      "model_readout": "AA_COR flow",
+      "notes": "LAD 8.2 +/- 3.0 mL/min (Aburawi 2012); the LAD carries ~35-45 % of the total, so ~18-23 mL/min; LAD flow per gram of LV is highest in young infants (Yasuoka 2002). Added 2026-10-27. 24 h: no within-study pair; the 72 h value is kept (at 12 h ~29 mL/min was accepted, from the higher RV work).",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "mvo2",
+      "group": "flows",
+      "label": "Myocardial O2 use",
+      "unit": "mL/100 g/min",
+      "mean": 14,
+      "sd": null,
+      "low": 10,
+      "high": 19,
+      "range_type": "derived",
+      "method": "between adult resting values and newborn lambs",
+      "age": "72 h kept",
+      "n": null,
+      "sources": [
+        "smolich1996"
+      ],
+      "grade": "C",
+      "model_readout": "Mob.mob_vo2 / Mob.hw",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "ppl_swing",
+      "group": "breathing",
+      "label": "Pleural (oesophageal) pressure swing",
+      "unit": "cmH2O",
+      "mean": 7.3,
+      "sd": 1.4,
+      "low": null,
+      "high": null,
+      "range_type": "mean_sd",
+      "method": "oesophageal water-filled catheter, quiet breathing; no change with growth from the newborn period to 5 years (n=40)",
+      "age": "72 h kept",
+      "n": 40,
+      "sources": [
+        "gerhardt1987",
+        "papastamelos1995",
+        "yau1994"
+      ],
+      "grade": "C",
+      "model_readout": "none in this probe: validate_respiratory base.ppl_swing (THORAX pressure swing per breath)",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "co2_response",
+      "group": "breathing",
+      "label": "Ventilatory response to CO2",
+      "unit": "mL/kg/min per mmHg",
+      "mean": 38.7,
+      "sd": null,
+      "low": 12,
+      "high": 67,
+      "range_type": "range",
+      "method": "CO2 rebreathing (normoxic) in term babies at 4-6 days; quiet sleep 38.7 +/- 3.0, REM sleep 12.2 +/- 3.0 (n=5, 4-5 tests each)",
+      "age": "72 h kept",
+      "n": 5,
+      "sources": [
+        "cohen1991",
+        "moriette1985",
+        "rigatto1991",
+        "mortola1996"
+      ],
+      "grade": "C",
+      "model_readout": "none in this probe: scripts/probe_co2_response.mjs (steady state, 0/2/4 % inspired CO2)",
+      "notes": "No within-study pair; the 72 h value is kept.",
+      "derivation": {
+        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+      }
+    },
+    {
+      "key": "rq",
+      "group": "metabolism",
+      "label": "Respiratory quotient",
+      "unit": "-",
+      "mean": 0.864,
+      "sd": null,
+      "low": 0.81,
+      "high": 0.92,
+      "range_type": "72 h range x ratio",
+      "method": "indirect calorimetry (VCO2 / VO2 at the airway)",
+      "age": "24 h",
+      "n": null,
+      "sources": [
+        "zoppi1998"
+      ],
+      "grade": "B",
+      "model_readout": "Monitor.rq",
+      "notes": "Zoppi 1998: RQ 0.94 at 6 h, 0.88 at 30 h -> ~0.895 at 24 h vs 0.88 at 30 h (30 h as the later-age proxy). Ratio 24 h / 72 h = 1.017.",
+      "derivation": {
+        "method": "72 h x within-study ratio",
+        "pair": "Zoppi 1998: RQ 0.94 at 6 h, 0.88 at 30 h -> ~0.895 at 24 h vs 0.88 at 30 h (30 h as the later-age proxy)",
+        "ratio": 1.017,
+        "base": "72 h reference"
+      }
+    }
+  ]
+}
