@@ -3,8 +3,9 @@
 // Turns the diagram definition + live model state into the ~per-frame scalar
 // stream that drives the sprite diagram. Built once at model build from
 // `model.diagram_definition.components`; on every realtime tick it packs each
-// animated component's magnitude (volume or flow) and tint source (to2) into a
-// fixed-stride Float32 frame and hands it to the ChannelWriter.
+// animated component's magnitude (volume or flow) and tint (the blood's O2
+// saturation, see tintOf) into a fixed-stride Float32 frame and hands it to the
+// ChannelWriter.
 //
 // Aggregation lives here (in the worker) on purpose: a component may map to
 // several engine models (e.g. a lung = ["LL_CAP","LL_ART","LL_VEN"]); summing
@@ -18,6 +19,20 @@ import {
   animTintOffset,
   ANIM_TIME_SLOT,
 } from "./RealtimeChannels.js";
+
+// The tint is the blood's O2 saturation as a fraction, estimated as O2 content over
+// haemoglobin (to2 / Hb, both mmol/l: one O2 per haem). It tracks the engine's own
+// so2 within ~1.5 points (dissolved O2 is negligible) but costs one division,
+// where so2 needs a root-find and is kept fresh in only a few compartments. Unlike
+// to2 it does not fall with haemodilution, so a saline bolus or a bleed no longer
+// turns the diagram blue while the saturations stay put; and it is independent of
+// the Hb level, so neonatal and adult circuits share one colour window. Blood
+// without haemoglobin (e.g. URINE) tints 0.
+export function tintOf(m) {
+  const t = m.to2;
+  const hb = m.solutes?.hemoglobin;
+  return typeof t === "number" && hb > 0 ? t / hb : 0;
+}
 
 export default class AnimationPacker {
   /**
@@ -131,12 +146,7 @@ export default class AnimationPacker {
       }
       frame[animMagOffset(d.index)] = mag;
 
-      let tint = 0;
-      if (d.tintRef) {
-        const t = d.tintRef.to2;
-        if (typeof t === "number") tint = t;
-      }
-      frame[animTintOffset(d.index)] = tint;
+      frame[animTintOffset(d.index)] = d.tintRef ? tintOf(d.tintRef) : 0;
     }
 
     writer.writeAnimFrame(frame);

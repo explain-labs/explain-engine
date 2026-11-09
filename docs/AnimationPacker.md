@@ -1,6 +1,6 @@
 # AnimationPacker
 
-`AnimationPacker.js` turns the **diagram definition + live model state** into the per-frame scalar stream that drives the PixiJS sprite diagram. It is worker-side infrastructure, not a physiological model. Built once at model build from `model.diagram_definition.components` (and rebuilt by `ModelEngine.update_diagram()` when the diagram is edited live), it packs each animated component's **magnitude** (volume or flow) and **tint source** (`to2`) into a fixed-stride `Float32` frame and hands it to [ChannelWriter](./ChannelWriter.md) every realtime tick. See [RealtimeChannels](./RealtimeChannels.md) for the anim frame layout and [ARCHITECTURE](./ARCHITECTURE.md) for the full pipeline.
+`AnimationPacker.js` turns the **diagram definition + live model state** into the per-frame scalar stream that drives the PixiJS sprite diagram. It is worker-side infrastructure, not a physiological model. Built once at model build from `model.diagram_definition.components` (and rebuilt by `ModelEngine.update_diagram()` when the diagram is edited live), it packs each animated component's **magnitude** (volume or flow) and **tint** (the blood's O₂ saturation, `to2 / Hb`) into a fixed-stride `Float32` frame and hands it to [ChannelWriter](./ChannelWriter.md) every realtime tick. See [RealtimeChannels](./RealtimeChannels.md) for the anim frame layout and [ARCHITECTURE](./ARCHITECTURE.md) for the full pipeline.
 
 ## Role in the engine
 
@@ -55,7 +55,9 @@ Picks the model whose `to2` colours this component:
 The per-tick hot path. No-op if `!enabled`. Cheap: one pass over precomputed descriptors, no allocation.
 
 - Writes `time` into `frame[ANIM_TIME_SLOT]`.
-- For each descriptor: sums `magProp` across all `magRefs` (skipping non-numbers) into `frame[animMagOffset(index)]`; reads `tintRef.to2` (or `0`) into `frame[animTintOffset(index)]`.
+- For each descriptor: sums `magProp` across all `magRefs` (skipping non-numbers) into `frame[animMagOffset(index)]`; writes `tintOf(tintRef)` (or `0`) into `frame[animTintOffset(index)]`.
+
+**Tint = saturation, not content.** `tintOf(m)` returns `m.to2 / m.solutes.hemoglobin` (both mmol/l, one O₂ per haem): the O₂ saturation as a fraction, within ~1.5 points of the engine's `so2`, which is a root-find kept fresh in only a few compartments. Colouring by content made a saline bolus or a bleed turn the whole diagram blue (haemodilution lowers `to2` by ~17 % for 20 ml/kg) while every saturation stayed put. A ratio also removes the dependence on the Hb level, so one colour window fits neonatal and adult circuits. Blood without haemoglobin (`URINE`) tints `0`. The renderer's colour window is in the same units (`settings.sat_lo` / `sat_hi`).
 - Calls `writer.writeAnimFrame(frame)`.
 
 ### `registry()`
