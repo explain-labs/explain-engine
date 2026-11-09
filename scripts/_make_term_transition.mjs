@@ -1,9 +1,9 @@
-// Generate the transitional term neonates term_neonate_12h / term_neonate_24h (a healthy term neonate 12 or 24 h
+// Generate the transitional term neonates term_neonate_1h / _12h / _24h (a healthy term neonate 1, 12 or 24 h
 // after birth) from term_neonate_72h. Reference values: docs/TermTransitionReference.md and
 // scripts/reference/term_neonate_<age>h.json; check with
 //   node scripts/probe_term_reference.mjs term_neonate_24h --ref scripts/reference/term_neonate_24h.json
 //
-//   node scripts/_make_term_transition.mjs --age 12|24 [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
+//   node scripts/_make_term_transition.mjs --age 1|12|24 [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
 //     prototyping: [--pda-mm 1.6] [--pda-lc 2] [--pda-cd 0.9] [--pvr 1.5] [--rv-el 1.3] [--kf 0.6] [--rq 0.889] [--map 55.4] [--svr 0.65] [--el-max 1.5] [--hr 1.025] (the map and output levers)
 //
 // The 12 h (24 h) baby is the SAME baby as term_neonate_72h, 60 h (48 h) younger (same cord clamping, same red cell mass).
@@ -53,6 +53,19 @@ const PROFILES = {
     kf: 0.6, // user decision 2026-11-05: GFR ~23, urine ~1.0
     rq: 0.889, // Zoppi 1998 x1.045
   },
+  1: {
+    description: "healthy term neonate (3.545 kg) 1 h after a vaginal birth: the term_neonate_72h baby 71 h younger, " +
+      "early in the transition (wide bidirectional duct, near-systemic pulmonary pressure, high output, acidosis of birth); room air",
+    map: 52.1, // 72 h MAP 58 x 0.898 (Taiwo 2022: 47.2 within 1 h of birth vs ~52.55 at 72 h)
+    pda_mm: 4.85, pda_ao: 5.3, // Agata 1994 5.1 at 1 h, Kang 2016 4.6 at 2 h: a wide, unrestrictive duct
+    pvr: 1.6, // user decision 2026-11-06: net shunt ~73 (grid 1.4/1.6 x RV lead 0/20/35 ms)
+    rv_delay: -0.035, // user decision 2026-11-06: the RV activates 35 ms before the LV -> early-systolic R->L, then L->R (Rudolph)
+    rv_el: 1.5, // user decision 2026-11-09: RV EF 47, RV output 203 against the near-systemic PA
+    kf: 0.6, rq: 0.908,
+    hr: 1.13, bvf: 1.039, lact: 2.2, uma: 1.8, pco2: 36, mv: 1.08,
+    lung_u: 0.85, // user decision 2026-11-09: FRC ~27 (Lee 1999), compliance unchanged
+    levers: ["duct", "pvr", "rv", "rvdelay", "kidney", "rq", "hr", "blood", "acidbase", "vent", "lung", "map"],
+  },
   24: {
     description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth: the term_neonate_72h baby 48 h younger, " +
       "late in the transition (small closing duct, pulmonary pressure falling); room air, dressed at room temperature",
@@ -75,6 +88,12 @@ const RV_EL = Number(opt("--rv-el", P.rv_el));
 const KF = Number(opt("--kf", P.kf)), RQ = Number(opt("--rq", P.rq));
 const OUT_SVR = Number(opt("--svr", 0.65)), OUT_EL_MAX = Number(opt("--el-max", 1.5)), OUT_HR = Number(opt("--hr", 1.025));
 const DESCRIPTION = P.description;
+const PDA_AO = Number(opt("--pda-ao", P.pda_ao ?? 3.0));
+const HR_F = Number(opt("--hr-f", P.hr ?? 1.0)), BVF = Number(opt("--bvf", P.bvf ?? 1.0));
+const LACT = Number(opt("--lact", P.lact ?? 1.5)), UMA_D = Number(opt("--uma", P.uma ?? 0.0));
+const PCO2_T = Number(opt("--pco2", P.pco2 ?? 39.4)), MV_F = Number(opt("--mv", P.mv ?? 1.0));
+const RV_DELAY = Number(opt("--rv-delay", P.rv_delay ?? 0.0));
+const LUNG_U = Number(opt("--lung-u", P.lung_u ?? 1.0)), LUNG_EL = Number(opt("--lung-el", P.lung_el ?? 1.0));
 
 // --- levers (applied to the live 72 h model, in this order) -------------------------------------
 // Each: { why, apply(M, model), settle? }. Added one at a time (step 3 onwards of the 12 h plan).
@@ -92,8 +111,8 @@ const LEVERS = {
     why: `Pda pulmonary end ${PDA_MM} mm (Kang 2016: 2.47), aortic ampulla 3 mm, constriction length ${PDA_LC} mm, Cd ${PDA_CD}`,
     apply(M) {
       const P = M.Pda;
-      P.diameter_ao_max = 3.0;
-      P.diameter_pa_max = 3.0;
+      P.diameter_ao_max = Math.max(3.0, PDA_AO); // the aortic ampulla (3 mm at 72 h; wider while the whole duct is open)
+      P.diameter_pa_max = Math.max(3.0, PDA_MM);
       P.diameter_relative = PDA_MM / P.diameter_pa_max;
       P.constriction_length = PDA_LC;
       P.discharge_coeff = PDA_CD;
@@ -144,7 +163,60 @@ const LEVERS = {
     why: `Metabolism.resp_q ${RQ}`,
     apply(M) { M.Metabolism.resp_q = RQ; },
   },
-  // 7. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
+  // 7. heart rate in the first hours (Agata 1994 147 at 1 h vs ~120 at 96 h; Tveiten 2021 126 at 2 h vs ~121): the
+  //    resting rate reference, before the baroreflex fold
+  hr: {
+    why: `Heart.heart_rate_ref x${HR_F}`,
+    apply(M) { M.Heart.heart_rate_ref *= HR_F; },
+  },
+  // 8. blood soon after a placental transfusion (Nelle 1993): the same red cell mass in a larger plasma volume, so
+  //    blood volume x BVF and haemoglobin (with each compartment's O2 content, same saturation) / BVF
+  blood: {
+    why: `blood volume x${BVF}, haemoglobin / ${BVF} (same red cell mass)`,
+    apply(M, model) {
+      eng.scale("blood_volume", BVF);
+      const hbOld = M.Blood.solutes.hemoglobin, hbNew = hbOld / BVF;
+      M.Blood.set_solute("hemoglobin", hbNew);
+      for (const [n, m] of Object.entries(M)) if (m?.solutes && m !== M.Blood && typeof m.to2 === "number" && !/^(PL_|UT|MP|URINE$|ECLS)/.test(n)) m.to2 *= hbNew / hbOld;
+      return { hb: true };
+    },
+  },
+  // 9. the metabolic acidosis of birth (1 h: BE ~-5, lactate 2.2, GLOW 2021): lactate baseline and the unmeasured
+  //    anions, in every blood compartment
+  acidbase: {
+    why: `lactate ${LACT}, unmeasured anions +${UMA_D} mmol/L`,
+    apply(M) {
+      M.Lactate.lact_baseline = LACT;
+      for (const [n, m] of Object.entries(M)) {
+        if (!m?.solutes || /^(PL_|UT|MP|URINE$|ECLS)/.test(n)) continue;
+        if (typeof m.solutes.lact === "number") m.solutes.lact = LACT;
+        if (typeof m.solutes.uma === "number") m.solutes.uma += UMA_D;
+      }
+    },
+  },
+  // 10. the chemoreflex defends the age's pCO2 while the levers settle (re-anchored afterwards), as the map lever
+  //     does for the pressure; the ventilation reference moves with it so the reflex does not carry the change
+  vent: {
+    why: `CR_PCO2 set-point ${PCO2_T} while settling, minute_volume_ref x${MV_F}`,
+    settle: true,
+    apply(M) {
+      if (!this._done) { M.Breathing.minute_volume_ref *= MV_F; this._done = true; }
+      M.CR_PCO2.set_value = PCO2_T;
+    },
+  },
+  // 11. ventricular timing: the RV activates before the LV (Heart.rv_delay < 0), so the PA pressure rises first and
+  //     the duct shunts right-to-left in early systole (prototyping)
+  rvdelay: {
+    why: `Heart.rv_delay ${RV_DELAY * 1000} ms`,
+    apply(M) { M.Heart.rv_delay = RV_DELAY; },
+  },
+  // 12. lung liquid not yet cleared at 1 h (Lee 1999: FRC 23.1 at 4-6 h vs 24.9 at 24 h): the alveolar unstressed
+  //     volume smaller and the alveoli slightly stiffer
+  lung: {
+    why: `alveolar u_vol x${LUNG_U}, el_base x${LUNG_EL}`,
+    apply(M) { for (const n of ["ALL", "ALR"]) { M[n].u_vol *= LUNG_U; M[n].el_base *= LUNG_EL; } },
+  },
+  // 13. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
   //    lower body (and the systemic conduits) dilate, the organ beds (brain, gut, liver + spleen, kidneys)
   //    keep their 72 h resistance (Agata 1994: organ flows not higher on day 1), and contractility and rate
   //    rise. Starting values from the 2026-10 12 h work; re-tuned here.
@@ -159,7 +231,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["duct", "pvr", "rv", "kidney", "rq", "map"]; // "output" is opt-in (prototyping)
+const DEFAULT = P.levers ?? ["duct", "pvr", "rv", "kidney", "rq", "map"]; // "output" and "rvdelay" are opt-in (prototyping)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 

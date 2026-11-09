@@ -16,6 +16,7 @@ export const SCENARIO_CLASS = {
   term_neonate_72h: "term",
   term_neonate_12h: "term", // same targets: its breathing and gas targets are the 72 h ones (within-study rule, docs/TermTransitionReference.md)
   term_neonate_24h: "term_24h", // the term targets with a compliance floor of 0.95 (see term_24h)
+  term_neonate_1h: "term_1h", // the 1 h gases (see term_1h)
 };
 
 export function classify(name, def) {
@@ -36,6 +37,12 @@ export const TARGETS = {
     ppl_swing: [4.5, 10.1],  // cmH2O, oesophageal swing 7.3 +/- 1.4 (mean +/- 2 SD) [Gerhardt]
     cstat_kg: [1.0, 2.0],    // mL/cmH2O/kg, total respiratory system [Polgar]
     co2_gain: [0.10, 0.40],  // 0.03-0.06 L/kg/min/mmHg on ~0.2 L/kg/min [Rigatto]
+  },
+  // the term baby at 1 h: the metabolic acidosis of birth (textbook pH 7.32, pCO2 36, BE -5; user decision 2026-11-06,
+  // docs/TermTransitionReference.md), otherwise the term targets
+  term_1h: {
+    rr: [30, 60], vt_kg: [4.5, 7.5], mv_kg: [0.15, 0.35], paco2: [31, 41], ph: [7.27, 7.37], spo2: [95, 100],
+    ppl_swing: [4.5, 10.1], cstat_kg: [1.0, 2.0], co2_gain: [0.10, 0.40],
   },
   // the term baby at 24 h: the term targets, with the static compliance floor at 0.95. Compliance is lower on
   // day 0-1 than later (Lodrup Carlsen 1993, direction only); the model's lung, unchanged from 72 h, reads 1.005
