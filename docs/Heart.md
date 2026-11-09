@@ -76,6 +76,8 @@ BaseModelClass
 | `ans_sens` | – | 1.0 | Sensitivity of rate and chambers to the ANS. |
 | `hr_factor` | – | 1.0 | User heart-rate factor. |
 | `hr_override` | boolean | `false` | Pins the rate to `heart_rate_ref`, ignoring all factors. |
+| `hr_max` | beats/min | 210 | Maximum sinus rate (term neonate). The rise above `heart_rate_ref` is compressed toward it; the reference itself is never limited. |
+| `hr_soft` | beats/min | 30 | Width of the soft zone below `hr_max` where the compression starts. |
 | `cont_factor_left`, `cont_factor_right` | – | 1.0 | Contractility (left: LA, LV; right: RA halves, RV). A change is applied as a delta to the chambers' `el_max_factor_ps`. |
 | `relax_factor_left`, `relax_factor_right` | – | 1.0 | Diastolic stiffness, applied the same way to `el_min_factor_ps`. |
 | `pc_el_factor` | – | 1.0 | Pericardial stiffness (`PERICARDIUM` `el_base` and `el_k` `_factor_ps`). |
@@ -139,6 +141,11 @@ BaseModelClass
                     + (hr_temp_factor − 1) + (hr_drug_factor − 1) + (hr_chemo_factor − 1)
                     + (hr_cat_factor − 1))
    ```
+   **Maximum sinus rate.** The contributions add up with no limit of their own: after a 35 % bleed in term_neonate_12h, the baroreflex (+57) and the catecholamines (+74) took the rate to 254/min. A neonatal sinus tachycardia rarely exceeds ~210–220/min (above that, think of SVT). So a rise above `HR_ref` is compressed smoothly once it passes the knee `k = max(HR_ref, hr_max − hr_soft)`:
+   ```
+   HR = k + (hr_max − k) · tanh((HR − k) / (hr_max − k))      (HR > k)
+   ```
+   With the defaults, raw 192 → 191, raw 251 → 209. Resting rates sit far below the knee and are unchanged. A `heart_rate_ref` at or above `hr_max` (a user-set SVT) is kept as it is, without any rise on top.
    With `hr_override` it is `HR_ref`. It is floored at 0; at 0 the sinus node is silent.
 4. **Conduction timers**:
    - **SA firing** (every `60/HR` s while `sa_node_enabled`) starts the PQ interval and the atrial activation (`ncc_atrial = −1`). The SA timer is not saved: after a load the node fires on the first step. (It used to wait a whole interval, which skipped one beat after every load: term MAP 61 → 53 mmHg for ~2 s, enough to set the brain autoregulation ringing.)

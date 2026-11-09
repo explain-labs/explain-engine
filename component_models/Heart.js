@@ -50,6 +50,12 @@ export class Heart extends BaseModelClass {
     this.hr_mob_factor = 1.0; // heart rate factor of the myocardial oxygen balance model
     this.hr_temp_factor = 1.0; // heart rate factor of the temperature (driven by the Thermoregulation model)
     this.hr_drug_factor = 1.0; // heart rate factor of the drug model (driven by the Drugs model)
+    // maximum sinus rate: the rises above the reference (autonomic, catecholamines, chemoreflex,
+    // drugs, temperature, myocardial O2) are summed, and in a big bleed they stacked to 250/min.
+    // Above hr_max - hr_soft the rise is compressed smoothly (tanh) toward hr_max; the reference
+    // itself is never limited, so a rate the user sets (e.g. an SVT) still applies
+    this.hr_max = 210.0; // beats/min, term neonate (sinus tachycardia rarely exceeds ~210-220)
+    this.hr_soft = 30.0; // beats/min, width of the soft zone below hr_max
     this.hr_chemo_factor = 1.0; // heart rate factor of the peripheral chemoreflex (hypoxic bradycardia; driven by an AnsEfferent, 1.0 = no effect)
     this.hr_cat_factor = 1.0; // heart rate factor of the circulating catecholamines (sympathoadrenal; driven by the Hormones model, 1.0 = no effect)
 
@@ -355,6 +361,15 @@ export class Heart extends BaseModelClass {
       (this.hr_drug_factor - 1.0) * this.heart_rate_ref +
       (this.hr_chemo_factor - 1.0) * this.heart_rate_ref +
       (this.hr_cat_factor - 1.0) * this.heart_rate_ref;
+
+    // soft ceiling on the rise above the reference (see hr_max)
+    if (this.heart_rate > this.heart_rate_ref && this.hr_max > 0.0) {
+      const knee = Math.max(this.heart_rate_ref, this.hr_max - this.hr_soft);
+      if (this.heart_rate > knee) {
+        const room = this.hr_max - knee;
+        this.heart_rate = room > 0.0 ? knee + room * Math.tanh((this.heart_rate - knee) / room) : knee;
+      }
+    }
 
     if (this.hr_override) {
       this.heart_rate = this.heart_rate_ref;
