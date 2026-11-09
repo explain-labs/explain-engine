@@ -8039,7 +8039,9 @@
             "na": 140,
             "k": 4.5,
             "cl": 105,
-            "glucose": 25
+            "glucose": 25,
+            "to2": 7.2,
+            "tco2": 26
           },
           "albumin_20%": {
             "albumin": 200,

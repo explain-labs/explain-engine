@@ -44,16 +44,20 @@ export class Fluids extends BaseModelClass {
   }
 
    add_volume(volume, in_time = 10, fluid_in = "normal_saline", site = "VLB") {
+    // a fluid's gas content (to2, tco2 in mmol/L) sits in its library entry beside the solutes; most
+    // fluids carry none (0), but a red-cell unit does: zero CO2 in a unit with a plasma-like strong
+    // ion difference made the transfused blood hypocapnic and alkalotic (see docs/Fluids.md)
+    const { to2 = 0.0, tco2 = 0.0, ...solutes } = this.fluids[fluid_in] ?? {};
     // build a fluid object which can be fed to a BloodVessel, BloodCapacitance or BloodTimeVaryingElastance
     let fluid = {
       vol: volume / 1000.0,
       time_left: in_time,
       delta: (volume / 1000.0) / (in_time / this._update_interval),
       site: site,
-      to2 : 0.0,
-      tco2 : 0.0,
+      to2: to2,
+      tco2: tco2,
       temp: this.fluids_temp,
-      solutes: {...this.fluids[fluid_in]},
+      solutes: solutes,
       drugs: {}
     }
     this.running_fluids.push(fluid)
