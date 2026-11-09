@@ -96,19 +96,24 @@ export function selectProfile({ weight, profile } = {}) {
 // table's floors. The 12 h row is term_neonate_12h's reference (docs/TermTransitionReference.md).
 // From 60 h on the `neonate` table's own values apply.
 export const NEONATE_PAP_BY_AGE = [
+  // up to 6 h: term_neonate_1h's reference (docs/TermTransitionReference.md): PAP:SAP 0.88-1.22 on its BP targets
+  // (Skinner 1991), Kang 2 h diastolic 37.9 +/- 5.6; CVP Siassi 1980 (1.6, -3 to +4, 2-24 h); textbook 1 h gases
+  { upToHours: 6, pap_s: [55, 77], pap_d: [27, 49], pap_m: [42, 64], cvp: [-3, 4], ph: [7.27, 7.37], pco2: [31, 41], hco3: [16, 20], be: [-7, -3] },
   { upToHours: 18, pap_s: [34, 71], pap_d: [9, 38], pap_m: [22, 60] },
   { upToHours: 36, pap_s: [28, 60], pap_d: [5, 37], pap_m: [15, 54] },
   { upToHours: 60, pap_s: [22, 55], pap_d: [5, 25], pap_m: [11, 41] },
 ];
 
 // The range table for a profile at a postnatal age (days; null/undefined = day 1). The
-// term_neonate_72h baseline itself is 72 h old, so builds from it default to the day-3 table. Only the term `neonate` profile is age-dependent, and only its PAP keys.
+// term_neonate_72h baseline itself is 72 h old, so builds from it default to the day-3 table. Only the term `neonate` profile is age-dependent: its PAP keys, and below 6 h also CVP and the gases.
 export function rangesFor(profile, { ageDays } = {}) {
   const base = RANGES[profile] || RANGES.adult;
   if (profile !== "neonate") return base;
   const hours = 24 * (typeof ageDays === "number" && ageDays >= 0 ? ageDays : 1);
   const row = NEONATE_PAP_BY_AGE.find((r) => hours < r.upToHours);
-  return row ? { ...base, pap_s: row.pap_s, pap_d: row.pap_d, pap_m: row.pap_m } : base;
+  if (!row) return base;
+  const { upToHours, ...keys } = row; // an age row overrides the keys it lists (PAP; at 1 h also CVP and the gases)
+  return { ...base, ...keys };
 }
 
 export function flagOf(ranges, k, v) {

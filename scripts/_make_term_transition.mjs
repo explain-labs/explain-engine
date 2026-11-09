@@ -60,10 +60,11 @@ const PROFILES = {
     pda_mm: 4.85, pda_ao: 5.3, // Agata 1994 5.1 at 1 h, Kang 2016 4.6 at 2 h: a wide, unrestrictive duct
     pvr: 1.6, // user decision 2026-11-06: net shunt ~73 (grid 1.4/1.6 x RV lead 0/20/35 ms)
     rv_delay: -0.035, // user decision 2026-11-06: the RV activates 35 ms before the LV -> early-systolic R->L, then L->R (Rudolph)
-    rv_el: 1.3, // starting point (as 12 h)
+    rv_el: 1.5, // user decision 2026-11-09: RV EF 47, RV output 203 against the near-systemic PA
     kf: 0.6, rq: 0.908,
     hr: 1.13, bvf: 1.039, lact: 2.2, uma: 1.8, pco2: 36, mv: 1.08,
-    levers: ["duct", "pvr", "rv", "rvdelay", "kidney", "rq", "hr", "blood", "acidbase", "vent", "map"],
+    lung_u: 0.85, // user decision 2026-11-09: FRC ~27 (Lee 1999), compliance unchanged
+    levers: ["duct", "pvr", "rv", "rvdelay", "kidney", "rq", "hr", "blood", "acidbase", "vent", "lung", "map"],
   },
   24: {
     description: "healthy term neonate (3.545 kg) 24 h after a vaginal birth: the term_neonate_72h baby 48 h younger, " +
@@ -92,6 +93,7 @@ const HR_F = Number(opt("--hr-f", P.hr ?? 1.0)), BVF = Number(opt("--bvf", P.bvf
 const LACT = Number(opt("--lact", P.lact ?? 1.5)), UMA_D = Number(opt("--uma", P.uma ?? 0.0));
 const PCO2_T = Number(opt("--pco2", P.pco2 ?? 39.4)), MV_F = Number(opt("--mv", P.mv ?? 1.0));
 const RV_DELAY = Number(opt("--rv-delay", P.rv_delay ?? 0.0));
+const LUNG_U = Number(opt("--lung-u", P.lung_u ?? 1.0)), LUNG_EL = Number(opt("--lung-el", P.lung_el ?? 1.0));
 
 // --- levers (applied to the live 72 h model, in this order) -------------------------------------
 // Each: { why, apply(M, model), settle? }. Added one at a time (step 3 onwards of the 12 h plan).
@@ -208,7 +210,13 @@ const LEVERS = {
     why: `Heart.rv_delay ${RV_DELAY * 1000} ms`,
     apply(M) { M.Heart.rv_delay = RV_DELAY; },
   },
-  // 12. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
+  // 12. lung liquid not yet cleared at 1 h (Lee 1999: FRC 23.1 at 4-6 h vs 24.9 at 24 h): the alveolar unstressed
+  //     volume smaller and the alveoli slightly stiffer
+  lung: {
+    why: `alveolar u_vol x${LUNG_U}, el_base x${LUNG_EL}`,
+    apply(M) { for (const n of ["ALL", "ALR"]) { M[n].u_vol *= LUNG_U; M[n].el_base *= LUNG_EL; } },
+  },
+  // 13. systemic output after birth (catecholamine surge; Agata 1991/1994 LVO ~290 at 12 h): the upper and
   //    lower body (and the systemic conduits) dilate, the organ beds (brain, gut, liver + spleen, kidneys)
   //    keep their 72 h resistance (Agata 1994: organ flows not higher on day 1), and contractility and rate
   //    rise. Starting values from the 2026-10 12 h work; re-tuned here.

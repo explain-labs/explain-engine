@@ -562,22 +562,22 @@
       "group": "hemodynamics",
       "label": "Central venous pressure",
       "unit": "mmHg",
-      "mean": null,
+      "mean": 1.6,
       "sd": null,
-      "low": 2,
-      "high": 8,
+      "low": -3,
+      "high": 4,
       "range_type": "range",
       "method": "right atrial mean pressure, umbilical venous catheter",
-      "age": "72 h kept",
+      "age": "2-24 h",
       "n": 24,
       "sources": [
-        "textbook"
+        "siassi1980"
       ],
       "grade": "C",
       "model_readout": "Monitor.minmax.cvp_pres_mean",
-      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Siassi 1980: 1.6 (-3 to 4) over 2-24 h in healthy preterms (no 72 h pair).",
+      "notes": "USER DECISION 2026-11-09: Siassi 1980, right atrial pressure 1.6 (-3 to +4) mmHg over 2-24 h in healthy spontaneously breathing (preterm) infants; the 72 h range (2-8) is a textbook range from sick infants.",
       "derivation": {
-        "method": "no within-study 12 h / 72 h pair: 72 h value kept"
+        "method": "EXCEPTION (user decision 2026-11-09): absolute first-day value instead of the kept 72 h textbook range"
       }
     },
     {
@@ -746,13 +746,14 @@
       ],
       "grade": "B",
       "model_readout": "Heart.lv_ef * 100",
-      "notes": "Ha 2018 LV EF 60.9 over 0-12 h vs 62.5 (48-72 h); the 0-12 h bin as the nearest. Ratio 1 h / 72 h = 0.975.",
+      "notes": "ACCEPTED DEVIATION (user, 2026-11-09): the LV is volume-loaded by the ~70 mL/kg/min ductal shunt (model ~69 %). Ha 2018 LV EF 60.9 over 0-12 h vs 62.5 (48-72 h); the 0-12 h bin as the nearest. Ratio 1 h / 72 h = 0.975.",
       "derivation": {
         "method": "72 h x within-study ratio",
         "pair": "Ha 2018 LV EF 60.9 over 0-12 h vs 62.5 (48-72 h); the 0-12 h bin as the nearest",
         "ratio": 0.9747,
         "base": "72 h reference"
-      }
+      },
+      "accepted_deviation": true
     },
     {
       "key": "rv_edv",
@@ -1741,10 +1742,11 @@
       ],
       "grade": "C",
       "model_readout": "Kidneys.urine_flow x 60 / weight",
-      "notes": "No within-study pair; the 72 h value is kept. Cross-check: Hogg 1977: urine flow low before the postnatal diuresis that starts at 7-22 h (direction).",
+      "notes": "ACCEPTED DEVIATION (user, 2026-11-09): urine flow is low before the postnatal diuresis that starts at 7-22 h (Hogg 1977); model ~0.99 mL/kg/h. No within-study pair; the 72 h value is kept. Cross-check: Hogg 1977: urine flow low before the postnatal diuresis that starts at 7-22 h (direction).",
       "derivation": {
         "method": "no within-study 12 h / 72 h pair: 72 h value kept"
-      }
+      },
+      "accepted_deviation": true
     },
     {
       "key": "pda",
@@ -1859,7 +1861,8 @@
       ],
       "grade": "B",
       "model_readout": "beat maximum of Pda.velocity_doppler",
-      "notes": "Peak left-to-right velocity in a wide bidirectional duct is low: Mandorla 1990 1.5 +/- 0.7 at the first exam (< 6 h); Ha 2018 1.43 (1.07-1.78) over 0-12 h."
+      "notes": "ACCEPTED DEVIATION (user, 2026-11-09): the left-to-right jet in a ~5 mm unrestrictive duct is slow (model ~0.65 m/s); the 0.8-2.2 range comes from first exams up to 6 h, when the duct is already narrowing. Peak left-to-right velocity in a wide bidirectional duct is low: Mandorla 1990 1.5 +/- 0.7 at the first exam (< 6 h); Ha 2018 1.43 (1.07-1.78) over 0-12 h.",
+      "accepted_deviation": true
     },
     {
       "key": "pda_v_ed",
@@ -1944,10 +1947,11 @@
       ],
       "grade": "C",
       "model_readout": "AA_COR flow",
-      "notes": "LAD 8.2 +/- 3.0 mL/min (Aburawi 2012); the LAD carries ~35-45 % of the total, so ~18-23 mL/min; LAD flow per gram of LV is highest in young infants (Yasuoka 2002). Added 2026-10-27. 1 h: no within-study pair; the 72 h value is kept.",
+      "notes": "ACCEPTED DEVIATION (user, 2026-11-09): coronary flow follows myocardial O2 use at the kept 72 h extraction; both ventricles work harder at 1 h (model ~32 mL/min), as at 12 h. LAD 8.2 +/- 3.0 mL/min (Aburawi 2012); the LAD carries ~35-45 % of the total, so ~18-23 mL/min; LAD flow per gram of LV is highest in young infants (Yasuoka 2002). Added 2026-10-27. 1 h: no within-study pair; the 72 h value is kept.",
       "derivation": {
         "method": "no within-study 12 h / 72 h pair: 72 h value kept"
-      }
+      },
+      "accepted_deviation": true
     },
     {
       "key": "mvo2",
