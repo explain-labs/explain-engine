@@ -43,7 +43,7 @@
 import fs from "node:fs";
 import { createEngine } from "./_harness.mjs";
 import { serializeState } from "./_serialize_state.mjs";
-import { SHUNT_STYLE, hideConnectors, narrowConnector, simplifyDiagram } from "./_diagram.mjs";
+import { SHUNT_STYLE, narrowConnector, simplifyDiagram } from "./_diagram.mjs";
 
 const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 && argv[i + 1] !== undefined ? argv[i + 1] : d; };
@@ -80,9 +80,7 @@ const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 // ---- teaching diagram (as the ToF family: see simplifyDiagram in _diagram.mjs) ---------------------------
 const HLHS_DIAGRAM = {
-  // the LV is excluded (mitral + aortic atresia): hidden, with its connectors (its stagnant blood would
-  // otherwise show as a red, oxygenated disc)
-  hide: ["IPS", "COR", "VSD", "RV_AA", "LV"],
+  hide: ["IPS", "COR", "VSD", "RV_AA"],
   lump: [
     { name: "RLB", label: "LOWER\nBODY", members: ["RLB", "LS", "KID", "INT", "VLB"] },
     { name: "RUB", label: "UPPER\nBODY", members: ["RUB", "BR", "VUB"], layout: { sprite: { pos: { y: 0.32 } } } },
@@ -91,6 +89,9 @@ const HLHS_DIAGRAM = {
     SVC: { sprite: { pos: { x: -0.56, y: 0.2 } } },
     IVCI: { sprite: { pos: { dgs: 145 } } },
     ...SHUNT_STYLE.layout,
+    // the hypoplastic LV: small, at a fixed size, and grey (no oxygenation tint: its stagnant blood would
+    // otherwise show as a red, oxygenated disc)
+    LV: { sprite: { fixed_size: 0.07, color: "#8a8a8a" }, general: { tinting: false } },
   },
   labels: { ...SHUNT_STYLE.labels, IVCI: "IVC", FO: "ASD" },
   settings: { ...SHUNT_STYLE.settings, scaling: 1 },
@@ -98,7 +99,9 @@ const HLHS_DIAGRAM = {
 function hlhsDiagram(baseDiagram) {
   const dd = structuredClone(baseDiagram);
   const dc = dd.components;
-  hideConnectors(dc, "LA_LV", "LV_AA"); // mitral + aortic atresia
+  // mitral + aortic atresia: drawn as thin lines (no flow runs through them, so no dots)
+  narrowConnector(dc, "LA_LV");
+  narrowConnector(dc, "LV_AA");
   narrowConnector(dc, "AA_AAR", 3); // the hypoplastic ascending aorta
   if (dc.TITLE) dc.TITLE.label = CFG.title;
   return simplifyDiagram(dd, HLHS_DIAGRAM);
@@ -123,7 +126,9 @@ if (!model?.models) { say("build failed for the term_neonate_72h baseline"); pro
 const M = model.models;
 
 // A. left heart excluded: mitral + aortic atresia
-for (const v of [M.LA_LV, M.LV_AA]) { v.is_enabled = false; v.no_flow = true; }
+// (flow zeroed too: a disabled resistor no longer steps, so it would keep its last flow, which the
+// diagram animates)
+for (const v of [M.LA_LV, M.LV_AA]) { v.is_enabled = false; v.no_flow = true; v.flow = 0; }
 // B. obligate left-to-right atrial communication
 M.Shunts.diameter_fo = CFG.fo;
 M.Shunts.fo_lr_factor = 1;

@@ -30,4 +30,4 @@ The targets are classic textbook values for a stable, balanced pre-Norwood HLHS 
 
 **Read-out caveat:** in HLHS `Monitor.svo2` (the PA saturation) is mixed blood (= SaO₂); the systemic venous saturation is the SVC's (≈ 56 %).
 
-The diagram is the ToF-style teaching diagram: the LV and its valves hidden, a narrow ascending aorta, the duct and the atrial septum (captioned ASD) in the shunt style.
+The diagram is the ToF-style teaching diagram: the hypoplastic LV small, at a fixed size and grey (no oxygenation tint, so its stagnant blood does not read as oxygenated), the atretic mitral and aortic valves as thin 2 px lines without flow, a narrow ascending aorta, and the duct and the atrial septum (captioned ASD) in the shunt style. The atretic valves' `flow` is zeroed in the generator: a disabled resistor no longer steps and would otherwise keep, and animate, its last flow.

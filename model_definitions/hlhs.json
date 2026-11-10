@@ -29,6 +29,56 @@
       "flowMarker": "arrow"
     },
     "components": {
+      "LV": {
+        "type": "Compartment",
+        "label": "LV",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "LV"
+        ],
+        "dbcFrom": "",
+        "dbcTo": "",
+        "layout": {
+          "general": {
+            "animatedBy": "vol",
+            "z_index": 10,
+            "alpha": 1,
+            "tinting": false
+          },
+          "path": {
+            "type": "straight",
+            "width": 5,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#8a8a8a",
+            "pos": {
+              "type": "arc",
+              "x": 0,
+              "y": 0,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 1
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0,
+            "fixed_size": 0.07
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
       "RLB": {
         "type": "Compartment",
         "label": "LOWER\nBODY",
@@ -1750,6 +1800,104 @@
           "path": {
             "type": "arc",
             "width": 3,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": 0,
+              "y": 0,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 2
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "LV_AA": {
+        "type": "Connector",
+        "label": "",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "LV_AA"
+        ],
+        "dbcFrom": "LV",
+        "dbcTo": "AA",
+        "layout": {
+          "general": {
+            "animatedBy": "flow",
+            "z_index": 8,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "arc",
+            "width": 2,
+            "color": "#666666"
+          },
+          "sprite": {
+            "color": "#ffffff",
+            "pos": {
+              "type": "rel",
+              "x": 0,
+              "y": 0,
+              "dgs": 0
+            },
+            "scale": {
+              "x": 1,
+              "y": 2
+            },
+            "anchor": {
+              "x": 0.5,
+              "y": 0.5
+            },
+            "rotation": 0
+          },
+          "label": {
+            "pos_x": 0,
+            "pos_y": 0,
+            "size": 10,
+            "rotation": 0,
+            "color": "#ffffff"
+          }
+        }
+      },
+      "LA_LV": {
+        "type": "Connector",
+        "label": "",
+        "picto": "container.png",
+        "enabled": true,
+        "models": [
+          "LA_LV"
+        ],
+        "dbcFrom": "LA",
+        "dbcTo": "LV",
+        "layout": {
+          "general": {
+            "animatedBy": "flow",
+            "z_index": 8,
+            "alpha": 1,
+            "tinting": true
+          },
+          "path": {
+            "type": "arc",
+            "width": 2,
             "color": "#666666"
           },
           "sprite": {
@@ -5136,7 +5284,7 @@
             "r_k_factor_ps": 1,
             "r_factor_scaling_ps": 1,
             "r_k_factor_scaling_ps": 1,
-            "flow": 0.031024735406390322,
+            "flow": 0,
             "r_for_eff": 55,
             "r_back_eff": 55,
             "r_k_eff": 0
