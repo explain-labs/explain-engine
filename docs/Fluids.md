@@ -1,6 +1,6 @@
 # Fluids
 
-`Fluids` gives fluids into the blood: timed **boluses and infusions** of named fluids (saline, Ringer's lactate, packed red cells, albumin, dextrose), and a continuous **maintenance** intake that replaces what the kidneys excrete. It also takes whole blood out: a timed **loss** (haemorrhage, blood sampling). Each fluid is a composition (solutes in mmol/L, albumin in g/L, no O2 or CO2) mixed into a blood compartment through its normal `volume_in`, so everything it carries spreads with the circulation.
+`Fluids` gives fluids into the blood: timed **boluses and infusions** of named fluids (saline, Ringer's lactate, packed red cells, albumin, dextrose), and a continuous **maintenance** intake that replaces what the kidneys excrete. It also takes whole blood out: a timed **loss** (haemorrhage, blood sampling). Each fluid is a composition (solutes in mmol/L, albumin in g/L, and for red cells an O₂ and CO₂ content) mixed into a blood compartment through its normal `volume_in`, so everything it carries spreads with the circulation.
 
 ## Physiology
 
@@ -48,14 +48,16 @@ BaseModelClass
 |---|---|
 | `normal_saline` | Na 154, Cl 154 |
 | `ringers_lactate` | Na 130, Cl 109, K 4, Ca 1.4, lactate 28 |
-| `packed_cells` | Hb 12 mmol/L (~19 g/dL), Na 140, K 4.5, Cl 105, glucose 25: a fresh unit with a plasma-equivalent base |
+| `packed_cells` | Hb 12 mmol/L (~19 g/dL), Na 140, K 4.5, Cl 105, glucose 25: a fresh unit with a plasma-equivalent base; gas content `to2` 7.2 (SO₂ 60 %), `tco2` 26 mmol/L |
 | `albumin_20%` | albumin 200 g/L, Na 130, Cl 42, unmeasured anions 32 (the caprylate and tryptophan stabilisers) |
 | `d5`, `d10` | glucose 278, 555 |
 | `maintenance` | per scenario: the resting urine composition (term Na 69, K 20.6, Cl 64, …), so intake balances output |
 
 ## Calculation
 
-**`add_volume(volume, in_time = 10, fluid_in = "normal_saline", site = "VLB")`** (mL, s) queues a fluid: `delta = volume / (in_time / 0.015)` per update, with the fluid's composition copied from the library (an unknown name gives pure water).
+**`add_volume(volume, in_time = 10, fluid_in = "normal_saline", site = "VLB")`** (mL, s) queues a fluid: `delta = volume / (in_time / 0.015)` per update, with the fluid's composition copied from the library (an unknown name gives pure water). The entry's `to2` and `tco2` keys (mmol/L, default 0) become the fluid's gas content; every other key is a solute.
+
+**Why red cells carry gas.** With O₂ and CO₂ at 0, a unit with a plasma-like strong ion difference made the recipient hypocapnic and alkalotic. 20 mL/kg after a 35 % bleed in term_neonate_72h gave PaCO₂ 13 mmHg and pH 7.83, ventilation fell to a quarter and SpO₂ to 72 %. Saline is unaffected: its chloride lowers the strong ion difference along with the CO₂ content. The unit now has the CO₂ content of mixed venous blood (26 mmol/L), consistent with its plasma-like ions, and the saturation of a ~6-day unit (60 %). SO₂ is 43–51 % at donation and rises to 95–100 % within three weeks, as O₂ diffuses through the bag. Real units are also acidic (pH 6.7–7.05, lactate ~9, K ~12 mmol/L, HCO₃⁻ ~5 at 1–3 weeks); that storage lesion is not represented.
 
 **`remove_volume(volume, out_time = 10, site = "AD")`** (mL, s) queues a whole-blood loss, the counterpart of `add_volume`: `delta = volume / (out_time / 0.015)` per update, taken with `site.volume_out`, so the blood leaves with its own composition.
 
@@ -120,3 +122,10 @@ One instance in every scenario with the library above; maintenance 1.35 mL/kg/h 
 ## References
 
 Standard product compositions. 20 % albumin's anions are an estimate from its charge at 200 g/L plus the stabilisers.
+
+Red-cell unit O₂ saturation and storage:
+- Yoshida T et al. Enhancing uniformity and overall quality of red cell concentrate with anaerobic storage. Blood Transfus 2017;15:172–181. [doi:10.2450/2017.0325-16](https://doi.org/10.2450/2017.0325-16): SO₂ 45.9 ± 17.5 % within 24 h of collection, ~95–100 % by three weeks.
+- Bardyn M et al. Oxygen in red blood cell concentrates: influence of donors' characteristics and blood processing. Front Physiol 2020;11:616457. [doi:10.3389/fphys.2020.616457](https://doi.org/10.3389/fphys.2020.616457): SO₂ 51.2 ± 18.5 % before storage (1701 units).
+- Yoshida T et al. The oxygen saturation of red blood cell concentrates. Transfusion 2021;62:183–193. [doi:10.1111/trf.16715](https://doi.org/10.1111/trf.16715): mean 43 % at donation (20–93 %), ~1.3-fold over 6 weeks.
+- Zürn C et al. Risk assessment of red cell transfusion in congenital heart disease. Thorac Cardiovasc Surg 2022;70:e15–e20. [doi:10.1055/s-0042-1756493](https://doi.org/10.1055/s-0042-1756493): paediatric units median 6 days; pH 6.7, K 11.9, lactate 9.0 mmol/L (≤7 days).
+- Garg P et al. Hemodiafiltration of priming solution in pediatric cardiac surgery. Artif Organs 2017;41:773–778. [doi:10.1111/aor.12830](https://doi.org/10.1111/aor.12830): units 3–20 days, pH 7.05, HCO₃⁻ 4.8 mmol/L.
