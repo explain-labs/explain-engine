@@ -5566,6 +5566,8 @@
         "hr_mob_factor": 1,
         "hr_temp_factor": 0.9950395056789219,
         "hr_drug_factor": 1,
+        "hr_max": 210,
+        "hr_soft": 30,
         "hr_chemo_factor": 0.9999999999999963,
         "hr_cat_factor": 1,
         "cont_factor_left": 1,
@@ -7134,7 +7136,9 @@
             "na": 140,
             "k": 4.5,
             "cl": 105,
-            "glucose": 25
+            "glucose": 25,
+            "to2": 7.2,
+            "tco2": 26
           },
           "albumin_20%": {
             "albumin": 200,
