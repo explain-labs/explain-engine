@@ -1,0 +1,1069 @@
+{
+ "name": "adult_female_pregnant_30wk",
+ "description": "Reference values for adult_female at 30 weeks of a healthy singleton pregnancy, left lateral, derived as the non-pregnant calibrated values x within-study longitudinal changes. Fetus represented as an O2 sink.",
+ "state": "awake, left lateral, rest, 30 wk gestation",
+ "compiled": "2026-11-27",
+ "doc": "docs/PregnancyReference.md",
+ "sources": [
+  [
+   "meah2016",
+   {
+    "cite": "Meah VL et al. Cardiac output and related haemodynamics during pregnancy: a series of meta-analyses. Heart 2016;102:518-26",
+    "doi": "10.1136/heartjnl-2015-308476",
+    "pmid": "26794234"
+   }
+  ],
+  [
+   "mahendru2014",
+   {
+    "cite": "Mahendru AA et al. A longitudinal study of maternal cardiovascular function from preconception to the postpartum period. J Hypertens 2014;32:849-56",
+    "doi": "10.1097/HJH.0000000000000090",
+    "pmid": "24406777"
+   }
+  ],
+  [
+   "perry2019",
+   {
+    "cite": "Perry H et al. NICOM device-specific reference ranges in pregnancy. Ultrasound Obstet Gynecol 2019;54:670-5",
+    "doi": "10.1002/uog.20179",
+    "pmid": "30548496"
+   }
+  ],
+  [
+   "clark1989",
+   {
+    "cite": "Clark SL et al. Central hemodynamic assessment of normal term pregnancy. Am J Obstet Gynecol 1989;161:1439-42 (values via a GLOWM table reproduction)",
+    "doi": "10.1016/0002-9378(89)90900-9",
+    "pmid": null
+   }
+  ],
+  [
+   "wang2013",
+   {
+    "cite": "Wang et al. Blood pressure from pre-pregnancy through pregnancy (n=570, seated cuff). 2013",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "ducas2014",
+   {
+    "cite": "Ducas RA et al. Cardiovascular magnetic resonance in pregnancy: insights from the cardiac hemodynamic imaging and remodeling in pregnancy (CHIRP) study. J Cardiovasc Magn Reson 2014;16:1",
+    "doi": "10.1186/1532-429X-16-1",
+    "pmid": null
+   }
+  ],
+  [
+   "dehaas2017",
+   {
+    "cite": "de Haas S et al. Physiological adaptation of maternal plasma volume during pregnancy: a systematic review and meta-analysis. Ultrasound Obstet Gynecol 2017;49:177-87",
+    "doi": "10.1002/uog.17360",
+    "pmid": null
+   }
+  ],
+  [
+   "taylor1979",
+   {
+    "cite": "Taylor DJ, Lind T. Red cell mass during and after normal pregnancy. Br J Obstet Gynaecol 1979;86:364-70",
+    "doi": "10.1111/j.1471-0528.1979.tb10611.x",
+    "pmid": null
+   }
+  ],
+  [
+   "murphy2002",
+   {
+    "cite": "Murphy MM et al. Plasma albumin and haematocrit from pre-pregnancy to 32 wk. Am J Clin Nutr 2002;76:614-9",
+    "doi": "10.1093/ajcn/76.3.614",
+    "pmid": null
+   }
+  ],
+  [
+   "davison1981",
+   {
+    "cite": "Davison JM et al. Serial changes in plasma osmolality during pregnancy. Br J Obstet Gynaecol 1981",
+    "doi": "10.1111/j.1471-0528.1981.tb01019.x",
+    "pmid": null
+   }
+  ],
+  [
+   "saxena2012",
+   {
+    "cite": "Saxena AR et al. Inulin GFR in normal pregnancy (34 wk vs postpartum). Hypertens Pregnancy 2012",
+    "doi": "10.3109/10641955.2010.507845",
+    "pmid": null
+   }
+  ],
+  [
+   "dunlop1981",
+   {
+    "cite": "Dunlop W. Serial changes in renal haemodynamics during normal human pregnancy. Br J Obstet Gynaecol 1981;88:1-9",
+    "doi": "10.1111/j.1471-0528.1981.tb00929.x",
+    "pmid": null
+   }
+  ],
+  [
+   "iom2009",
+   {
+    "cite": "Institute of Medicine. Weight Gain During Pregnancy: Reexamining the Guidelines. 2009",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "flo2010",
+   {
+    "cite": "Flo K et al. A longitudinal study of the relationship between maternal cardiac output and uterine artery blood flow. BJOG 2010;117:837-44",
+    "doi": "10.1111/j.1471-0528.2010.02548.x",
+    "pmid": null
+   }
+  ],
+  [
+   "konje2001",
+   {
+    "cite": "Konje JC et al. Longitudinal quantification of uterine artery blood volume flow changes during gestation. 2001",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "metcalfe1955",
+   {
+    "cite": "Metcalfe J et al. Estimation of uterine blood flow in normal human pregnancy at term. J Clin Invest 1955",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "gomez2008",
+   {
+    "cite": "Gomez O et al. Reference ranges for uterine artery mean pulsatility index at 11-41 weeks. Ultrasound Obstet Gynecol 2008;32:128-32",
+    "doi": "10.1002/uog.5315",
+    "pmid": null
+   }
+  ],
+  [
+   "butte2004",
+   {
+    "cite": "Butte NF et al. Energy requirements during pregnancy based on total energy expenditure and energy deposition (calorimetry, n=34). Am J Clin Nutr 2004",
+    "doi": null,
+    "pmid": "15159239"
+   }
+  ],
+  [
+   "forsum1992",
+   {
+    "cite": "Forsum E et al. Energy metabolism in pregnancy (longitudinal). 1992",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "acharya2009",
+   {
+    "cite": "Acharya G, Sitras V. Oxygen uptake of the human fetus at term. Acta Obstet Gynecol Scand 2009",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "challier1976",
+   {
+    "cite": "Challier JC et al. Placental oxygen consumption in vitro. 1976",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "spatling1992",
+   {
+    "cite": "Spatling L et al. The variability of cardiopulmonary adaptation to pregnancy at rest and during exercise (n=20). Br J Obstet Gynaecol 1992",
+    "doi": null,
+    "pmid": "1515406"
+   }
+  ],
+  [
+   "templeton1976",
+   {
+    "cite": "Templeton A, Kelman GR. Maternal blood-gases, PAO2-PaO2, physiological shunt and VD/VT in normal pregnancy. Br J Anaesth 1976",
+    "doi": null,
+    "pmid": "10937"
+   }
+  ],
+  [
+   "jensen2005",
+   {
+    "cite": "Jensen D et al. Mechanisms of ventilatory response to CO2 in pregnancy. 2005",
+    "doi": null,
+    "pmid": "15677521"
+   }
+  ],
+  [
+   "craig1975",
+   {
+    "cite": "Craig DB, Toole MA. Airway closure in pregnancy (FRC, n=24). Can Anaesth Soc J 1975;22:665",
+    "doi": null,
+    "pmid": "1201469"
+   }
+  ],
+  [
+   "hadlock1991",
+   {
+    "cite": "Hadlock FP et al. In utero analysis of fetal growth: a sonographic weight standard. Radiology 1991;181:129-33",
+    "doi": "10.1148/radiology.181.1.1887021",
+    "pmid": "1887021"
+   }
+  ],
+  [
+   "gee1967",
+   {
+    "cite": "Gee JB et al. Pulmonary mechanics during pregnancy (n=10). J Clin Invest 1967",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "mills1998",
+   {
+    "cite": "Mills JL et al. Physiological reduction in fasting plasma glucose concentration in the first trimester (n=361). 1998",
+    "doi": null,
+    "pmid": "9751245"
+   }
+  ],
+  [
+   "hartgill2011",
+   {
+    "cite": "Hartgill TW et al. Core body temperature and the thermoneutral zone in pregnancy. 2011",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "adult_female",
+   {
+    "cite": "Calibrated non-pregnant adult_female reference (scripts/reference/adult_female.json, docs/AdultFemaleReference.md)",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "textbook",
+   {
+    "cite": "Textbook / review; not checked against a retrieved source",
+    "doi": null,
+    "pmid": null
+   }
+  ]
+ ],
+ "variables": [
+  {
+   "key": "hr",
+   "group": "hemodynamics",
+   "label": "Heart rate",
+   "unit": "bpm",
+   "mean": 78,
+   "sd": null,
+   "low": 65,
+   "high": 95,
+   "range_type": "base range shifted",
+   "method": "non-invasive, pre-conception -> 33 wk",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "mahendru2014",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor.heart_rate",
+   "notes": "Change: +13 +/- 11 bpm (Mahendru 2014, n=54). Base 65 (user decision). Clark 1989 invasive x1.17 (76) as a cross-check; other studies x1.26-1.29."
+  },
+  {
+   "key": "lvo",
+   "group": "hemodynamics",
+   "label": "Cardiac output",
+   "unit": "mL/kg/min",
+   "mean": 103.4,
+   "sd": null,
+   "low": 82.7,
+   "high": 124.1,
+   "range_type": "target +/- 20 %",
+   "method": "meta-analysis of echo / impedance / rebreathing",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "meah2016",
+    "mahendru2014",
+    "perry2019",
+    "clark1989"
+   ],
+   "grade": "A/B",
+   "model_readout": "LV_AA flow",
+   "notes": "Change: x1.31 at the early 3rd-trimester peak (Meah 2016, 39 studies). 7.07 L/min (base 5.4, user decision). Plateau/slight fall after ~35 wk (Perry 2019 NICOM). Clark invasive x1.43 (7.7 L/min) cross-check."
+  },
+  {
+   "key": "rvo",
+   "group": "hemodynamics",
+   "label": "Right ventricular output",
+   "unit": "mL/kg/min",
+   "mean": 103.4,
+   "sd": null,
+   "low": 82.7,
+   "high": 124.1,
+   "range_type": "as lvo",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "meah2016"
+   ],
+   "grade": "A/B",
+   "model_readout": "RV_PA flow",
+   "notes": ""
+  },
+  {
+   "key": "lv_sv",
+   "group": "hemodynamics",
+   "label": "LV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.33,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "derived CO / HR",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "meah2016",
+    "mahendru2014"
+   ],
+   "grade": "B (derived)",
+   "model_readout": "Heart.lv_sv",
+   "notes": "Change: x1.09 (derived). 91 mL."
+  },
+  {
+   "key": "lv_edv",
+   "group": "hemodynamics",
+   "label": "LV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 2.4,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "CMR ~34 wk vs postpartum",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "ducas2014"
+   ],
+   "grade": "B",
+   "model_readout": "Heart.lv_edv",
+   "notes": "Change: x1.29 (Ducas 2014). Reference only in spirit: Ducas's CO rise (+85 %) is an outlier against option B; expect the model's EDV lower."
+  },
+  {
+   "key": "map_mean",
+   "group": "hemodynamics",
+   "label": "Mean arterial pressure (true mean)",
+   "unit": "mmHg",
+   "mean": 82,
+   "sd": null,
+   "low": 70,
+   "high": 94,
+   "range_type": "base range narrowed",
+   "method": "intra-arterial (Clark); pre-conception cohort recovering by the 3rd trimester",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "clark1989",
+    "mahendru2014",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "mean of AA pressure",
+   "notes": "Change: x1.00. "
+  },
+  {
+   "key": "dbp",
+   "group": "hemodynamics",
+   "label": "Diastolic BP",
+   "unit": "mmHg",
+   "mean": 62,
+   "sd": null,
+   "low": 50,
+   "high": 78,
+   "range_type": "base range shifted",
+   "method": "seated cuff, pre-pregnancy cohort (n=570)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "wang2013"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor abp_pre diastolic",
+   "notes": "Change: x0.96. "
+  },
+  {
+   "key": "svr",
+   "group": "hemodynamics",
+   "label": "Systemic vascular resistance",
+   "unit": "WU",
+   "mean": 11.0,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "derived (MAP - CVP)/CO",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "clark1989",
+    "meah2016"
+   ],
+   "grade": "C (derived)",
+   "model_readout": "(map_mean - cvp)/LVO",
+   "notes": "Change: ~x0.76 (Clark reports x0.79). "
+  },
+  {
+   "key": "cvp",
+   "group": "hemodynamics",
+   "label": "Central venous pressure",
+   "unit": "mmHg",
+   "mean": 4,
+   "sd": null,
+   "low": 2,
+   "high": 7,
+   "range_type": "base range",
+   "method": "PA catheter, left lateral (n=10)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "clark1989",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "Monitor CVP",
+   "notes": "Change: x1.00. "
+  },
+  {
+   "key": "pawp",
+   "group": "hemodynamics",
+   "label": "Pulmonary artery wedge pressure",
+   "unit": "mmHg",
+   "mean": 10.1,
+   "sd": null,
+   "low": null,
+   "high": 13,
+   "range_type": "base",
+   "method": "PA catheter",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "clark1989",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "mean LA pressure",
+   "notes": "Change: x1.00. "
+  },
+  {
+   "key": "pvr",
+   "group": "hemodynamics",
+   "label": "Pulmonary vascular resistance",
+   "unit": "WU",
+   "mean": 0.57,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "PA catheter",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "clark1989",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "(pap_m - LA)/Qp",
+   "notes": "Change: x0.66. "
+  },
+  {
+   "key": "pap_m",
+   "group": "hemodynamics",
+   "label": "Mean PAP",
+   "unit": "mmHg",
+   "mean": 12.8,
+   "sd": null,
+   "low": null,
+   "high": 20,
+   "range_type": "base",
+   "method": "PA catheter (derived unchanged)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "clark1989",
+    "adult_female"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor PAP",
+   "notes": "Change: ~x1.0. "
+  },
+  {
+   "key": "renal",
+   "group": "hemodynamics",
+   "label": "Renal blood flow",
+   "unit": "mL/kg/min",
+   "mean": 18.0,
+   "sd": null,
+   "low": 16.2,
+   "high": 19.9,
+   "range_type": "derived range",
+   "method": "effective renal plasma flow, 3rd trimester",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "dunlop1981"
+   ],
+   "grade": "C",
+   "model_readout": "AD_KID_ART flow",
+   "notes": "Change: ~x1.45 (interpolated; falls in the 3rd trimester, Dunlop 1981). ~1232 mL/min."
+  },
+  {
+   "key": "blood_volume",
+   "group": "blood",
+   "label": "Blood volume",
+   "unit": "mL/kg",
+   "mean": 71.8,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "plasma x1.40 (de Haas 2017 scaled to ~30 wk) + red cells +237 mL (Taylor & Lind 1979, interpolated)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "dehaas2017",
+    "taylor1979",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "sum of blood compartments",
+   "notes": "Change: x1.30 (derived). 4.91 L. Two studies combined (breaks the one-study rule)."
+  },
+  {
+   "key": "hb",
+   "group": "blood",
+   "label": "Haemoglobin",
+   "unit": "g/dL",
+   "mean": 12.0,
+   "sd": null,
+   "low": 11.0,
+   "high": 13.5,
+   "range_type": "derived",
+   "method": "red cell mass / blood volume",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "taylor1979",
+    "dehaas2017",
+    "murphy2002"
+   ],
+   "grade": "B/C",
+   "model_readout": "Blood composition",
+   "notes": "Change: x0.89 (with iron). User decision: with iron. Murphy 2002 Hct only -4 % (conflict noted)."
+  },
+  {
+   "key": "hct",
+   "group": "blood",
+   "label": "Haematocrit",
+   "unit": "%",
+   "mean": 35.5,
+   "sd": null,
+   "low": 33,
+   "high": 40,
+   "range_type": "derived",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "taylor1979",
+    "dehaas2017"
+   ],
+   "grade": "B/C",
+   "model_readout": "hb / MCHC",
+   "notes": "Change: x0.89. "
+  },
+  {
+   "key": "albumin",
+   "group": "blood",
+   "label": "Albumin",
+   "unit": "g/L",
+   "mean": 37.2,
+   "sd": null,
+   "low": 32,
+   "high": 42,
+   "range_type": "derived",
+   "method": "pre-pregnancy -> 32 wk (n=93)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "murphy2002",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "AA solutes.albumin",
+   "notes": "Change: x0.866. Colloid osmotic pressure x0.86 (Clark): ~21.5 mmHg."
+  },
+  {
+   "key": "na",
+   "group": "blood",
+   "label": "Sodium",
+   "unit": "mmol/L",
+   "mean": 136,
+   "sd": null,
+   "low": 132,
+   "high": 140,
+   "range_type": "derived",
+   "method": "plasma osmolality -10 mOsm/kg",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "davison1981"
+   ],
+   "grade": "C",
+   "model_readout": "AA solutes.na",
+   "notes": "Change: -4. "
+  },
+  {
+   "key": "gfr_abs",
+   "group": "blood",
+   "label": "GFR (absolute, not indexed)",
+   "unit": "mL/min",
+   "mean": 133,
+   "sd": null,
+   "low": 121,
+   "high": 158,
+   "range_type": "inulin to Dunlop",
+   "method": "inulin clearance, 22 and 34 wk vs postpartum (n=12), interpolated",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "saxena2012",
+    "dunlop1981",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "Kidneys.gfr",
+   "notes": "Change: x1.27 (Dunlop x1.5). User decision: inulin (Saxena). Pregnancy GFR is not indexed to 1.73 m2."
+  },
+  {
+   "key": "ut_flow",
+   "group": "uterus",
+   "label": "Uterine blood flow",
+   "unit": "mL/min",
+   "mean": 570,
+   "sd": null,
+   "low": 400,
+   "high": 790,
+   "range_type": "absolute range across methods",
+   "method": "Doppler volume flow, longitudinal (Flo 2010, Konje 2001): 30/36-wk ratio 0.81 applied to 700",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "flo2010",
+    "konje2001",
+    "metcalfe1955"
+   ],
+   "grade": "B/C",
+   "model_readout": "Uterus.ut_blood_flow",
+   "notes": "Change: ~9-10 % of CO. Absolute values at 30 wk differ between the studies (Flo ~475, Konje ~767); only their ratio is used."
+  },
+  {
+   "key": "pl_flow",
+   "group": "uterus",
+   "label": "Placental (intervillous) flow",
+   "unit": "mL/min",
+   "mean": 485,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "textbook ~80-90 % of uterine flow",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "MaternalPlacenta.mp_blood_flow",
+   "notes": ""
+  },
+  {
+   "key": "ut_pi",
+   "group": "uterus",
+   "label": "Uterine artery pulsatility index",
+   "unit": "-",
+   "mean": 0.77,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "Doppler reference curve at 30 wk",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "gomez2008"
+   ],
+   "grade": "A/B",
+   "model_readout": "AD_UT_ART flow per beat",
+   "notes": "Non-pregnant model 2.66."
+  },
+  {
+   "key": "uteroplacental_vo2",
+   "group": "uterus",
+   "label": "Uterus + placenta + fetus O2 consumption",
+   "unit": "mL O2/min",
+   "mean": 14,
+   "sd": null,
+   "low": 11,
+   "high": 17,
+   "range_type": "budget",
+   "method": "fetus 1.56 kg (Hadlock 1991) x 6.6 mL/kg/min + placenta ~4",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "acharya2009",
+    "challier1976",
+    "metcalfe1955",
+    "hadlock1991"
+   ],
+   "grade": "B",
+   "model_readout": "Uterus.ut_vo2_ml + MaternalPlacenta.mp_vo2_ml",
+   "notes": "Change: absolute. The fetus is an O2 sink (user decision)."
+  },
+  {
+   "key": "vo2",
+   "group": "metabolism",
+   "label": "Whole-body O2 consumption (maternal + uteroplacental)",
+   "unit": "mL/kg/min",
+   "mean": 3.42,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "calorimetry, pre-pregnancy -> 3rd trimester (n=34)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "butte2004",
+    "forsum1992",
+    "adult_female"
+   ],
+   "grade": "A",
+   "model_readout": "gas exchanger O2 uptake",
+   "notes": "Change: BMR x1.22 (Butte 2004, interpolated: +10.7 kcal/wk). 234 mL/min at 68.4 kg."
+  },
+  {
+   "key": "rq",
+   "group": "metabolism",
+   "label": "Respiratory quotient",
+   "unit": "-",
+   "mean": 0.82,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "spatling1992"
+   ],
+   "grade": "B",
+   "model_readout": "CO2 out / O2 uptake",
+   "notes": "Change: unchanged. "
+  },
+  {
+   "key": "temp",
+   "group": "metabolism",
+   "label": "Core temperature",
+   "unit": "degC",
+   "mean": 36.8,
+   "sd": null,
+   "low": 36.3,
+   "high": 37.5,
+   "range_type": "",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "hartgill2011"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.temp",
+   "notes": "Change: falls slightly. "
+  },
+  {
+   "key": "glucose",
+   "group": "metabolism",
+   "label": "Fasting glucose",
+   "unit": "mmol/L",
+   "mean": 4.7,
+   "sd": null,
+   "low": 3.9,
+   "high": 5.1,
+   "range_type": "",
+   "method": "from 6 wk (n=361)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "mills1998",
+    "adult_female"
+   ],
+   "grade": "B",
+   "model_readout": "AA glucose",
+   "notes": "Change: -0.2. "
+  },
+  {
+   "key": "lactate",
+   "group": "metabolism",
+   "label": "Arterial lactate",
+   "unit": "mmol/L",
+   "mean": 1.0,
+   "sd": null,
+   "low": 0.5,
+   "high": 2.2,
+   "range_type": "base",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "adult_female"
+   ],
+   "grade": "C",
+   "model_readout": "Lactate.arterial_lactate",
+   "notes": "Change: unchanged (non-fasting x1.26 weak). "
+  },
+  {
+   "key": "mv",
+   "group": "breathing",
+   "label": "Minute ventilation",
+   "unit": "mL/kg/min",
+   "mean": 106.7,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "(model base 5.7 L/min)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "spatling1992"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.minute_volume",
+   "notes": "Change: x1.28. 7.3 L/min."
+  },
+  {
+   "key": "vt",
+   "group": "breathing",
+   "label": "Tidal volume",
+   "unit": "mL/kg",
+   "mean": 6.83,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "(model base 380 mL)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "spatling1992"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.exp_tidal_volume",
+   "notes": "Change: x1.23. 467 mL."
+  },
+  {
+   "key": "rr",
+   "group": "breathing",
+   "label": "Respiratory rate",
+   "unit": "/min",
+   "mean": 15,
+   "sd": null,
+   "low": 12,
+   "high": 20,
+   "range_type": "",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "spatling1992"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.resp_rate",
+   "notes": "Change: unchanged. "
+  },
+  {
+   "key": "frc",
+   "group": "breathing",
+   "label": "FRC",
+   "unit": "mL/kg",
+   "mean": 29.9,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "(model base 2.3 L)",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "craig1975",
+    "gee1967"
+   ],
+   "grade": "B/C",
+   "model_readout": "min(ALL + ALR + DS) gas volume",
+   "notes": "Change: ~x0.89 (interpolated). ~2.05 L."
+  },
+  {
+   "key": "crs",
+   "group": "breathing",
+   "label": "Respiratory system compliance",
+   "unit": "mL/cmH2O",
+   "mean": 84,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "lung unchanged, chest wall lower",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "gee1967"
+   ],
+   "grade": "C",
+   "model_readout": "lung + chest wall in series",
+   "notes": "Change: ~x0.93. "
+  },
+  {
+   "key": "rrs",
+   "group": "breathing",
+   "label": "Respiratory resistance",
+   "unit": "cmH2O/L/s",
+   "mean": 1.76,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "total pulmonary resistance",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "gee1967"
+   ],
+   "grade": "B",
+   "model_readout": "MOUTH_DS + DS_ALL//DS_ALR",
+   "notes": "Change: x0.55. "
+  },
+  {
+   "key": "pco2",
+   "group": "gases",
+   "label": "PaCO2",
+   "unit": "mmHg",
+   "mean": 32,
+   "sd": null,
+   "low": 30,
+   "high": 34,
+   "range_type": "review range",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "spatling1992",
+    "textbook"
+   ],
+   "grade": "B/C",
+   "model_readout": "arterial gas",
+   "notes": "Change: -5.5 (Spatling alveolar -4). User decision ~32."
+  },
+  {
+   "key": "ph",
+   "group": "gases",
+   "label": "Arterial pH",
+   "unit": "-",
+   "mean": 7.44,
+   "sd": null,
+   "low": 7.4,
+   "high": 7.47,
+   "range_type": "",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "arterial gas",
+   "notes": "Change: compensated respiratory alkalosis. "
+  },
+  {
+   "key": "hco3",
+   "group": "gases",
+   "label": "Bicarbonate",
+   "unit": "mmol/L",
+   "mean": 21,
+   "sd": null,
+   "low": 19,
+   "high": 23,
+   "range_type": "",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "arterial gas",
+   "notes": "Change: -3. "
+  },
+  {
+   "key": "po2",
+   "group": "gases",
+   "label": "PaO2",
+   "unit": "mmHg",
+   "mean": 100,
+   "sd": null,
+   "low": 85,
+   "high": 110,
+   "range_type": "",
+   "method": "semi-recumbent, left lateral tilt",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "templeton1976"
+   ],
+   "grade": "B",
+   "model_readout": "arterial gas",
+   "notes": "Change: A-a unchanged. "
+  },
+  {
+   "key": "spo2",
+   "group": "gases",
+   "label": "SpO2",
+   "unit": "%",
+   "mean": 98,
+   "sd": null,
+   "low": 96,
+   "high": 100,
+   "range_type": "",
+   "method": "",
+   "age": "30 wk gestation, left lateral",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.spo2_pre",
+   "notes": ""
+  }
+ ]
+}

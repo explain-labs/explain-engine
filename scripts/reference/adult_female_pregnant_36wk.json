@@ -200,9 +200,17 @@
   [
    "craig1975",
    {
-    "cite": "Craig DB, Toole MA. Airway closure in pregnancy (FRC, n=24). Can Anaesth Soc J 1975",
+    "cite": "Craig DB, Toole MA. Airway closure in pregnancy (FRC, n=24). Can Anaesth Soc J 1975;22:665",
     "doi": null,
-    "pmid": null
+    "pmid": "1201469"
+   }
+  ],
+  [
+   "hadlock1991",
+   {
+    "cite": "Hadlock FP et al. In utero analysis of fetal growth: a sonographic weight standard. Radiology 1991;181:129-33",
+    "doi": "10.1148/radiology.181.1.1887021",
+    "pmid": "1887021"
    }
   ],
   [
@@ -517,7 +525,7 @@
    ],
    "grade": "C",
    "model_readout": "AD_KID_ART flow",
-   "notes": "Change: ~x1.25-1.45. ~1150 mL/min."
+   "notes": "Change: ~x1.25-1.45. ~1148 mL/min."
   },
   {
    "key": "blood_volume",
@@ -645,7 +653,7 @@
    ],
    "grade": "B",
    "model_readout": "Kidneys.gfr",
-   "notes": "Change: x1.28 (Dunlop x1.5). User decision x1.28. Pregnancy GFR is not indexed to 1.73 m2."
+   "notes": "Change: x1.28 (Dunlop x1.5). User decision: inulin (Saxena). Pregnancy GFR is not indexed to 1.73 m2."
   },
   {
    "key": "ut_flow",
@@ -667,7 +675,7 @@
    ],
    "grade": "B/C",
    "model_readout": "Uterus.ut_blood_flow",
-   "notes": "Change: ~10 % of CO. User decision 700. Flo 673 near term (11-12 % of CO), Metcalfe 492, Konje 970."
+   "notes": "Change: ~9-10 % of CO. User decision 700. Flo 673 near term (11-12 % of CO), Metcalfe 492, Konje 970."
   },
   {
    "key": "pl_flow",
@@ -725,7 +733,8 @@
    "sources": [
     "acharya2009",
     "challier1976",
-    "metcalfe1955"
+    "metcalfe1955",
+    "hadlock1991"
    ],
    "grade": "B",
    "model_readout": "Uterus.ut_vo2_ml + MaternalPlacenta.mp_vo2_ml",
@@ -751,7 +760,7 @@
    ],
    "grade": "A",
    "model_readout": "gas exchanger O2 uptake",
-   "notes": "Change: BMR x1.26 (Forsum x1.30). 242 mL/min at 71 kg."
+   "notes": "Change: BMR x1.26 (Forsum x1.30). 242 mL/min at 71.0 kg."
   },
   {
    "key": "rq",
@@ -913,7 +922,7 @@
    ],
    "grade": "B/C",
    "model_readout": "min(ALL + ALR + DS) gas volume",
-   "notes": "Change: x0.80-0.85. ~1.9 L."
+   "notes": "Change: x0.80-0.85. ~1.90 L."
   },
   {
    "key": "crs",

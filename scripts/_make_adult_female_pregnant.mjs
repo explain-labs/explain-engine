@@ -1,9 +1,9 @@
-// Generate adult_female_pregnant_36wk: the calibrated non-pregnant adult_female at 36 weeks of a healthy singleton
+// Generate adult_female_pregnant_<ga>wk (30 or 36): the calibrated non-pregnant adult_female at 30 or 36 weeks of a healthy singleton
 // pregnancy, lying left lateral (no aortocaval compression), with the fetus represented as an O2 sink in the placenta.
 // Reference values: docs/PregnancyReference.md and scripts/reference/adult_female_pregnant_36wk.json; check with
 //   node scripts/probe_term_reference.mjs adult_female_pregnant_36wk --ref scripts/reference/adult_female_pregnant_36wk.json [--file OUT]
 //
-//   node scripts/_make_adult_female_pregnant.mjs [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
+//   node scripts/_make_adult_female_pregnant.mjs [--ga 30|36] [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
 //
 // User decisions 2026-11-27: a separate scenario derived from the released adult_female (as the 1/12/24 h babies derive
 // from the 72 h baby), 36 weeks, left lateral, fetus = O2 sink (no fetal circulation); targets = the non-pregnant reference
@@ -28,17 +28,28 @@ const PRE_FOLD = Number(opt("--pre-fold", 300));
 const WRITE = argv.includes("--write");
 const OUT = opt("--out", null);
 const SOURCE = "adult_female";
-const NAME = "adult_female_pregnant_36wk";
+// Per gestational age (docs/PregnancyReference.md; scripts/reference/_build_adult_female_pregnant_reference.py). 36 wk is the
+// released set; 30 wk (user 2026-11-27) the same studies at ~28-32 wk, several rows interpolated. The pregnant uterus and the
+// intervillous volume at 30 wk are scaled with the uterine flow (~x0.8; grade C, no direct data).
+const PROFILES = {
+  36: { weight: 71.0, ut_grow: 18, ivs: 0.15, bv: 3.768 * 1.37, hb: 12.2, ut: 700, pl: 600, utvo2: 22,
+    rbf: 850 * 1.35, gfr: 105 * 1.28, vo2: 192 * 1.26, raw: 0.5, crs: 81, frc: 2.3 * 0.825 },
+  30: { weight: 68.4, ut_grow: 14, ivs: 0.12, bv: 2.26 * 1.40 + 1.51 + 0.237, hb: 12.0, ut: 570, pl: 485, utvo2: 14,
+    rbf: 850 * 1.45, gfr: 105 * 1.27, vo2: 192 * 1.22, raw: 0.55, crs: 84, frc: 2.3 * 0.89 },
+};
+const GA = Number(opt("--ga", 36)); // weeks
+const PF = PROFILES[GA];
+if (!PF) { process.stderr.write(`usage: _make_adult_female_pregnant.mjs --ga <${Object.keys(PROFILES).join("|")}> ...\n`); process.exit(1); }
+const NAME = `adult_female_pregnant_${GA}wk`;
 const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
-const GA = 36; // weeks
-const WEIGHT = 71.0; // kg: 60 + IOM 2009 normal-BMI gain at 36 weeks (user decision)
-const UT_GROW = Number(opt("--ut-grow", 18)); // uterine mass ~55 g -> ~1 kg
+const WEIGHT = PF.weight; // kg: 60 + IOM 2009 normal-BMI gain, 0.42 kg/week (user decision)
+const UT_GROW = Number(opt("--ut-grow", PF.ut_grow)); // uterine mass ~55 g -> ~1 kg at 36 wk
 const UT_VEN_R = Number(opt("--ut-ven-r", 0.1)); // uterine venule resistance, so the inflow carries the bed's pressure drop (waveform); grid 2026-11-27: x1 PI 4.4, x0.1 0.94, x0.03 0.87
 const RA_ISF_SEED = 35; // s: Interstitium re-seeds its balance after seed_delay (30 s)
 const DISC_SCALE = Number(opt("--disc-scale", 0.6)); // uterus / placenta diagram discs
-const IVS_VOL = Number(opt("--ivs-vol", 0.15)); // L, intervillous blood at ~36 wk (textbook ~150 mL; C)
-const DESCRIPTION = "healthy woman (26 y, 1.65 m, 60 kg before pregnancy) at 36 weeks of a singleton pregnancy, 71 kg: awake, " +
+const IVS_VOL = Number(opt("--ivs-vol", PF.ivs)); // L, intervillous blood (~150 mL at 36 wk, textbook C)
+const DESCRIPTION = `healthy woman (26 y, 1.65 m, 60 kg before pregnancy) at ${GA} weeks of a singleton pregnancy, ${WEIGHT} kg: awake, ` +
   "left lateral (no aortocaval compression), at rest, room air; the fetus is an O2 sink in the placenta";
 
 function flatten(models) { const o = {}; const w = (x) => { for (const [k, v] of Object.entries(x)) { o[k] = v; if (v?.components) w(v.components); } }; w(models); return o; }
@@ -48,6 +59,12 @@ function flatten(models) { const o = {}; const w = (x) => { for (const [k, v] of
 // spiral arteries) and draining into UT_VEN (PL_IVS_UT_VEN), in parallel with the myometrial capillaries UT_CAP. PL_IVS is
 // a clone of UT_CAP (same kind of compartment), sized to the intervillous blood volume; its resistors clone UT_CAP's.
 // The volume comes out of VLB here, so the skeleton keeps the blood volume (the expansion of pregnancy is a lever).
+// MaternalPlacenta scales its O2 use with the spiral-artery dilation (term factor / current resistance factor: ~8 % of the
+// term value at 36 wk, ~3.5 % at 30 wk), so mp_vo2 must be far above its nominal per-kg value; the trim starts from the value
+// that gives the target (minus the myometrial ~0.7 mL/min) at that dilation. Started at 0.3, the trim (capped at 25 % per
+// step) ran out of steps: 9 mL/min instead of 14 at 30 wk, 20.8 instead of 22 at 36.
+const MP_FRAC = Math.min(Math.max((GA - 4) / 36, 0), 1), MP_PERF = 0.01 / (1 + MP_FRAC * (0.01 - 1));
+const MP_VO2_0 = Number(opt("--mp-vo2", ((PF.utvo2 - 0.7) / (PF.weight * MP_PERF)).toFixed(3)));
 function applyPregnancy(def) {
   const o = flatten(def.models), C = o.Circulation;
   const ren = (x, from, to) => JSON.parse(JSON.stringify(x).split(from).join(to));
@@ -89,24 +106,24 @@ function applyPregnancy(def) {
     is_enabled: true, model_type: "MaternalPlacenta", pl_ivs_name: "PL_IVS", spiral_res_name: "UT_ART_PL_IVS",
     drain_res_name: "PL_IVS_UT_VEN", ut_art_name: "UT_ART", ut_in_res_name: "AD_UT_ART", uterus_name: "Uterus",
     mp_running: true, preg_ga_threshold: 4, preg_ga_term: 40, spiral_res_term_factor: 0.01, met_active: true,
-    mp_vo2: Number(opt("--mp-vo2", 0.3)), vo2_factor: 1, vo2_factor_ps: 1, resp_q: 0.8, contraction_pres_gain: 0.6,
+    mp_vo2: MP_VO2_0, vo2_factor: 1, vo2_factor_ps: 1, resp_q: 0.8, contraction_pres_gain: 0.6,
   };
-  Object.assign(o.Uterus, { pregnant: true, preg_ga: GA, description: "uterine organ: pregnant, 36 weeks" });
+  Object.assign(o.Uterus, { pregnant: true, preg_ga: GA, description: `uterine organ: pregnant, ${GA} weeks` });
   if (!o.Monitor.flow_targets.some((t) => t.name === "pl_flow")) o.Monitor.flow_targets.push({ name: "pl_flow", model: "UT_ART_PL_IVS.flow" });
   Object.assign(def, { weight: WEIGHT, _baseline_weight: WEIGHT });
   return { ivs: ivs.vol, ut: ["UT_ART", "UT_CAP", "UT_VEN"].reduce((t, n) => t + C.components[n].vol, 0) };
 }
 
 // --- maternal levers on the live model (step 4, added one at a time) ----------------------------------------------------
-const BLOOD = { bv: 3.768 * 1.37, hb: 12.2, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
+const BLOOD = { bv: PF.bv, hb: PF.hb, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
 const HB_GDL_PER_MMOL = 1.611;
-const UTPL = { ut: Number(opt("--ut-flow", 700)), pl: Number(opt("--pl-flow", 600)), vo2: Number(opt("--utpl-vo2", 22)) }; // mL/min, mL O2/min
+const UTPL = { ut: Number(opt("--ut-flow", PF.ut)), pl: Number(opt("--pl-flow", PF.pl)), vo2: Number(opt("--utpl-vo2", PF.utvo2)) }; // mL/min, mL O2/min
 const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78));
 const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
-const KID = { rbf: Math.round(850 * 1.35), gfr: Math.round(105 * 1.28) }; // mL/min (docs/PregnancyReference.md)
+const KID = { rbf: Math.round(PF.rbf), gfr: Math.round(PF.gfr) }; // mL/min (docs/PregnancyReference.md)
 const PCO2_TARGET = Number(opt("--pco2", 32)), RR_TARGET = Number(opt("--rr", 15));
-const LUNG = { raw: 0.5, ccw_el: 200 / (1 / (1 / 81 - 1 / 164)), frc: 2.3 * 0.825 }; // x, x (~1.25), L
-const META = { vo2: Math.round(192 * 1.26), glu: 4.7, temp: 36.8 }; // mL/min, mmol/L, degC
+const LUNG = { raw: PF.raw, ccw_el: 200 / (1 / (1 / PF.crs - 1 / 164)), frc: PF.frc }; // x, x (~1.25 at 36 wk), L
+const META = { vo2: Math.round(PF.vo2), glu: 4.7, temp: 36.8 }; // mL/min, mmol/L, degC
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -132,7 +149,8 @@ const LEVERS = {
       const I = M.Interstitium; if (I?.isf_solutes) { I.isf_solutes.na = BLOOD.na; I.isf_solutes.albumin = I.isf_albumin_ratio * BLOOD.albumin; }
       this.why = `blood volume ${(total * 1000).toFixed(0)} -> ${(maternalBlood(M) * 1000).toFixed(0)} mL (group x${f.toFixed(3)}), Hb ${BLOOD.hb} g/dL, albumin ${BLOOD.albumin} g/L, Na ${BLOOD.na}`;
     },
-  },  // 3. uteroplacental circulation at 36 weeks: total uterine flow ~700 mL/min (user decision; Flo 2010 673 near term,
+  },
+  // 3. uteroplacental circulation at 36 weeks: total uterine flow ~700 mL/min (user decision; Flo 2010 673 near term,
   //    Metcalfe 492, Konje 970), of which ~600 through the intervillous space (textbook 80-90 %); the engine's linear
   //    pregnancy ramp gives only ~205 / ~70. Trimmed while settling on the base resistances (Uterus and MaternalPlacenta
   //    keep rewriting their pregnancy factors on top): UT_ART sets the total (the inflow resistor follows it; trimming UT_VEN with it gave a
