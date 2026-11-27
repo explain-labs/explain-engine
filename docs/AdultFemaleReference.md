@@ -214,6 +214,12 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 
 ## Open items
 
+- **Engine gap: no shivering** (user decision 2026-11-27, option c). Thermoregulation defends temperature only by
+  non-shivering (brown-fat) heat, set to the adult ~0.2 W/kg. At rest that is neutral, but in the cold this adult
+  cools faster than a real one, who would shiver (peak ~3x resting heat output). Parked as a separate engine PR.
+  The model has no clothing parameter: the auto-seeded heat-loss trim (about -190 W at 23 degC) stands in for
+  clothing and posture.
+
 - No verified fasting SMA volume flow or descending-aorta flow (portal flow and ~60 % of CO are used).
 - No awake respiratory compliance cohort (grade C).
 - Mixed venous saturation, electrolytes, urine output and fluid compartments are textbook values.

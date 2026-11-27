@@ -169,6 +169,7 @@ const CL_TARGET = 103;
 const PCO2_TARGET = Number(opt("--pco2", 38));
 const RR_TARGET = Number(opt("--rr", 15));
 const FRC_F = Number(opt("--frc", 1.0));
+const THERMO = { env_temp: 23.0, surface_area_k: Math.round((1.66 / Math.pow(60, 2 / 3)) * 1000) / 1000, bat_max_per_kg: 0.2 };
 const GLU = 4.9, GLU_RATE = 0.011, GLU_ISF = 0.15, LACT = 1.0; // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
 const REABS = Number(opt("--reabs", 0.990));
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
@@ -337,6 +338,19 @@ const LEVERS = {
       M.Blood.set_solute("lact", LACT);
     },
   },
+  // 16. temperature (user decision 2026-11-27, option c): clothed indoors at ~23 degC; body surface 1.66 m2
+  //     (surface_area_k x W^(2/3), Meeh; the neonatal 0.097 gives 1.49 m2); non-shivering (brown-fat) capacity at the adult
+  //     ~0.2 W/kg (the neonatal 4.5 W/kg would be 270 W). ENGINE GAP: adults defend temperature mainly by shivering, which
+  //     Thermoregulation does not model, so in the cold this adult cools faster than a real one (shivering parked as a
+  //     separate engine PR). The heat-loss trim (insulation / clothing offset) re-seeds at once and again when re-anchored.
+  thermo: {
+    why: `ambient ${THERMO.env_temp} degC, surface_area_k ${THERMO.surface_area_k}, bat_max_per_kg ${THERMO.bat_max_per_kg}`,
+    apply(M) {
+      const T = M.Thermoregulation;
+      Object.assign(T, THERMO);
+      T.loss_trim_seeded = false; T._warmup_counter = 0.0;
+    },
+  },
   // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
   //     and the unmeasured anions are trimmed while settling so the base excess sits at ~0 (Cl toward 103, the rest of
   //     the gap in uma). Albumin is the model's weak acid (BloodComposition) and its oncotic pressure: the Kidneys and
@@ -373,7 +387,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose", "thermo"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
