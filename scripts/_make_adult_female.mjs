@@ -168,7 +168,8 @@ const CHEM = { na: 140, k: 4.2, albumin: 43, phosphates: 1.1 };
 const CL_TARGET = 103;
 const PCO2_TARGET = Number(opt("--pco2", 38));
 const RR_TARGET = Number(opt("--rr", 15));
-const FRC_F = Number(opt("--frc", 1.0)); // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
+const FRC_F = Number(opt("--frc", 1.0));
+const GLU = 4.9, GLU_RATE = 0.011, GLU_ISF = 0.15, LACT = 1.0; // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
 const REABS = Number(opt("--reabs", 0.990));
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
 const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
@@ -321,6 +322,21 @@ const LEVERS = {
     why: `alveolar unstressed volume (ALL, ALR u_vol) x${FRC_F}`,
     apply(M) { for (const n of ["ALL", "ALR"]) M[n].u_vol *= FRC_F; },
   },
+  // 15. glucose and lactate: fasting glucose 4.9 mmol/L, arterial lactate 1.0 (Bushfield 2026; the 72 h baby's 1.5 is
+  //     neonatal). Glucose turnover at the adult post-absorptive rate, ~2 mg/kg/min = 0.011 mmol/kg/min (textbook C; the
+  //     baby's 0.03 is ~5.4 mg/kg/min), production = utilisation so the controller is neutral at rest; the glucose
+  //     interstitial pool at the adult ~0.15 L/kg (ECF ~0.20 minus plasma; textbook C).
+  glucose: {
+    why: `glucose ${GLU} mmol/L, turnover ${GLU_RATE} mmol/kg/min, ISF ${GLU_ISF} L/kg; lactate ${LACT}`,
+    apply(M) {
+      const G = M.Glucose, L = M.Lactate;
+      G.isf_glucose *= GLU / M.AA.solutes.glucose;
+      Object.assign(G, { glu_use_rate: GLU_RATE, hgp_rate: GLU_RATE, glucose_setpoint: GLU, isf_volume: GLU_ISF });
+      M.Blood.set_solute("glucose", GLU);
+      L.lact_baseline = LACT;
+      M.Blood.set_solute("lact", LACT);
+    },
+  },
   // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
   //     and the unmeasured anions are trimmed while settling so the base excess sits at ~0 (Cl toward 103, the rest of
   //     the gap in uma). Albumin is the model's weak acid (BloodComposition) and its oncotic pressure: the Kidneys and
@@ -357,7 +373,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
