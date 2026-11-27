@@ -165,7 +165,10 @@ const KF = Number(opt("--kf", 0.46));
 const GFR_TARGET = Number(opt("--gfr", 109)); // mL/min/1.73 m2 (Pottel 2017)
 const BSA = 0.024265 * Math.pow(60, 0.5378) * Math.pow(165, 0.3964); // Haycock, as the probe
 const CHEM = { na: 140, k: 4.2, albumin: 43, phosphates: 1.1 };
-const CL_TARGET = 103; // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
+const CL_TARGET = 103;
+const PCO2_TARGET = Number(opt("--pco2", 38));
+const RR_TARGET = Number(opt("--rr", 15));
+const FRC_F = Number(opt("--frc", 1.0)); // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
 const REABS = Number(opt("--reabs", 0.990));
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
 const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
@@ -297,7 +300,28 @@ const LEVERS = {
       K.kf *= Math.pow(GFR_TARGET / gfr, 0.8);
       this.why = `Kidneys.kf ${K.kf.toExponential(3)} (GFR ${gfr.toFixed(0)} -> ${GFR_TARGET}), water reabsorption ${REABS}`;
     },
-  },  // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
+  },  // 13. breathing: PaCO2 38 (sea-level textbook target, user decision) at RR 15 (Parreira 2010). The chemoreflex is held at
+  //     38 while settling (as the map lever holds the baroreflex) and the ventilation reference is trimmed with it
+  //     (alveolar ventilation ~ 1 / PaCO2), so the reflex does not carry the change and is re-anchored at rest; the
+  //     rate/depth split (Breathing: RR = sqrt(MV / (vt_rr_ratio x W))) is re-solved for RR 15 at each trim.
+  vent: {
+    why: `PaCO2 ${PCO2_TARGET} at RR ${RR_TARGET} (CR_PCO2 held, minute_volume_ref + vt_rr_ratio trimmed)`,
+    settle: true,
+    apply(M, model) {
+      const Br = M.Breathing;
+      M.CR_PCO2.set_value = PCO2_TARGET;
+      const a = RA.avgOver(ctx, 20, () => ({ pco2: M.AA.pco2 }));
+      if (a.pco2 > 0) Br.minute_volume_ref *= Math.pow(a.pco2 / PCO2_TARGET, 0.8);
+      Br.vt_rr_ratio = Br.minute_volume_ref / (RR_TARGET * RR_TARGET);
+      this.why = `PaCO2 ${a.pco2.toFixed(1)} -> ${PCO2_TARGET}: minute_volume_ref ${(Br.minute_volume_ref * 1000).toFixed(1)} mL/kg/min, vt_rr_ratio ${Br.vt_rr_ratio.toExponential(3)} (RR ${RR_TARGET})`;
+    },
+  },
+  // 14. supine FRC ~30 mL/kg (GLI 2021 upright 44 minus the supine fall, grade C): alveolar unstressed volume
+  frc: {
+    why: `alveolar unstressed volume (ALL, ALR u_vol) x${FRC_F}`,
+    apply(M) { for (const n of ["ALL", "ALR"]) M[n].u_vol *= FRC_F; },
+  },
+  // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
   //     and the unmeasured anions are trimmed while settling so the base excess sits at ~0 (Cl toward 103, the rest of
   //     the gap in uma). Albumin is the model's weak acid (BloodComposition) and its oncotic pressure: the Kidneys and
   //     Interstitium law oncotic_base x albumin / albumin_ref is re-anchored to adult plasma (25 mmHg at 43 g/L,
@@ -333,7 +357,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -373,7 +397,7 @@ const dbg = (tag) => { if (process.env.ADULT_DEBUG) { eng.calc(57); snap(tag); }
 // the ~3.5 mmHg rise with a ~10 % lower heart rate (2026-11-27 trace)
 RA.reanchorChemoreflex(ctx); dbg("after chemo");
 RA.reanchorHormonesGlucose(ctx); dbg("after hormones");
-reanchorBrainKidney(); dbg("after brain/kidney");
+reanchorKidney(); dbg("after kidney");
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
 for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
@@ -383,6 +407,7 @@ RA.reanchorBaroreflex(ctx);
 eng.calc(60);
 dbg("after baro");
 RA.reanchorChemoreflex(ctx);
+reanchorBrain();
 RA.relearnHeartFunction(ctx); dbg("after HF relearn");
 for (const k of settleLevers) say(`lever ${k} (end of settle): ${LEVERS[k].why}`);
 for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); snap("final"); }
@@ -411,16 +436,24 @@ if (WRITE) {
   say(`wrote ${OUT}`);
 } else say("dry run (pass --write or --out FILE)");
 
-// Brain and Kidney anchors at the adult resting state: the brain's CO2 / O2-content references, baseline CPP and
-// blood volume (ICP reference); the kidney's myogenic set-point at the sensed renal perfusion pressure
-function reanchorBrainKidney() {
-  const B = M.Brain, K = M.Kidneys;
-  const a = RA.avgOver(ctx, 20, () => ({ pco2: M[B.co2_model]?.pco2, to2: M[B.o2_model]?.to2, cpp: B.cpp, cbv: B.cerebral_blood_volume, p: K.sensed_pressure, tgf: K.tgf_signal }));
-  const before = [B.co2_ref, B.o2_ref, B.cpp_setpoint, B.cbv0, K.myogenic_p_set].map((x) => x?.toFixed?.(3));
-  Object.assign(B, { co2_ref: a.pco2, o2_ref: a.to2, cpp_setpoint: a.cpp, cbv0: a.cbv });
-  K.myogenic_p_set = a.p;
-  const tgf0 = K.tgf_setpoint; K.tgf_setpoint = a.tgf; log.push(`Kidneys.tgf_setpoint ${tgf0?.toFixed?.(2)} -> ${a.tgf.toFixed(2)}`);
-  log.push(`Brain co2_ref/o2_ref/cpp_setpoint/cbv0, Kidneys.myogenic_p_set ${before.join("/")} -> ${[a.pco2, a.to2, a.cpp, a.cbv, a.p].map((x) => x.toFixed(3)).join("/")}`);
+// Brain anchors at the adult resting state: the CO2 / O2-content references, baseline CPP and blood volume (ICP reference).
+// Captured at the very end, once the ventilation trim has settled: captured earlier, a PaCO2 excursion between trims
+// (41.5 vs 37.5 at rest) left the brain sensing "hypocapnia" (co2_factor 0.84, CBF 10.2 instead of 12).
+function reanchorBrain() {
+  const B = M.Brain;
+  const a = RA.avgOver(ctx, 20, () => ({ pco2: M[B.co2_model]?.pco2, to2: M[B.o2_model]?.to2, cpp: B.cpp, cbv: B.cerebral_blood_volume }));
+  const before = [B.co2_ref, B.o2_ref, B.cpp_setpoint, B.cbv0].map((x) => x?.toFixed?.(3));
+  Object.assign(B, { co2_ref: a.pco2, o2_ref: a.to2, cpp_setpoint: a.cpp, cbv0: a.cbv, co2_factor: 1.0, o2_factor: 1.0 });
+  log.push(`Brain co2_ref/o2_ref/cpp_setpoint/cbv0 ${before.join("/")} -> ${[a.pco2, a.to2, a.cpp, a.cbv].map((x) => x.toFixed(3)).join("/")}`);
+}
+
+// Kidney anchors: the myogenic set-point at the sensed renal perfusion pressure, the TGF set-point at the resting signal
+function reanchorKidney() {
+  const K = M.Kidneys;
+  const a = RA.avgOver(ctx, 20, () => ({ p: K.sensed_pressure, tgf: K.tgf_signal }));
+  const b = [K.myogenic_p_set, K.tgf_setpoint].map((x) => x?.toFixed?.(2));
+  K.myogenic_p_set = a.p; K.tgf_setpoint = a.tgf;
+  log.push(`Kidneys myogenic_p_set/tgf_setpoint ${b.join("/")} -> ${a.p.toFixed(2)}/${a.tgf.toFixed(2)}`);
 }
 
 // maintenance intake (Fluids) = the resting urine output, so the blood volume holds (as the 72 h baby: 1.35 vs urine ~1.4)
