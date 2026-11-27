@@ -4129,26 +4129,24 @@
           },
           {
             "label": "LVV",
-            "unit": "ml/kg",
+            "unit": "ml",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Heart.lv_edv",
               "Heart.lv_esv"
             ],
-            "weight_based": true,
-            "value": "2.7/1.0"
+            "weight_based": false
           },
           {
             "label": "LV_SV",
-            "unit": "ml/kg",
+            "unit": "ml",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Heart.lv_sv"
             ],
-            "weight_based": true,
-            "value": "1.7"
+            "weight_based": false
           },
           {
             "label": "RVP",
@@ -4164,26 +4162,24 @@
           },
           {
             "label": "RVV",
-            "unit": "ml/kg",
+            "unit": "ml",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Heart.rv_esv",
               "Heart.rv_edv"
             ],
-            "weight_based": true,
-            "value": "1.6/3.3"
+            "weight_based": false
           },
           {
             "label": "RV_SV",
-            "unit": "ml/kg",
+            "unit": "ml",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Heart.rv_sv"
             ],
-            "weight_based": true,
-            "value": "1.7"
+            "weight_based": false
           }
         ]
       },
@@ -4194,146 +4190,133 @@
         "parameters": [
           {
             "label": "Diurese",
-            "unit": "ml/kg/h",
+            "unit": "ml/h",
             "factor": 60,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Kidneys.urine_flow"
             ],
-            "weight_based": true,
-            "value": "0.0"
+            "weight_based": false
           },
           {
             "label": "LVO",
-            "unit": "ml/kg/min",
-            "factor": 1000,
-            "rounding": 1,
+            "unit": "l/min",
+            "factor": 1,
+            "rounding": 2,
             "props": [
               "Monitor.flows.lvo"
             ],
-            "weight_based": true,
-            "value": "186.1"
+            "weight_based": false
           },
           {
             "label": "RVO",
-            "unit": "ml/kg/min",
-            "factor": 1000,
-            "rounding": 1,
+            "unit": "l/min",
+            "factor": 1,
+            "rounding": 2,
             "props": [
               "Monitor.flows.rvo"
             ],
-            "weight_based": true,
-            "value": "185.8"
+            "weight_based": false
           },
           {
             "label": "fCOR",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.cor_flow"
             ],
-            "weight_based": true,
-            "value": "11.6"
+            "weight_based": false
           },
           {
             "label": "fSVC",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.svc_flow"
             ],
-            "weight_based": true,
-            "value": "77.5"
+            "weight_based": false
           },
           {
             "label": "fIVC",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.ivc_flow"
             ],
-            "weight_based": true,
-            "value": "99.2"
+            "weight_based": false
           },
           {
             "label": "fPda",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.da_flow"
             ],
-            "weight_based": true,
-            "value": "0.0"
+            "weight_based": false
           },
           {
             "label": "fFo",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.fo_flow"
             ],
-            "weight_based": true,
-            "value": "0.0"
+            "weight_based": false
           },
           {
             "label": "fBR",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.brain_flow"
             ],
-            "weight_based": true,
-            "value": "38.0"
+            "weight_based": false
           },
           {
             "label": "fKID",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.kid_flow"
             ],
-            "weight_based": true,
-            "value": "24.6"
+            "weight_based": false
           },
           {
             "label": "fUA",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.ua_flow"
             ],
-            "weight_based": true,
-            "value": "0.0"
+            "weight_based": false
           },
           {
             "label": "fUV",
-            "unit": "ml/kg/min",
+            "unit": "ml/min",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Monitor.flows.uv_flow"
             ],
-            "weight_based": true,
-            "value": "0.0"
+            "weight_based": false
           },
           {
             "label": "Blood vol",
-            "unit": "ml/kg",
+            "unit": "ml",
             "factor": 1000,
-            "rounding": 1,
+            "rounding": 0,
             "props": [
               "Circulation.total_blood_volume"
             ],
-            "weight_based": true,
-            "value": "80.7"
+            "weight_based": false
           },
           {
             "label": "Syst vol",
@@ -4670,26 +4653,24 @@
               },
               {
                 "label": "LVV",
-                "unit": "ml/kg",
+                "unit": "ml",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Heart.lv_edv",
                   "Heart.lv_esv"
                 ],
-                "weight_based": true,
-                "value": "2.7/1.0"
+                "weight_based": false
               },
               {
                 "label": "LV_SV",
-                "unit": "ml/kg",
+                "unit": "ml",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Heart.lv_sv"
                 ],
-                "weight_based": true,
-                "value": "1.7"
+                "weight_based": false
               },
               {
                 "label": "RVP",
@@ -4705,26 +4686,24 @@
               },
               {
                 "label": "RVV",
-                "unit": "ml/kg",
+                "unit": "ml",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Heart.rv_esv",
                   "Heart.rv_edv"
                 ],
-                "weight_based": true,
-                "value": "1.6/3.3"
+                "weight_based": false
               },
               {
                 "label": "RV_SV",
-                "unit": "ml/kg",
+                "unit": "ml",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Heart.rv_sv"
                 ],
-                "weight_based": true,
-                "value": "1.7"
+                "weight_based": false
               }
             ]
           },
@@ -4735,146 +4714,133 @@
             "parameters": [
               {
                 "label": "Diurese",
-                "unit": "ml/kg/h",
+                "unit": "ml/h",
                 "factor": 60,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Kidneys.urine_flow"
                 ],
-                "weight_based": true,
-                "value": "0.0"
+                "weight_based": false
               },
               {
                 "label": "LVO",
-                "unit": "ml/kg/min",
-                "factor": 1000,
-                "rounding": 1,
+                "unit": "l/min",
+                "factor": 1,
+                "rounding": 2,
                 "props": [
                   "Monitor.flows.lvo"
                 ],
-                "weight_based": true,
-                "value": "186.1"
+                "weight_based": false
               },
               {
                 "label": "RVO",
-                "unit": "ml/kg/min",
-                "factor": 1000,
-                "rounding": 1,
+                "unit": "l/min",
+                "factor": 1,
+                "rounding": 2,
                 "props": [
                   "Monitor.flows.rvo"
                 ],
-                "weight_based": true,
-                "value": "185.8"
+                "weight_based": false
               },
               {
                 "label": "fCOR",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.cor_flow"
                 ],
-                "weight_based": true,
-                "value": "11.6"
+                "weight_based": false
               },
               {
                 "label": "fSVC",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.svc_flow"
                 ],
-                "weight_based": true,
-                "value": "77.5"
+                "weight_based": false
               },
               {
                 "label": "fIVC",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.ivc_flow"
                 ],
-                "weight_based": true,
-                "value": "99.2"
+                "weight_based": false
               },
               {
                 "label": "fPda",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.da_flow"
                 ],
-                "weight_based": true,
-                "value": "0.0"
+                "weight_based": false
               },
               {
                 "label": "fFo",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.fo_flow"
                 ],
-                "weight_based": true,
-                "value": "0.0"
+                "weight_based": false
               },
               {
                 "label": "fBR",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.brain_flow"
                 ],
-                "weight_based": true,
-                "value": "38.0"
+                "weight_based": false
               },
               {
                 "label": "fKID",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.kid_flow"
                 ],
-                "weight_based": true,
-                "value": "24.6"
+                "weight_based": false
               },
               {
                 "label": "fUA",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.ua_flow"
                 ],
-                "weight_based": true,
-                "value": "0.0"
+                "weight_based": false
               },
               {
                 "label": "fUV",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.uv_flow"
                 ],
-                "weight_based": true,
-                "value": "0.0"
+                "weight_based": false
               },
               {
                 "label": "Blood vol",
-                "unit": "ml/kg",
+                "unit": "ml",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Circulation.total_blood_volume"
                 ],
-                "weight_based": true,
-                "value": "80.7"
+                "weight_based": false
               },
               {
                 "label": "Syst vol",
@@ -4959,27 +4925,25 @@
               },
               {
                 "label": "Tv",
-                "unit": "ml/kg",
+                "unit": "ml",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Breathing.exp_tidal_volume"
                 ],
-                "weight_based": true,
-                "value": "5.0",
+                "weight_based": false,
                 "visible": false,
                 "props_processed": []
               },
               {
                 "label": "Mv",
-                "unit": "ml/kg/min",
-                "factor": 1000,
-                "rounding": 0,
+                "unit": "l/min",
+                "factor": 1,
+                "rounding": 2,
                 "props": [
                   "Breathing.minute_volume"
                 ],
-                "weight_based": true,
-                "value": "215",
+                "weight_based": false,
                 "visible": false,
                 "props_processed": []
               }
@@ -5023,23 +4987,23 @@
               },
               {
                 "label": "Tv",
-                "unit": "ml/kg",
-                "factor": 1000,
-                "rounding": 1,
-                "props": [
-                  "Ventilator.exp_tidal_volume"
-                ],
-                "weight_based": true
-              },
-              {
-                "label": "Mv",
-                "unit": "ml/kg/min",
+                "unit": "ml",
                 "factor": 1000,
                 "rounding": 0,
                 "props": [
+                  "Ventilator.exp_tidal_volume"
+                ],
+                "weight_based": false
+              },
+              {
+                "label": "Mv",
+                "unit": "l/min",
+                "factor": 1,
+                "rounding": 2,
+                "props": [
                   "Ventilator.minute_volume"
                 ],
-                "weight_based": true
+                "weight_based": false
               },
               {
                 "label": "Comp",
@@ -5396,13 +5360,13 @@
               },
               {
                 "label": "Urine",
-                "unit": "ml/kg/h",
+                "unit": "ml/h",
                 "factor": 60,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Kidneys.urine_flow"
                 ],
-                "weight_based": true
+                "weight_based": false
               },
               {
                 "label": "Urine vol",
@@ -5426,13 +5390,13 @@
               },
               {
                 "label": "RBF",
-                "unit": "ml/kg/min",
+                "unit": "ml/min",
                 "factor": 1000,
-                "rounding": 1,
+                "rounding": 0,
                 "props": [
                   "Monitor.flows.kid_flow"
                 ],
-                "weight_based": true
+                "weight_based": false
               },
               {
                 "label": "Renal art",

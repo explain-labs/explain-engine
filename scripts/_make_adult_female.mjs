@@ -471,6 +471,7 @@ j.provenance = "script-generated";
 j.provenance_note = `derived from ${SOURCE} by scripts/_make_adult_female.mjs; reference values in docs/AdultFemaleReference.md`;
 j.model_definition = serializeState(model);
 adultDiagram(j);
+adultDisplay(j);
 j.model_definition._baseline_weight = SUBJECT.weight;
 const text = JSON.stringify(j, null, 2);
 JSON.parse(text);
@@ -547,3 +548,24 @@ function adultDiagram(j) {
   }
 }
 function numberOr(x, d) { return typeof x === "number" && Number.isFinite(x) ? x : d; }
+
+// Monitor read-outs (configuration.monitors and the dashboards) came from the baby with weight_based (per-kg) units.
+// User request 2026-11-27: in the adult they are reported in absolute units, as on an adult monitor: cardiac output and
+// minute volume in L/min, regional flows in mL/min, heart / stroke / blood / tidal volumes in mL, diuresis in mL/h.
+function adultDisplay(j) {
+  const LPM = /^(Monitor\.flows\.(lvo|rvo)|(Breathing|Ventilator|Sle6000)\.minute_volume)$/; // read-outs in L/min
+  let n = 0;
+  const fix = (p) => {
+    if (!p?.weight_based || !Array.isArray(p.props)) return;
+    if (p.unit === "ml/kg/min" && p.props.every((x) => LPM.test(x))) Object.assign(p, { unit: "l/min", factor: p.factor / 1000, rounding: 2 });
+    else if (p.unit === "ml/kg/min") Object.assign(p, { unit: "ml/min", rounding: 0 });
+    else if (p.unit === "ml/kg") Object.assign(p, { unit: "ml", rounding: 0 });
+    else if (p.unit === "ml/kg/h") Object.assign(p, { unit: "ml/h", rounding: 0 });
+    else return;
+    p.weight_based = false; delete p.value; n++;
+  };
+  const walk = (o) => { if (o && typeof o === "object") { if ("weight_based" in o) fix(o); for (const v of Object.values(o)) walk(v); } };
+  walk(j.configuration);
+  const left = JSON.stringify(j.configuration).match(/"weight_based":true/g)?.length ?? 0;
+  say(`display: ${n} read-outs switched from per-kg to absolute units (${left} still per kg)`);
+}
