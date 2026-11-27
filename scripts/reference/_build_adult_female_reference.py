@@ -7,6 +7,8 @@ S = {
  "kb2020": ("Kawel-Boehm N et al. Reference ranges (normal values) for CMR in adults and children: 2020 update. J Cardiovasc Magn Reson 2020;22:87", "10.1186/s12968-020-00683-3", "33308262"),
  "nhsr35": ("Wright JD et al. Mean systolic and diastolic BP in adults aged 18 and over, NHANES 2001-2008. Natl Health Stat Report 2011;35", None, None),
  "nhsr41": ("Ostchega Y et al. Resting pulse rate reference data, NHANES 1999-2008. Natl Health Stat Report 2011;41", None, None),
+ "mceniery2008": ("McEniery CM et al. Central pressure: variability and impact of cardiovascular risk factors: the Anglo-Cardiff Collaborative Trial II. Hypertension 2008;51:1476-82", "10.1161/HYPERTENSIONAHA.107.105445", "18426997"),
+ "herbert2014": ("Herbert A et al. Establishing reference values for central blood pressure and its amplification in a general healthy population. Eur Heart J 2014;35:3122-33", "10.1093/eurheartj/ehu293", "25112663"),
  "kovacs2009": ("Kovacs G et al. Pulmonary arterial pressure during rest and exercise in healthy subjects: a systematic review. Eur Respir J 2009;34:888-94", "10.1183/09031936.00145608", "19324955"),
  "kovacs2012": ("Kovacs G et al. Pulmonary vascular resistances during exercise in normal subjects: a systematic review. Eur Respir J 2012;39:319-28", "10.1183/09031936.00008611", "21885394"),
  "zeder2024": ("Zeder K et al. Pulmonary arterial wedge pressure in healthy subjects: a meta-analysis. Eur Respir J 2024;64:2400967", "10.1183/13993003.00967-2024", "38964777"),
@@ -53,17 +55,20 @@ NONE = "none (reference only)"
 H="hemodynamics"
 row("hr",H,"Heart rate","bpm",65,None,55,99,"chosen mean; NHANES 2.5th-97.5th","NHANES seated 5 min, 30 s radial count; target chosen for supine rest",3061,["nhsr41","kb2020"],"A (range) / decision (mean)","Monitor.heart_rate",
     "NHANES seated women 20-39: 76 (55-99). CMR CO/SV implies ~58 supine in the scanner. User decision 2026-11-27: HR 65 with CMR SV 83 mL -> CO ~5.4 L/min (CI 3.3, inside 1.9-3.9).")
-row("sbp",H,"Systolic BP","mmHg",110,10,94,128,"P5-P95","NHANES seated office auscultation",3655,["nhsr35"],"A (seated)","Monitor.abp_syst","No supine young-female cohort found; supine reads a few mmHg higher (direction only).")
-row("dbp",H,"Diastolic BP","mmHg",68,9,52,83,"P5-P95","as sbp",3655,["nhsr35"],"A (seated)","Monitor.abp_diast","SD derived from the P5-P95 spread / 3.29.")
-row("map",H,"Mean arterial pressure","mmHg",82,None,66,98,"derived","DBP + PP/3 from NHANES",None,["nhsr35"],"B (derived)","Monitor.abp_mean","")
-row("pp",H,"Pulse pressure","mmHg",42,None,None,None,None,"SBP - DBP",None,["nhsr35"],"B (derived)","sbp - dbp","")
+row("sbp",H,"Systolic BP (central, ascending aorta)","mmHg",100,None,84,118,"brachial P5-P95 minus ~10","NHANES brachial 110 (94-128) minus the aorta-to-arm systolic amplification (~10 mmHg in young adults)",3655,["nhsr35","mceniery2008","herbert2014"],"C (derived)","Monitor abp_pre (AA) systolic",
+    "User decision 2026-11-27 (option A): the model reads the ascending aorta, so compare as central pressure. McEniery 2008: brachial-aortic SBP gap still 8 +/- 3 mmHg in women >80 y, larger in the young; Herbert 2014 tabulates it by age/sex (young-female values not verified, full text not retrieved). Brachial NHANES 110 +/- 10.")
+row("dbp",H,"Diastolic BP","mmHg",68,9,52,83,"P5-P95","NHANES seated office auscultation (diastolic ~equal in aorta and arm)",3655,["nhsr35"],"A (seated)","Monitor abp_pre (AA) diastolic","SD derived from the P5-P95 spread / 3.29.")
+row("map_mean",H,"Mean arterial pressure (true time-averaged mean)","mmHg",82,None,66,98,"derived","NHANES DBP + PP/3 (the brachial formula approximates the true mean, which is ~equal in aorta and arm)",None,["nhsr35"],"B (derived)","mean of AA pressure",
+    "User decision 2026-11-27 (option A). DBP + PP/3 on the model's aortic waveform reads ~6 mmHg below its true mean, so the clinical-formula row is reference-only.")
+row("map",H,"MAP by the clinical formula (DBP + PP/3) on the aortic waveform","mmHg",None,None,None,None,None,"Monitor.abp_pre_pres_mean",None,["nhsr35"],"-","Monitor.abp_pre_pres_mean","Reference only (option A): the formula is fitted to brachial waveforms.")
+row("pp",H,"Pulse pressure (central)","mmHg",32,None,None,None,None,"central SBP 100 - DBP 68",None,["nhsr35","mceniery2008"],"C (derived)","sbp - dbp","Brachial 42; central narrower by the systolic amplification.")
 row("cvp",H,"Central venous / right atrial pressure","mmHg",4,None,2,6,"guideline range","right-heart catheter",None,["escers2022"],"C","Monitor CVP","")
 row("pap_s",H,"Systolic PAP","mmHg",None,None,15,30,"guideline range","RHC",None,["escers2022"],"C","Monitor PAP","")
 row("pap_d",H,"Diastolic PAP","mmHg",None,None,4,12,"guideline range","RHC",None,["escers2022"],"C","Monitor PAP","")
 row("pap_m",H,"Mean PAP","mmHg",12.8,3.1,None,None,"mean_sd","RHC systematic review, age <30 subgroup",None,["kovacs2009"],"A","Monitor PAP","All ages 14.0 +/- 3.3 (n=1187), sex-independent.",age="<30 y, both sexes")
 row("pawp",H,"Pulmonary artery wedge pressure","mmHg",10.1,1.8,None,13.0,"mean_sd; ULN","supine RHC meta-analysis",960,["zeder2024"],"A (all) / B (women)",NONE,"Women 10.05 vs men 8.38; model has no wedge read-out (LA pressure is used inside pvr).",age="median 26 y, both sexes")
 row("pvr",H,"Pulmonary vascular resistance","WU",0.86,0.35,None,None,"mean_sd","RHC systematic review",None,["kovacs2012"],"A","(pap_m - LA)/Qp","Model uses mean LA pressure as the wedge.",age="24-50 y")
-row("svr",H,"Systemic vascular resistance","WU",14.4,None,None,None,None,"(MAP - CVP)/CO with the chosen targets (82 - 4)/5.4",None,["nhsr35","kb2020"],"C (derived)","(map - cvp)/LVO","No measured young-female SVR retrieved.")
+row("svr",H,"Systemic vascular resistance","WU",14.4,None,None,None,None,"(true mean MAP - CVP)/CO with the chosen targets (82 - 4)/5.4",None,["nhsr35","kb2020"],"C (derived)","(map - cvp)/LVO","No measured young-female SVR retrieved.")
 row("lv_edv",H,"LV end-diastolic volume","mL/kg",pk(77),pk(12),None,None,"mean_sd","1.5 T SAX bSSFP, papillary muscles in mass",43,["kb2020"],"A","Heart.lv_edv","77 +/- 12 mL/m2 = 127 mL.",age="women 20-29 y")
 row("lv_esv",H,"LV end-systolic volume","mL/kg",pk(29),pk(7),None,None,"mean_sd","as lv_edv",43,["kb2020"],"A","Heart.lv_esv","29 +/- 7 mL/m2 = 48 mL.",age="women 20-29 y")
 row("lv_sv",H,"LV stroke volume","mL/kg",pk(50),pk(6),None,None,"mean_sd","as lv_edv",33,["kb2020"],"A","Heart.lv_sv","50 +/- 6 mL/m2 = 83 mL.",age="women 20-29 y")
@@ -83,7 +88,7 @@ row("renal",H,"Renal blood flow (both kidneys)","mL/kg/min",14.0,None,10.2,15.3,
 row("hepatic_total",H,"Total liver inflow (hepatic artery + portal)","mL/kg/min",19.7,4.6,None,None,"mean_sd","PC-MRI",20,["yzet2010"],"B","AD_LS_ART + AD_INT_ART flow","1.18-1.35 L/min. Model: LS bed = liver + spleen; portal ~ gut (INT) bed.",age="mean 26 y, mixed")
 row("hepatic_art",H,"Hepatic arterial flow","mL/kg/min",3.7,None,None,None,None,"PC-MRI: 19 % of total liver flow",20,["yzet2010"],"B","AD_LS_ART flow","")
 row("sma",H,"Gut (portal) inflow","mL/kg/min",16.0,None,10.9,None,"derived; Doppler lower bound","PC-MRI portal = 81 % of liver flow; fasting Doppler portal 656 mL/min",20,["yzet2010","szinnai2001"],"B/C","AD_INT_ART flow","No verified fasting SMA volume flow; portal flow used as the gut-bed target.")
-row("cor_flow",H,"Coronary blood flow","mL/min",60,None,None,None,None,"MBF 0.65-0.76 mL/min/g x LV mass 84 g",None,["brown2018","czernin1993"],"C (derived)","AA_COR flow","LV only; whole heart somewhat higher.")
+row("cor_flow",H,"Coronary blood flow (whole heart)","mL/min",None,None,160,250,"derived range","resting MBF 0.65-0.76 mL/min/g (CMR median age 23; PET) x whole-heart mass ~250 g; textbook ~250 mL/min (4-5 % of CO)",None,["brown2018","czernin1993","textbook"],"C (derived)","AA_COR flow","Corrected 2026-11-27: the first version (60) was MBF x LV mass only. Model heart weight (Mob) ~266 g at 60 kg.")
 row("mvo2",H,"Myocardial O2 consumption","mL/100 g/min",12.9,2.4,None,None,"mean_sd","PET",13,["peterson2007"],"B","Mob.mob_vo2 / hw","Women > men (9.5) in the same study.",age="young women")
 row("icp",H,"Intracranial pressure","mmHg",7,None,0,15,"compromise","LP opening 4-18 mmHg (lateral) vs supine telemetric ~0.5",None,["leelueck2014","andresen2014"],"C","Brain.icp","")
 row("cpp",H,"Cerebral perfusion pressure","mmHg",75,None,60,90,"derived","MAP - ICP",None,["toering2015"],"C","Brain.cpp","")

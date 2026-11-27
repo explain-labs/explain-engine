@@ -30,6 +30,22 @@
    }
   ],
   [
+   "mceniery2008",
+   {
+    "cite": "McEniery CM et al. Central pressure: variability and impact of cardiovascular risk factors: the Anglo-Cardiff Collaborative Trial II. Hypertension 2008;51:1476-82",
+    "doi": "10.1161/HYPERTENSIONAHA.107.105445",
+    "pmid": "18426997"
+   }
+  ],
+  [
+   "herbert2014",
+   {
+    "cite": "Herbert A et al. Establishing reference values for central blood pressure and its amplification in a general healthy population. Eur Heart J 2014;35:3122-33",
+    "doi": "10.1093/eurheartj/ehu293",
+    "pmid": "25112663"
+   }
+  ],
+  [
    "kovacs2009",
    {
     "cite": "Kovacs G et al. Pulmonary arterial pressure during rest and exercise in healthy subjects: a systematic review. Eur Respir J 2009;34:888-94",
@@ -351,22 +367,24 @@
   {
    "key": "sbp",
    "group": "hemodynamics",
-   "label": "Systolic BP",
+   "label": "Systolic BP (central, ascending aorta)",
    "unit": "mmHg",
-   "mean": 110,
-   "sd": 10,
-   "low": 94,
-   "high": 128,
-   "range_type": "P5-P95",
-   "method": "NHANES seated office auscultation",
+   "mean": 100,
+   "sd": null,
+   "low": 84,
+   "high": 118,
+   "range_type": "brachial P5-P95 minus ~10",
+   "method": "NHANES brachial 110 (94-128) minus the aorta-to-arm systolic amplification (~10 mmHg in young adults)",
    "age": "20-39 y, female",
    "n": 3655,
    "sources": [
-    "nhsr35"
+    "nhsr35",
+    "mceniery2008",
+    "herbert2014"
    ],
-   "grade": "A (seated)",
-   "model_readout": "Monitor.abp_syst",
-   "notes": "No supine young-female cohort found; supine reads a few mmHg higher (direction only)."
+   "grade": "C (derived)",
+   "model_readout": "Monitor abp_pre (AA) systolic",
+   "notes": "User decision 2026-11-27 (option A): the model reads the ascending aorta, so compare as central pressure. McEniery 2008: brachial-aortic SBP gap still 8 +/- 3 mmHg in women >80 y, larger in the young; Herbert 2014 tabulates it by age/sex (young-female values not verified, full text not retrieved). Brachial NHANES 110 +/- 10."
   },
   {
    "key": "dbp",
@@ -378,55 +396,76 @@
    "low": 52,
    "high": 83,
    "range_type": "P5-P95",
-   "method": "as sbp",
+   "method": "NHANES seated office auscultation (diastolic ~equal in aorta and arm)",
    "age": "20-39 y, female",
    "n": 3655,
    "sources": [
     "nhsr35"
    ],
    "grade": "A (seated)",
-   "model_readout": "Monitor.abp_diast",
+   "model_readout": "Monitor abp_pre (AA) diastolic",
    "notes": "SD derived from the P5-P95 spread / 3.29."
   },
   {
-   "key": "map",
+   "key": "map_mean",
    "group": "hemodynamics",
-   "label": "Mean arterial pressure",
+   "label": "Mean arterial pressure (true time-averaged mean)",
    "unit": "mmHg",
    "mean": 82,
    "sd": null,
    "low": 66,
    "high": 98,
    "range_type": "derived",
-   "method": "DBP + PP/3 from NHANES",
+   "method": "NHANES DBP + PP/3 (the brachial formula approximates the true mean, which is ~equal in aorta and arm)",
    "age": "20-39 y, female",
    "n": null,
    "sources": [
     "nhsr35"
    ],
    "grade": "B (derived)",
-   "model_readout": "Monitor.abp_mean",
-   "notes": ""
+   "model_readout": "mean of AA pressure",
+   "notes": "User decision 2026-11-27 (option A). DBP + PP/3 on the model's aortic waveform reads ~6 mmHg below its true mean, so the clinical-formula row is reference-only."
   },
   {
-   "key": "pp",
+   "key": "map",
    "group": "hemodynamics",
-   "label": "Pulse pressure",
+   "label": "MAP by the clinical formula (DBP + PP/3) on the aortic waveform",
    "unit": "mmHg",
-   "mean": 42,
+   "mean": null,
    "sd": null,
    "low": null,
    "high": null,
    "range_type": null,
-   "method": "SBP - DBP",
+   "method": "Monitor.abp_pre_pres_mean",
    "age": "20-39 y, female",
    "n": null,
    "sources": [
     "nhsr35"
    ],
-   "grade": "B (derived)",
+   "grade": "-",
+   "model_readout": "Monitor.abp_pre_pres_mean",
+   "notes": "Reference only (option A): the formula is fitted to brachial waveforms."
+  },
+  {
+   "key": "pp",
+   "group": "hemodynamics",
+   "label": "Pulse pressure (central)",
+   "unit": "mmHg",
+   "mean": 32,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "central SBP 100 - DBP 68",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "nhsr35",
+    "mceniery2008"
+   ],
+   "grade": "C (derived)",
    "model_readout": "sbp - dbp",
-   "notes": ""
+   "notes": "Brachial 42; central narrower by the systolic amplification."
   },
   {
    "key": "cvp",
@@ -558,7 +597,7 @@
    "low": null,
    "high": null,
    "range_type": null,
-   "method": "(MAP - CVP)/CO with the chosen targets (82 - 4)/5.4",
+   "method": "(true mean MAP - CVP)/CO with the chosen targets (82 - 4)/5.4",
    "age": "20-39 y, female",
    "n": null,
    "sources": [
@@ -935,23 +974,24 @@
   {
    "key": "cor_flow",
    "group": "hemodynamics",
-   "label": "Coronary blood flow",
+   "label": "Coronary blood flow (whole heart)",
    "unit": "mL/min",
-   "mean": 60,
+   "mean": null,
    "sd": null,
-   "low": null,
-   "high": null,
-   "range_type": null,
-   "method": "MBF 0.65-0.76 mL/min/g x LV mass 84 g",
+   "low": 160,
+   "high": 250,
+   "range_type": "derived range",
+   "method": "resting MBF 0.65-0.76 mL/min/g (CMR median age 23; PET) x whole-heart mass ~250 g; textbook ~250 mL/min (4-5 % of CO)",
    "age": "20-39 y, female",
    "n": null,
    "sources": [
     "brown2018",
-    "czernin1993"
+    "czernin1993",
+    "textbook"
    ],
    "grade": "C (derived)",
    "model_readout": "AA_COR flow",
-   "notes": "LV only; whole heart somewhat higher."
+   "notes": "Corrected 2026-11-27: the first version (60) was MBF x LV mass only. Model heart weight (Mob) ~266 g at 60 kg."
   },
   {
    "key": "mvo2",

@@ -161,7 +161,7 @@ for (let i = 0; i < steps; i++) {
   add("mv", M.Breathing?.minute_volume);
   add("ds_vol", M.DS?.vol);
   add("gfr", M.Kidneys?.gfr); // pressure-following, so averaged rather than read at the end
-  add("la_pres", M.LA?.pres); add("icp", M.Brain?.icp); add("cpp", M.Brain?.cpp); // PVR (mean LA as the wedge) and the cerebral pressures
+  add("aa_pres", M.AA?.pres); add("la_pres", M.LA?.pres); add("icp", M.Brain?.icp); add("cpp", M.Brain?.cpp); // PVR (mean LA as the wedge) and the cerebral pressures
   add("urine", M.Kidneys?.urine_flow);
   add("o2_uptake", -((M.GASEX_LL?.flux_o2 ?? 0) + (M.GASEX_RL?.flux_o2 ?? 0))); // mmol per step, +ve = blood takes up O2
   add("co2_out", (M.GASEX_LL?.flux_co2 ?? 0) + (M.GASEX_RL?.flux_co2 ?? 0));
@@ -225,8 +225,9 @@ const model_values = {
   // coronary inflow (mL/min, whole heart) and myocardial O2 use (mL/100 g/min)
   // adult rows: vascular resistances in Wood units (mmHg·min/L), the liver inflow (LS = liver + spleen bed plus the
   // portal inflow through the gut bed), and the cerebral pressures
-  pvr: (vit.pap_m - acc.la_pres) / ((acc.LL_VEN_PV + acc.RL_VEN_PV) * 60), svr: (vit.map - vit.cvp) / (acc.LV_AA * 60),
+  pvr: (vit.pap_m - acc.la_pres) / ((acc.LL_VEN_PV + acc.RL_VEN_PV) * 60), svr: (acc.aa_pres - vit.cvp) / (acc.LV_AA * 60), // true mean
   hepatic_total: perKgMin(acc.AD_LS_ART + acc.AD_INT_ART), icp: acc.icp, cpp: acc.cpp,
+  map_mean: acc.aa_pres, // true (time-averaged) mean of the ascending aorta; the map row is the clinical dia + pp/3
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // rows for other reference sets
   lvo_rvo: acc.LV_AA / acc.RV_PA, pda_diam: (M.Pda?.diameter_relative ?? NaN) * (M.Pda?.diameter_pa_max ?? NaN),
