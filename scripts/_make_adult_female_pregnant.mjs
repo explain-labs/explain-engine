@@ -104,6 +104,7 @@ const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 20
 const KID = { rbf: Math.round(850 * 1.35), gfr: Math.round(105 * 1.28) }; // mL/min (docs/PregnancyReference.md)
 const PCO2_TARGET = Number(opt("--pco2", 32)), RR_TARGET = Number(opt("--rr", 15));
 const LUNG = { raw: 0.5, ccw_el: 200 / (1 / (1 / 81 - 1 / 164)), frc: 2.3 * 0.825 }; // x, x (~1.25), L
+const META = { vo2: Math.round(192 * 1.26), glu: 4.7, temp: 36.8 }; // mL/min, mmol/L, degC
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -207,6 +208,7 @@ const LEVERS = {
   kidney: {
     why: `renal blood flow ${KID.rbf} mL/min, GFR ${KID.gfr} mL/min`,
     settle: true,
+    final: true, // also through the final settle: renal flow drifted ~1 mL/kg/min below target after the re-anchoring
     apply(M) {
       const K = M.Kidneys;
       const a = RA.avgOver(ctx, 20, () => ({ rbf: M.AD_KID_ART.flow * 60000, gfr: K.gfr }));
@@ -254,6 +256,26 @@ const LEVERS = {
       this.why = `airway resistance x${LUNG.raw}, chest-wall elastance x${LUNG.ccw_el}; FRC ${(frc * 1000).toFixed(0)} -> ${(LUNG.frc * 1000).toFixed(0)} mL (thorax u_vol ${(M.THORAX.u_vol * 1000).toFixed(0)} mL)`;
     },
   },
+  // 11. metabolism at 36 weeks: whole-body VO2 242 mL/min (calorimetric BMR x1.26, Butte 2004) INCLUDING the heart (Mob)
+  //     and the uteroplacental sink (Uterus + MaternalPlacenta), so Metabolism takes the rest (as adult_female);
+  //     fasting glucose 4.7 (Mills 1998, -0.2); core temperature 36.8 (Hartgill 2011, falls slightly; set-point).
+  metabolism: {
+    why: `whole-body VO2 ${META.vo2} mL/min incl. heart + uteroplacental, glucose ${META.glu}, temperature ${META.temp}`,
+    settle: true,
+    apply(M, model) {
+      if (!this._done) {
+        Object.assign(M.Glucose, { glucose_setpoint: META.glu });
+        M.Blood.set_solute("glucose", META.glu);
+        M.Thermoregulation.setpoint_temp = META.temp;
+        M.Thermoregulation.loss_trim_seeded = false; M.Thermoregulation._warmup_counter = 0.0;
+        this._done = true;
+      }
+      const W = model.weight, mob = (M.Mob.mob_vo2 * 60 * 22.4) / W;
+      const utpl = ((M.Uterus.ut_vo2_ml || 0) + (M.MaternalPlacenta.mp_vo2_ml || 0)) / W;
+      M.Metabolism.vo2 = META.vo2 / W - mob - utpl;
+      this.why = `VO2 ${META.vo2} mL/min = Metabolism ${(M.Metabolism.vo2 * W).toFixed(0)} + heart ${(mob * W).toFixed(0)} + uteroplacental ${(utpl * W).toFixed(1)}; glucose ${META.glu}, temperature ${META.temp}`;
+    },
+  },
   // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
@@ -275,7 +297,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney", "vent", "lungs"];
+const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney", "vent", "lungs", "metabolism"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -331,7 +353,7 @@ if (active.includes("hr")) {
 RA.reanchorChemoreflex(ctx);
 RA.reanchorBrain(ctx);
 RA.relearnHeartFunction(ctx);
-for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); snap("final"); }
+for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); active.filter((k) => LEVERS[k].final).forEach((k) => LEVERS[k].apply(M, model)); snap("final"); }
 RA.advanceToSinusFiring(ctx);
 eng.scale("incorporate", 1);
 log.forEach((l) => say("  " + l));
