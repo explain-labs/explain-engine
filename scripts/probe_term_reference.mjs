@@ -161,6 +161,7 @@ for (let i = 0; i < steps; i++) {
   add("mv", M.Breathing?.minute_volume);
   add("ds_vol", M.DS?.vol);
   add("gfr", M.Kidneys?.gfr); // pressure-following, so averaged rather than read at the end
+  add("ips", (M.IPSL?.flow ?? 0) + (M.IPSR?.flow ?? 0)); add("alv_po2", ((M.ALL?.po2 ?? NaN) + (M.ALR?.po2 ?? NaN)) / 2); // intrapulmonary shunt, alveolar pO2
   add("aa_pres", M.AA?.pres); add("la_pres", M.LA?.pres); add("icp", M.Brain?.icp); add("cpp", M.Brain?.cpp); // PVR (mean LA as the wedge) and the cerebral pressures
   add("urine", M.Kidneys?.urine_flow);
   add("o2_uptake", -((M.GASEX_LL?.flux_o2 ?? 0) + (M.GASEX_RL?.flux_o2 ?? 0))); // mmol per step, +ve = blood takes up O2
@@ -268,6 +269,7 @@ const extras = {
   vd_vt: acc.ds_vol / acc.vt, vo2_setting: M.Metabolism?.vo2, bsa,
   ...Object.fromEntries(dpdtSides.flatMap((d) => [[`${d.key}_dpdt_peak`, meanOf(d.peaks.slice(1))], [`${d.key}_dpdt_echo`, meanOf(d.echo.slice(1))]])), // mmHg/s
   ...Object.fromEntries(timingSides.flatMap((d) => ["ivct", "ej", "ivrt"].map((t) => [`${d.key}_${t}`, meanOf(d[t].slice(1))]))), // ms
+  ips_pct: (100 * acc.ips) / acc.RV_PA, aa_do2: acc.alv_po2 - vit.po2, // intrapulmonary shunt (% of RV output), alveolar-arterial pO2 difference (mmHg)
   fo_grad_mean: foGradSum / steps, fo_grad_peak: meanOf(foGradPks.slice(1)), // mmHg, LA - RA
   pda_no_flow: M.AAR_DA?.no_flow, fo_no_flow: M.LA_RAIVCI?.no_flow && M.LA_RASVC?.no_flow,
 };

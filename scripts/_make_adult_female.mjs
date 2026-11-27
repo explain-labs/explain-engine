@@ -160,6 +160,7 @@ const RQ = Number(opt("--rq", 0.82));
 const MAP_TARGET = Number(opt("--map", 82));
 const HR_TARGET = Number(opt("--hr", 65));
 const VEN_U = Number(opt("--ven-u", 0.95)); // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
+const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
 const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
 const ART_EL = Number(opt("--art-el", 0.6)); // prototype grid 2026-11-27: 1.0 PP 43, 0.6 PP 33 (100/67), 0.4 PP 27
 const P50 = Number(opt("--p50", 26.8)); // mmHg
@@ -254,10 +255,16 @@ const LEVERS = {
   rvdia: {
     why: `RV diastolic stiffness (el_min, el_k) x${RV_DIA}`,
     apply(M) { M.RV.el_min *= RV_DIA; M.RV.el_k *= RV_DIA; },
+  },  // 9. intrapulmonary shunt: the size seed scaled the shunt resistance with PVR, which kept the baby's shunt fraction
+  //    (8.5 % of the RV output); a healthy adult's is ~2-3 % (bronchial and Thebesian venous drainage), which gives the
+  //    normal alveolar-arterial pO2 difference of ~5-8 mmHg. Shunts.ips_res (and the IPSL/IPSR resistors) scaled.
+  shunt: {
+    why: `intrapulmonary shunt resistance x${IPS_F}`,
+    apply(M) { M.Shunts.ips_res *= IPS_F; for (const n of ["IPSL", "IPSR"]) { M[n].r_for *= IPS_F; M[n].r_back *= IPS_F; } },
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
