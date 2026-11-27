@@ -153,9 +153,27 @@ function applyDrives(def) {
 }
 
 // --- levers on the live model (step 5, added one at a time) ------------------------------------------------
-const LEVERS = {};
+const HB = Number(opt("--hb", 13.5)); // g/dL
+const P50 = Number(opt("--p50", 26.8)); // mmHg
+const HB_GDL_PER_MMOL = 1.611; // Hb monomer mmol/L -> g/dL (as probe_term_reference.mjs)
+const LEVERS = {
+  // 1. adult blood: haemoglobin 13.5 g/dL (WHO 2024 / Braat 2024 lower limit 12.0; lab mean) and the HbA
+  //    dissociation curve (Severinghaus P50 26.8). The blood volume stays (Nadler, size seed): the lower Hb is a smaller
+  //    red cell mass in the same volume. Each compartment's O2 content moves with Hb (same saturation); the
+  //    saturation then follows the new curve. Viscosity reference re-calibrated after the Hb change.
+  blood: {
+    why: `haemoglobin ${HB} g/dL, P50 ${P50} mmHg (HbA)`,
+    apply(M) {
+      const hbOld = M.Blood.solutes.hemoglobin, hbNew = HB / HB_GDL_PER_MMOL;
+      M.Blood.set_solute("hemoglobin", hbNew);
+      for (const [n, m] of Object.entries(M)) if (m?.solutes && m !== M.Blood && typeof m.to2 === "number" && !/^(PL_|UT|MP|URINE$|ECLS)/.test(n)) m.to2 *= hbNew / hbOld;
+      M.Blood.set_P50(P50);
+      M.Blood.calibrate_viscosity_ref();
+    },
+  },
+};
 const pick = opt("--levers", "all");
-const DEFAULT = [];
+const DEFAULT = ["blood"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
