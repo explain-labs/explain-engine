@@ -239,6 +239,10 @@ const model_values = {
   na: AA?.solutes?.na, k: AA?.solutes?.k, chloride: AA?.solutes?.cl, albumin: AA?.solutes?.albumin, uma: AA?.solutes?.uma, // arterial plasma chemistry
   ut_flow: M.AD_UT_ART ? (M.Uterus?.ut_blood_flow ?? NaN) : NaN, ut_vo2: M.Uterus?.ut_vo2_ml ?? NaN, // mL/min, mL O2/min
   ut_pi: meanOf(utPi.slice(1)), ut_ri: meanOf(utRi.slice(1)),
+  // pregnancy: absolute GFR (pregnancy GFR is not indexed to 1.73 m2), placental flow and the uterine + placental (incl. fetal
+  // sink) O2 consumption
+  gfr_abs: acc.gfr, pl_flow: M.MaternalPlacenta?.mp_blood_flow ?? NaN,
+  uteroplacental_vo2: (M.Uterus?.ut_vo2_ml ?? NaN) + (M.MaternalPlacenta?.mp_vo2_ml ?? 0),
   map_mean: acc.aa_pres, // true (time-averaged) mean of the ascending aorta; the map row is the clinical dia + pp/3
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // rows for other reference sets

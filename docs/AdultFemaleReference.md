@@ -68,6 +68,7 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 
 
 
+
 ## Hemodynamics, heart and flows
 
 | Variable | Unit | Reference | Range | Method, cohort, n | Grade | Source | Notes |
@@ -166,6 +167,16 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 | Potassium (`k`) | mmol/L | 4.2 | 3.5–5 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source |  |
 | Chloride (`chloride`) | mmol/L | 103 | 98–107 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source |  |
 | Albumin (`albumin`) | g/L | 43 | 35–50 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source | Plasma colloid osmotic pressure ~25 mmHg (textbook C) is the model's oncotic reference at this albumin. |
+
+## Uterus
+
+| Variable | Unit | Reference | Range | Method, cohort, n | Grade | Source | Notes |
+|---|---|---|---|---|---|---|---|
+| Uterine blood flow (both uterine arteries) (`ut_flow`) | mL/min | 45 | 30–60 | transvaginal Doppler volume flow, cycle day 9-10 (closest to early follicular); nulliparous premenopausal women; n=20 | B (derived) | Ziegler WF et al (PMID 10546712); Bernstein IM et al (PMID 12039123); Thaler I et al (PMID 2301480) | User decision 2026-11-27: 45 mL/min. Per artery 22.4 +/- 7.3 (Ziegler, nulliparous); Bernstein 22.2 (same group). Thaler 94.5 per artery is an outlier (inconsistent with its own 1.6 mm diameter and 36 cm/s PSV). Ovarian anastomoses add some flow not counted here; supine (standing -34 %). |
+| Uterine O2 consumption (`ut_vo2`) | mL O2/min | 0.41 | 0.3–0.6 | resting smooth-muscle rate ~0.75 mL/100 g/min x uterine mass ~55 g; non-pregnant | C | Platt JF et al (PMID 2152778); Burt E et al (PMID 31487390); Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source | User decision 2026-11-27 (option b): no human non-pregnant data; a mostly quiescent myometrium. Extraction ~5 % at 45 mL/min. The engine default (0.04 mL/kg/min = 2.4 mL/min) would mean ~4.8 mL/100 g/min. |
+| Uterine artery pulsatility index (`ut_pi`) | - | 3.2 | 1.9–5 | transvaginal Doppler, cycle days 2-7; premenopausal women, early follicular; n=1668 | A | Guedes-Martins L et al (PMID 25742286); Bernstein IM et al (PMID 12039123) | Nulliparous 18-26 y start the cycle higher (model ~4.1 on day 2, 3.2 on day 7). Model uses the inflow resistor's flow waveform as the velocity. |
+| Uterine artery resistance index (`ut_ri`) | - | 0.88 |  | transvaginal colour Doppler, proliferative phase; premenopausal women | B | Kurjak A et al (PMID 1936320) | Falls to 0.84 by day 18. |
+| Uterine weight / volume (`ut_mass`) | g | 55 | 40–100 | hysterectomy weight 60 +/- 20 g (ULN 100); ultrasound volume 43.9 mL; nulliparous | B | Platt JF et al (PMID 2152778); Burt E et al (PMID 31487390) | Basis of the uterine O2 estimate and the ~5 mL bed blood volume (textbook C). |
 
 ## Shunts
 
