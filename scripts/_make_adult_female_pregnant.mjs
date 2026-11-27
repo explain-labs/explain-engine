@@ -33,6 +33,8 @@ const say = (...a) => process.stderr.write(a.join(" ") + "\n");
 
 const GA = 36; // weeks
 const WEIGHT = 71.0; // kg: 60 + IOM 2009 normal-BMI gain at 36 weeks (user decision)
+const UT_GROW = Number(opt("--ut-grow", 18)); // uterine mass ~55 g -> ~1 kg
+const UT_VEN_R = Number(opt("--ut-ven-r", 0.1)); // uterine venule resistance, so the inflow carries the bed's pressure drop (waveform); grid 2026-11-27: x1 PI 4.4, x0.1 0.94, x0.03 0.87
 const IVS_VOL = Number(opt("--ivs-vol", 0.15)); // L, intervillous blood at ~36 wk (textbook ~150 mL; C)
 const DESCRIPTION = "healthy woman (26 y, 1.65 m, 60 kg before pregnancy) at 36 weeks of a singleton pregnancy, 71 kg: awake, " +
   "left lateral (no aortocaval compression), at rest, room air; the fetus is an O2 sink in the placenta";
@@ -47,6 +49,19 @@ function flatten(models) { const o = {}; const w = (x) => { for (const [k, v] of
 function applyPregnancy(def) {
   const o = flatten(def.models), C = o.Circulation;
   const ren = (x, from, to) => JSON.parse(JSON.stringify(x).split(from).join(to));
+  // the pregnant uterus: ~55 g -> ~1 kg at term (textbook C), so its vascular bed grows ~x18 at the same pressures
+  // (volumes x18, elastances /18). The non-pregnant 5 mL bed (UT_ART well under 1 mL) can't carry ~700 mL/min at the
+  // engine's time step: the first trim drove it numerically unstable.
+  for (const n of ["UT_ART", "UT_CAP", "UT_VEN"]) {
+    const v = C.components[n];
+    v.vol *= UT_GROW; v.u_vol *= UT_GROW; v.el_base /= UT_GROW; if (v.el_k) v.el_k /= UT_GROW * UT_GROW;
+  }
+  // the uterine artery of pregnancy has a low-impedance, little-pulsatile inflow (PI ~0.7 at 36 wk, Gomez 2008): the inflow
+  // resistance carries most of the pressure drop (aorta ~80 -> intervillous ~10 mmHg) and the intervillous lake behind it
+  // damps the pulse, so the flow pulsatility ~ pulse pressure / mean drop ~0.6. The cloned bed put most of its resistance
+  // in the venule (the trimmed inlet carried a few mmHg: PI ~4); the venule's resistance is lowered so the inflow trim
+  // takes it. (Stiffening the grown arteriole x10-x100 left the PI at ~3.3: the compliance was not the cause.)
+  C.components.UT_VEN.r_for *= UT_VEN_R; C.components.UT_VEN.r_back *= UT_VEN_R;
   const cap = C.components.UT_CAP;
   const ivs = ren(cap, "UT_CAP", "PL_IVS");
   Object.assign(ivs, { description: "intervillous space (maternal placenta)", inputs: ["UT_ART"] });
@@ -58,7 +73,15 @@ function applyPregnancy(def) {
   const rin = ren(def.models.UT_ART_UT_CAP, "UT_CAP", "PL_IVS"); rin.description = "spiral arteries (input connector for PL_IVS)";
   const rout = ren(def.models.UT_CAP_UT_VEN, "UT_CAP", "PL_IVS"); rout.description = "intervillous drainage into UT_VEN";
   def.models[rin.name] = rin; def.models[rout.name] = rout;
-  const vlb = o.VLB, k = (vlb.vol - ivs.vol) / vlb.vol; vlb.vol *= k; vlb.u_vol *= k;
+  // a BloodVessel drives the resistors of the inputs it lists (<input>_<vessel>) with its own resistance: list PL_IVS on
+  // UT_VEN, or the drainage keeps the fixed resistance it was cloned with and the intervillous space can barely drain
+  if (!C.components.UT_VEN.inputs.includes("PL_IVS")) C.components.UT_VEN.inputs.push("PL_IVS");
+  // likewise the uterine drain UT_VEN_VLB belongs to VLB ("owned by VLB", docs/Uterus.md), but adult_female's uterus was
+  // added without listing UT_VEN on VLB, so the drain kept the fixed resistance it was cloned with (harmless at 45 mL/min,
+  // where the bed trim absorbed it; at 700 mL/min the venule pooled ~250 mL behind it)
+  if (!C.components.VLB.inputs.includes("UT_VEN")) C.components.VLB.inputs.push("UT_VEN");
+  const added = ivs.vol + ["UT_ART", "UT_CAP", "UT_VEN"].reduce((t, n) => t + C.components[n].vol * (1 - 1 / UT_GROW), 0);
+  const vlb = o.VLB, k = (vlb.vol - added) / vlb.vol; vlb.vol *= k; vlb.u_vol *= k;
   def.models.MaternalPlacenta = {
     name: "MaternalPlacenta", description: "maternal placenta: intervillous perfusion and the placental + fetal O2 sink",
     is_enabled: true, model_type: "MaternalPlacenta", pl_ivs_name: "PL_IVS", spiral_res_name: "UT_ART_PL_IVS",
@@ -69,12 +92,13 @@ function applyPregnancy(def) {
   Object.assign(o.Uterus, { pregnant: true, preg_ga: GA, description: "uterine organ: pregnant, 36 weeks" });
   if (!o.Monitor.flow_targets.some((t) => t.name === "pl_flow")) o.Monitor.flow_targets.push({ name: "pl_flow", model: "UT_ART_PL_IVS.flow" });
   Object.assign(def, { weight: WEIGHT, _baseline_weight: WEIGHT });
-  return { ivs: ivs.vol };
+  return { ivs: ivs.vol, ut: ["UT_ART", "UT_CAP", "UT_VEN"].reduce((t, n) => t + C.components[n].vol, 0) };
 }
 
 // --- maternal levers on the live model (step 4, added one at a time) ----------------------------------------------------
 const BLOOD = { bv: 3.768 * 1.37, hb: 12.2, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
 const HB_GDL_PER_MMOL = 1.611;
+const UTPL = { ut: Number(opt("--ut-flow", 700)), pl: Number(opt("--pl-flow", 600)), vo2: Number(opt("--utpl-vo2", 22)) }; // mL/min, mL O2/min
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -100,7 +124,28 @@ const LEVERS = {
       const I = M.Interstitium; if (I?.isf_solutes) { I.isf_solutes.na = BLOOD.na; I.isf_solutes.albumin = I.isf_albumin_ratio * BLOOD.albumin; }
       this.why = `blood volume ${(total * 1000).toFixed(0)} -> ${(maternalBlood(M) * 1000).toFixed(0)} mL (group x${f.toFixed(3)}), Hb ${BLOOD.hb} g/dL, albumin ${BLOOD.albumin} g/L, Na ${BLOOD.na}`;
     },
-  },  // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
+  },  // 3. uteroplacental circulation at 36 weeks: total uterine flow ~700 mL/min (user decision; Flo 2010 673 near term,
+  //    Metcalfe 492, Konje 970), of which ~600 through the intervillous space (textbook 80-90 %); the engine's linear
+  //    pregnancy ramp gives only ~205 / ~70. Trimmed while settling on the base resistances (Uterus and MaternalPlacenta
+  //    keep rewriting their pregnancy factors on top): UT_ART sets the total (the inflow resistor follows it; trimming UT_VEN with it gave a
+  //    pulsatile, high-PI inflow), PL_IVS the
+  //    placental share. The O2 sink, uterus + placenta + fetus ~22 mL/min (fetus 2.8 kg x 6.6 mL/kg/min + placenta ~5;
+  //    Metcalfe 24.5 at term), is trimmed on MaternalPlacenta.mp_vo2 (the myometrial Uterus.ut_vo2 stays). The extra
+  //    uterine flow is new cardiac output, not taken from the lower body.
+  placenta: {
+    why: `uterine flow ${UTPL.ut} / placental ${UTPL.pl} mL/min, uteroplacental VO2 ${UTPL.vo2} mL/min`,
+    settle: true,
+    apply(M) {
+      const a = RA.avgOver(ctx, 10, () => ({ ut: M.AD_UT_ART.flow * 60000, pl: M.UT_ART_PL_IVS.flow * 60000, vo2: (M.Uterus.ut_vo2_ml || 0) + (M.MaternalPlacenta.mp_vo2_ml || 0) }));
+      const clamp = (f) => Math.min(Math.max(f, 0.8), 1.25); // at most 25 % per trim, so the controller can't overshoot
+      const tr = (n, f) => { f = clamp(f); M[n].r_for *= f; M[n].r_back *= f; };
+      if (a.ut > 0) tr("UT_ART", Math.pow(a.ut / UTPL.ut, 0.7)); // the inflow carries the bed's resistance, so the intervillous lake damps the pulse (low uterine PI)
+      if (a.pl > 0) tr("PL_IVS", Math.pow(a.pl / UTPL.pl, 0.7));
+      if (a.vo2 > 0) M.MaternalPlacenta.mp_vo2 *= clamp(Math.pow(UTPL.vo2 / a.vo2, 0.8));
+      this.why = `uterine ${a.ut.toFixed(0)} -> ${UTPL.ut}, placental ${a.pl.toFixed(0)} -> ${UTPL.pl} mL/min; uteroplacental VO2 ${a.vo2.toFixed(1)} -> ${UTPL.vo2} (mp_vo2 ${M.MaternalPlacenta.mp_vo2.toFixed(3)})`;
+    },
+  },
+  // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
   //    the uterine venule, which Uterus scales for pregnancy) is trimmed while settling until the CVP is back at target.
@@ -121,7 +166,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous"];
+const DEFAULT = ["blood", "venous", "placenta"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -129,7 +174,7 @@ for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Obje
 const dir = new URL("../model_definitions/", import.meta.url);
 const j = JSON.parse(fs.readFileSync(new URL(`${SOURCE}.json`, dir), "utf8"));
 const pg = applyPregnancy(j.model_definition);
-say(`pregnancy: ${GA} wk, weight ${WEIGHT} kg, intervillous space ${(pg.ivs * 1000).toFixed(0)} mL (from VLB), MaternalPlacenta added`);
+say(`pregnancy: ${GA} wk, weight ${WEIGHT} kg, uterine bed ${(pg.ut * 1000).toFixed(0)} mL (x${UT_GROW}), intervillous space ${(pg.ivs * 1000).toFixed(0)} mL (both from VLB), MaternalPlacenta added`);
 const eng = await createEngine();
 globalThis.__bc = await import("../component_models/BloodComposition.js");
 const model = eng.build(j.model_definition);
