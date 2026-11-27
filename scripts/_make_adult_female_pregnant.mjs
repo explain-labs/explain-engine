@@ -101,6 +101,7 @@ const HB_GDL_PER_MMOL = 1.611;
 const UTPL = { ut: Number(opt("--ut-flow", 700)), pl: Number(opt("--pl-flow", 600)), vo2: Number(opt("--utpl-vo2", 22)) }; // mL/min, mL O2/min
 const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78));
 const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
+const KID = { rbf: Math.round(850 * 1.35), gfr: Math.round(105 * 1.28) }; // mL/min (docs/PregnancyReference.md)
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -197,6 +198,23 @@ const LEVERS = {
       this.why = `LV + RV diastolic stiffness (el_k) x${this._f.toFixed(3)} (stroke volume ${sv.toFixed(1)} -> ${SV_TARGET.toFixed(0)} mL)`;
     },
   },
+  // 8. kidney of pregnancy: renal blood flow ~x1.35 (effective renal plasma flow, Dunlop 1981; ~1150 mL/min) and GFR x1.28
+  //    (inulin, Saxena 2012; ~134 mL/min absolute, not indexed). Trimmed while settling: the kidney bed's resistance (its
+  //    three vessels) for the flow, Kidneys.kf for the GFR; the myogenic and TGF set-points and the maintenance intake are
+  //    re-anchored at the new resting state as always. The lower oncotic pressure (blood lever) already raised GFR.
+  kidney: {
+    why: `renal blood flow ${KID.rbf} mL/min, GFR ${KID.gfr} mL/min`,
+    settle: true,
+    apply(M) {
+      const K = M.Kidneys;
+      const a = RA.avgOver(ctx, 20, () => ({ rbf: M.AD_KID_ART.flow * 60000, gfr: K.gfr }));
+      const clamp = (f) => Math.min(Math.max(f, 0.8), 1.25);
+      const fr = clamp(Math.pow(a.rbf / KID.rbf, 0.8));
+      for (const n of ["KID_ART", "KID_CAP", "KID_VEN"]) { M[n].r_for *= fr; M[n].r_back *= fr; }
+      K.kf *= clamp(Math.pow(KID.gfr / a.gfr, 0.8));
+      this.why = `renal blood flow ${a.rbf.toFixed(0)} -> ${KID.rbf}, GFR ${a.gfr.toFixed(0)} -> ${KID.gfr} mL/min (kf ${K.kf.toExponential(3)})`;
+    },
+  },
   // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
@@ -218,7 +236,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel"];
+const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -252,10 +270,25 @@ RA.reanchorHormonesGlucose(ctx);
 RA.reanchorKidney(ctx);
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
-for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
+// the maintenance intake is measured once the kidney re-anchoring has settled and BEFORE the last trimming window, so the
+// trims have converged at the moment of the baroreflex fold (measured between the trims and the fold, the 120 s window
+// let the pressure drift up and the fold baked in a braking reflex: HR 73 instead of 78)
+eng.calc(120);
 RA.reanchorMaintenance(ctx);
+for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
 RA.reanchorBaroreflex(ctx);
 eng.calc(60);
+// heart rate after the fold: the last trims leave a small pressure error at the fold, so the folded reflex can bake in a
+// few bpm of braking (HR ~73 instead of 78); with the reflex now neutral the resting rate is nudged back to the target
+if (active.includes("hr")) {
+  for (let i = 0; i < 4; i++) {
+    const hr = RA.avgOver(ctx, 10, () => ({ hr: M.Monitor.heart_rate })).hr;
+    if (Math.abs(hr - HR_TARGET) < 0.3) break;
+    M.Heart.heart_rate_ref *= HR_TARGET / hr;
+    eng.calc(50);
+    log.push(`post-fold heart rate ${hr.toFixed(1)} -> heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)}`);
+  }
+}
 RA.reanchorChemoreflex(ctx);
 RA.reanchorBrain(ctx);
 RA.relearnHeartFunction(ctx);
