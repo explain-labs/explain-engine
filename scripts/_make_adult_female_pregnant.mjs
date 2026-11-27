@@ -99,6 +99,7 @@ function applyPregnancy(def) {
 const BLOOD = { bv: 3.768 * 1.37, hb: 12.2, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
 const HB_GDL_PER_MMOL = 1.611;
 const UTPL = { ut: Number(opt("--ut-flow", 700)), pl: Number(opt("--pl-flow", 600)), vo2: Number(opt("--utpl-vo2", 22)) }; // mL/min, mL O2/min
+const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78));
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -145,6 +146,37 @@ const LEVERS = {
       this.why = `uterine ${a.ut.toFixed(0)} -> ${UTPL.ut}, placental ${a.pl.toFixed(0)} -> ${UTPL.pl} mL/min; uteroplacental VO2 ${a.vo2.toFixed(1)} -> ${UTPL.vo2} (mp_vo2 ${M.MaternalPlacenta.mp_vo2.toFixed(3)})`;
     },
   },
+  // 4-6. circulation of pregnancy (option B): heart rate 78 (+13, Mahendru 2014), true mean MAP 82 (unchanged), and the
+  //    systemic resistance trimmed to hold it, so cardiac output (target 7.07 L/min, Meah 2016) follows from the
+  //    heart rate, the larger blood volume and the lower SVR. As in adult_female: the baroreflex is held at the MAP
+  //    target (+ the arch - aorta gap) while settling and folded last.
+  map: {
+    why: `baroreflex set-point at true mean MAP ${MAP_TARGET} while settling`,
+    settle: true,
+    apply(M) {
+      const a = RA.avgOver(ctx, 5, () => ({ aar: M.AAR.pres, aa: M.AA.pres }));
+      M.BR_MAP.set_value = MAP_TARGET + (a.aar - a.aa);
+    },
+  },
+  hr: {
+    why: `heart rate held at ${HR_TARGET} while settling (Heart.heart_rate_ref trimmed)`,
+    settle: true,
+    apply(M) {
+      const hr = M.Monitor.heart_rate;
+      if (hr > 0) M.Heart.heart_rate_ref *= Math.pow(HR_TARGET / hr, 0.8);
+      this.why = `heart rate held at ${HR_TARGET} (heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)})`;
+    },
+  },
+  svr: {
+    why: `systemic resistance trimmed to true mean MAP ${MAP_TARGET}`,
+    settle: true,
+    apply(M, model) {
+      const a = RA.avgOver(ctx, 5, () => ({ map: M.AA.pres, cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2, co: M.LV_AA.flow * 60 }));
+      const f = Math.min(Math.max(Math.pow((MAP_TARGET - a.cvp) / (a.map - a.cvp), 0.7), 0.8), 1.25);
+      for (const n of model.scaler_config.blood_systemic.resistance) M[n].r_factor_scaling_ps *= f;
+      this.why = `systemic resistance scaling ${M.AA.r_factor_scaling_ps.toFixed(3)} (MAP ${a.map.toFixed(1)} -> ${MAP_TARGET}, CO ${a.co.toFixed(2)} L/min)`;
+    },
+  },
   // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
@@ -166,7 +198,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous", "placenta"];
+const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
