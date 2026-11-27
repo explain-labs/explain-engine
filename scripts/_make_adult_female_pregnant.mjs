@@ -35,6 +35,8 @@ const GA = 36; // weeks
 const WEIGHT = 71.0; // kg: 60 + IOM 2009 normal-BMI gain at 36 weeks (user decision)
 const UT_GROW = Number(opt("--ut-grow", 18)); // uterine mass ~55 g -> ~1 kg
 const UT_VEN_R = Number(opt("--ut-ven-r", 0.1)); // uterine venule resistance, so the inflow carries the bed's pressure drop (waveform); grid 2026-11-27: x1 PI 4.4, x0.1 0.94, x0.03 0.87
+const RA_ISF_SEED = 35; // s: Interstitium re-seeds its balance after seed_delay (30 s)
+const DISC_SCALE = Number(opt("--disc-scale", 0.6)); // uterus / placenta diagram discs
 const IVS_VOL = Number(opt("--ivs-vol", 0.15)); // L, intervillous blood at ~36 wk (textbook ~150 mL; C)
 const DESCRIPTION = "healthy woman (26 y, 1.65 m, 60 kg before pregnancy) at 36 weeks of a singleton pregnancy, 71 kg: awake, " +
   "left lateral (no aortocaval compression), at rest, room air; the fetus is an O2 sink in the placenta";
@@ -354,6 +356,11 @@ RA.reanchorChemoreflex(ctx);
 RA.reanchorBrain(ctx);
 RA.relearnHeartFunction(ctx);
 for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); active.filter((k) => LEVERS[k].final).forEach((k) => LEVERS[k].apply(M, model)); snap("final"); }
+// the kidney trim runs through the final settle, so the urine output moves after the first maintenance re-anchor: set the
+// intake (rate and composition) to the final resting urine once more, or the blood volume creeps (+46 mL/h, 2026-11-27)
+RA.reanchorMaintenance(ctx);
+RA.reseedInterstitium(ctx); // re-seed its balance at the final state too (it did not stop the slow interstitial -> plasma shift, ~20 mL/30 min and slowing: open item)
+eng.calc(RA_ISF_SEED);
 RA.advanceToSinusFiring(ctx);
 eng.scale("incorporate", 1);
 log.forEach((l) => say("  " + l));
@@ -365,6 +372,7 @@ j.description = DESCRIPTION;
 j.provenance = "script-generated";
 j.provenance_note = `derived from ${SOURCE} by scripts/_make_adult_female_pregnant.mjs; reference values in docs/PregnancyReference.md`;
 j.model_definition = serializeState(model);
+pregnancyDisplay(j);
 j.model_definition._baseline_weight = WEIGHT;
 const text = JSON.stringify(j, null, 2);
 JSON.parse(text);
@@ -378,3 +386,30 @@ if (WRITE) {
   fs.writeFileSync(OUT, text);
   say(`wrote ${OUT}`);
 } else say("dry run (pass --write or --out FILE)");
+
+// Diagram and monitor for pregnancy: a placenta node (PL_IVS) beside the uterus node, with the spiral-artery and drainage
+// connectors; the uterus and placenta discs drawn at DISC_SCALE of their natural size (the diagram sizes discs by absolute
+// volume: the ~260 mL uterine bed and ~170 mL intervillous space would swamp the organ column, but they stay visibly
+// enlarged against the non-pregnant uterus); uterine and placental flow read-outs (mL/min) on the circulation panels.
+function pregnancyDisplay(j) {
+  const DC = j.diagram_definition?.components;
+  if (DC?.UT) {
+    const ren = (x, map) => { let t = JSON.stringify(x); for (const [a, b] of map) t = t.split(a).join(b); return JSON.parse(t); };
+    DC.UT.layout.sprite.scale = { x: DISC_SCALE, y: DISC_SCALE };
+    if (!DC.PL) {
+      DC.PL = ren(DC.UT, [['"UT_CAP","UT_VEN","UT_ART"', '"PL_IVS"'], ['"label":"UT"', '"label":"PL"']]);
+      DC.PL.models = ["PL_IVS"];
+      DC.PL.layout.sprite.pos = { ...DC.UT.layout.sprite.pos, x: +(DC.UT.layout.sprite.pos.x + 0.15).toFixed(3) };
+      DC.UT_PL = ren(DC.AD_UT, [["AD_UT_ART", "UT_ART_PL_IVS"]]); Object.assign(DC.UT_PL, { dbcFrom: "UT", dbcTo: "PL" });
+      DC.PL_UT = ren(DC.UT_VLB, [["UT_VEN_VLB", "PL_IVS_UT_VEN"]]); Object.assign(DC.PL_UT, { dbcFrom: "PL", dbcTo: "UT" });
+    }
+    j.diagram_definition.settings.name = `${NAME}_diagram`;
+  }
+  const flows = [
+    { label: "fUT", unit: "ml/min", factor: 1000, rounding: 0, props: ["Monitor.flows.ut_flow"], weight_based: false },
+    { label: "fPL", unit: "ml/min", factor: 1000, rounding: 0, props: ["Monitor.flows.pl_flow"], weight_based: false },
+  ];
+  const panels = [j.configuration?.monitors?.circulation, ...(j.configuration?.monitor_dashboards ?? []).map((d) => d.monitors?.circulation)].filter(Boolean);
+  for (const panel of panels) for (const f of flows) if (!panel.parameters.some((q) => q.label === f.label)) panel.parameters.push({ ...f });
+  say(`display: placenta node + connectors, uterus/placenta discs x${DISC_SCALE}, fUT/fPL read-outs on ${panels.length} circulation panels`);
+}
