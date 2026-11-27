@@ -170,6 +170,7 @@ const PCO2_TARGET = Number(opt("--pco2", 38));
 const RR_TARGET = Number(opt("--rr", 15));
 const FRC_F = Number(opt("--frc", 1.0));
 const THERMO = { env_temp: 23.0, surface_area_k: Math.round((1.66 / Math.pow(60, 2 / 3)) * 1000) / 1000, bat_max_per_kg: 0.2 };
+const ISF = { isf_volume_per_kg: 0.15, lymph_flow_rest: 0.035, kf_per_kg: 0.04 };
 const GLU = 4.9, GLU_RATE = 0.011, GLU_ISF = 0.15, LACT = 1.0; // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
 const REABS = Number(opt("--reabs", 0.990));
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
@@ -351,6 +352,23 @@ const LEVERS = {
       T.loss_trim_seeded = false; T._warmup_counter = 0.0;
     },
   },
+  // 17. interstitium at adult size (textbook C): interstitial volume ~0.15 L/kg (ECF ~0.20 minus plasma ~0.045; the baby's
+  //     0.36 is the neonatal ECF excess), resting lymph flow ~3 L/day = 0.035 mL/min/kg (baby 0.1), whole-body capillary
+  //     filtration coefficient ~0.04 mL/min/mmHg/kg (adult limb plethysmography ~0.004 mL/min/mmHg/100 mL; the baby's
+  //     fitted 0.08 is ~2x), and the compliances scaled with the volume (same fractional change per mmHg). The pool re-seeds
+  //     from isf_volume_per_kg, its solutes from the adult plasma, and its resting balance (offsets) re-seeds.
+  isf: {
+    why: `Interstitium ${JSON.stringify(ISF)}`,
+    apply(M) {
+      const I = M.Interstitium, f = ISF.isf_volume_per_kg / I.isf_volume_per_kg;
+      Object.assign(I, ISF, { compliance_above: I.compliance_above * f, compliance_below: I.compliance_below * f, isf_volume: 0, isf_volume_rest: 0 });
+      // the pool's solutes from the adult plasma (the chemistry lever runs first): small solutes at plasma
+      // concentration, albumin at isf_albumin_ratio x plasma (it held 0.6 x the baby's 25 g/L)
+      for (const k of Object.keys(I.isf_solutes ?? {})) if (typeof M.AA.solutes[k] === "number") I.isf_solutes[k] = M.AA.solutes[k];
+      I.isf_solutes.albumin = I.isf_albumin_ratio * M.AA.solutes.albumin;
+      this.why = `Interstitium volume ${ISF.isf_volume_per_kg} L/kg, lymph ${ISF.lymph_flow_rest} mL/min/kg, kf ${ISF.kf_per_kg}, compliance x${f.toFixed(3)}`;
+    },
+  },
   // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
   //     and the unmeasured anions are trimmed while settling so the base excess sits at ~0 (Cl toward 103, the rest of
   //     the gap in uma). Albumin is the model's weak acid (BloodComposition) and its oncotic pressure: the Kidneys and
@@ -387,7 +405,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose", "thermo"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose", "thermo", "isf"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
