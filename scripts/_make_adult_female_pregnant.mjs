@@ -100,6 +100,7 @@ const BLOOD = { bv: 3.768 * 1.37, hb: 12.2, albumin: 37.2, na: 136 }; // L, g/dL
 const HB_GDL_PER_MMOL = 1.611;
 const UTPL = { ut: Number(opt("--ut-flow", 700)), pl: Number(opt("--pl-flow", 600)), vo2: Number(opt("--utpl-vo2", 22)) }; // mL/min, mL O2/min
 const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78));
+const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -177,6 +178,25 @@ const LEVERS = {
       this.why = `systemic resistance scaling ${M.AA.r_factor_scaling_ps.toFixed(3)} (MAP ${a.map.toFixed(1)} -> ${MAP_TARGET}, CO ${a.co.toFixed(2)} L/min)`;
     },
   },
+  // 7. eccentric remodelling of pregnancy: the ventricles dilate (and hypertrophy) so they fill to a larger end-diastolic
+  //    volume at the same filling pressure (CMR LV EDV x1.29, LV mass x1.48 at ~34 wk, Ducas 2014). Without it the
+  //    non-pregnant heart filled to only ~119 mL at CVP ~4.5 and stroke volume fell to ~75 mL. The ventricles' diastolic
+  //    stiffness (el_k, the EDPVR coefficient; el_min is 0) is trimmed while settling until stroke volume = CO / HR target
+  //    (7.07 L/min / 78 = ~91 mL); the SVR trim then lowers SVR. NOT the unstressed volume: in the time-varying elastance
+  //    model u_vol is also the end-systolic intercept, so raising it enlarged the ventricle without raising its stroke
+  //    volume (prototype 2026-11-27: EDV 217 mL, SV 56 mL, the trim ran away).
+  remodel: {
+    why: `LV + RV diastolic stiffness trimmed to stroke volume ${SV_TARGET.toFixed(0)} mL`,
+    settle: true,
+    apply(M) {
+      const a = RA.avgOver(ctx, 10, () => ({ q: M.LV_AA.flow, hr: M.Monitor.heart_rate }));
+      const sv = (a.q * 60 * 1000) / a.hr; // mL
+      const f = Math.min(Math.max(Math.pow(sv / SV_TARGET, 2.0), 0.7), 1.25); // SV low -> softer
+      for (const n of ["LV", "RV"]) M[n].el_k *= f;
+      this._f = (this._f ?? 1) * f;
+      this.why = `LV + RV diastolic stiffness (el_k) x${this._f.toFixed(3)} (stroke volume ${sv.toFixed(1)} -> ${SV_TARGET.toFixed(0)} mL)`;
+    },
+  },
   // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
@@ -198,7 +218,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr"];
+const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
