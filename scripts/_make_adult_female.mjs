@@ -160,7 +160,9 @@ const RQ = Number(opt("--rq", 0.82));
 const MAP_TARGET = Number(opt("--map", 82));
 const HR_TARGET = Number(opt("--hr", 65));
 const VEN_U = Number(opt("--ven-u", 0.95)); // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
-const BED = { kid: Number(opt("--kid-r", 0.77)), int: Number(opt("--int-r", 0.92)), ls: Number(opt("--ls-r", 1.95)), cor_ext: Number(opt("--cor-ext", 0.74)) }; // prototypes 2026-11-27: kid 0.77 -> renal 13.8; int 0.92 -> gut 13.3; ls 1.76/1.95 -> 7.5/6.9; cor_ext 0.70/0.74 -> 257/238 mL/min
+const BED = { kid: Number(opt("--kid-r", 0.87)), int: Number(opt("--int-r", 0.92)), ls: Number(opt("--ls-r", 1.95)), cor_ext: Number(opt("--cor-ext", 0.74)) }; // prototypes 2026-11-27: kid 0.77 -> renal 13.8 (15.9 after the kf lever -> 0.87); int 0.92 -> gut 13.3; ls 1.76/1.95 -> 7.5/6.9; cor_ext 0.70/0.74 -> 257/238 mL/min
+const KF = Number(opt("--kf", 0.46)); // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
+const REABS = Number(opt("--reabs", 0.990));
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
 const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
 const ART_EL = Number(opt("--art-el", 0.6)); // prototype grid 2026-11-27: 1.0 PP 43, 0.6 PP 33 (100/67), 0.4 PP 27
@@ -276,10 +278,18 @@ const LEVERS = {
       bed("KID", BED.kid); bed("INT", BED.int); bed("LS", BED.ls);
       M.Mob.cor_ext_ref = BED.cor_ext;
     },
+  },  // 11. glomerular filtration: measured GFR 109 +/- 14 mL/min/1.73 m2 in women 20-30 (Pottel 2017), not the textbook
+  //     120-130. The size seed scaled Kidneys.kf by the GFR ratio (~24); with the adult renal flow that overshoots. The
+  //     tubuloglomerular-feedback set-point is re-anchored at the resting state with the myogenic one. Water reabsorption
+  //     0.990 (urine ~1.5 L/day = ~1 mL/kg/h at GFR ~105 mL/min; textbook C; the baby's 0.98 excretes 2 %), and the
+  //     maintenance intake (Fluids) is re-anchored to the resting urine output so the blood volume holds.
+  kidney: {
+    why: `Kidneys.kf x${KF}, water reabsorption ${REABS}`,
+    apply(M) { M.Kidneys.kf *= KF; M.Kidneys.reabsorption_fraction = REABS; },
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -300,7 +310,7 @@ const snap = (tag) => { // 3 s means (pressures, flows), so the line is not one 
   const a = RA.avgOver(ctx, 3, () => ({ map: M.AAR.pres, cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2, pa: M.PA.pres, co: M.LV_AA.flow * 60, pco2: M.AA.pco2 ?? NaN }));
   say(`[${tag}] t=${model.model_time_total.toFixed(0)} s HR ${M.Monitor.heart_rate.toFixed(1)} MAP ${a.map.toFixed(1)} CVP ${a.cvp.toFixed(1)} ` +
     `PA ${a.pa.toFixed(1)} CO ${a.co.toFixed(2)} L/min SpO2 ${M.Monitor.sao2_pre.toFixed(1)} RR ${M.Breathing.resp_rate.toFixed(1)} ` +
-    `Vt ${(M.Breathing.exp_tidal_volume * 1000).toFixed(0)} mL pCO2 ${a.pco2.toFixed(1)} clinMAP ${M.Monitor.minmax?.abp_pre_pres_mean?.toFixed(1)}` +
+    `Vt ${(M.Breathing.exp_tidal_volume * 1000).toFixed(0)} mL pCO2 ${a.pco2.toFixed(1)} clinMAP ${M.Monitor.minmax?.abp_pre_pres_mean?.toFixed(1)} GFR ${M.Kidneys.gfr.toFixed(0)} urine ${(M.Kidneys.urine_flow * 60 / model.weight).toFixed(2)} BE ${M.AA.be?.toFixed?.(2)}` +
     (process.env.ADULT_DEBUG ? ` | hr_ref ${M.Heart.heart_rate_ref.toFixed(1)} ans_hr ${M.Heart.ans_activity_hr.toFixed(3)} ` +
       ["hr_mob_factor", "hr_temp_factor", "hr_chemo_factor", "hr_cat_factor"].map((k) => `${k.slice(3, -7)} ${M.Heart[k].toFixed(3)}`).join(" ") : ""));
 };
@@ -322,6 +332,7 @@ reanchorBrainKidney(); dbg("after brain/kidney");
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
 for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
+reanchorMaintenance(); // after the kidney re-anchoring has settled (urine fell from ~2.5 to ~1 mL/kg/h once the myogenic set-point moved)
 dbg("before baro");
 RA.reanchorBaroreflex(ctx);
 eng.calc(60);
@@ -359,9 +370,18 @@ if (WRITE) {
 // blood volume (ICP reference); the kidney's myogenic set-point at the sensed renal perfusion pressure
 function reanchorBrainKidney() {
   const B = M.Brain, K = M.Kidneys;
-  const a = RA.avgOver(ctx, 20, () => ({ pco2: M[B.co2_model]?.pco2, to2: M[B.o2_model]?.to2, cpp: B.cpp, cbv: B.cerebral_blood_volume, p: K.sensed_pressure }));
+  const a = RA.avgOver(ctx, 20, () => ({ pco2: M[B.co2_model]?.pco2, to2: M[B.o2_model]?.to2, cpp: B.cpp, cbv: B.cerebral_blood_volume, p: K.sensed_pressure, tgf: K.tgf_signal }));
   const before = [B.co2_ref, B.o2_ref, B.cpp_setpoint, B.cbv0, K.myogenic_p_set].map((x) => x?.toFixed?.(3));
   Object.assign(B, { co2_ref: a.pco2, o2_ref: a.to2, cpp_setpoint: a.cpp, cbv0: a.cbv });
   K.myogenic_p_set = a.p;
+  const tgf0 = K.tgf_setpoint; K.tgf_setpoint = a.tgf; log.push(`Kidneys.tgf_setpoint ${tgf0?.toFixed?.(2)} -> ${a.tgf.toFixed(2)}`);
   log.push(`Brain co2_ref/o2_ref/cpp_setpoint/cbv0, Kidneys.myogenic_p_set ${before.join("/")} -> ${[a.pco2, a.to2, a.cpp, a.cbv, a.p].map((x) => x.toFixed(3)).join("/")}`);
+}
+
+// maintenance intake (Fluids) = the resting urine output, so the blood volume holds (as the 72 h baby: 1.35 vs urine ~1.4)
+function reanchorMaintenance() {
+  const F = M.Fluids, K = M.Kidneys;
+  const u = RA.avgOver(ctx, 120, () => ({ urine: K.urine_flow })).urine * 60 / model.weight; // mL/min -> mL/kg/h
+  log.push(`Fluids.maintenance_rate ${F.maintenance_rate.toFixed(3)} -> ${u.toFixed(3)} mL/kg/h (resting urine)`);
+  F.maintenance_rate = u;
 }
