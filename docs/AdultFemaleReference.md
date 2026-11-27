@@ -18,6 +18,12 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 
 ## Decisions (user, 2026-11-27)
 
+- **Uterus** (added after the first release): non-pregnant, **early follicular** phase. Uterine blood flow 45 mL/min
+  (2 x Ziegler 1999 per-artery 22.4, nulliparous, day 9-10; Thaler 1990's 94.5 per artery is an outlier). Uterine O2 use
+  from tissue mass at a resting smooth-muscle rate (0.75 mL/100 g/min x ~55 g = 0.41 mL/min, grade C; no human data),
+  not the engine default 2.4 mL/min. Pulsatility index as a waveform check (Guedes-Martins 2015, days 2-7). Pregnancy
+  calibration is a separate later project.
+
 - **Heart and central flows are anchored on cardiac MRI**: Kawel-Boehm 2020, women aged 20–29.
 - **Heart rate 65 with CMR stroke volume.** NHANES gives a seated resting HR of 76 (55–99). The CMR
   output (CI 2.9) divided by the CMR stroke volume (83 mL) implies about 58 in the scanner. Both can't
@@ -57,6 +63,7 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
   (`hepatic_total`, 19.7).
 - **CO₂ response:** the Goldberg start-to-end rebreathing slope (0.38 L/min/mmHg) is several-fold below
   classic Read slopes measured above threshold (1–3 L/min/mmHg).
+
 
 
 
@@ -210,6 +217,13 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 - **mifflin1990**: Mifflin MD et al. A new predictive equation for resting energy expenditure. Am J Clin Nutr 1990;51:241-7 (doi:10.1093/ajcn/51.2.241, PMID 2305711)
 - **geneva2019**: Geneva II et al. Normal body temperature: a systematic review. Open Forum Infect Dis 2019;6:ofz032 (doi:10.1093/ofid/ofz032, PMID 30976605)
 - **klaestrup2011**: Klaestrup E et al. Reference intervals and age/gender dependency for arterial blood gases and electrolytes. Clin Chem Lab Med 2011;49:1495 (doi:10.1515/CCLM.2011.603, PMID 21619466)
+- **ziegler1999**: Ziegler WF et al. Uterine artery blood flow during the menstrual cycle (transvaginal Doppler volume flow, nulliparous). Obstet Gynecol 1999 (doi:10.1016/s0029-7844(99)00397-x, PMID 10546712)
+- **bernstein2002**: Bernstein IM et al. Uterine artery hemodynamics in the follicular phase (day 10). Obstet Gynecol 2002 (doi:10.1016/s0029-7844(01)01787-2, PMID 12039123)
+- **thaler1990**: Thaler I et al. Changes in uterine blood flow during human pregnancy (pre-pregnancy values). Am J Obstet Gynecol 1990 (doi:10.1016/0002-9378(90)90834-t, PMID 2301480)
+- **guedes2015**: Guedes-Martins L et al. Uterine artery impedance during the menstrual cycle: reference values (n=1668). PLoS One 2015 (doi:10.1371/journal.pone.0119103, PMID 25742286)
+- **kurjak1991**: Kurjak A et al. Transvaginal color Doppler of uterine artery flow during the menstrual cycle. Fertil Steril 1991 (PMID 1936320)
+- **platt1990**: Platt JF et al. Uterine weight and dimensions in nulliparous women (hysterectomy specimens). J Clin Ultrasound 1990;18:15 (PMID 2152778)
+- **burt2019**: Burt E et al. Uterine volume in nulliparous women (ultrasound). Clin Endocrinol 2019 (doi:10.1111/cen.14092, PMID 31487390)
 - **textbook**: Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source
 
 ## The scenario (2026-11-27)
@@ -237,6 +251,7 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 | 13 | vent | chemoreflex held at PaCO2 38, ventilation trimmed, RR 15 | PaCO2 37.3, pH 7.42 |
 | 15 | glucose | glucose 4.9, turnover 0.011 mmol/kg/min, ISF pool 0.15 L/kg; lactate 1.0 | glucose / lactate in range |
 | 16 | thermo | ambient 23 degC, BSA 1.66 m2, brown fat 0.2 W/kg | core 36.96 |
+| 18 | uterus | non-pregnant uterine bed (cloned from the kidney bed, ~5 mL), trimmed to 45 mL/min out of the lower body; arteriole resistance share x0.3 for the Doppler waveform; Uterus O2 use 0.41 mL/min | uterine flow 45, PI 2.7, RI 0.90 |
 | 17 | isf | interstitium 0.15 L/kg, lymph 0.035 mL/min/kg, Kf 0.04, compliance x0.42 | adult fluid compartments |
 
    (14, `frc`, is opt-in: it moved FRC only 38 -> 35 mL/kg.)

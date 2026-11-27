@@ -1,6 +1,6 @@
 # Uterus
 
-> **Experimental.** Not used by any shipped scenario (the Pregnancy panel is hidden in the app as unfinished). It builds and runs on the current engine, but its pregnancy physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
+> **Experimental pregnancy physiology.** `adult_female` uses it non-pregnant, calibrated at rest (see [Usage in the scenarios](#usage-in-the-scenarios)); the Pregnancy panel is hidden in the app as unfinished. Its pregnancy physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
 
 `Uterus` turns the adult uterine vascular bed (`UT_ART` → `UT_CAP` → `UT_VEN`) into an organ. It holds no blood. It controls those vessels and adds:
 - a uterine oxygen consumption, with blood-flow and oxygen read-outs;
@@ -152,8 +152,16 @@ No shipped scenario has a Uterus model; a `models.Uterus` entry (physiology prop
 
 ## Usage in the scenarios
 
-Not used by any shipped scenario: `term_neonate_72h` has no Uterus model.
+`adult_female` (non-pregnant, early follicular phase; `scripts/_make_adult_female.mjs`, reference rows in
+[AdultFemaleReference](./AdultFemaleReference.md)): the uterine bed is a clone of the kidney bed (~5 mL of blood), trimmed
+to a uterine blood flow of 45 mL/min out of the lower body, with the arteriole's share of the bed resistance x0.3 so the
+inflow waveform has a high-resistance Doppler shape (PI 2.7, RI 0.90; reference PI 3.2, P5-P95 1.9-5.0, RI 0.88).
+`ut_vo2` 0.00683 mL/kg/min = 0.41 mL/min (resting smooth muscle x ~55 g, extraction ~5 %), subtracted from
+`Metabolism.vo2` so whole-body VO2 stays 3.2 mL/kg/min. The vessels are not in a ModelScaler group (the pregnancy layers
+live in the scaling layer). `term_neonate_72h` has no Uterus model.
 
 ## References
 
-None calibrated yet.
+Non-pregnant resting values (`adult_female`): Ziegler 1999 (uterine artery volume flow, PMID 10546712), Bernstein 2002
+(PMID 12039123), Guedes-Martins 2015 (pulsatility index by cycle day, PMID 25742286), Kurjak 1991 (RI, PMID 1936320), Platt
+1990 and Burt 2019 (uterine weight / volume). Pregnancy: none calibrated yet.

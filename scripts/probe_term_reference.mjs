@@ -100,6 +100,9 @@ const timingSides = [
 ].map((d) => ({ ...d, prevIn: 0, prevOut: 0, tInEnd: null, tOut: null, tOutEnd: null, ivct: [], ej: [], ivrt: [] }));
 // atrial gradient LA - RA (positive drives left-to-right flow through the FO): mean, and peak per beat
 let foGradSum = 0, foGradPk = -Infinity; const foGradPks = [];
+// uterine artery inflow waveform per beat (AD_UT_ART, when the scenario has a uterus): pulsatility and resistance index as
+// Doppler reports them, (max - min) / mean and (max - min) / max, with the flow standing in for the velocity
+let utMax = -Infinity, utMin = Infinity, utSum = 0, utN = 0; const utPi = [], utRi = [];
 for (let i = 0; i < steps; i++) {
   for (const k in M) M[k].step_model();
   model.model_time_total += dt;
@@ -128,6 +131,10 @@ for (let i = 0; i < steps; i++) {
     if (d.prevOut > 0 && qOut <= 0 && d.tOut !== null) { d.ej.push((i - d.tOut) * dt * 1000); d.tOutEnd = i; d.tOut = null; }
     if (d.prevIn <= 0 && qIn > 0 && d.tOutEnd !== null) { d.ivrt.push((i - d.tOutEnd) * dt * 1000); d.tOutEnd = null; }
     d.prevIn = qIn; d.prevOut = qOut;
+  }
+  if (M.AD_UT_ART) {
+    const q = M.AD_UT_ART.flow; if (q > utMax) utMax = q; if (q < utMin) utMin = q; utSum += q; utN++;
+    if (M.Heart?.ncc_ventricular === 1 && utN > 1) { const mean = utSum / utN; utPi.push((utMax - utMin) / mean); utRi.push((utMax - utMin) / utMax); utMax = -Infinity; utMin = Infinity; utSum = 0; utN = 0; }
   }
   const foGrad = M.LA?.pres - (M.RAIVCI?.pres + M.RASVC?.pres) / 2;
   foGradSum += foGrad; if (foGrad > foGradPk) foGradPk = foGrad;
@@ -230,6 +237,8 @@ const model_values = {
   hepatic_total: perKgMin(acc.AD_LS_ART + acc.AD_INT_ART), icp: acc.icp, cpp: acc.cpp,
   pawp: acc.la_pres, // mean left atrial pressure as the wedge pressure
   na: AA?.solutes?.na, k: AA?.solutes?.k, chloride: AA?.solutes?.cl, albumin: AA?.solutes?.albumin, uma: AA?.solutes?.uma, // arterial plasma chemistry
+  ut_flow: M.AD_UT_ART ? (M.Uterus?.ut_blood_flow ?? NaN) : NaN, ut_vo2: M.Uterus?.ut_vo2_ml ?? NaN, // mL/min, mL O2/min
+  ut_pi: meanOf(utPi.slice(1)), ut_ri: meanOf(utRi.slice(1)),
   map_mean: acc.aa_pres, // true (time-averaged) mean of the ascending aorta; the map row is the clinical dia + pp/3
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // rows for other reference sets
