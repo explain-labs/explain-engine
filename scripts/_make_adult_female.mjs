@@ -160,8 +160,12 @@ const RQ = Number(opt("--rq", 0.82));
 const MAP_TARGET = Number(opt("--map", 82));
 const HR_TARGET = Number(opt("--hr", 65));
 const VEN_U = Number(opt("--ven-u", 0.95)); // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
-const BED = { kid: Number(opt("--kid-r", 0.87)), int: Number(opt("--int-r", 0.92)), ls: Number(opt("--ls-r", 1.95)), cor_ext: Number(opt("--cor-ext", 0.74)) }; // prototypes 2026-11-27: kid 0.77 -> renal 13.8 (15.9 after the kf lever -> 0.87); int 0.92 -> gut 13.3; ls 1.76/1.95 -> 7.5/6.9; cor_ext 0.70/0.74 -> 257/238 mL/min
-const KF = Number(opt("--kf", 0.46)); // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
+const BED = { kid: Number(opt("--kid-r", 0.95)), int: Number(opt("--int-r", 0.92)), ls: Number(opt("--ls-r", 1.95)), cor_ext: Number(opt("--cor-ext", 0.74)) }; // prototypes 2026-11-27: kid 0.77 -> renal 13.8 (15.9 after the kf lever -> 0.87; 15.5 after the chemistry lever -> 0.95); int 0.92 -> gut 13.3; ls 1.76/1.95 -> 7.5/6.9; cor_ext 0.70/0.74 -> 257/238 mL/min
+const KF = Number(opt("--kf", 0.46));
+const GFR_TARGET = Number(opt("--gfr", 109)); // mL/min/1.73 m2 (Pottel 2017)
+const BSA = 0.024265 * Math.pow(60, 0.5378) * Math.pow(165, 0.3964); // Haycock, as the probe
+const CHEM = { na: 140, k: 4.2, albumin: 43, phosphates: 1.1 };
+const CL_TARGET = 103; // grid 2026-11-27: 0.5/0.58/0.66 -> GFR 119/135/151
 const REABS = Number(opt("--reabs", 0.990));
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
 const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
@@ -284,12 +288,52 @@ const LEVERS = {
   //     0.990 (urine ~1.5 L/day = ~1 mL/kg/h at GFR ~105 mL/min; textbook C; the baby's 0.98 excretes 2 %), and the
   //     maintenance intake (Fluids) is re-anchored to the resting urine output so the blood volume holds.
   kidney: {
-    why: `Kidneys.kf x${KF}, water reabsorption ${REABS}`,
-    apply(M) { M.Kidneys.kf *= KF; M.Kidneys.reabsorption_fraction = REABS; },
+    why: `Kidneys.kf trimmed to GFR ${GFR_TARGET} (start x${KF}), water reabsorption ${REABS}`,
+    settle: true,
+    apply(M) {
+      const K = M.Kidneys;
+      if (!this._done) { K.kf *= KF; K.reabsorption_fraction = REABS; this._done = true; return; }
+      const gfr = RA.avgOver(ctx, 20, () => ({ g: K.gfr })).g * 1.73 / BSA; // mL/min/1.73 m2, as the probe
+      K.kf *= Math.pow(GFR_TARGET / gfr, 0.8);
+      this.why = `Kidneys.kf ${K.kf.toExponential(3)} (GFR ${gfr.toFixed(0)} -> ${GFR_TARGET}), water reabsorption ${REABS}`;
+    },
+  },  // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
+  //     and the unmeasured anions are trimmed while settling so the base excess sits at ~0 (Cl toward 103, the rest of
+  //     the gap in uma). Albumin is the model's weak acid (BloodComposition) and its oncotic pressure: the Kidneys and
+  //     Interstitium law oncotic_base x albumin / albumin_ref is re-anchored to adult plasma (25 mmHg at 43 g/L,
+  //     textbook C), otherwise 43 g/L would read as 31 mmHg. The maintenance fluid is re-anchored to the resting urine
+  //     composition at the end (reanchorMaintenance), so each solute stays in balance.
+  chemistry: {
+    why: `plasma Na ${CHEM.na}, K ${CHEM.k}, albumin ${CHEM.albumin} g/L, phosphate ${CHEM.phosphates}; oncotic 25 mmHg at 43 g/L; Cl/uma trimmed to BE 0`,
+    settle: true,
+    apply(M) {
+      const B = M.Blood;
+      if (!this._done) {
+        for (const [k, v] of Object.entries(CHEM)) B.set_solute(k, v);
+        for (const n of ["Kidneys", "Interstitium"]) Object.assign(M[n], { oncotic_base: 25.0, albumin_ref: CHEM.albumin });
+        this._done = true;
+        return;
+      }
+      const { calc_blood_composition } = globalThis.__bc;
+      calc_blood_composition(M.AA);
+      const be = M.AA.be, cl = M.AA.solutes.cl;
+      // anion to remove r = -0.7 x BE (BE < 0: too many anions). Chloride moves first, toward 103 only; uma takes the rest
+      const r = -0.7 * be;
+      let dCl = 0;
+      if (r > 0 && cl > CL_TARGET) dCl = -Math.min(r, cl - CL_TARGET);
+      else if (r < 0 && cl < CL_TARGET) dCl = Math.min(-r, CL_TARGET - cl);
+      const dUma = -r - dCl; // total anion change dCl + dUma = -r
+      for (const [n, m] of Object.entries(M)) {
+        if (!m?.solutes || /^(PL_|UT|MP|URINE$|ECLS)/.test(n) || typeof m.solutes.uma !== "number") continue;
+        m.solutes.cl += dCl; m.solutes.uma = Math.max(m.solutes.uma + dUma, 0);
+      }
+      B.solutes.cl += dCl; B.solutes.uma = Math.max((B.solutes.uma ?? 0) + dUma, 0);
+      this.why = `plasma Na ${CHEM.na}, K ${CHEM.k}, albumin ${CHEM.albumin}, phosphate ${CHEM.phosphates}; BE ${be.toFixed(2)} -> Cl ${M.AA.solutes.cl.toFixed(1)}, uma ${M.AA.solutes.uma.toFixed(2)}`;
+    },
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -301,6 +345,7 @@ applyDrives(j.model_definition);
 say(`size: ${sz.n} components scaled; non-heart blood renormalised x${sz.fix.toFixed(3)}; ratios Q ${QF.toFixed(2)}, ` +
   `R sys ${RF.sys.toFixed(3)} pulm ${RF.pulm.toFixed(4)}, V blood ${VS.blood.toFixed(2)} LV ${VS.lv.toFixed(2)} RV ${VS.rv.toFixed(2)}; drives ${JSON.stringify(DRIVES)}`);
 const eng = await createEngine();
+globalThis.__bc = await import("../component_models/BloodComposition.js");
 const model = eng.build(j.model_definition);
 if (!model?.models) { say(`build failed`); process.exit(1); }
 const M = model.models;
@@ -384,4 +429,10 @@ function reanchorMaintenance() {
   const u = RA.avgOver(ctx, 120, () => ({ urine: K.urine_flow })).urine * 60 / model.weight; // mL/min -> mL/kg/h
   log.push(`Fluids.maintenance_rate ${F.maintenance_rate.toFixed(3)} -> ${u.toFixed(3)} mL/kg/h (resting urine)`);
   F.maintenance_rate = u;
+  // composition = the resting urine composition (plasma x (1 - fr_solute) / (1 - fr_water)), so every filtered solute's
+  // intake matches its excretion (the baby's maintenance fluid is its urine composition too)
+  const fl = F.fluids[F.maintenance_fluid] ?? (F.fluids[F.maintenance_fluid] = {});
+  const frw = K.reabsorption_fraction, before = JSON.stringify(fl);
+  for (const s of K.filterable_solutes) fl[s] = +(M.AA.solutes[s] * (1 - K._solute_reabs(s)) / (1 - frw)).toFixed(3);
+  log.push(`Fluids.fluids.${F.maintenance_fluid} ${before} -> ${JSON.stringify(fl)}`);
 }

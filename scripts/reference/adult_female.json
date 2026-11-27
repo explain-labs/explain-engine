@@ -1768,6 +1768,86 @@
    "notes": ""
   },
   {
+   "key": "na",
+   "group": "blood",
+   "label": "Sodium",
+   "unit": "mmol/L",
+   "mean": 140,
+   "sd": null,
+   "low": 135,
+   "high": 145,
+   "range_type": "lab RI",
+   "method": "plasma",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "AA solutes.na",
+   "notes": ""
+  },
+  {
+   "key": "k",
+   "group": "blood",
+   "label": "Potassium",
+   "unit": "mmol/L",
+   "mean": 4.2,
+   "sd": null,
+   "low": 3.5,
+   "high": 5.0,
+   "range_type": "lab RI",
+   "method": "plasma",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "AA solutes.k",
+   "notes": ""
+  },
+  {
+   "key": "chloride",
+   "group": "blood",
+   "label": "Chloride",
+   "unit": "mmol/L",
+   "mean": 103,
+   "sd": null,
+   "low": 98,
+   "high": 107,
+   "range_type": "lab RI",
+   "method": "plasma",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "AA solutes.cl",
+   "notes": ""
+  },
+  {
+   "key": "albumin",
+   "group": "blood",
+   "label": "Albumin",
+   "unit": "g/L",
+   "mean": 43,
+   "sd": null,
+   "low": 35,
+   "high": 50,
+   "range_type": "lab RI",
+   "method": "plasma",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "AA solutes.albumin",
+   "notes": "Plasma colloid osmotic pressure ~25 mmHg (textbook C) is the model's oncotic reference at this albumin."
+  },
+  {
    "key": "pda",
    "group": "shunts",
    "label": "Ductus arteriosus flow",

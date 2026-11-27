@@ -60,6 +60,7 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 
 
 
+
 ## Hemodynamics, heart and flows
 
 | Variable | Unit | Reference | Range | Method, cohort, n | Grade | Source | Notes |
@@ -154,6 +155,10 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 | Blood volume (`blood_volume`) | mL/kg | 62.8 |  | Nadler for 1.65 m / 60 kg = 3.77 L; ICSH RCM 23.2 + PV 38.6 = 61.8 mL/kg; 20-39 y, female | B/C | Nadler SB et al (PMID 21936146); Pearson TC et al (PMID 7772511) | ICSH whole-body Hct 0.375 vs venous 0.40. |
 | Measured GFR (`gfr`) | mL/min/1.73m2 | 109 ± 14.1 |  | inulin/iohexol; women 20-30 y; n=24 | A | Pottel H et al (PMID 28852494) | Not the textbook 120-130. Absolute ~105 mL/min. |
 | Urine output (`urine`) | mL/kg/h | 1 | 0.5–— | 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source |  |
+| Sodium (`na`) | mmol/L | 140 | 135–145 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source |  |
+| Potassium (`k`) | mmol/L | 4.2 | 3.5–5 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source |  |
+| Chloride (`chloride`) | mmol/L | 103 | 98–107 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source |  |
+| Albumin (`albumin`) | g/L | 43 | 35–50 | plasma; 20-39 y, female | C | Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source | Plasma colloid osmotic pressure ~25 mmHg (textbook C) is the model's oncotic reference at this albumin. |
 
 ## Shunts
 

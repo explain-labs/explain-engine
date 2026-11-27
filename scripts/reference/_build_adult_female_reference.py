@@ -132,6 +132,10 @@ row("p50",BL,"O2 dissociation P50 (adult HbA)","mmHg",26.8,None,None,None,None,"
 row("blood_volume",BL,"Blood volume","mL/kg",62.8,None,None,None,None,"Nadler for 1.65 m / 60 kg = 3.77 L; ICSH RCM 23.2 + PV 38.6 = 61.8 mL/kg",None,["nadler1962","icsh1995"],"B/C","sum of blood compartments","ICSH whole-body Hct 0.375 vs venous 0.40.")
 row("gfr",BL,"Measured GFR","mL/min/1.73m2",109,14.1,None,None,"mean_sd","inulin/iohexol",24,["pottel2017"],"A","Kidneys.gfr","Not the textbook 120-130. Absolute ~105 mL/min.",age="women 20-30 y")
 row("urine",BL,"Urine output","mL/kg/h",1.0,None,0.5,None,"oliguria threshold","",None,["textbook"],"C","Kidneys.urine_flow","")
+row("na",BL,"Sodium","mmol/L",140,None,135,145,"lab RI","plasma",None,["textbook"],"C","AA solutes.na","")
+row("k",BL,"Potassium","mmol/L",4.2,None,3.5,5.0,"lab RI","plasma",None,["textbook"],"C","AA solutes.k","")
+row("chloride",BL,"Chloride","mmol/L",103,None,98,107,"lab RI","plasma",None,["textbook"],"C","AA solutes.cl","")
+row("albumin",BL,"Albumin","g/L",43,None,35,50,"lab RI","plasma",None,["textbook"],"C","AA solutes.albumin","Plasma colloid osmotic pressure ~25 mmHg (textbook C) is the model's oncotic reference at this albumin.")
 SH="shunts"
 row("pda",SH,"Ductus arteriosus flow","mL/kg/min",0,None,None,0.5,"closed","",None,["textbook"],"-","AAR_DA flow","Adult: closed.",age="adult")
 row("fo",SH,"Foramen ovale flow","mL/kg/min",0,None,None,0.5,"closed","",None,["textbook"],"-","LA -> RA flow","Adult: closed (a small PFO in ~25 % is ignored).",age="adult")
