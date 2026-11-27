@@ -103,6 +103,7 @@ const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78))
 const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
 const KID = { rbf: Math.round(850 * 1.35), gfr: Math.round(105 * 1.28) }; // mL/min (docs/PregnancyReference.md)
 const PCO2_TARGET = Number(opt("--pco2", 32)), RR_TARGET = Number(opt("--rr", 15));
+const LUNG = { raw: 0.5, ccw_el: 200 / (1 / (1 / 81 - 1 / 164)), frc: 2.3 * 0.825 }; // x, x (~1.25), L
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -233,6 +234,26 @@ const LEVERS = {
       this.why = `PaCO2 ${a.pco2.toFixed(1)} -> ${PCO2_TARGET}: minute_volume_ref ${(Br.minute_volume_ref * 1000).toFixed(1)} mL/kg/min (RR ${RR_TARGET})`;
     },
   },
+  // 10. lung mechanics at 36 weeks: total pulmonary resistance x0.5 (Gee 1967; airway smooth-muscle relaxation), lung
+  //     compliance unchanged and the chest wall stiffer (respiratory compliance ~x0.9, grade C: Crs 90 -> ~81 with the lung
+  //     at ~164 mL/cmH2O gives a chest wall of ~160 vs 200), FRC ~x0.825 (Craig & Toole 1975; the gravid uterus lifts the
+  //     diaphragm) trimmed on the thorax's unstressed volume while settling.
+  lungs: {
+    why: `airway resistance x${LUNG.raw}, chest-wall elastance x${LUNG.ccw_el}, FRC trimmed to ${(LUNG.frc * 1000).toFixed(0)} mL`,
+    settle: true,
+    apply(M) {
+      if (!this._done) {
+        for (const n of ["MOUTH_DS", "DS_ALL", "DS_ALR"]) { M[n].r_for *= LUNG.raw; M[n].r_back *= LUNG.raw; }
+        M.THORAX.el_base *= LUNG.ccw_el;
+        this._done = true;
+      }
+      // FRC = the end-expiratory (minimum) gas volume of the lungs and dead space over a few breaths, as the probe reads it
+      let frc = Infinity;
+      RA.avgOver(ctx, 12, () => { const g = M.ALL.vol + M.ALR.vol + M.DS.vol; if (g < frc) frc = g; return {}; });
+      M.THORAX.u_vol -= 0.7 * (frc - LUNG.frc);
+      this.why = `airway resistance x${LUNG.raw}, chest-wall elastance x${LUNG.ccw_el}; FRC ${(frc * 1000).toFixed(0)} -> ${(LUNG.frc * 1000).toFixed(0)} mL (thorax u_vol ${(M.THORAX.u_vol * 1000).toFixed(0)} mL)`;
+    },
+  },
   // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
@@ -254,7 +275,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney", "vent"];
+const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney", "vent", "lungs"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
