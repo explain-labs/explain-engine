@@ -160,6 +160,7 @@ const RQ = Number(opt("--rq", 0.82));
 const MAP_TARGET = Number(opt("--map", 82));
 const HR_TARGET = Number(opt("--hr", 65));
 const VEN_U = Number(opt("--ven-u", 0.95)); // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
+const BED = { kid: Number(opt("--kid-r", 0.77)), int: Number(opt("--int-r", 0.92)), ls: Number(opt("--ls-r", 1.95)), cor_ext: Number(opt("--cor-ext", 0.74)) }; // prototypes 2026-11-27: kid 0.77 -> renal 13.8; int 0.92 -> gut 13.3; ls 1.76/1.95 -> 7.5/6.9; cor_ext 0.70/0.74 -> 257/238 mL/min
 const IPS_F = Number(opt("--ips", 3.0)); // grid 2026-11-27: x1 8.5 %, x2.2 4.0 %, x3 3.0 %, x4.3 2.1 % (A-a 17.7/11.6/9.7/8.6)
 const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
 const ART_EL = Number(opt("--art-el", 0.6)); // prototype grid 2026-11-27: 1.0 PP 43, 0.6 PP 33 (100/67), 0.4 PP 27
@@ -261,10 +262,24 @@ const LEVERS = {
   shunt: {
     why: `intrapulmonary shunt resistance x${IPS_F}`,
     apply(M) { M.Shunts.ips_res *= IPS_F; for (const n of ["IPSL", "IPSR"]) { M[n].r_for *= IPS_F; M[n].r_back *= IPS_F; } },
+  },  // 10. organ beds: the size seed scaled every systemic bed by the same SVR ratio, so each kept the baby's share of output.
+  //     Each bed's resistance (all three of its vessels, base values) is set toward its adult flow; the SVR trim then
+  //     restores the mean pressure. The brain autoregulates to its own set-point (cbf_setpoint, already adult).
+  //     Kidney 14 mL/kg/min (~850 mL/min, PC-MRI vs hippuran); gut (INT) = portal flow minus the spleen's share; liver +
+  //     spleen (LS) = hepatic artery + splenic artery (the model's LS venous blood bypasses the liver). Coronary flow
+  //     follows Mob's held O2 extraction: adult ~70-75 % (coronary sinus saturation ~25-30 %; Mob.md; 0.55 was the
+  //     neonatal calibration).
+  beds: {
+    why: `kidney R x${BED.kid}, gut R x${BED.int}, liver+spleen R x${BED.ls}, Mob.cor_ext_ref ${BED.cor_ext}`,
+    apply(M) {
+      const bed = (pre, f) => { for (const n of [`${pre}_ART`, `${pre}_CAP`, `${pre}_VEN`]) { M[n].r_for *= f; M[n].r_back *= f; } };
+      bed("KID", BED.kid); bed("INT", BED.int); bed("LS", BED.ls);
+      M.Mob.cor_ext_ref = BED.cor_ext;
+    },
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 

@@ -933,43 +933,45 @@
   {
    "key": "hepatic_art",
    "group": "hemodynamics",
-   "label": "Hepatic arterial flow",
+   "label": "Liver + spleen arterial inflow (model LS bed)",
    "unit": "mL/kg/min",
-   "mean": 3.7,
+   "mean": 6.7,
    "sd": null,
    "low": null,
    "high": null,
    "range_type": null,
-   "method": "PC-MRI: 19 % of total liver flow",
-   "age": "20-39 y, female",
-   "n": 20,
-   "sources": [
-    "yzet2010"
-   ],
-   "grade": "B",
-   "model_readout": "AD_LS_ART flow",
-   "notes": ""
-  },
-  {
-   "key": "sma",
-   "group": "hemodynamics",
-   "label": "Gut (portal) inflow",
-   "unit": "mL/kg/min",
-   "mean": 16.0,
-   "sd": null,
-   "low": 10.9,
-   "high": null,
-   "range_type": "derived; Doppler lower bound",
-   "method": "PC-MRI portal = 81 % of liver flow; fasting Doppler portal 656 mL/min",
+   "method": "hepatic artery 19 % of liver flow (3.7, PC-MRI) + splenic arterial flow ~3 (textbook estimate)",
    "age": "20-39 y, female",
    "n": 20,
    "sources": [
     "yzet2010",
-    "szinnai2001"
+    "textbook"
+   ],
+   "grade": "B/C",
+   "model_readout": "AD_LS_ART flow",
+   "notes": "Remapped 2026-11-27: the model's LS bed is liver + spleen and its venous blood bypasses the liver, so it carries hepatic artery + splenic flow. Splenic share not verified against a source (C)."
+  },
+  {
+   "key": "sma",
+   "group": "hemodynamics",
+   "label": "Gut inflow (model INT bed) = portal minus splenic",
+   "unit": "mL/kg/min",
+   "mean": 13.0,
+   "sd": null,
+   "low": 7.9,
+   "high": null,
+   "range_type": "derived; Doppler lower bound",
+   "method": "PC-MRI portal 81 % of liver flow (16.0) minus the splenic share (~3); fasting Doppler portal 656 mL/min (10.9) minus ~3",
+   "age": "20-39 y, female",
+   "n": 20,
+   "sources": [
+    "yzet2010",
+    "szinnai2001",
+    "textbook"
    ],
    "grade": "B/C",
    "model_readout": "AD_INT_ART flow",
-   "notes": "No verified fasting SMA volume flow; portal flow used as the gut-bed target."
+   "notes": "Remapped 2026-11-27 (see the LS row). No verified fasting SMA volume flow."
   },
   {
    "key": "cor_flow",

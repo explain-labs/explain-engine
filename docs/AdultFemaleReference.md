@@ -51,11 +51,13 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
   4.7 L/min; seated with a mask (Goldberg) gives 8.1 L/min. The supine, mask-free set is used.
 - **Regional flows depend on method.** For the kidney, PC-MRI gives ~920 mL/min and hippuran clearance
   ~610 mL/min. For the portal vein, PC-MRI gives ~1.1 L/min and Doppler ~0.66 L/min.
-- **The model's "hepatic artery" read-out (`AD_LS_ART`) is the whole liver + spleen bed**, so it is
-  compared with total liver inflow (`hepatic_total` = LS + gut beds), not with the 19 % hepatic arterial
-  share.
+- **The model's splanchnic beds don't map one-to-one onto the anatomy.** The LS bed (`AD_LS_ART`) is liver +
+  spleen and its venous blood bypasses the liver, so it is compared with hepatic artery + splenic flow (~6.7);
+  the gut bed (`AD_INT_ART`) with portal flow minus the spleen's share (~13); their sum with total liver inflow
+  (`hepatic_total`, 19.7).
 - **CO₂ response:** the Goldberg start-to-end rebreathing slope (0.38 L/min/mmHg) is several-fold below
   classic Read slopes measured above threshold (1–3 L/min/mmHg).
+
 
 
 ## Hemodynamics, heart and flows
@@ -72,7 +74,7 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 | Systolic PAP (`pap_s`) | mmHg |  | 15–30 | RHC; 20-39 y, female | C | Humbert M et al (PMID 36017548) |  |
 | Diastolic PAP (`pap_d`) | mmHg |  | 4–12 | RHC; 20-39 y, female | C | Humbert M et al (PMID 36017548) |  |
 | Mean PAP (`pap_m`) | mmHg | 12.8 ± 3.1 |  | RHC systematic review, age <30 subgroup; <30 y, both sexes | A | Kovacs G et al (PMID 19324955) | All ages 14.0 +/- 3.3 (n=1187), sex-independent. |
-| Pulmonary artery wedge pressure (`pawp`) | mmHg | 10.1 ± 1.8 | —–13 | supine RHC meta-analysis; median 26 y, both sexes; n=960 | A (all) / B (women) | Zeder K et al (PMID 38964777) | Women 10.05 vs men 8.38; model has no wedge read-out (LA pressure is used inside pvr). |
+| Pulmonary artery wedge pressure (`pawp`) | mmHg | 10.1 ± 1.8 | —–13 | supine RHC meta-analysis; median 26 y, both sexes; n=960 | A (all) / B (women) | Zeder K et al (PMID 38964777) | Women 10.05 vs men 8.38. Model: mean left atrial pressure. |
 | Pulmonary vascular resistance (`pvr`) | WU | 0.86 ± 0.35 |  | RHC systematic review; 24-50 y | A | Kovacs G et al (PMID 21885394) | Model uses mean LA pressure as the wedge. |
 | Systemic vascular resistance (`svr`) | WU | 14.4 |  | (true mean MAP - CVP)/CO with the chosen targets (82 - 4)/5.4; 20-39 y, female | C (derived) | Wright JD et al; Kawel-Boehm N et al (PMID 33308262) | No measured young-female SVR retrieved. |
 | LV end-diastolic volume (`lv_edv`) | mL/kg | 2.118 ± 0.33 |  | 1.5 T SAX bSSFP, papillary muscles in mass; women 20-29 y; n=43 | A | Kawel-Boehm N et al (PMID 33308262) | 77 +/- 12 mL/m2 = 127 mL. |
@@ -91,8 +93,8 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 | Total cerebral blood flow (`cbf`) | mL/kg/min | 12 ± 2.05 |  | PC-MRI sum of ICA + VA; adults | B | Zarrinkoob L et al (PMID 25564234); Ito H et al (PMID 14730405) | 717 +/- 123 mL/min; may include older subjects; women ~10 % higher perfusion; young female likely 700-750 mL/min. |
 | Renal blood flow (both kidneys) (`renal`) | mL/kg/min | 14 | 10.2–15.3 | PC-MRI ~920 mL/min (Eckerbom) vs hippuran ERPF -> ~610 mL/min blood; young women | B | Villa G et al (PMID 31422518); Toering TJ et al (PMID 26149279) | ~850 mL/min chosen (~18 % of CO). |
 | Total liver inflow (hepatic artery + portal) (`hepatic_total`) | mL/kg/min | 19.7 ± 4.6 |  | PC-MRI; mean 26 y, mixed; n=20 | B | Yzet T et al (PMID 19008062) | 1.18-1.35 L/min. Model: LS bed = liver + spleen; portal ~ gut (INT) bed. |
-| Hepatic arterial flow (`hepatic_art`) | mL/kg/min | 3.7 |  | PC-MRI: 19 % of total liver flow; 20-39 y, female; n=20 | B | Yzet T et al (PMID 19008062) |  |
-| Gut (portal) inflow (`sma`) | mL/kg/min | 16 | 10.9–— | PC-MRI portal = 81 % of liver flow; fasting Doppler portal 656 mL/min; 20-39 y, female; n=20 | B/C | Yzet T et al (PMID 19008062); Szinnai G et al (PMID 11346210) | No verified fasting SMA volume flow; portal flow used as the gut-bed target. |
+| Liver + spleen arterial inflow (model LS bed) (`hepatic_art`) | mL/kg/min | 6.7 |  | hepatic artery 19 % of liver flow (3.7, PC-MRI) + splenic arterial flow ~3 (textbook estimate); 20-39 y, female; n=20 | B/C | Yzet T et al (PMID 19008062); Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source | Remapped 2026-11-27: the model's LS bed is liver + spleen and its venous blood bypasses the liver, so it carries hepatic artery + splenic flow. Splenic share not verified against a source (C). |
+| Gut inflow (model INT bed) = portal minus splenic (`sma`) | mL/kg/min | 13 | 7.9–— | PC-MRI portal 81 % of liver flow (16.0) minus the splenic share (~3); fasting Doppler portal 656 mL/min (10.9) minus ~3; 20-39 y, female; n=20 | B/C | Yzet T et al (PMID 19008062); Szinnai G et al (PMID 11346210); Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source | Remapped 2026-11-27 (see the LS row). No verified fasting SMA volume flow. |
 | Coronary blood flow (whole heart) (`cor_flow`) | mL/min |  | 160–250 | resting MBF 0.65-0.76 mL/min/g (CMR median age 23; PET) x whole-heart mass ~250 g; textbook ~250 mL/min (4-5 % of CO); 20-39 y, female | C (derived) | Brown LAE et al; Czernin J et al (PMID 8319357); Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source | Corrected 2026-11-27: the first version (60) was MBF x LV mass only. Model heart weight (Mob) ~266 g at 60 kg. |
 | Myocardial O2 consumption (`mvo2`) | mL/100 g/min | 12.9 ± 2.4 |  | PET; young women; n=13 | B | Peterson LR et al (PMID 17679067) | Women > men (9.5) in the same study. |
 | Intracranial pressure (`icp`) | mmHg | 7 | 0–15 | LP opening 4-18 mmHg (lateral) vs supine telemetric ~0.5; 20-39 y, female | C | Lee SC, Lueck CJ (PMID 25133881); Andresen M, Juhler M (PMID 24702326) |  |
