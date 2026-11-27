@@ -73,9 +73,36 @@ function applyPregnancy(def) {
 }
 
 // --- maternal levers on the live model (step 4, added one at a time) ----------------------------------------------------
-const LEVERS = {};
+const BLOOD = { bv: 3.768 * 1.37, hb: 12.2, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
+const HB_GDL_PER_MMOL = 1.611;
+const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
+const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
+const LEVERS = {
+  // 1. blood of pregnancy: blood volume x1.37 (plasma x1.456, de Haas 2017; red cells +349 mL with iron, Taylor & Lind 1979)
+  //    through the ModelScaler blood-volume group (vol and u_vol of its 31 compartments; the uterine bed and PL_IVS are
+  //    outside it and are counted as they are), haemoglobin 12.2 g/dL with each compartment's O2 content at the same
+  //    saturation, albumin 37.2 g/L (Murphy 2002 x0.866: plasma oncotic pressure falls ~x0.86 through the albumin law,
+  //    as Clark 1989) and Na 136 (Davison 1981, osmolality -10). The viscosity reference is NOT re-calibrated: the lower
+  //    haematocrit lowers blood viscosity and with it vascular resistance, part of the fall in SVR of pregnancy.
+  blood: {
+    why: `blood volume ${BLOOD.bv.toFixed(2)} L, Hb ${BLOOD.hb} g/dL, albumin ${BLOOD.albumin} g/L, Na ${BLOOD.na}`,
+    apply(M, model) {
+      const grp = new Set(model.scaler_config.blood.volume);
+      const inGrp = Object.entries(M).reduce((a, [n, m]) => a + (grp.has(n) && typeof m.vol === "number" ? m.vol : 0), 0);
+      const total = maternalBlood(M), f = (BLOOD.bv - (total - inGrp)) / inGrp;
+      eng.scale("blood_volume", f);
+      const hbOld = M.Blood.solutes.hemoglobin, hbNew = BLOOD.hb / HB_GDL_PER_MMOL;
+      M.Blood.set_solute("hemoglobin", hbNew);
+      for (const [n, m] of Object.entries(M)) if (m?.solutes && m !== M.Blood && typeof m.to2 === "number" && !/^(PL_(?!IVS$)|MP|URINE$|ECLS)/.test(n)) m.to2 *= hbNew / hbOld;
+      M.Blood.set_solute("albumin", BLOOD.albumin);
+      M.Blood.set_solute("na", BLOOD.na);
+      const I = M.Interstitium; if (I?.isf_solutes) { I.isf_solutes.na = BLOOD.na; I.isf_solutes.albumin = I.isf_albumin_ratio * BLOOD.albumin; }
+      this.why = `blood volume ${(total * 1000).toFixed(0)} -> ${(maternalBlood(M) * 1000).toFixed(0)} mL (group x${f.toFixed(3)}), Hb ${BLOOD.hb} g/dL, albumin ${BLOOD.albumin} g/L, Na ${BLOOD.na}`;
+    },
+  },
+};
 const pick = opt("--levers", "all");
-const DEFAULT = [];
+const DEFAULT = ["blood"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
