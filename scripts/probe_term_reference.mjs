@@ -7,6 +7,7 @@
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
 //   scripts/reference/term_neonate_12h.json    (docs/TermTransitionReference.md)
 //   scripts/reference/tof_pink.json, tof.json, tof_severe.json, tof_pa.json   (docs/TofReference.md)
+//   scripts/reference/adult_female.json        (docs/AdultFemaleReference.md; adds the pvr, svr, hepatic_total, icp, cpp read-outs)
 //   The probe also reads rows no current set uses (read-outs when the placenta runs, svo2_ra, pda_v_rtl,
 //   spo2_post), for sets made later.
 //
@@ -160,6 +161,8 @@ for (let i = 0; i < steps; i++) {
   add("mv", M.Breathing?.minute_volume);
   add("ds_vol", M.DS?.vol);
   add("gfr", M.Kidneys?.gfr); // pressure-following, so averaged rather than read at the end
+  add("ips", (M.IPSL?.flow ?? 0) + (M.IPSR?.flow ?? 0)); add("alv_po2", ((M.ALL?.po2 ?? NaN) + (M.ALR?.po2 ?? NaN)) / 2); // intrapulmonary shunt, alveolar pO2
+  add("aa_pres", M.AA?.pres); add("la_pres", M.LA?.pres); add("icp", M.Brain?.icp); add("cpp", M.Brain?.cpp); // PVR (mean LA as the wedge) and the cerebral pressures
   add("urine", M.Kidneys?.urine_flow);
   add("o2_uptake", -((M.GASEX_LL?.flux_o2 ?? 0) + (M.GASEX_RL?.flux_o2 ?? 0))); // mmol per step, +ve = blood takes up O2
   add("co2_out", (M.GASEX_LL?.flux_co2 ?? 0) + (M.GASEX_RL?.flux_co2 ?? 0));
@@ -221,6 +224,13 @@ const model_values = {
   gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,
   pda: perKgMin(acc.AAR_DA), fo: perKgMin(acc.LA_RAIVCI + acc.LA_RASVC),
   // coronary inflow (mL/min, whole heart) and myocardial O2 use (mL/100 g/min)
+  // adult rows: vascular resistances in Wood units (mmHg·min/L), the liver inflow (LS = liver + spleen bed plus the
+  // portal inflow through the gut bed), and the cerebral pressures
+  pvr: (vit.pap_m - acc.la_pres) / ((acc.LL_VEN_PV + acc.RL_VEN_PV) * 60), svr: (acc.aa_pres - vit.cvp) / (acc.LV_AA * 60), // true mean
+  hepatic_total: perKgMin(acc.AD_LS_ART + acc.AD_INT_ART), icp: acc.icp, cpp: acc.cpp,
+  pawp: acc.la_pres, // mean left atrial pressure as the wedge pressure
+  na: AA?.solutes?.na, k: AA?.solutes?.k, chloride: AA?.solutes?.cl, albumin: AA?.solutes?.albumin, uma: AA?.solutes?.uma, // arterial plasma chemistry
+  map_mean: acc.aa_pres, // true (time-averaged) mean of the ascending aorta; the map row is the clinical dia + pp/3
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // rows for other reference sets
   lvo_rvo: acc.LV_AA / acc.RV_PA, pda_diam: (M.Pda?.diameter_relative ?? NaN) * (M.Pda?.diameter_pa_max ?? NaN),
@@ -260,6 +270,7 @@ const extras = {
   vd_vt: acc.ds_vol / acc.vt, vo2_setting: M.Metabolism?.vo2, bsa,
   ...Object.fromEntries(dpdtSides.flatMap((d) => [[`${d.key}_dpdt_peak`, meanOf(d.peaks.slice(1))], [`${d.key}_dpdt_echo`, meanOf(d.echo.slice(1))]])), // mmHg/s
   ...Object.fromEntries(timingSides.flatMap((d) => ["ivct", "ej", "ivrt"].map((t) => [`${d.key}_${t}`, meanOf(d[t].slice(1))]))), // ms
+  ips_pct: (100 * acc.ips) / acc.RV_PA, aa_do2: acc.alv_po2 - vit.po2, // intrapulmonary shunt (% of RV output), alveolar-arterial pO2 difference (mmHg)
   fo_grad_mean: foGradSum / steps, fo_grad_peak: meanOf(foGradPks.slice(1)), // mmHg, LA - RA
   pda_no_flow: M.AAR_DA?.no_flow, fo_no_flow: M.LA_RAIVCI?.no_flow && M.LA_RASVC?.no_flow,
 };
