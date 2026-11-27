@@ -45,6 +45,13 @@ S = {
  "mifflin1990": ("Mifflin MD et al. A new predictive equation for resting energy expenditure. Am J Clin Nutr 1990;51:241-7", "10.1093/ajcn/51.2.241", "2305711"),
  "geneva2019": ("Geneva II et al. Normal body temperature: a systematic review. Open Forum Infect Dis 2019;6:ofz032", "10.1093/ofid/ofz032", "30976605"),
  "klaestrup2011": ("Klaestrup E et al. Reference intervals and age/gender dependency for arterial blood gases and electrolytes. Clin Chem Lab Med 2011;49:1495", "10.1515/CCLM.2011.603", "21619466"),
+ "ziegler1999": ("Ziegler WF et al. Uterine artery blood flow during the menstrual cycle (transvaginal Doppler volume flow, nulliparous). Obstet Gynecol 1999", "10.1016/s0029-7844(99)00397-x", "10546712"),
+ "bernstein2002": ("Bernstein IM et al. Uterine artery hemodynamics in the follicular phase (day 10). Obstet Gynecol 2002", "10.1016/s0029-7844(01)01787-2", "12039123"),
+ "thaler1990": ("Thaler I et al. Changes in uterine blood flow during human pregnancy (pre-pregnancy values). Am J Obstet Gynecol 1990", "10.1016/0002-9378(90)90834-t", "2301480"),
+ "guedes2015": ("Guedes-Martins L et al. Uterine artery impedance during the menstrual cycle: reference values (n=1668). PLoS One 2015", "10.1371/journal.pone.0119103", "25742286"),
+ "kurjak1991": ("Kurjak A et al. Transvaginal color Doppler of uterine artery flow during the menstrual cycle. Fertil Steril 1991", None, "1936320"),
+ "platt1990": ("Platt JF et al. Uterine weight and dimensions in nulliparous women (hysterectomy specimens). J Clin Ultrasound 1990;18:15", None, "2152778"),
+ "burt2019": ("Burt E et al. Uterine volume in nulliparous women (ultrasound). Clin Endocrinol 2019", "10.1111/cen.14092", "31487390"),
  "textbook": ("Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source", None, None),
 }
 V = []
@@ -136,6 +143,15 @@ row("na",BL,"Sodium","mmol/L",140,None,135,145,"lab RI","plasma",None,["textbook
 row("k",BL,"Potassium","mmol/L",4.2,None,3.5,5.0,"lab RI","plasma",None,["textbook"],"C","AA solutes.k","")
 row("chloride",BL,"Chloride","mmol/L",103,None,98,107,"lab RI","plasma",None,["textbook"],"C","AA solutes.cl","")
 row("albumin",BL,"Albumin","g/L",43,None,35,50,"lab RI","plasma",None,["textbook"],"C","AA solutes.albumin","Plasma colloid osmotic pressure ~25 mmHg (textbook C) is the model's oncotic reference at this albumin.")
+UT_="uterus"
+row("ut_flow",UT_,"Uterine blood flow (both uterine arteries)","mL/min",45,None,30,60,"2 x per-artery mean +/- 1 SD","transvaginal Doppler volume flow, cycle day 9-10 (closest to early follicular)",20,["ziegler1999","bernstein2002","thaler1990"],"B (derived)","Uterus.ut_blood_flow (AD_UT_ART)",
+    "User decision 2026-11-27: 45 mL/min. Per artery 22.4 +/- 7.3 (Ziegler, nulliparous); Bernstein 22.2 (same group). Thaler 94.5 per artery is an outlier (inconsistent with its own 1.6 mm diameter and 36 cm/s PSV). Ovarian anastomoses add some flow not counted here; supine (standing -34 %).",age="nulliparous premenopausal women")
+row("ut_vo2",UT_,"Uterine O2 consumption","mL O2/min",0.41,None,0.3,0.6,"estimate","resting smooth-muscle rate ~0.75 mL/100 g/min x uterine mass ~55 g",None,["platt1990","burt2019","textbook"],"C","Uterus.ut_vo2_ml",
+    "User decision 2026-11-27 (option b): no human non-pregnant data; a mostly quiescent myometrium. Extraction ~5 % at 45 mL/min. The engine default (0.04 mL/kg/min = 2.4 mL/min) would mean ~4.8 mL/100 g/min.",age="non-pregnant")
+row("ut_pi",UT_,"Uterine artery pulsatility index","-",3.2,None,1.9,5.0,"median; P5-P95","transvaginal Doppler, cycle days 2-7",1668,["guedes2015","bernstein2002"],"A","AD_UT_ART flow per beat: (max - min) / mean",
+    "Nulliparous 18-26 y start the cycle higher (model ~4.1 on day 2, 3.2 on day 7). Model uses the inflow resistor's flow waveform as the velocity.",age="premenopausal women, early follicular")
+row("ut_ri",UT_,"Uterine artery resistance index","-",0.88,None,None,None,None,"transvaginal colour Doppler, proliferative phase",None,["kurjak1991"],"B","AD_UT_ART flow per beat: (max - min) / max","Falls to 0.84 by day 18.",age="premenopausal women")
+row("ut_mass",UT_,"Uterine weight / volume","g",55,None,40,100,"range","hysterectomy weight 60 +/- 20 g (ULN 100); ultrasound volume 43.9 mL",None,["platt1990","burt2019"],"B","none (reference only)","Basis of the uterine O2 estimate and the ~5 mL bed blood volume (textbook C).",age="nulliparous")
 SH="shunts"
 row("pda",SH,"Ductus arteriosus flow","mL/kg/min",0,None,None,0.5,"closed","",None,["textbook"],"-","AAR_DA flow","Adult: closed.",age="adult")
 row("fo",SH,"Foramen ovale flow","mL/kg/min",0,None,None,0.5,"closed","",None,["textbook"],"-","LA -> RA flow","Adult: closed (a small PFO in ~25 % is ignored).",age="adult")

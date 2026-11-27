@@ -334,6 +334,62 @@
    }
   ],
   [
+   "ziegler1999",
+   {
+    "cite": "Ziegler WF et al. Uterine artery blood flow during the menstrual cycle (transvaginal Doppler volume flow, nulliparous). Obstet Gynecol 1999",
+    "doi": "10.1016/s0029-7844(99)00397-x",
+    "pmid": "10546712"
+   }
+  ],
+  [
+   "bernstein2002",
+   {
+    "cite": "Bernstein IM et al. Uterine artery hemodynamics in the follicular phase (day 10). Obstet Gynecol 2002",
+    "doi": "10.1016/s0029-7844(01)01787-2",
+    "pmid": "12039123"
+   }
+  ],
+  [
+   "thaler1990",
+   {
+    "cite": "Thaler I et al. Changes in uterine blood flow during human pregnancy (pre-pregnancy values). Am J Obstet Gynecol 1990",
+    "doi": "10.1016/0002-9378(90)90834-t",
+    "pmid": "2301480"
+   }
+  ],
+  [
+   "guedes2015",
+   {
+    "cite": "Guedes-Martins L et al. Uterine artery impedance during the menstrual cycle: reference values (n=1668). PLoS One 2015",
+    "doi": "10.1371/journal.pone.0119103",
+    "pmid": "25742286"
+   }
+  ],
+  [
+   "kurjak1991",
+   {
+    "cite": "Kurjak A et al. Transvaginal color Doppler of uterine artery flow during the menstrual cycle. Fertil Steril 1991",
+    "doi": null,
+    "pmid": "1936320"
+   }
+  ],
+  [
+   "platt1990",
+   {
+    "cite": "Platt JF et al. Uterine weight and dimensions in nulliparous women (hysterectomy specimens). J Clin Ultrasound 1990;18:15",
+    "doi": null,
+    "pmid": "2152778"
+   }
+  ],
+  [
+   "burt2019",
+   {
+    "cite": "Burt E et al. Uterine volume in nulliparous women (ultrasound). Clin Endocrinol 2019",
+    "doi": "10.1111/cen.14092",
+    "pmid": "31487390"
+   }
+  ],
+  [
    "textbook",
    {
     "cite": "Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source",
@@ -1846,6 +1902,112 @@
    "grade": "C",
    "model_readout": "AA solutes.albumin",
    "notes": "Plasma colloid osmotic pressure ~25 mmHg (textbook C) is the model's oncotic reference at this albumin."
+  },
+  {
+   "key": "ut_flow",
+   "group": "uterus",
+   "label": "Uterine blood flow (both uterine arteries)",
+   "unit": "mL/min",
+   "mean": 45,
+   "sd": null,
+   "low": 30,
+   "high": 60,
+   "range_type": "2 x per-artery mean +/- 1 SD",
+   "method": "transvaginal Doppler volume flow, cycle day 9-10 (closest to early follicular)",
+   "age": "nulliparous premenopausal women",
+   "n": 20,
+   "sources": [
+    "ziegler1999",
+    "bernstein2002",
+    "thaler1990"
+   ],
+   "grade": "B (derived)",
+   "model_readout": "Uterus.ut_blood_flow (AD_UT_ART)",
+   "notes": "User decision 2026-11-27: 45 mL/min. Per artery 22.4 +/- 7.3 (Ziegler, nulliparous); Bernstein 22.2 (same group). Thaler 94.5 per artery is an outlier (inconsistent with its own 1.6 mm diameter and 36 cm/s PSV). Ovarian anastomoses add some flow not counted here; supine (standing -34 %)."
+  },
+  {
+   "key": "ut_vo2",
+   "group": "uterus",
+   "label": "Uterine O2 consumption",
+   "unit": "mL O2/min",
+   "mean": 0.41,
+   "sd": null,
+   "low": 0.3,
+   "high": 0.6,
+   "range_type": "estimate",
+   "method": "resting smooth-muscle rate ~0.75 mL/100 g/min x uterine mass ~55 g",
+   "age": "non-pregnant",
+   "n": null,
+   "sources": [
+    "platt1990",
+    "burt2019",
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "Uterus.ut_vo2_ml",
+   "notes": "User decision 2026-11-27 (option b): no human non-pregnant data; a mostly quiescent myometrium. Extraction ~5 % at 45 mL/min. The engine default (0.04 mL/kg/min = 2.4 mL/min) would mean ~4.8 mL/100 g/min."
+  },
+  {
+   "key": "ut_pi",
+   "group": "uterus",
+   "label": "Uterine artery pulsatility index",
+   "unit": "-",
+   "mean": 3.2,
+   "sd": null,
+   "low": 1.9,
+   "high": 5.0,
+   "range_type": "median; P5-P95",
+   "method": "transvaginal Doppler, cycle days 2-7",
+   "age": "premenopausal women, early follicular",
+   "n": 1668,
+   "sources": [
+    "guedes2015",
+    "bernstein2002"
+   ],
+   "grade": "A",
+   "model_readout": "AD_UT_ART flow per beat: (max - min) / mean",
+   "notes": "Nulliparous 18-26 y start the cycle higher (model ~4.1 on day 2, 3.2 on day 7). Model uses the inflow resistor's flow waveform as the velocity."
+  },
+  {
+   "key": "ut_ri",
+   "group": "uterus",
+   "label": "Uterine artery resistance index",
+   "unit": "-",
+   "mean": 0.88,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "transvaginal colour Doppler, proliferative phase",
+   "age": "premenopausal women",
+   "n": null,
+   "sources": [
+    "kurjak1991"
+   ],
+   "grade": "B",
+   "model_readout": "AD_UT_ART flow per beat: (max - min) / max",
+   "notes": "Falls to 0.84 by day 18."
+  },
+  {
+   "key": "ut_mass",
+   "group": "uterus",
+   "label": "Uterine weight / volume",
+   "unit": "g",
+   "mean": 55,
+   "sd": null,
+   "low": 40,
+   "high": 100,
+   "range_type": "range",
+   "method": "hysterectomy weight 60 +/- 20 g (ULN 100); ultrasound volume 43.9 mL",
+   "age": "nulliparous",
+   "n": null,
+   "sources": [
+    "platt1990",
+    "burt2019"
+   ],
+   "grade": "B",
+   "model_readout": "none (reference only)",
+   "notes": "Basis of the uterine O2 estimate and the ~5 mL bed blood volume (textbook C)."
   },
   {
    "key": "pda",

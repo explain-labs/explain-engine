@@ -153,6 +153,55 @@ function applyDrives(def) {
   Object.assign(o.Breathing, { rmp_gain: 0, rmp_calibrated: false, load_factor: 1 });
 }
 
+// --- uterus (user request 2026-11-27): a non-pregnant uterine bed in the early follicular phase -----------------------
+// The Uterus model (docs/Uterus.md) needs UT_ART -> UT_CAP -> UT_VEN fed from AD (AD_UT_ART) and draining into VLB
+// (UT_VEN_VLB). The kidney bed has exactly that shape (AD_KID_ART, KID_ART_KID_CAP, KID_CAP_KID_VEN, KID_VEN_VLB), so it
+// is cloned and renamed: volumes to the uterine bed blood volume (~5 mL: tissue ~55 g, textbook C), resistances started
+// at kidney x (renal / uterine flow); the "uterus" lever then trims the bed to 45 mL/min and takes that flow out of RLB
+// (the pelvic organs were part of the lower body). The bed's blood comes out of VLB, so the blood volume holds. Not in
+// a ModelScaler group: Uterus writes the vessels' scaling layers (pregnancy), which a scaler group would clobber.
+// Interstitium has no filtration site here and Metabolism no share: Uterus consumes its own O2 (lever "metabolism").
+const UT_ART_R = Number(opt("--ut-art-r", 0.3)), UT_ART_EL = Number(opt("--ut-art-el", 1.0)); // grid 2026-11-27 (r,el -> PI,RI): 1,1 1.27,0.73; 0.3,1 2.66,0.90; 0.3,0.3 4.07,1.10 (reversal); 0.1,0.2 9.95,1.16
+const UT = { flow: 45, vol: 0.005, vo2: 0.41 }; // mL/min (Ziegler 1999 x2), L (bed blood), mL O2/min (0.75 mL/100 g/min x 55 g)
+function addUterus(def) {
+  const o = flatten(def.models), C = o.Circulation;
+  const ren = (x) => JSON.parse(JSON.stringify(x).replace(/KID_/g, "UT_").replace(/of KID"/g, 'of UT"'));
+  const kidVol = ["KID_ART", "KID_CAP", "KID_VEN"].reduce((a, n) => a + o[n].vol, 0);
+  const fv = UT.vol / kidVol, fr = (14 * 60) / UT.flow; // kidney ~14 mL/kg/min
+  for (const n of ["KID_ART", "KID_CAP", "KID_VEN"]) {
+    const v = ren(o[n]);
+    for (const p of ["vol", "u_vol"]) v[p] *= fv;
+    v.el_base /= fv; if (v.el_k) v.el_k /= fv * fv;
+    for (const p of ["r_for", "r_back"]) v[p] *= fr;
+    C.components[v.name] = v;
+  }
+  for (const n of ["AD_KID_ART", "KID_ART_KID_CAP", "KID_CAP_KID_VEN", "KID_VEN_VLB"]) {
+    const r = ren(o[n]);
+    for (const p of ["r_for", "r_back"]) r[p] *= fr;
+    def.models[r.name] = r;
+  }
+  for (const [fam, n] of [["systemic_arterioles", "UT_ART"], ["systemic_capillaries", "UT_CAP"], ["systemic_venules", "UT_VEN"]]) if (!C[fam].includes(n)) C[fam].push(n);
+  // waveform: a non-pregnant uterine artery has a high-resistance Doppler spectrum (PI ~3, RI ~0.88, little end-diastolic
+  // flow). The inflow resistor follows UT_ART's resistance, so the arteriole's share of the bed resistance is moved into
+  // the capillary (total kept) and the arteriole made more compliant: it fills in systole in front of the high resistance.
+  const A = C.components.UT_ART, K = C.components.UT_CAP, rTot = A.r_for + K.r_for;
+  A.r_for = A.r_back = A.r_for * UT_ART_R; K.r_for = K.r_back = rTot - A.r_for;
+  A.el_base *= UT_ART_EL;
+  const added = ["UT_ART", "UT_CAP", "UT_VEN"].reduce((a, n) => a + C.components[n].vol, 0);
+  const vlb = o.VLB, k = (vlb.vol - added) / vlb.vol; vlb.vol *= k; vlb.u_vol *= k; // same blood volume
+  def.models.Uterus = {
+    name: "Uterus", description: "uterine organ: non-pregnant, early follicular phase", is_enabled: true, model_type: "Uterus",
+    uterus_running: true, ut_art_name: "UT_ART", ut_cap_name: "UT_CAP", ut_ven_name: "UT_VEN", ut_in_res_name: "AD_UT_ART",
+    ut_out_res_name: "UT_VEN_VLB", met_active: true, ut_vo2: +(UT.vo2 / SUBJECT.weight).toFixed(5), vo2_factor: 1, vo2_factor_ps: 1,
+    resp_q: 0.8, perfusion_factor: 1, pregnant: false, preg_ga: 0, preg_ga_threshold: 4, preg_ga_term: 40,
+    preg_res_term_factor: 0.083, preg_cap_res_term_factor: 0.43, preg_vol_term_factor: 3, preg_vo2_term_factor: 2,
+    couple_placenta: false, pl_mat_name: "PL_MAT", contractions_running: false, contraction_period: 180,
+    contraction_duration: 60, resting_tone: 8, contraction_amplitude: 50, contraction_pres_gain: 0.6, contraction_r_peak: 2,
+  };
+  if (!o.Monitor.flow_targets.some((t) => t.name === "ut_flow")) o.Monitor.flow_targets.push({ name: "ut_flow", model: "AD_UT_ART.flow" });
+  return { vol: added };
+}
+
 // --- levers on the live model (step 5, added one at a time) ------------------------------------------------
 const HB = Number(opt("--hb", 13.5)); // g/dL
 const VO2_TOTAL = Number(opt("--vo2", 3.2)); // mL/kg/min, whole body
@@ -202,9 +251,10 @@ const LEVERS = {
     settle: true,
     apply(M, model) {
       const mob = (M.Mob.mob_vo2 * 60 * 22.4) / model.weight; // mmol/s -> mL/kg/min
-      M.Metabolism.vo2 = VO2_TOTAL - mob;
+      const ut = M.Uterus?.is_enabled && M.Uterus.met_active ? M.Uterus.ut_vo2 : 0; // mL/kg/min, Uterus consumes its own
+      M.Metabolism.vo2 = VO2_TOTAL - mob - ut;
       M.Metabolism.resp_q = RQ;
-      this.why = `whole-body VO2 ${VO2_TOTAL} mL/kg/min = Metabolism ${M.Metabolism.vo2.toFixed(3)} + Mob ${mob.toFixed(3)}, resp_q ${RQ}`;
+      this.why = `whole-body VO2 ${VO2_TOTAL} mL/kg/min = Metabolism ${M.Metabolism.vo2.toFixed(3)} + Mob ${mob.toFixed(3)} + Uterus ${ut.toFixed(4)}, resp_q ${RQ}`;
     },
   },
   // 3. the baroreflex defends the adult blood pressure while the levers settle (then folded and re-anchored as always):
@@ -369,6 +419,20 @@ const LEVERS = {
       this.why = `Interstitium volume ${ISF.isf_volume_per_kg} L/kg, lymph ${ISF.lymph_flow_rest} mL/min/kg, kf ${ISF.kf_per_kg}, compliance x${f.toFixed(3)}`;
     },
   },
+  // 18. uterus: the cloned bed trimmed to 45 mL/min, and the lower body (RLB) trimmed so its flow falls by the same amount
+  //     (the uterus was part of it); the SVR trim keeps the mean pressure.
+  uterus: {
+    why: `uterine bed trimmed to ${UT.flow} mL/min, RLB to its flow minus the uterus`,
+    settle: true,
+    apply(M) {
+      const a = RA.avgOver(ctx, 10, () => ({ ut: M.AD_UT_ART.flow * 60000, rlb: M.AD_RLB.flow * 60000 }));
+      if (this._rlb === undefined) this._rlb = a.rlb - UT.flow; // first call: the RLB flow before the uterus took its share
+      const bed = (pre, f) => { for (const n of [`${pre}_ART`, `${pre}_CAP`, `${pre}_VEN`]) { M[n].r_for *= f; M[n].r_back *= f; } };
+      bed("UT", Math.pow(a.ut / UT.flow, 0.8));
+      M.RLB.r_for *= Math.pow(a.rlb / this._rlb, 0.8); M.RLB.r_back = M.RLB.r_for;
+      this.why = `uterine flow ${a.ut.toFixed(1)} -> ${UT.flow} mL/min, RLB ${a.rlb.toFixed(0)} -> ${this._rlb.toFixed(0)} mL/min`;
+    },
+  },
   // 12. adult plasma chemistry (lab reference intervals, C): Na 140, K 4.2, albumin 43 g/L, phosphate 1.1 mmol/L; chloride
   //     and the unmeasured anions are trimmed while settling so the base excess sits at ~0 (Cl toward 103, the rest of
   //     the gap in uma). Albumin is the model's weak acid (BloodComposition) and its oncotic pressure: the Kidneys and
@@ -405,7 +469,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose", "thermo", "isf"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia", "shunt", "beds", "kidney", "chemistry", "vent", "glucose", "thermo", "isf", "uterus"]; // "frc" is opt-in: u_vol x0.8 moved FRC only 38.0 -> 35.4 (target 30, grade C)
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -414,8 +478,10 @@ const dir = new URL("../model_definitions/", import.meta.url);
 const j = JSON.parse(fs.readFileSync(new URL(`${SOURCE}.json`, dir), "utf8"));
 const sz = applySize(j.model_definition);
 applyDrives(j.model_definition);
+const ut = addUterus(j.model_definition);
 say(`size: ${sz.n} components scaled; non-heart blood renormalised x${sz.fix.toFixed(3)}; ratios Q ${QF.toFixed(2)}, ` +
   `R sys ${RF.sys.toFixed(3)} pulm ${RF.pulm.toFixed(4)}, V blood ${VS.blood.toFixed(2)} LV ${VS.lv.toFixed(2)} RV ${VS.rv.toFixed(2)}; drives ${JSON.stringify(DRIVES)}`);
+say(`uterus: bed of ${(ut.vol * 1000).toFixed(1)} mL added (cloned from the kidney bed), taken from VLB`);
 const eng = await createEngine();
 globalThis.__bc = await import("../component_models/BloodComposition.js");
 const model = eng.build(j.model_definition);
@@ -529,6 +595,14 @@ function adultDiagram(j) {
   const flat = (models) => { const o = {}; const w = (x) => { for (const [k, v] of Object.entries(x)) { o[k] = v; if (v?.components) w(v.components); } }; w(models); return o; };
   const baby = flat(JSON.parse(fs.readFileSync(new URL(`${SOURCE}.json`, dir), "utf8")).model_definition.models);
   const adult = flat(j.model_definition.models);
+  // the uterus node: the kidney's node and connectors cloned one step further down the organ column (the baby has no
+  // uterus, so the size loop below leaves it at its natural size: a 5 mL bed draws about as large as the baby's kidney)
+  const DC = j.diagram_definition?.components;
+  if (DC?.KID && !DC.UT) {
+    const ren = (x) => JSON.parse(JSON.stringify(x).replace(/KID/g, "UT"));
+    DC.UT = ren(DC.KID); DC.UT.layout.sprite.pos.y = +(DC.KID.layout.sprite.pos.y + 0.15).toFixed(3);
+    DC.AD_UT = ren(DC.AD_KID); DC.UT_VLB = ren(DC.KID_VLB);
+  }
   for (const [key, name] of [["diagram_definition", "adult_female_diagram"], ["animation_definition", "adult_female_animation"]]) {
     const D = j[key];
     if (!D?.components) continue;
