@@ -511,17 +511,17 @@ const dbg = (tag) => { if (process.env.ADULT_DEBUG) { eng.calc(57); snap(tag); }
 // the ~3.5 mmHg rise with a ~10 % lower heart rate (2026-11-27 trace)
 RA.reanchorChemoreflex(ctx); dbg("after chemo");
 RA.reanchorHormonesGlucose(ctx); dbg("after hormones");
-reanchorKidney(); dbg("after kidney");
+RA.reanchorKidney(ctx); dbg("after kidney");
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
 for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
-reanchorMaintenance(); // after the kidney re-anchoring has settled (urine fell from ~2.5 to ~1 mL/kg/h once the myogenic set-point moved)
+RA.reanchorMaintenance(ctx); // after the kidney re-anchoring has settled (urine fell from ~2.5 to ~1 mL/kg/h once the myogenic set-point moved)
 dbg("before baro");
 RA.reanchorBaroreflex(ctx);
 eng.calc(60);
 dbg("after baro");
 RA.reanchorChemoreflex(ctx);
-reanchorBrain();
+RA.reanchorBrain(ctx);
 RA.relearnHeartFunction(ctx); dbg("after HF relearn");
 for (const k of settleLevers) say(`lever ${k} (end of settle): ${LEVERS[k].why}`);
 for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); snap("final"); }
@@ -551,40 +551,6 @@ if (WRITE) {
   fs.writeFileSync(OUT, text);
   say(`wrote ${OUT}`);
 } else say("dry run (pass --write or --out FILE)");
-
-// Brain anchors at the adult resting state: the CO2 / O2-content references, baseline CPP and blood volume (ICP reference).
-// Captured at the very end, once the ventilation trim has settled: captured earlier, a PaCO2 excursion between trims
-// (41.5 vs 37.5 at rest) left the brain sensing "hypocapnia" (co2_factor 0.84, CBF 10.2 instead of 12).
-function reanchorBrain() {
-  const B = M.Brain;
-  const a = RA.avgOver(ctx, 20, () => ({ pco2: M[B.co2_model]?.pco2, to2: M[B.o2_model]?.to2, cpp: B.cpp, cbv: B.cerebral_blood_volume }));
-  const before = [B.co2_ref, B.o2_ref, B.cpp_setpoint, B.cbv0].map((x) => x?.toFixed?.(3));
-  Object.assign(B, { co2_ref: a.pco2, o2_ref: a.to2, cpp_setpoint: a.cpp, cbv0: a.cbv, co2_factor: 1.0, o2_factor: 1.0 });
-  log.push(`Brain co2_ref/o2_ref/cpp_setpoint/cbv0 ${before.join("/")} -> ${[a.pco2, a.to2, a.cpp, a.cbv].map((x) => x.toFixed(3)).join("/")}`);
-}
-
-// Kidney anchors: the myogenic set-point at the sensed renal perfusion pressure, the TGF set-point at the resting signal
-function reanchorKidney() {
-  const K = M.Kidneys;
-  const a = RA.avgOver(ctx, 20, () => ({ p: K.sensed_pressure, tgf: K.tgf_signal }));
-  const b = [K.myogenic_p_set, K.tgf_setpoint].map((x) => x?.toFixed?.(2));
-  K.myogenic_p_set = a.p; K.tgf_setpoint = a.tgf;
-  log.push(`Kidneys myogenic_p_set/tgf_setpoint ${b.join("/")} -> ${a.p.toFixed(2)}/${a.tgf.toFixed(2)}`);
-}
-
-// maintenance intake (Fluids) = the resting urine output, so the blood volume holds (as the 72 h baby: 1.35 vs urine ~1.4)
-function reanchorMaintenance() {
-  const F = M.Fluids, K = M.Kidneys;
-  const u = RA.avgOver(ctx, 120, () => ({ urine: K.urine_flow })).urine * 60 / model.weight; // mL/min -> mL/kg/h
-  log.push(`Fluids.maintenance_rate ${F.maintenance_rate.toFixed(3)} -> ${u.toFixed(3)} mL/kg/h (resting urine)`);
-  F.maintenance_rate = u;
-  // composition = the resting urine composition (plasma x (1 - fr_solute) / (1 - fr_water)), so every filtered solute's
-  // intake matches its excretion (the baby's maintenance fluid is its urine composition too)
-  const fl = F.fluids[F.maintenance_fluid] ?? (F.fluids[F.maintenance_fluid] = {});
-  const frw = K.reabsorption_fraction, before = JSON.stringify(fl);
-  for (const s of K.filterable_solutes) fl[s] = +(M.AA.solutes[s] * (1 - K._solute_reabs(s)) / (1 - frw)).toFixed(3);
-  log.push(`Fluids.fluids.${F.maintenance_fluid} ${before} -> ${JSON.stringify(fl)}`);
-}
 
 // The diagram (DiagramRenderer) sizes each compartment disc from its absolute volume (r ~ cbrt(vol)) and moves the flow
 // markers with the absolute flow, so the baby's layout drawn at adult volumes would overlap (discs ~2.3x wider) and the

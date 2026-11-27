@@ -33,7 +33,7 @@ const HB_MMOL_TO_GDL = 1.611; // Hb monomer mmol/L -> g/dL
 const MCHC = 33.0; // g/dL, as in Blood.js
 const O2_ML_PER_MMOL = 22.4;
 const BLOOD_TYPES = new Set(["BloodCapacitance", "BloodVessel", "BloodTimeVaryingElastance", "HeartChamber"]);
-const NON_PATIENT = /^(ECLS|PL_|UT|MP|URINE$)/; // device, placenta/uterus and bladder compartments (URINE is a BloodCapacitance)
+const NON_PATIENT = /^(ECLS|PL_(?!IVS$)|MP|URINE$)/; // device, fetal-placenta and bladder compartments (URINE is a BloodCapacitance); the maternal uterine bed (UT_*) and intervillous space (PL_IVS) are the mother's blood
 
 let live = null;
 globalThis.self = globalThis;
