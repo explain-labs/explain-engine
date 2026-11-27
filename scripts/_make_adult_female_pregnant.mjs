@@ -75,6 +75,7 @@ function applyPregnancy(def) {
 // --- maternal levers on the live model (step 4, added one at a time) ----------------------------------------------------
 const BLOOD = { bv: 3.768 * 1.37, hb: 12.2, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
 const HB_GDL_PER_MMOL = 1.611;
+const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
 const LEVERS = {
@@ -99,10 +100,28 @@ const LEVERS = {
       const I = M.Interstitium; if (I?.isf_solutes) { I.isf_solutes.na = BLOOD.na; I.isf_solutes.albumin = I.isf_albumin_ratio * BLOOD.albumin; }
       this.why = `blood volume ${(total * 1000).toFixed(0)} -> ${(maternalBlood(M) * 1000).toFixed(0)} mL (group x${f.toFixed(3)}), Hb ${BLOOD.hb} g/dL, albumin ${BLOOD.albumin} g/L, Na ${BLOOD.na}`;
     },
+  },  // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
+  //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
+  //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
+  //    the uterine venule, which Uterus scales for pregnancy) is trimmed while settling until the CVP is back at target.
+  venous: {
+    why: `systemic venous + venular unstressed volume trimmed to CVP ${CVP_TARGET}`,
+    settle: true,
+    apply(M) {
+      const C = M.Circulation, names = [...C.systemic_veins, ...C.systemic_venules].filter((n) => n !== "UT_VEN");
+      const a = RA.avgOver(ctx, 10, () => ({ cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2 }));
+      const stressed = names.reduce((s, n) => s + (M[n].vol - M[n].u_vol), 0);
+      const comp = names.reduce((s, n) => s + 1 / (M[n].el_eff || M[n].el_base), 0); // L/mmHg, the veins in parallel
+      const dV = 0.7 * (a.cvp - CVP_TARGET) * comp; // L moved from stressed into unstressed volume
+      const u = names.reduce((s, n) => s + M[n].u_vol, 0), f = (u + dV) / u;
+      for (const n of names) M[n].u_vol *= f;
+      this._f = (this._f ?? 1) * f;
+      this.why = `venous unstressed volume x${this._f.toFixed(3)} (CVP ${a.cvp.toFixed(2)} -> ${CVP_TARGET}; stressed ${(stressed * 1000).toFixed(0)} mL)`;
+    },
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood"];
+const DEFAULT = ["blood", "venous"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
