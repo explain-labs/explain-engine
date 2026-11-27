@@ -154,6 +154,8 @@ function applyDrives(def) {
 
 // --- levers on the live model (step 5, added one at a time) ------------------------------------------------
 const HB = Number(opt("--hb", 13.5)); // g/dL
+const VO2_TOTAL = Number(opt("--vo2", 3.2)); // mL/kg/min, whole body
+const RQ = Number(opt("--rq", 0.82));
 const P50 = Number(opt("--p50", 26.8)); // mmHg
 const HB_GDL_PER_MMOL = 1.611; // Hb monomer mmol/L -> g/dL (as probe_term_reference.mjs)
 const LEVERS = {
@@ -171,9 +173,23 @@ const LEVERS = {
       M.Blood.calibrate_viscosity_ref();
     },
   },
+  // 2. whole-body O2 consumption 3.2 mL/kg/min (Mifflin + Weir, user decision), INCLUDING the myocardium: the
+  //    Mob model adds the heart's own O2 use on top of Metabolism.vo2, so Metabolism takes the rest (as the
+  //    72 h baby: total 7.0 with Mob 0.81). Re-applied while settling, since the heart's share follows its work.
+  //    Respiratory quotient 0.82 (post-absorptive, textbook C).
+  metabolism: {
+    why: `whole-body VO2 ${VO2_TOTAL} mL/kg/min incl. the myocardium (Metabolism.vo2 = total - Mob), resp_q ${RQ}`,
+    settle: true,
+    apply(M, model) {
+      const mob = (M.Mob.mob_vo2 * 60 * 22.4) / model.weight; // mmol/s -> mL/kg/min
+      M.Metabolism.vo2 = VO2_TOTAL - mob;
+      M.Metabolism.resp_q = RQ;
+      this.why = `whole-body VO2 ${VO2_TOTAL} mL/kg/min = Metabolism ${M.Metabolism.vo2.toFixed(3)} + Mob ${mob.toFixed(3)}, resp_q ${RQ}`;
+    },
+  },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood"];
+const DEFAULT = ["blood", "metabolism"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -212,6 +228,7 @@ reanchorBrainKidney();
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
 RA.relearnHeartFunction(ctx);
+for (const k of settleLevers) say(`lever ${k} (end of settle): ${LEVERS[k].why}`);
 for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); snap("final"); }
 RA.advanceToSinusFiring(ctx);
 eng.scale("incorporate", 1);
