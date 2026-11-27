@@ -102,6 +102,7 @@ const UTPL = { ut: Number(opt("--ut-flow", 700)), pl: Number(opt("--pl-flow", 60
 const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78));
 const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
 const KID = { rbf: Math.round(850 * 1.35), gfr: Math.round(105 * 1.28) }; // mL/min (docs/PregnancyReference.md)
+const PCO2_TARGET = Number(opt("--pco2", 32)), RR_TARGET = Number(opt("--rr", 15));
 const CVP_TARGET = Number(opt("--cvp", 4.5)); // mmHg, unchanged in pregnancy (Clark 1989); the non-pregnant model ran at 4.6
 const BLOOD_TYPES = new Set(["BloodVessel", "BloodCapacitance", "BloodTimeVaryingElastance", "HeartChamber"]);
 const maternalBlood = (M) => Object.entries(M).reduce((a, [n, m]) => a + (BLOOD_TYPES.has(m.model_type) && m.is_enabled !== false && !/^(ECLS|PL_(?!IVS$)|MP|URINE$)/.test(n) ? m.vol : 0), 0);
@@ -215,6 +216,23 @@ const LEVERS = {
       this.why = `renal blood flow ${a.rbf.toFixed(0)} -> ${KID.rbf}, GFR ${a.gfr.toFixed(0)} -> ${KID.gfr} mL/min (kf ${K.kf.toExponential(3)})`;
     },
   },
+  // 9. hyperventilation of pregnancy (progesterone): PaCO2 ~32 (user decision; reviews' third-trimester plateau) at an
+  //    unchanged rate (Spatling 1992: VE x1.34, Vt x1.27, RR unchanged). As in adult_female: the chemoreflex is held at the
+  //    target while settling and the ventilation reference trimmed with it (alveolar ventilation ~ 1 / PaCO2); the
+  //    rate/depth split re-solved for RR 15. The higher CO2 sensitivity of pregnancy (Jensen 2005, x1.6) is not modelled
+  //    (the chemoreflex gain is not calibrated in adult_female either).
+  vent: {
+    why: `PaCO2 ${PCO2_TARGET} at RR ${RR_TARGET} (CR_PCO2 held, minute_volume_ref + vt_rr_ratio trimmed)`,
+    settle: true,
+    apply(M) {
+      const Br = M.Breathing;
+      M.CR_PCO2.set_value = PCO2_TARGET;
+      const a = RA.avgOver(ctx, 20, () => ({ pco2: M.AA.pco2 }));
+      if (a.pco2 > 0) Br.minute_volume_ref *= Math.min(Math.max(Math.pow(a.pco2 / PCO2_TARGET, 0.8), 0.8), 1.25);
+      Br.vt_rr_ratio = Br.minute_volume_ref / (RR_TARGET * RR_TARGET);
+      this.why = `PaCO2 ${a.pco2.toFixed(1)} -> ${PCO2_TARGET}: minute_volume_ref ${(Br.minute_volume_ref * 1000).toFixed(1)} mL/kg/min (RR ${RR_TARGET})`;
+    },
+  },
   // 2. venous capacitance of pregnancy: the 37 % larger blood volume sits at an unchanged CVP (Clark 1989) because the veins
   //    become more capacious (progesterone / NO venodilation, higher venous distensibility). The blood-volume scaling kept
   //    the non-pregnant venous stiffness (CVP 4.6 -> 9.5), so the unstressed volume of the systemic veins and venules (not
@@ -236,7 +254,7 @@ const LEVERS = {
   },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney"];
+const DEFAULT = ["blood", "venous", "placenta", "map", "hr", "svr", "remodel", "kidney", "vent"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
