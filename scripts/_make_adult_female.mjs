@@ -470,6 +470,7 @@ j.description = DESCRIPTION;
 j.provenance = "script-generated";
 j.provenance_note = `derived from ${SOURCE} by scripts/_make_adult_female.mjs; reference values in docs/AdultFemaleReference.md`;
 j.model_definition = serializeState(model);
+adultDiagram(j);
 j.model_definition._baseline_weight = SUBJECT.weight;
 const text = JSON.stringify(j, null, 2);
 JSON.parse(text);
@@ -517,3 +518,32 @@ function reanchorMaintenance() {
   for (const s of K.filterable_solutes) fl[s] = +(M.AA.solutes[s] * (1 - K._solute_reabs(s)) / (1 - frw)).toFixed(3);
   log.push(`Fluids.fluids.${F.maintenance_fluid} ${before} -> ${JSON.stringify(fl)}`);
 }
+
+// The diagram (DiagramRenderer) sizes each compartment disc from its absolute volume (r ~ cbrt(vol)) and moves the flow
+// markers with the absolute flow, so the baby's layout drawn at adult volumes would overlap (discs ~2.3x wider) and the
+// markers would strobe (~7x faster). User decision 2026-11-27 (option a, scenario-side): each compartment's sprite.scale
+// = cbrt(baby volume / adult volume) of its own models, so every disc keeps its size in the baby diagram, and the
+// marker speed = baby / adult cardiac output. The disc glow brightness still reads the raw radius (UI-side follow-up).
+function adultDiagram(j) {
+  const flat = (models) => { const o = {}; const w = (x) => { for (const [k, v] of Object.entries(x)) { o[k] = v; if (v?.components) w(v.components); } }; w(models); return o; };
+  const baby = flat(JSON.parse(fs.readFileSync(new URL(`${SOURCE}.json`, dir), "utf8")).model_definition.models);
+  const adult = flat(j.model_definition.models);
+  for (const [key, name] of [["diagram_definition", "adult_female_diagram"], ["animation_definition", "adult_female_animation"]]) {
+    const D = j[key];
+    if (!D?.components) continue;
+    let n = 0;
+    for (const c of Object.values(D.components)) {
+      const sc = c.layout?.sprite?.scale;
+      if (c.type !== "Compartment" || !sc || c.layout.sprite.fixed_size) continue;
+      const vb = (c.models ?? []).reduce((a, m) => a + (baby[m]?.vol ?? 0), 0), va = (c.models ?? []).reduce((a, m) => a + (adult[m]?.vol ?? 0), 0);
+      if (!(vb > 0 && va > 0)) continue;
+      const f = Math.cbrt(vb / va);
+      sc.x = +(sc.x * f).toFixed(4); sc.y = +(sc.y * f).toFixed(4); n++;
+    }
+    const s = D.settings ?? (D.settings = {});
+    s.speed = +((numberOr(s.speed, 1) * BABY.co) / ADULT.co).toFixed(3);
+    s.name = name;
+    say(`${key}: ${n} compartment discs rescaled to their baby size, flow-marker speed ${s.speed}`);
+  }
+}
+function numberOr(x, d) { return typeof x === "number" && Number.isFinite(x) ? x : d; }
