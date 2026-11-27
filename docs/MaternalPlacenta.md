@@ -1,6 +1,6 @@
 # MaternalPlacenta
 
-> **Experimental.** Not used by any shipped scenario (the Pregnancy panel is hidden in the app as unfinished). It builds and runs on the current engine, but its physiology isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
+> **Experimental across gestation.** Calibrated at one point, 36 weeks, in `adult_female_pregnant_36wk` (see [Usage in the scenarios](#usage-in-the-scenarios)); the Pregnancy panel is hidden in the app as unfinished. Its gestational ramp isn't calibrated; see [Assumptions and limitations](#assumptions-and-limitations).
 
 `MaternalPlacenta` is the **mother's** side of the placenta in the adult pregnancy model: the intervillous space (`PL_IVS`), a low-resistance blood lake fed by the spiral arteries off the uterine artery and drained by the uterine veins. It owns no blood. It controls `PL_IVS` and its resistors:
 - the spiral arteries dilate with gestational age, so placental flow grows;
@@ -112,7 +112,10 @@ No shipped scenario has a MaternalPlacenta model; a `models.MaternalPlacenta` en
 
 ## Usage in the scenarios
 
-Not used by any shipped scenario: `term_neonate_72h` has no MaternalPlacenta model.
+`adult_female_pregnant_36wk` (`scripts/_make_adult_female_pregnant.mjs`, [PregnancyReference](./PregnancyReference.md)):
+`PL_IVS` is a 150 mL clone of `UT_CAP`; the generator trims `PL_IVS`'s base resistance to a placental flow of ~600 mL/min and
+`mp_vo2` to a uteroplacental O2 consumption (with `Uterus`) of ~22 mL/min, the placenta + fetus as an O2 sink. The linear
+ramp alone gives ~70 mL/min at 36 weeks. `PL_IVS` is listed on `UT_VEN.inputs` so its drainage follows `UT_VEN`.
 
 ## References
 

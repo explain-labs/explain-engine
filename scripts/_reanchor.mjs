@@ -1,7 +1,7 @@
 // Controller re-anchoring for scenario generators: after levers move a scenario to a new resting state, every
 // controller is re-anchored to that state so the saved scenario holds it instead of drifting back. Same code as
-// the helpers at the end of scripts/_make_term_transition.mjs (engine 838e959 controller inventory), shared here
-// for scripts/_make_adult_female.mjs. Each function takes ctx = { eng, M, model, log } (log: array of strings).
+// the helpers at the end of scripts/_make_term_transition.mjs (engine 838e959 controller inventory) plus the brain, kidney
+// and maintenance anchors, shared by scripts/_make_adult_female.mjs and scripts/_make_adult_female_pregnant.mjs. Each function takes ctx = { eng, M, model, log } (log: array of strings).
 
 // time-average fn() over sec of model time in 20 ms steps (each fn() returns an object of numbers)
 export function avgOver(ctx, sec, fn) {
@@ -112,4 +112,41 @@ export function advanceToSinusFiring(ctx) {
   const { eng, M, model } = ctx;
   const H = M.Heart;
   for (let i = 0; i < 400; i++) { const b = H._sa_node_timer; eng.calc(model.modeling_stepsize); if (H._sa_node_timer < b) break; }
+}
+
+// Brain anchors at the resting state: the CO2 / O2-content references, baseline CPP and blood volume (ICP reference).
+// Captured at the very end, once the ventilation trim has settled: captured earlier, a PaCO2 excursion between trims
+// (41.5 vs 37.5 at rest) left the brain sensing "hypocapnia" (co2_factor 0.84, CBF 10.2 instead of 12).
+export function reanchorBrain(ctx) {
+  const { M, log } = ctx;
+  const B = M.Brain;
+  const a = avgOver(ctx, 20, () => ({ pco2: M[B.co2_model]?.pco2, to2: M[B.o2_model]?.to2, cpp: B.cpp, cbv: B.cerebral_blood_volume }));
+  const before = [B.co2_ref, B.o2_ref, B.cpp_setpoint, B.cbv0].map((x) => x?.toFixed?.(3));
+  Object.assign(B, { co2_ref: a.pco2, o2_ref: a.to2, cpp_setpoint: a.cpp, cbv0: a.cbv, co2_factor: 1.0, o2_factor: 1.0 });
+  log.push(`Brain co2_ref/o2_ref/cpp_setpoint/cbv0 ${before.join("/")} -> ${[a.pco2, a.to2, a.cpp, a.cbv].map((x) => x.toFixed(3)).join("/")}`);
+}
+
+// Kidney anchors: the myogenic set-point at the sensed renal perfusion pressure, the TGF set-point at the resting signal
+export function reanchorKidney(ctx) {
+  const { M, log } = ctx;
+  const K = M.Kidneys;
+  const a = avgOver(ctx, 20, () => ({ p: K.sensed_pressure, tgf: K.tgf_signal }));
+  const b = [K.myogenic_p_set, K.tgf_setpoint].map((x) => x?.toFixed?.(2));
+  K.myogenic_p_set = a.p; K.tgf_setpoint = a.tgf;
+  log.push(`Kidneys myogenic_p_set/tgf_setpoint ${b.join("/")} -> ${a.p.toFixed(2)}/${a.tgf.toFixed(2)}`);
+}
+
+// maintenance intake (Fluids) = the resting urine output, so the blood volume holds (as the 72 h baby: 1.35 vs urine ~1.4)
+export function reanchorMaintenance(ctx) {
+  const { M, model, log } = ctx;
+  const F = M.Fluids, K = M.Kidneys;
+  const u = avgOver(ctx, 120, () => ({ urine: K.urine_flow })).urine * 60 / model.weight; // mL/min -> mL/kg/h
+  log.push(`Fluids.maintenance_rate ${F.maintenance_rate.toFixed(3)} -> ${u.toFixed(3)} mL/kg/h (resting urine)`);
+  F.maintenance_rate = u;
+  // composition = the resting urine composition (plasma x (1 - fr_solute) / (1 - fr_water)), so every filtered solute's
+  // intake matches its excretion (the baby's maintenance fluid is its urine composition too)
+  const fl = F.fluids[F.maintenance_fluid] ?? (F.fluids[F.maintenance_fluid] = {});
+  const frw = K.reabsorption_fraction, before = JSON.stringify(fl);
+  for (const s of K.filterable_solutes) fl[s] = +(M.AA.solutes[s] * (1 - K._solute_reabs(s)) / (1 - frw)).toFixed(3);
+  log.push(`Fluids.fluids.${F.maintenance_fluid} ${before} -> ${JSON.stringify(fl)}`);
 }

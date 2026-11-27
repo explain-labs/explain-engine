@@ -158,7 +158,9 @@ to a uterine blood flow of 45 mL/min out of the lower body, with the arteriole's
 inflow waveform has a high-resistance Doppler shape (PI 2.7, RI 0.90; reference PI 3.2, P5-P95 1.9-5.0, RI 0.88).
 `ut_vo2` 0.00683 mL/kg/min = 0.41 mL/min (resting smooth muscle x ~55 g, extraction ~5 %), subtracted from
 `Metabolism.vo2` so whole-body VO2 stays 3.2 mL/kg/min. The vessels are not in a ModelScaler group (the pregnancy layers
-live in the scaling layer). `term_neonate_72h` has no Uterus model.
+live in the scaling layer). `adult_female_pregnant_36wk` (pregnant at 36 weeks; [PregnancyReference](./PregnancyReference.md)): the uterine bed grows x18,
+`UT_VEN`'s resistance is x0.1 (low-impedance inflow, PI ~0.9), and the generator trims `UT_ART` to a total uterine flow of
+~700 mL/min (the linear ramp gives ~205 at 36 weeks). `term_neonate_72h` has no Uterus model.
 
 ## References
 

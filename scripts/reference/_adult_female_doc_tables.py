@@ -1,4 +1,4 @@
-"""Prints the variable tables of docs/AdultFemaleReference.md from scripts/reference/adult_female.json (paste between the intro and Open items).
+"""Prints the variable tables of a reference doc (docs/AdultFemaleReference.md, docs/PregnancyReference.md) from its JSON (paste between the intro and Open items).
 Usage: python3 scripts/reference/_adult_female_doc_tables.py scripts/reference/adult_female.json"""
 import json, sys
 r = json.load(open(sys.argv[1])); src = dict((k, v) for k, v in r["sources"])
@@ -17,8 +17,10 @@ def cite(k):
     pm = src[k]["pmid"]
     return f"{c} (PMID {pm})" if pm else c
 TITLES = {"hemodynamics": "Hemodynamics, heart and flows", "breathing": "Breathing", "gases": "Gases and saturations",
-          "metabolism": "Metabolism", "blood": "Blood and kidneys", "shunts": "Shunts"}
+          "metabolism": "Metabolism", "blood": "Blood and kidneys", "uterus": "Uterus", "shunts": "Shunts"}
 out = []
+missing = {v["group"] for v in r["variables"]} - set(TITLES)
+assert not missing, f"groups without a doc section: {missing}"
 for g, t in TITLES.items():
     out.append(f"\n## {t}\n\n| Variable | Unit | Reference | Range | Method, cohort, n | Grade | Source | Notes |\n|---|---|---|---|---|---|---|---|")
     for v in r["variables"]:

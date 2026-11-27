@@ -165,6 +165,7 @@ Not tied to a single class — physiology/clinical background and scenario-build
 
 | Doc | What it covers |
 |---|---|
+| [PregnancyReference](./PregnancyReference.md) | Reference values for `adult_female` at 36 weeks of a healthy pregnancy (left lateral, fetus as an O2 sink), derived as non-pregnant values x within-study longitudinal changes, with the matching JSON for validating `adult_female_pregnant_36wk`. |
 | [AdultFemaleReference](./AdultFemaleReference.md) | Literature reference values for a healthy adult woman (26 y, 60 kg, supine rest), with heart and central flows anchored on cardiac MRI norms for women 20–29, graded by evidence, with the matching JSON for validating `adult_female`. |
 | [TermNeonateReference](./TermNeonateReference.md) | Literature reference values for a healthy term neonate at ~72 h (hemodynamics, heart, flows, breathing, gases, metabolism, shunts), graded by evidence, with the matching JSON for validating `term_neonate_72h`. |
 | [TermTransitionReference](./TermTransitionReference.md) | Literature reference values for a healthy term neonate at 1 h, 12 h and 24 h (transition), derived from the 72 h baby by within-study changes, with the ductal Doppler evidence and the matching JSONs for validating `term_neonate_1h`, `term_neonate_12h` and `term_neonate_24h`. |
