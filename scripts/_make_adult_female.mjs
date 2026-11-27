@@ -22,6 +22,7 @@ const argv = process.argv.slice(2);
 const opt = (n, d) => { const i = argv.indexOf(n); return i >= 0 ? argv[i + 1] : d; };
 const SETTLE = Number(opt("--settle", 300)); // s after the levers, before re-anchoring
 const FINAL = Number(opt("--final", 600)); // s after re-anchoring, before saving
+const PRE_FOLD = Number(opt("--pre-fold", 300)); // s of trimming after the hormone / kidney re-anchoring, before the baroreflex fold
 const WRITE = argv.includes("--write");
 const OUT = opt("--out", null);
 const SOURCE = "term_neonate_72h";
@@ -158,6 +159,8 @@ const VO2_TOTAL = Number(opt("--vo2", 3.2)); // mL/kg/min, whole body
 const RQ = Number(opt("--rq", 0.82));
 const MAP_TARGET = Number(opt("--map", 82));
 const HR_TARGET = Number(opt("--hr", 65));
+const VEN_U = Number(opt("--ven-u", 0.95)); // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
+const RV_DIA = Number(opt("--rv-dia", 0.75)); // grid 2026-11-27: 0.45/0.5/0.6/0.75
 const ART_EL = Number(opt("--art-el", 0.6)); // prototype grid 2026-11-27: 1.0 PP 43, 0.6 PP 33 (100/67), 0.4 PP 27
 const P50 = Number(opt("--p50", 26.8)); // mmHg
 const HB_GDL_PER_MMOL = 1.611; // Hb monomer mmol/L -> g/dL (as probe_term_reference.mjs)
@@ -198,7 +201,13 @@ const LEVERS = {
   map: {
     why: `baroreflex set-point at true mean MAP ${MAP_TARGET} while settling`,
     settle: true,
-    apply(M) { M.BR_MAP.set_value = MAP_TARGET; },
+    apply(M) {
+      // BR_MAP senses the arch (AAR); the target is the ascending-aorta (AA) true mean, so add the arch - aorta gap
+      // (~3 mmHg after the aortic compliance lever), otherwise the reflex and the hr / svr trims pull against each other
+      const a = RA.avgOver(ctx, 5, () => ({ aar: M.AAR.pres, aa: M.AA.pres }));
+      M.BR_MAP.set_value = MAP_TARGET + (a.aar - a.aa);
+      this.why = `baroreflex set-point at true mean MAP ${MAP_TARGET} + arch gap ${(a.aar - a.aa).toFixed(2)}`;
+    },
   },
   // 4. resting heart rate 65 (user decision: HR 65 x CMR SV 83 mL -> CO ~5.4 L/min). Held while settling by trimming the
   //    reference rate against the measured rate, so the baroreflex fold (done last) bakes in 65.
@@ -230,9 +239,25 @@ const LEVERS = {
     why: `aortic elastance (AA, AAR, AD el_base and el_k) x${ART_EL}`,
     apply(M) { for (const n of ["AA", "AAR", "AD"]) { M[n].el_base *= ART_EL; M[n].el_k *= ART_EL; } },
   },
+  // 7. preload: after the size seed the ventricles fill ~10 % short of the CMR end-diastolic volumes at a low left
+  //    filling pressure (LA ~5 vs wedge ~10). Venous tone: the unstressed volume of the systemic veins and venules is
+  //    lowered, moving blood from the unstressed into the stressed pool (same blood volume).
+  preload: {
+    why: `systemic venous + venular unstressed volume x${VEN_U}`,
+    apply(M) {
+      const C = M.Circulation;
+      for (const n of [...C.systemic_veins, ...C.systemic_venules]) M[n].u_vol *= VEN_U;
+    },
+  },  // 8. right-ventricular diastolic compliance: the size seed scaled RV diastolic stiffness by the CVP ratio (x1.67), but
+  //    the baby's RV fills at an end-diastolic pressure of ~9 mmHg and an adult RV at ~4-5, so the RV came out too
+  //    stiff (CVP above the wedge pressure once the preload was restored). RV el_min and el_k scaled.
+  rvdia: {
+    why: `RV diastolic stiffness (el_min, el_k) x${RV_DIA}`,
+    apply(M) { M.RV.el_min *= RV_DIA; M.RV.el_k *= RV_DIA; },
+  },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery", "preload", "rvdia"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -274,7 +299,7 @@ RA.reanchorHormonesGlucose(ctx); dbg("after hormones");
 reanchorBrainKidney(); dbg("after brain/kidney");
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
-for (let t = 0; t < 120; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
+for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
 dbg("before baro");
 RA.reanchorBaroreflex(ctx);
 eng.calc(60);

@@ -66,7 +66,7 @@ row("cvp",H,"Central venous / right atrial pressure","mmHg",4,None,2,6,"guidelin
 row("pap_s",H,"Systolic PAP","mmHg",None,None,15,30,"guideline range","RHC",None,["escers2022"],"C","Monitor PAP","")
 row("pap_d",H,"Diastolic PAP","mmHg",None,None,4,12,"guideline range","RHC",None,["escers2022"],"C","Monitor PAP","")
 row("pap_m",H,"Mean PAP","mmHg",12.8,3.1,None,None,"mean_sd","RHC systematic review, age <30 subgroup",None,["kovacs2009"],"A","Monitor PAP","All ages 14.0 +/- 3.3 (n=1187), sex-independent.",age="<30 y, both sexes")
-row("pawp",H,"Pulmonary artery wedge pressure","mmHg",10.1,1.8,None,13.0,"mean_sd; ULN","supine RHC meta-analysis",960,["zeder2024"],"A (all) / B (women)",NONE,"Women 10.05 vs men 8.38; model has no wedge read-out (LA pressure is used inside pvr).",age="median 26 y, both sexes")
+row("pawp",H,"Pulmonary artery wedge pressure","mmHg",10.1,1.8,None,13.0,"mean_sd; ULN","supine RHC meta-analysis",960,["zeder2024"],"A (all) / B (women)","mean LA pressure","Women 10.05 vs men 8.38. Model: mean left atrial pressure.",age="median 26 y, both sexes")
 row("pvr",H,"Pulmonary vascular resistance","WU",0.86,0.35,None,None,"mean_sd","RHC systematic review",None,["kovacs2012"],"A","(pap_m - LA)/Qp","Model uses mean LA pressure as the wedge.",age="24-50 y")
 row("svr",H,"Systemic vascular resistance","WU",14.4,None,None,None,None,"(true mean MAP - CVP)/CO with the chosen targets (82 - 4)/5.4",None,["nhsr35","kb2020"],"C (derived)","(map - cvp)/LVO","No measured young-female SVR retrieved.")
 row("lv_edv",H,"LV end-diastolic volume","mL/kg",pk(77),pk(12),None,None,"mean_sd","1.5 T SAX bSSFP, papillary muscles in mass",43,["kb2020"],"A","Heart.lv_edv","77 +/- 12 mL/m2 = 127 mL.",age="women 20-29 y")

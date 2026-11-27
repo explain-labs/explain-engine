@@ -227,6 +227,7 @@ const model_values = {
   // portal inflow through the gut bed), and the cerebral pressures
   pvr: (vit.pap_m - acc.la_pres) / ((acc.LL_VEN_PV + acc.RL_VEN_PV) * 60), svr: (acc.aa_pres - vit.cvp) / (acc.LV_AA * 60), // true mean
   hepatic_total: perKgMin(acc.AD_LS_ART + acc.AD_INT_ART), icp: acc.icp, cpp: acc.cpp,
+  pawp: acc.la_pres, // mean left atrial pressure as the wedge pressure
   map_mean: acc.aa_pres, // true (time-averaged) mean of the ascending aorta; the map row is the clinical dia + pp/3
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // rows for other reference sets

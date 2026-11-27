@@ -564,8 +564,8 @@
     "zeder2024"
    ],
    "grade": "A (all) / B (women)",
-   "model_readout": "none (reference only)",
-   "notes": "Women 10.05 vs men 8.38; model has no wedge read-out (LA pressure is used inside pvr)."
+   "model_readout": "mean LA pressure",
+   "notes": "Women 10.05 vs men 8.38. Model: mean left atrial pressure."
   },
   {
    "key": "pvr",
