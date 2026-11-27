@@ -156,6 +156,9 @@ function applyDrives(def) {
 const HB = Number(opt("--hb", 13.5)); // g/dL
 const VO2_TOTAL = Number(opt("--vo2", 3.2)); // mL/kg/min, whole body
 const RQ = Number(opt("--rq", 0.82));
+const MAP_TARGET = Number(opt("--map", 82));
+const HR_TARGET = Number(opt("--hr", 65));
+const ART_EL = Number(opt("--art-el", 0.6)); // prototype grid 2026-11-27: 1.0 PP 43, 0.6 PP 33 (100/67), 0.4 PP 27
 const P50 = Number(opt("--p50", 26.8)); // mmHg
 const HB_GDL_PER_MMOL = 1.611; // Hb monomer mmol/L -> g/dL (as probe_term_reference.mjs)
 const LEVERS = {
@@ -187,9 +190,49 @@ const LEVERS = {
       this.why = `whole-body VO2 ${VO2_TOTAL} mL/kg/min = Metabolism ${M.Metabolism.vo2.toFixed(3)} + Mob ${mob.toFixed(3)}, resp_q ${RQ}`;
     },
   },
+  // 3. the baroreflex defends the adult blood pressure while the levers settle (then folded and re-anchored as always):
+  //    true mean MAP 82 (user decision 2026-11-27, option A: the model's ascending aorta is compared as central pressure;
+  //    the NHANES brachial DBP + PP/3 approximates the true mean, which is about equal in aorta and arm). BR_MAP senses the
+  //    arch pressure, a time-averaged mean, so the set-point is the target itself. Without it the size seed's set-point
+  //    (~66) holds the pressure low and pulls the heart rate down.
+  map: {
+    why: `baroreflex set-point at true mean MAP ${MAP_TARGET} while settling`,
+    settle: true,
+    apply(M) { M.BR_MAP.set_value = MAP_TARGET; },
+  },
+  // 4. resting heart rate 65 (user decision: HR 65 x CMR SV 83 mL -> CO ~5.4 L/min). Held while settling by trimming the
+  //    reference rate against the measured rate, so the baroreflex fold (done last) bakes in 65.
+  hr: {
+    why: `heart rate held at ${HR_TARGET} while settling (Heart.heart_rate_ref trimmed)`,
+    settle: true,
+    apply(M) {
+      const hr = M.Monitor.heart_rate;
+      if (hr > 0) M.Heart.heart_rate_ref *= Math.pow(HR_TARGET / hr, 0.8);
+      this.why = `heart rate held at ${HR_TARGET} (heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)})`;
+    },
+  },
+  // 5. systemic vascular resistance: the scaling layer of every systemic vessel (ModelScaler blood_systemic.resistance)
+  //    trimmed until the true mean arterial pressure is MAP_TARGET, so the pressure is held structurally rather than by
+  //    a reflex that saturates short of it. Organ beds that autoregulate (brain, kidney) take their share back.
+  svr: {
+    why: `systemic resistance trimmed to true mean MAP ${MAP_TARGET}`,
+    settle: true,
+    apply(M, model) {
+      const a = RA.avgOver(ctx, 5, () => ({ map: M.AA.pres, cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2 }));
+      const f = Math.pow((MAP_TARGET - a.cvp) / (a.map - a.cvp), 0.7);
+      for (const n of model.scaler_config.blood_systemic.resistance) M[n].r_factor_scaling_ps *= f;
+      this.why = `systemic resistance scaling ${M.AA.r_factor_scaling_ps.toFixed(3)} (true mean MAP ${a.map.toFixed(1)} -> ${MAP_TARGET})`;
+    },
+  },
+  // 6. large-artery compliance: a young adult's aorta is more distensible than the size-scaled neonatal one (central
+  //    pulse pressure ~32 vs 46 after the size seed). Elastance of the aorta (AA, AAR, AD), linear and non-linear terms.
+  artery: {
+    why: `aortic elastance (AA, AAR, AD el_base and el_k) x${ART_EL}`,
+    apply(M) { for (const n of ["AA", "AAR", "AD"]) { M[n].el_base *= ART_EL; M[n].el_k *= ART_EL; } },
+  },
 };
 const pick = opt("--levers", "all");
-const DEFAULT = ["blood", "metabolism"];
+const DEFAULT = ["blood", "metabolism", "map", "hr", "svr", "artery"];
 const active = pick === "none" ? [] : pick === "all" ? DEFAULT : pick.split(",");
 for (const k of active) if (!LEVERS[k]) { say(`unknown lever ${k}; known: ${Object.keys(LEVERS).join(", ") || "(none yet)"}`); process.exit(1); }
 
@@ -210,7 +253,9 @@ const snap = (tag) => { // 3 s means (pressures, flows), so the line is not one 
   const a = RA.avgOver(ctx, 3, () => ({ map: M.AAR.pres, cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2, pa: M.PA.pres, co: M.LV_AA.flow * 60, pco2: M.AA.pco2 ?? NaN }));
   say(`[${tag}] t=${model.model_time_total.toFixed(0)} s HR ${M.Monitor.heart_rate.toFixed(1)} MAP ${a.map.toFixed(1)} CVP ${a.cvp.toFixed(1)} ` +
     `PA ${a.pa.toFixed(1)} CO ${a.co.toFixed(2)} L/min SpO2 ${M.Monitor.sao2_pre.toFixed(1)} RR ${M.Breathing.resp_rate.toFixed(1)} ` +
-    `Vt ${(M.Breathing.exp_tidal_volume * 1000).toFixed(0)} mL pCO2 ${a.pco2.toFixed(1)}`);
+    `Vt ${(M.Breathing.exp_tidal_volume * 1000).toFixed(0)} mL pCO2 ${a.pco2.toFixed(1)} clinMAP ${M.Monitor.minmax?.abp_pre_pres_mean?.toFixed(1)}` +
+    (process.env.ADULT_DEBUG ? ` | hr_ref ${M.Heart.heart_rate_ref.toFixed(1)} ans_hr ${M.Heart.ans_activity_hr.toFixed(3)} ` +
+      ["hr_mob_factor", "hr_temp_factor", "hr_chemo_factor", "hr_cat_factor"].map((k) => `${k.slice(3, -7)} ${M.Heart[k].toFixed(3)}`).join(" ") : ""));
 };
 for (let t = 0; t < 60; t += 20) { eng.calc(17); snap("load"); }
 
@@ -220,14 +265,22 @@ const settleLevers = active.filter((k) => LEVERS[k].settle);
 for (let t = 0; t < SETTLE; t += 60) { eng.calc(Math.min(60, SETTLE - t)); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); snap("settle"); }
 
 // --- re-anchor ----------------------------------------------------------------------------------
-RA.reanchorBaroreflex(ctx);
-eng.calc(60);
-RA.reanchorChemoreflex(ctx);
-RA.reanchorHormonesGlucose(ctx);
-reanchorBrainKidney();
+const dbg = (tag) => { if (process.env.ADULT_DEBUG) { eng.calc(57); snap(tag); } };
+// order: the hormone and kidney controllers first (their resting effects return to neutral when re-anchored, which moves
+// the pressure), then settle, and the baroreflex is folded LAST, on the pressure they leave; folded first, it answered
+// the ~3.5 mmHg rise with a ~10 % lower heart rate (2026-11-27 trace)
+RA.reanchorChemoreflex(ctx); dbg("after chemo");
+RA.reanchorHormonesGlucose(ctx); dbg("after hormones");
+reanchorBrainKidney(); dbg("after brain/kidney");
 RA.reseedLactateThermo(ctx);
 RA.reseedInterstitium(ctx);
-RA.relearnHeartFunction(ctx);
+for (let t = 0; t < 120; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
+dbg("before baro");
+RA.reanchorBaroreflex(ctx);
+eng.calc(60);
+dbg("after baro");
+RA.reanchorChemoreflex(ctx);
+RA.relearnHeartFunction(ctx); dbg("after HF relearn");
 for (const k of settleLevers) say(`lever ${k} (end of settle): ${LEVERS[k].why}`);
 for (let t = 0; t < FINAL; t += 120) { eng.calc(Math.min(120, FINAL - t)); snap("final"); }
 RA.advanceToSinusFiring(ctx);
