@@ -1,0 +1,1769 @@
+{
+ "name": "adult_female",
+ "description": "Literature reference values for a healthy non-pregnant adult female (26 y, 60 kg, 1.65 m, BSA 1.65 m2), awake, supine, at rest, room air, sea level. Heart and central flows anchored on CMR norms for women 20-29 y. Grades: A = large normative cohort of matching age/sex/method; B = smaller, adjacent or derived; C = textbook/estimate.",
+ "state": "awake, supine, rest, post-absorptive",
+ "compiled": "2026-11-27",
+ "doc": "docs/AdultFemaleReference.md",
+ "sources": [
+  [
+   "kb2020",
+   {
+    "cite": "Kawel-Boehm N et al. Reference ranges (normal values) for CMR in adults and children: 2020 update. J Cardiovasc Magn Reson 2020;22:87",
+    "doi": "10.1186/s12968-020-00683-3",
+    "pmid": "33308262"
+   }
+  ],
+  [
+   "nhsr35",
+   {
+    "cite": "Wright JD et al. Mean systolic and diastolic BP in adults aged 18 and over, NHANES 2001-2008. Natl Health Stat Report 2011;35",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "nhsr41",
+   {
+    "cite": "Ostchega Y et al. Resting pulse rate reference data, NHANES 1999-2008. Natl Health Stat Report 2011;41",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "kovacs2009",
+   {
+    "cite": "Kovacs G et al. Pulmonary arterial pressure during rest and exercise in healthy subjects: a systematic review. Eur Respir J 2009;34:888-94",
+    "doi": "10.1183/09031936.00145608",
+    "pmid": "19324955"
+   }
+  ],
+  [
+   "kovacs2012",
+   {
+    "cite": "Kovacs G et al. Pulmonary vascular resistances during exercise in normal subjects: a systematic review. Eur Respir J 2012;39:319-28",
+    "doi": "10.1183/09031936.00008611",
+    "pmid": "21885394"
+   }
+  ],
+  [
+   "zeder2024",
+   {
+    "cite": "Zeder K et al. Pulmonary arterial wedge pressure in healthy subjects: a meta-analysis. Eur Respir J 2024;64:2400967",
+    "doi": "10.1183/13993003.00967-2024",
+    "pmid": "38964777"
+   }
+  ],
+  [
+   "escers2022",
+   {
+    "cite": "Humbert M et al. 2022 ESC/ERS Guidelines for pulmonary hypertension. Eur Heart J 2022;43:3618 (Table 11)",
+    "doi": "10.1093/eurheartj/ehac237",
+    "pmid": "36017548"
+   }
+  ],
+  [
+   "czernin1993",
+   {
+    "cite": "Czernin J et al. Influence of age and hemodynamics on myocardial blood flow and flow reserve. Circulation 1993;88:62-9",
+    "doi": "10.1161/01.cir.88.1.62",
+    "pmid": "8319357"
+   }
+  ],
+  [
+   "brown2018",
+   {
+    "cite": "Brown LAE et al. CMR quantitative perfusion mapping, healthy volunteers (median age 23). 2018",
+    "doi": null,
+    "pmid": null
+   }
+  ],
+  [
+   "peterson2007",
+   {
+    "cite": "Peterson LR et al. Sex differences in myocardial oxygen and glucose metabolism. J Nucl Cardiol 2007;14:573-81",
+    "doi": "10.1016/j.nuclcard.2007.03.001",
+    "pmid": "17679067"
+   }
+  ],
+  [
+   "zarrinkoob2015",
+   {
+    "cite": "Zarrinkoob L et al. Blood flow distribution in cerebral arteries. J Cereb Blood Flow Metab 2015;35:648-54",
+    "doi": "10.1038/jcbfm.2014.241",
+    "pmid": "25564234"
+   }
+  ],
+  [
+   "ito2004",
+   {
+    "cite": "Ito H et al. Database of normal human cerebral blood flow, volume, O2 extraction and metabolic rate (PET). Eur J Nucl Med Mol Imaging 2004;31:635-43",
+    "doi": "10.1007/s00259-003-1430-8",
+    "pmid": "14730405"
+   }
+  ],
+  [
+   "leelueck2014",
+   {
+    "cite": "Lee SC, Lueck CJ. Cerebrospinal fluid pressure in adults. J Neuroophthalmol 2014;34:278-83",
+    "doi": "10.1097/WNO.0000000000000155",
+    "pmid": "25133881"
+   }
+  ],
+  [
+   "andresen2014",
+   {
+    "cite": "Andresen M, Juhler M. Intracranial pressure following complete removal of a small demarcated brain tumor (telemetric ICP). J Neurosurg 2014",
+    "doi": "10.3171/2014.2.JNS132209",
+    "pmid": "24702326"
+   }
+  ],
+  [
+   "villa2020",
+   {
+    "cite": "Villa G et al. Renal blood flow by phase-contrast MRI: review (Eckerbom data, Table 2). MAGMA 2020;33:3-21",
+    "doi": "10.1007/s10334-019-00772-0",
+    "pmid": "31422518"
+   }
+  ],
+  [
+   "toering2015",
+   {
+    "cite": "Toering TJ et al. Sex differences in renal hemodynamics and RAAS activity in healthy young adults. Physiol Rep 2015;3:e12434",
+    "doi": "10.14814/phy2.12434",
+    "pmid": "26149279"
+   }
+  ],
+  [
+   "yzet2010",
+   {
+    "cite": "Yzet T et al. Hepatic vascular flow measurements by phase-contrast MRI in healthy volunteers. Eur J Radiol 2010;73:119-24",
+    "doi": "10.1016/j.ejrad.2008.09.032",
+    "pmid": "19008062"
+   }
+  ],
+  [
+   "szinnai2001",
+   {
+    "cite": "Szinnai G et al. Sex-related differences in portal vein blood flow (Doppler). Scand J Gastroenterol 2001;36:1167",
+    "doi": "10.1080/003655201750153458",
+    "pmid": "11346210"
+   }
+  ],
+  [
+   "mohiaddin1990",
+   {
+    "cite": "Mohiaddin RH et al. Superior vena cava flow by velocity-encoded MRI. Radiology 1990;177:537-41",
+    "doi": "10.1148/radiology.177.2.2217797",
+    "pmid": "2217797"
+   }
+  ],
+  [
+   "nadler1962",
+   {
+    "cite": "Nadler SB et al. Prediction of blood volume in normal human adults. Surgery 1962;51:224-32",
+    "doi": null,
+    "pmid": "21936146"
+   }
+  ],
+  [
+   "icsh1995",
+   {
+    "cite": "Pearson TC et al. ICSH: interpretation of measured red cell mass and plasma volume in adults. Br J Haematol 1995;89:748-56",
+    "doi": "10.1111/j.1365-2141.1995.tb08411.x",
+    "pmid": "7772511"
+   }
+  ],
+  [
+   "braat2024",
+   {
+    "cite": "Braat S et al. Haemoglobin thresholds to define anaemia in non-pregnant women. Lancet Haematol 2024",
+    "doi": "10.1016/S2352-3026(24)00030-9",
+    "pmid": "38432242"
+   }
+  ],
+  [
+   "severinghaus1979",
+   {
+    "cite": "Severinghaus JW. Simple, accurate equations for human blood O2 dissociation computations. J Appl Physiol 1979;46:599-602",
+    "doi": "10.1152/jappl.1979.46.3.599",
+    "pmid": "35496"
+   }
+  ],
+  [
+   "pottel2017",
+   {
+    "cite": "Pottel H et al. Age-dependent reference intervals for measured GFR. Clin Kidney J 2017;10:545-51",
+    "doi": "10.1093/ckj/sfx026",
+    "pmid": "28852494"
+   }
+  ],
+  [
+   "parreira2010",
+   {
+    "cite": "Parreira VF et al. Breathing pattern and thoracoabdominal motion in healthy subjects (RIP), supine. Rev Bras Fisioter 2010;14:411-6",
+    "doi": "10.1590/S1413-35552010000500010",
+    "pmid": "21180867"
+   }
+  ],
+  [
+   "hall2021",
+   {
+    "cite": "Hall GL et al. GLI reference equations for static lung volumes. Eur Respir J 2021;57:2000289",
+    "doi": "10.1183/13993003.00289-2020",
+    "pmid": "33707167"
+   }
+  ],
+  [
+   "drummond1996",
+   {
+    "cite": "Drummond GB et al. Supine vs upright FRC. Br J Anaesth 1996;76:560",
+    "doi": null,
+    "pmid": "8652330"
+   }
+  ],
+  [
+   "gertler2021",
+   {
+    "cite": "Gertler R. Respiratory mechanics. Anesthesiol Clin 2021;39:415-40",
+    "doi": "10.1016/j.anclin.2021.04.003",
+    "pmid": "34392877"
+   }
+  ],
+  [
+   "valach2026",
+   {
+    "cite": "Valach C et al. Oscillometry reference values (LEAD cohort). ERJ Open Res 2026;12:00159-2025",
+    "doi": "10.1183/23120541.00159-2025",
+    "pmid": "41497331"
+   }
+  ],
+  [
+   "hart1963",
+   {
+    "cite": "Hart MC et al. Relation between anatomic respiratory dead space and body size. J Appl Physiol 1963;18:519-22",
+    "doi": "10.1152/jappl.1963.18.3.519",
+    "pmid": "31094493"
+   }
+  ],
+  [
+   "lindner2024",
+   {
+    "cite": "Lindner M et al. Oesophageal pressure swings in healthy volunteers. BMC Pulm Med 2024;24:289",
+    "doi": "10.1186/s12890-024-03096-5",
+    "pmid": "38902702"
+   }
+  ],
+  [
+   "goldberg2017",
+   {
+    "cite": "Goldberg S et al. Chemosensitivity in young women (n~240). PLoS One 2017;12:e0168930",
+    "doi": "10.1371/journal.pone.0168930",
+    "pmid": "28045995"
+   }
+  ],
+  [
+   "bushfield2026",
+   {
+    "cite": "Bushfield et al. Arterial blood gases in healthy women at 1100 m (Table 2). Compr Physiol 2026;16:e70279",
+    "doi": "10.1002/cph4.70279",
+    "pmid": "42926907"
+   }
+  ],
+  [
+   "crapo1999",
+   {
+    "cite": "Crapo RO et al. Arterial blood gas reference values for sea level and 1400 m. Am J Respir Crit Care Med 1999;160:1525-31",
+    "doi": "10.1164/ajrccm.160.5.9806006",
+    "pmid": "10556115"
+   }
+  ],
+  [
+   "barrattboyes1957",
+   {
+    "cite": "Barratt-Boyes BG, Wood EH. The oxygen saturation of blood in the venae cavae, right heart chambers and pulmonary vessels of healthy subjects. J Lab Clin Med 1957;50:93-106",
+    "doi": null,
+    "pmid": "13439270"
+   }
+  ],
+  [
+   "byrne2005",
+   {
+    "cite": "Byrne NM et al. Metabolic equivalent: one size does not fit all. J Appl Physiol 2005;99:1112-9",
+    "doi": "10.1152/japplphysiol.00023.2004",
+    "pmid": "15831804"
+   }
+  ],
+  [
+   "mifflin1990",
+   {
+    "cite": "Mifflin MD et al. A new predictive equation for resting energy expenditure. Am J Clin Nutr 1990;51:241-7",
+    "doi": "10.1093/ajcn/51.2.241",
+    "pmid": "2305711"
+   }
+  ],
+  [
+   "geneva2019",
+   {
+    "cite": "Geneva II et al. Normal body temperature: a systematic review. Open Forum Infect Dis 2019;6:ofz032",
+    "doi": "10.1093/ofid/ofz032",
+    "pmid": "30976605"
+   }
+  ],
+  [
+   "klaestrup2011",
+   {
+    "cite": "Klaestrup E et al. Reference intervals and age/gender dependency for arterial blood gases and electrolytes. Clin Chem Lab Med 2011;49:1495",
+    "doi": "10.1515/CCLM.2011.603",
+    "pmid": "21619466"
+   }
+  ],
+  [
+   "textbook",
+   {
+    "cite": "Textbook / laboratory reference interval (Guyton & Hall; local lab RIs); not checked against a retrieved source",
+    "doi": null,
+    "pmid": null
+   }
+  ]
+ ],
+ "variables": [
+  {
+   "key": "hr",
+   "group": "hemodynamics",
+   "label": "Heart rate",
+   "unit": "bpm",
+   "mean": 65,
+   "sd": null,
+   "low": 55,
+   "high": 99,
+   "range_type": "chosen mean; NHANES 2.5th-97.5th",
+   "method": "NHANES seated 5 min, 30 s radial count; target chosen for supine rest",
+   "age": "20-39 y, female",
+   "n": 3061,
+   "sources": [
+    "nhsr41",
+    "kb2020"
+   ],
+   "grade": "A (range) / decision (mean)",
+   "model_readout": "Monitor.heart_rate",
+   "notes": "NHANES seated women 20-39: 76 (55-99). CMR CO/SV implies ~58 supine in the scanner. User decision 2026-11-27: HR 65 with CMR SV 83 mL -> CO ~5.4 L/min (CI 3.3, inside 1.9-3.9)."
+  },
+  {
+   "key": "sbp",
+   "group": "hemodynamics",
+   "label": "Systolic BP",
+   "unit": "mmHg",
+   "mean": 110,
+   "sd": 10,
+   "low": 94,
+   "high": 128,
+   "range_type": "P5-P95",
+   "method": "NHANES seated office auscultation",
+   "age": "20-39 y, female",
+   "n": 3655,
+   "sources": [
+    "nhsr35"
+   ],
+   "grade": "A (seated)",
+   "model_readout": "Monitor.abp_syst",
+   "notes": "No supine young-female cohort found; supine reads a few mmHg higher (direction only)."
+  },
+  {
+   "key": "dbp",
+   "group": "hemodynamics",
+   "label": "Diastolic BP",
+   "unit": "mmHg",
+   "mean": 68,
+   "sd": 9,
+   "low": 52,
+   "high": 83,
+   "range_type": "P5-P95",
+   "method": "as sbp",
+   "age": "20-39 y, female",
+   "n": 3655,
+   "sources": [
+    "nhsr35"
+   ],
+   "grade": "A (seated)",
+   "model_readout": "Monitor.abp_diast",
+   "notes": "SD derived from the P5-P95 spread / 3.29."
+  },
+  {
+   "key": "map",
+   "group": "hemodynamics",
+   "label": "Mean arterial pressure",
+   "unit": "mmHg",
+   "mean": 82,
+   "sd": null,
+   "low": 66,
+   "high": 98,
+   "range_type": "derived",
+   "method": "DBP + PP/3 from NHANES",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "nhsr35"
+   ],
+   "grade": "B (derived)",
+   "model_readout": "Monitor.abp_mean",
+   "notes": ""
+  },
+  {
+   "key": "pp",
+   "group": "hemodynamics",
+   "label": "Pulse pressure",
+   "unit": "mmHg",
+   "mean": 42,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "SBP - DBP",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "nhsr35"
+   ],
+   "grade": "B (derived)",
+   "model_readout": "sbp - dbp",
+   "notes": ""
+  },
+  {
+   "key": "cvp",
+   "group": "hemodynamics",
+   "label": "Central venous / right atrial pressure",
+   "unit": "mmHg",
+   "mean": 4,
+   "sd": null,
+   "low": 2,
+   "high": 6,
+   "range_type": "guideline range",
+   "method": "right-heart catheter",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "escers2022"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor CVP",
+   "notes": ""
+  },
+  {
+   "key": "pap_s",
+   "group": "hemodynamics",
+   "label": "Systolic PAP",
+   "unit": "mmHg",
+   "mean": null,
+   "sd": null,
+   "low": 15,
+   "high": 30,
+   "range_type": "guideline range",
+   "method": "RHC",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "escers2022"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor PAP",
+   "notes": ""
+  },
+  {
+   "key": "pap_d",
+   "group": "hemodynamics",
+   "label": "Diastolic PAP",
+   "unit": "mmHg",
+   "mean": null,
+   "sd": null,
+   "low": 4,
+   "high": 12,
+   "range_type": "guideline range",
+   "method": "RHC",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "escers2022"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor PAP",
+   "notes": ""
+  },
+  {
+   "key": "pap_m",
+   "group": "hemodynamics",
+   "label": "Mean PAP",
+   "unit": "mmHg",
+   "mean": 12.8,
+   "sd": 3.1,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "RHC systematic review, age <30 subgroup",
+   "age": "<30 y, both sexes",
+   "n": null,
+   "sources": [
+    "kovacs2009"
+   ],
+   "grade": "A",
+   "model_readout": "Monitor PAP",
+   "notes": "All ages 14.0 +/- 3.3 (n=1187), sex-independent."
+  },
+  {
+   "key": "pawp",
+   "group": "hemodynamics",
+   "label": "Pulmonary artery wedge pressure",
+   "unit": "mmHg",
+   "mean": 10.1,
+   "sd": 1.8,
+   "low": null,
+   "high": 13.0,
+   "range_type": "mean_sd; ULN",
+   "method": "supine RHC meta-analysis",
+   "age": "median 26 y, both sexes",
+   "n": 960,
+   "sources": [
+    "zeder2024"
+   ],
+   "grade": "A (all) / B (women)",
+   "model_readout": "none (reference only)",
+   "notes": "Women 10.05 vs men 8.38; model has no wedge read-out (LA pressure is used inside pvr)."
+  },
+  {
+   "key": "pvr",
+   "group": "hemodynamics",
+   "label": "Pulmonary vascular resistance",
+   "unit": "WU",
+   "mean": 0.86,
+   "sd": 0.35,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "RHC systematic review",
+   "age": "24-50 y",
+   "n": null,
+   "sources": [
+    "kovacs2012"
+   ],
+   "grade": "A",
+   "model_readout": "(pap_m - LA)/Qp",
+   "notes": "Model uses mean LA pressure as the wedge."
+  },
+  {
+   "key": "svr",
+   "group": "hemodynamics",
+   "label": "Systemic vascular resistance",
+   "unit": "WU",
+   "mean": 14.4,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "(MAP - CVP)/CO with the chosen targets (82 - 4)/5.4",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "nhsr35",
+    "kb2020"
+   ],
+   "grade": "C (derived)",
+   "model_readout": "(map - cvp)/LVO",
+   "notes": "No measured young-female SVR retrieved."
+  },
+  {
+   "key": "lv_edv",
+   "group": "hemodynamics",
+   "label": "LV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 2.118,
+   "sd": 0.33,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "1.5 T SAX bSSFP, papillary muscles in mass",
+   "age": "women 20-29 y",
+   "n": 43,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.lv_edv",
+   "notes": "77 +/- 12 mL/m2 = 127 mL."
+  },
+  {
+   "key": "lv_esv",
+   "group": "hemodynamics",
+   "label": "LV end-systolic volume",
+   "unit": "mL/kg",
+   "mean": 0.797,
+   "sd": 0.192,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "as lv_edv",
+   "age": "women 20-29 y",
+   "n": 43,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.lv_esv",
+   "notes": "29 +/- 7 mL/m2 = 48 mL."
+  },
+  {
+   "key": "lv_sv",
+   "group": "hemodynamics",
+   "label": "LV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.375,
+   "sd": 0.165,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "as lv_edv",
+   "age": "women 20-29 y",
+   "n": 33,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.lv_sv",
+   "notes": "50 +/- 6 mL/m2 = 83 mL."
+  },
+  {
+   "key": "lv_ef",
+   "group": "hemodynamics",
+   "label": "LV ejection fraction",
+   "unit": "%",
+   "mean": 62,
+   "sd": 6,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "as lv_edv",
+   "age": "women 20-29 y",
+   "n": 43,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.lv_ef",
+   "notes": "Women all ages 66 +/- 7."
+  },
+  {
+   "key": "lv_mass",
+   "group": "hemodynamics",
+   "label": "LV mass",
+   "unit": "g",
+   "mean": 84,
+   "sd": 18,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "as lv_edv",
+   "age": "women 20-29 y",
+   "n": 43,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "none (reference only)",
+   "notes": "51 +/- 11 g/m2. Mob/HeartFunction use whole-heart weight (linear in body weight, ~266 g at 60 kg)."
+  },
+  {
+   "key": "rv_edv",
+   "group": "hemodynamics",
+   "label": "RV end-diastolic volume",
+   "unit": "mL/kg",
+   "mean": 2.145,
+   "sd": 0.33,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "1.5 T SAX bSSFP, papillary muscles in volume",
+   "age": "women 20-29 y",
+   "n": 47,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.rv_edv",
+   "notes": "78 +/- 12 mL/m2 = 129 mL."
+  },
+  {
+   "key": "rv_esv",
+   "group": "hemodynamics",
+   "label": "RV end-systolic volume",
+   "unit": "mL/kg",
+   "mean": 0.907,
+   "sd": null,
+   "low": 0.275,
+   "high": 1.54,
+   "range_type": "mean +/- 2SD",
+   "method": "as rv_edv",
+   "age": "women 20-29 y",
+   "n": 47,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.rv_esv",
+   "notes": "33 +/- 12 mL/m2."
+  },
+  {
+   "key": "rv_sv",
+   "group": "hemodynamics",
+   "label": "RV stroke volume",
+   "unit": "mL/kg",
+   "mean": 1.265,
+   "sd": 0.247,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "as rv_edv",
+   "age": "women 20-29 y",
+   "n": 37,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.rv_sv",
+   "notes": "In the model RV SV ~ LV SV; the CMR difference (46 vs 50) is cohort/convention."
+  },
+  {
+   "key": "rv_ef",
+   "group": "hemodynamics",
+   "label": "RV ejection fraction",
+   "unit": "%",
+   "mean": null,
+   "sd": null,
+   "low": 56,
+   "high": 66,
+   "range_type": "band between the two tracing conventions",
+   "method": "papillary muscles in volume (56 +/- 11) vs in mass (Maceira 66 +/- 7)",
+   "age": "women 20-29 y",
+   "n": 47,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "Heart.rv_ef",
+   "notes": "User decision 2026-11-27: accept 56-66."
+  },
+  {
+   "key": "lvo",
+   "group": "hemodynamics",
+   "label": "Left ventricular output (cardiac output)",
+   "unit": "mL/kg/min",
+   "mean": 90,
+   "sd": null,
+   "low": 52,
+   "high": 107,
+   "range_type": "chosen; CI 1.9-3.9 range",
+   "method": "3 T CMR (Le 2016) CI 2.9 +/- 0.5",
+   "age": "women 20-69 y",
+   "n": 89,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A (range) / decision (mean)",
+   "model_readout": "LV_AA flow",
+   "notes": "CMR CI 2.9 -> 4.8 L/min (80 mL/kg/min); user decision: HR 65 x SV 83 -> ~5.4 L/min (90 mL/kg/min, CI 3.3)."
+  },
+  {
+   "key": "rvo",
+   "group": "hemodynamics",
+   "label": "Right ventricular output",
+   "unit": "mL/kg/min",
+   "mean": 90,
+   "sd": null,
+   "low": 52,
+   "high": 107,
+   "range_type": "as lvo",
+   "method": "",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "A",
+   "model_readout": "RV_PA flow",
+   "notes": "No shunts: equals LVO."
+  },
+  {
+   "key": "svc",
+   "group": "hemodynamics",
+   "label": "Superior vena cava flow",
+   "unit": "mL/kg/min",
+   "mean": 31.5,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "velocity-encoded MRI, SVC = 35 % of CO",
+   "age": "adults, mixed sex",
+   "n": 13,
+   "sources": [
+    "mohiaddin1990"
+   ],
+   "grade": "B",
+   "model_readout": "SVC_RASVC flow",
+   "notes": "35 % of the chosen CO 90. Mixed sex, n=13."
+  },
+  {
+   "key": "dao",
+   "group": "hemodynamics",
+   "label": "Descending aorta flow",
+   "unit": "mL/kg/min",
+   "mean": 54,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "derived: ~60 % of CO",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "mohiaddin1990"
+   ],
+   "grade": "C",
+   "model_readout": "AAR_AD flow",
+   "notes": "No verified volume flow retrieved."
+  },
+  {
+   "key": "cbf",
+   "group": "hemodynamics",
+   "label": "Total cerebral blood flow",
+   "unit": "mL/kg/min",
+   "mean": 12.0,
+   "sd": 2.05,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "PC-MRI sum of ICA + VA",
+   "age": "adults",
+   "n": null,
+   "sources": [
+    "zarrinkoob2015",
+    "ito2004"
+   ],
+   "grade": "B",
+   "model_readout": "AA_BR_ART flow",
+   "notes": "717 +/- 123 mL/min; may include older subjects; women ~10 % higher perfusion; young female likely 700-750 mL/min."
+  },
+  {
+   "key": "renal",
+   "group": "hemodynamics",
+   "label": "Renal blood flow (both kidneys)",
+   "unit": "mL/kg/min",
+   "mean": 14.0,
+   "sd": null,
+   "low": 10.2,
+   "high": 15.3,
+   "range_type": "between methods",
+   "method": "PC-MRI ~920 mL/min (Eckerbom) vs hippuran ERPF -> ~610 mL/min blood",
+   "age": "young women",
+   "n": null,
+   "sources": [
+    "villa2020",
+    "toering2015"
+   ],
+   "grade": "B",
+   "model_readout": "AD_KID_ART flow",
+   "notes": "~850 mL/min chosen (~18 % of CO)."
+  },
+  {
+   "key": "hepatic_total",
+   "group": "hemodynamics",
+   "label": "Total liver inflow (hepatic artery + portal)",
+   "unit": "mL/kg/min",
+   "mean": 19.7,
+   "sd": 4.6,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "PC-MRI",
+   "age": "mean 26 y, mixed",
+   "n": 20,
+   "sources": [
+    "yzet2010"
+   ],
+   "grade": "B",
+   "model_readout": "AD_LS_ART + AD_INT_ART flow",
+   "notes": "1.18-1.35 L/min. Model: LS bed = liver + spleen; portal ~ gut (INT) bed."
+  },
+  {
+   "key": "hepatic_art",
+   "group": "hemodynamics",
+   "label": "Hepatic arterial flow",
+   "unit": "mL/kg/min",
+   "mean": 3.7,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "PC-MRI: 19 % of total liver flow",
+   "age": "20-39 y, female",
+   "n": 20,
+   "sources": [
+    "yzet2010"
+   ],
+   "grade": "B",
+   "model_readout": "AD_LS_ART flow",
+   "notes": ""
+  },
+  {
+   "key": "sma",
+   "group": "hemodynamics",
+   "label": "Gut (portal) inflow",
+   "unit": "mL/kg/min",
+   "mean": 16.0,
+   "sd": null,
+   "low": 10.9,
+   "high": null,
+   "range_type": "derived; Doppler lower bound",
+   "method": "PC-MRI portal = 81 % of liver flow; fasting Doppler portal 656 mL/min",
+   "age": "20-39 y, female",
+   "n": 20,
+   "sources": [
+    "yzet2010",
+    "szinnai2001"
+   ],
+   "grade": "B/C",
+   "model_readout": "AD_INT_ART flow",
+   "notes": "No verified fasting SMA volume flow; portal flow used as the gut-bed target."
+  },
+  {
+   "key": "cor_flow",
+   "group": "hemodynamics",
+   "label": "Coronary blood flow",
+   "unit": "mL/min",
+   "mean": 60,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "MBF 0.65-0.76 mL/min/g x LV mass 84 g",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "brown2018",
+    "czernin1993"
+   ],
+   "grade": "C (derived)",
+   "model_readout": "AA_COR flow",
+   "notes": "LV only; whole heart somewhat higher."
+  },
+  {
+   "key": "mvo2",
+   "group": "hemodynamics",
+   "label": "Myocardial O2 consumption",
+   "unit": "mL/100 g/min",
+   "mean": 12.9,
+   "sd": 2.4,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "PET",
+   "age": "young women",
+   "n": 13,
+   "sources": [
+    "peterson2007"
+   ],
+   "grade": "B",
+   "model_readout": "Mob.mob_vo2 / hw",
+   "notes": "Women > men (9.5) in the same study."
+  },
+  {
+   "key": "icp",
+   "group": "hemodynamics",
+   "label": "Intracranial pressure",
+   "unit": "mmHg",
+   "mean": 7,
+   "sd": null,
+   "low": 0,
+   "high": 15,
+   "range_type": "compromise",
+   "method": "LP opening 4-18 mmHg (lateral) vs supine telemetric ~0.5",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "leelueck2014",
+    "andresen2014"
+   ],
+   "grade": "C",
+   "model_readout": "Brain.icp",
+   "notes": ""
+  },
+  {
+   "key": "cpp",
+   "group": "hemodynamics",
+   "label": "Cerebral perfusion pressure",
+   "unit": "mmHg",
+   "mean": 75,
+   "sd": null,
+   "low": 60,
+   "high": 90,
+   "range_type": "derived",
+   "method": "MAP - ICP",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "toering2015"
+   ],
+   "grade": "C",
+   "model_readout": "Brain.cpp",
+   "notes": ""
+  },
+  {
+   "key": "aov_peak",
+   "group": "hemodynamics",
+   "label": "Aortic valve peak velocity",
+   "unit": "m/s",
+   "mean": 1.2,
+   "sd": 0.2,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "CMR",
+   "age": "women",
+   "n": null,
+   "sources": [
+    "kb2020"
+   ],
+   "grade": "B",
+   "model_readout": "none (reference only)",
+   "notes": ""
+  },
+  {
+   "key": "rr",
+   "group": "breathing",
+   "label": "Respiratory rate",
+   "unit": "/min",
+   "mean": 15,
+   "sd": 2,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "respiratory inductance plethysmography, supine",
+   "age": "women 20-39 y",
+   "n": null,
+   "sources": [
+    "parreira2010"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.resp_rate",
+   "notes": ""
+  },
+  {
+   "key": "vt",
+   "group": "breathing",
+   "label": "Tidal volume",
+   "unit": "mL/kg",
+   "mean": 5.4,
+   "sd": 2.1,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "RIP, supine",
+   "age": "women 20-39 y",
+   "n": null,
+   "sources": [
+    "parreira2010"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.exp_tidal_volume",
+   "notes": "325 +/- 127 mL. Below the 6-7 mL/kg often used in models."
+  },
+  {
+   "key": "mv",
+   "group": "breathing",
+   "label": "Minute ventilation",
+   "unit": "mL/kg/min",
+   "mean": 78,
+   "sd": 22,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "RIP, supine",
+   "age": "women 20-39 y",
+   "n": null,
+   "sources": [
+    "parreira2010",
+    "goldberg2017"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.minute_volume",
+   "notes": "4.69 +/- 1.34 L/min supine; 8.1 L/min seated with a mask (Goldberg)."
+  },
+  {
+   "key": "ti_ttot",
+   "group": "breathing",
+   "label": "Duty cycle Ti/Ttot",
+   "unit": "-",
+   "mean": 0.39,
+   "sd": 0.03,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "RIP, supine",
+   "age": "women 20-39 y",
+   "n": null,
+   "sources": [
+    "parreira2010"
+   ],
+   "grade": "B",
+   "model_readout": "Breathing.ie_ratio",
+   "notes": ""
+  },
+  {
+   "key": "ptif",
+   "group": "breathing",
+   "label": "Peak tidal inspiratory flow",
+   "unit": "L/min/kg",
+   "mean": 0.31,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "derived from mean inspiratory flow 199 mL/s",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "parreira2010"
+   ],
+   "grade": "C",
+   "model_readout": "MOUTH_DS peak flow",
+   "notes": ""
+  },
+  {
+   "key": "ptef",
+   "group": "breathing",
+   "label": "Peak tidal expiratory flow",
+   "unit": "L/min/kg",
+   "mean": 0.25,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "derived",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "parreira2010"
+   ],
+   "grade": "C",
+   "model_readout": "MOUTH_DS peak flow",
+   "notes": ""
+  },
+  {
+   "key": "crs",
+   "group": "breathing",
+   "label": "Respiratory system compliance (static, awake, supine)",
+   "unit": "mL/cmH2O",
+   "mean": 90,
+   "sd": null,
+   "low": 80,
+   "high": 100,
+   "range_type": "estimate",
+   "method": "CL 150-200 and Ccw ~200 in series",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "gertler2021"
+   ],
+   "grade": "C",
+   "model_readout": "lung + chest wall in series",
+   "notes": "No awake cohort found; anaesthetised supine ~43 (do not mix)."
+  },
+  {
+   "key": "cl",
+   "group": "breathing",
+   "label": "Lung compliance",
+   "unit": "mL/cmH2O/kg",
+   "mean": 2.9,
+   "sd": null,
+   "low": 2.5,
+   "high": 3.3,
+   "range_type": "review range",
+   "method": "150-200 mL/cmH2O",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "gertler2021"
+   ],
+   "grade": "C",
+   "model_readout": "ALL + ALR in parallel",
+   "notes": ""
+  },
+  {
+   "key": "ccw",
+   "group": "breathing",
+   "label": "Chest wall compliance",
+   "unit": "mL/cmH2O/kg",
+   "mean": 3.3,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "~200 mL/cmH2O",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "gertler2021"
+   ],
+   "grade": "C",
+   "model_readout": "THORAX",
+   "notes": ""
+  },
+  {
+   "key": "rrs",
+   "group": "breathing",
+   "label": "Respiratory resistance (R5 oscillometry)",
+   "unit": "cmH2O/L/s",
+   "mean": 3.2,
+   "sd": null,
+   "low": 2.3,
+   "high": 5.0,
+   "range_type": "LLN-ULN",
+   "method": "oscillometry R5, reference equation for F 26 y 165 cm",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "valach2026"
+   ],
+   "grade": "A",
+   "model_readout": "MOUTH_DS + DS_ALL//DS_ALR",
+   "notes": "Device-specific; plethysmographic Raw ~2.3 (Piatti 2012, derived)."
+  },
+  {
+   "key": "frc",
+   "group": "breathing",
+   "label": "Functional residual capacity (supine)",
+   "unit": "mL/kg",
+   "mean": 30,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "GLI 2021 upright 2.63 L minus the supine fall (0.5-1.07 L)",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "hall2021",
+    "drummond1996"
+   ],
+   "grade": "B/C",
+   "model_readout": "min(ALL + ALR + DS) gas volume",
+   "notes": "~1.8 L supine; upright 2.63 L (44 mL/kg)."
+  },
+  {
+   "key": "tlc",
+   "group": "breathing",
+   "label": "Total lung capacity",
+   "unit": "L",
+   "mean": 5.25,
+   "sd": null,
+   "low": 4.25,
+   "high": 6.36,
+   "range_type": "LLN-ULN",
+   "method": "GLI 2021 computed for F 26 y 165 cm",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "hall2021"
+   ],
+   "grade": "A",
+   "model_readout": "none (reference only)",
+   "notes": "VC 4.02 L, RV 1.16 L."
+  },
+  {
+   "key": "vd",
+   "group": "breathing",
+   "label": "Anatomical dead space",
+   "unit": "mL/kg",
+   "mean": 2.2,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "Hart 1963 equation: 132 mL",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "hart1963"
+   ],
+   "grade": "B",
+   "model_readout": "DS volume",
+   "notes": ""
+  },
+  {
+   "key": "ppl_swing",
+   "group": "breathing",
+   "label": "Pleural (oesophageal) pressure swing",
+   "unit": "cmH2O",
+   "mean": 4,
+   "sd": null,
+   "low": 3,
+   "high": 5,
+   "range_type": "median IQR",
+   "method": "oesophageal balloon, semi-recumbent 45 deg",
+   "age": "healthy adults",
+   "n": 23,
+   "sources": [
+    "lindner2024"
+   ],
+   "grade": "B",
+   "model_readout": "none in this probe: validate_respiratory base.ppl_swing",
+   "notes": ""
+  },
+  {
+   "key": "co2_response",
+   "group": "breathing",
+   "label": "Ventilatory response to CO2",
+   "unit": "L/min/mmHg",
+   "mean": null,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "Goldberg rebreathing start-to-end slope 0.38 L/min/mmHg (n~240 F); classic Read slope above threshold 1-3 (C)",
+   "age": "women ~24 y",
+   "n": 240,
+   "sources": [
+    "goldberg2017"
+   ],
+   "grade": "A/B",
+   "model_readout": "none in this probe: scripts/probe_co2_response.mjs",
+   "notes": "PARKED (user 2026-11-27): definition to be matched to the model's chemoreflex at the breathing step."
+  },
+  {
+   "key": "spo2",
+   "group": "gases",
+   "label": "SpO2",
+   "unit": "%",
+   "mean": 98.0,
+   "sd": 1.3,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "pulse oximetry, seated",
+   "age": "women ~24 y",
+   "n": 240,
+   "sources": [
+    "goldberg2017"
+   ],
+   "grade": "A/B",
+   "model_readout": "Monitor.spo2_pre",
+   "notes": ""
+  },
+  {
+   "key": "ph",
+   "group": "gases",
+   "label": "Arterial pH",
+   "unit": "-",
+   "mean": 7.4,
+   "sd": null,
+   "low": 7.35,
+   "high": 7.45,
+   "range_type": "textbook range",
+   "method": "sea level",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook",
+    "bushfield2026"
+   ],
+   "grade": "C",
+   "model_readout": "arterial gas",
+   "notes": "User decision: sea-level textbook targets; cross-check 18 women at 1100 m: 7.43 +/- 0.02."
+  },
+  {
+   "key": "pco2",
+   "group": "gases",
+   "label": "PaCO2",
+   "unit": "mmHg",
+   "mean": 38,
+   "sd": null,
+   "low": 35,
+   "high": 45,
+   "range_type": "textbook range",
+   "method": "sea level",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook",
+    "bushfield2026",
+    "klaestrup2011"
+   ],
+   "grade": "C",
+   "model_readout": "arterial gas",
+   "notes": "Women run slightly lower; 1100 m cohort 33.5 +/- 3.8."
+  },
+  {
+   "key": "hco3",
+   "group": "gases",
+   "label": "Bicarbonate",
+   "unit": "mmol/L",
+   "mean": 24,
+   "sd": null,
+   "low": 22,
+   "high": 26,
+   "range_type": "textbook range",
+   "method": "",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook",
+    "bushfield2026"
+   ],
+   "grade": "C",
+   "model_readout": "arterial gas",
+   "notes": "1100 m cohort 22.4 +/- 2.4."
+  },
+  {
+   "key": "be",
+   "group": "gases",
+   "label": "Base excess",
+   "unit": "mmol/L",
+   "mean": 0,
+   "sd": null,
+   "low": -2,
+   "high": 2,
+   "range_type": "textbook range",
+   "method": "",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook",
+    "bushfield2026"
+   ],
+   "grade": "C",
+   "model_readout": "arterial gas",
+   "notes": "1100 m cohort -1.8 +/- 2.6."
+  },
+  {
+   "key": "po2",
+   "group": "gases",
+   "label": "PaO2",
+   "unit": "mmHg",
+   "mean": 100,
+   "sd": null,
+   "low": 85,
+   "high": 110,
+   "range_type": "equation +/- range",
+   "method": "Crapo: 106.6 - 0.245 x age",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "crapo1999"
+   ],
+   "grade": "B",
+   "model_readout": "arterial gas",
+   "notes": ""
+  },
+  {
+   "key": "etco2",
+   "group": "gases",
+   "label": "End-tidal CO2",
+   "unit": "mmHg",
+   "mean": 35,
+   "sd": 5,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "capnography, seated with mask (4.65 +/- 0.68 %)",
+   "age": "women ~24 y",
+   "n": 240,
+   "sources": [
+    "goldberg2017"
+   ],
+   "grade": "A/B",
+   "model_readout": "Monitor.etco2",
+   "notes": ""
+  },
+  {
+   "key": "svo2",
+   "group": "gases",
+   "label": "Mixed venous O2 saturation",
+   "unit": "%",
+   "mean": 75,
+   "sd": null,
+   "low": 70,
+   "high": 80,
+   "range_type": "textbook range",
+   "method": "PA catheter",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "barrattboyes1957"
+   ],
+   "grade": "C",
+   "model_readout": "Monitor.svo2",
+   "notes": "Fick check: VO2 192 / CO 5.4 / Hb 13.5 -> ~77 %."
+  },
+  {
+   "key": "vo2",
+   "group": "metabolism",
+   "label": "O2 consumption",
+   "unit": "mL/kg/min",
+   "mean": 3.2,
+   "sd": null,
+   "low": 2.6,
+   "high": 3.5,
+   "range_type": "Byrne measured mean to 1 MET",
+   "method": "Mifflin REE 1340 kcal/day + Weir -> 192 mL/min",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "mifflin1990",
+    "byrne2005"
+   ],
+   "grade": "B",
+   "model_readout": "gas exchanger O2 uptake",
+   "notes": "User decision: 3.2. Byrne measured 2.6 +/- 0.4 (mixed cohort incl. obese); 1 MET 3.5 overestimates."
+  },
+  {
+   "key": "rq",
+   "group": "metabolism",
+   "label": "Respiratory quotient",
+   "unit": "-",
+   "mean": 0.82,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "post-absorptive",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "CO2 out / O2 uptake",
+   "notes": ""
+  },
+  {
+   "key": "temp",
+   "group": "metabolism",
+   "label": "Core temperature",
+   "unit": "degC",
+   "mean": 37.0,
+   "sd": null,
+   "low": 36.3,
+   "high": 37.8,
+   "range_type": "range",
+   "method": "rectal",
+   "age": "adults",
+   "n": null,
+   "sources": [
+    "geneva2019"
+   ],
+   "grade": "A/B",
+   "model_readout": "Monitor.temp",
+   "notes": "Oral 36.6."
+  },
+  {
+   "key": "glucose",
+   "group": "metabolism",
+   "label": "Fasting glucose",
+   "unit": "mmol/L",
+   "mean": 4.9,
+   "sd": null,
+   "low": 3.9,
+   "high": 5.5,
+   "range_type": "lab RI",
+   "method": "",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "AA glucose",
+   "notes": "ADA normal fasting < 5.6."
+  },
+  {
+   "key": "lactate",
+   "group": "metabolism",
+   "label": "Arterial lactate",
+   "unit": "mmol/L",
+   "mean": 1.0,
+   "sd": 0.5,
+   "low": 0.5,
+   "high": 2.2,
+   "range_type": "mean_sd; RI",
+   "method": "arterial",
+   "age": "healthy women",
+   "n": 18,
+   "sources": [
+    "bushfield2026",
+    "klaestrup2011"
+   ],
+   "grade": "B",
+   "model_readout": "Lactate.arterial_lactate",
+   "notes": ""
+  },
+  {
+   "key": "hb",
+   "group": "blood",
+   "label": "Haemoglobin",
+   "unit": "g/dL",
+   "mean": 13.5,
+   "sd": null,
+   "low": 12.0,
+   "high": 15.5,
+   "range_type": "LLN (P5) to lab ULN",
+   "method": "venous",
+   "age": "non-pregnant women",
+   "n": 3640,
+   "sources": [
+    "braat2024",
+    "textbook"
+   ],
+   "grade": "A (LLN) / C (mean)",
+   "model_readout": "Blood composition",
+   "notes": "LLN 11.97 g/dL = WHO 2024 threshold 12.0."
+  },
+  {
+   "key": "hct",
+   "group": "blood",
+   "label": "Haematocrit",
+   "unit": "%",
+   "mean": 40,
+   "sd": null,
+   "low": 36,
+   "high": 46,
+   "range_type": "lab RI",
+   "method": "",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "hb / MCHC",
+   "notes": ""
+  },
+  {
+   "key": "p50",
+   "group": "blood",
+   "label": "O2 dissociation P50 (adult HbA)",
+   "unit": "mmHg",
+   "mean": 26.8,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "Severinghaus equation",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "severinghaus1979"
+   ],
+   "grade": "B",
+   "model_readout": "Blood.P50_0",
+   "notes": ""
+  },
+  {
+   "key": "blood_volume",
+   "group": "blood",
+   "label": "Blood volume",
+   "unit": "mL/kg",
+   "mean": 62.8,
+   "sd": null,
+   "low": null,
+   "high": null,
+   "range_type": null,
+   "method": "Nadler for 1.65 m / 60 kg = 3.77 L; ICSH RCM 23.2 + PV 38.6 = 61.8 mL/kg",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "nadler1962",
+    "icsh1995"
+   ],
+   "grade": "B/C",
+   "model_readout": "sum of blood compartments",
+   "notes": "ICSH whole-body Hct 0.375 vs venous 0.40."
+  },
+  {
+   "key": "gfr",
+   "group": "blood",
+   "label": "Measured GFR",
+   "unit": "mL/min/1.73m2",
+   "mean": 109,
+   "sd": 14.1,
+   "low": null,
+   "high": null,
+   "range_type": "mean_sd",
+   "method": "inulin/iohexol",
+   "age": "women 20-30 y",
+   "n": 24,
+   "sources": [
+    "pottel2017"
+   ],
+   "grade": "A",
+   "model_readout": "Kidneys.gfr",
+   "notes": "Not the textbook 120-130. Absolute ~105 mL/min."
+  },
+  {
+   "key": "urine",
+   "group": "blood",
+   "label": "Urine output",
+   "unit": "mL/kg/h",
+   "mean": 1.0,
+   "sd": null,
+   "low": 0.5,
+   "high": null,
+   "range_type": "oliguria threshold",
+   "method": "",
+   "age": "20-39 y, female",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "C",
+   "model_readout": "Kidneys.urine_flow",
+   "notes": ""
+  },
+  {
+   "key": "pda",
+   "group": "shunts",
+   "label": "Ductus arteriosus flow",
+   "unit": "mL/kg/min",
+   "mean": 0,
+   "sd": null,
+   "low": null,
+   "high": 0.5,
+   "range_type": "closed",
+   "method": "",
+   "age": "adult",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "-",
+   "model_readout": "AAR_DA flow",
+   "notes": "Adult: closed."
+  },
+  {
+   "key": "fo",
+   "group": "shunts",
+   "label": "Foramen ovale flow",
+   "unit": "mL/kg/min",
+   "mean": 0,
+   "sd": null,
+   "low": null,
+   "high": 0.5,
+   "range_type": "closed",
+   "method": "",
+   "age": "adult",
+   "n": null,
+   "sources": [
+    "textbook"
+   ],
+   "grade": "-",
+   "model_readout": "LA -> RA flow",
+   "notes": "Adult: closed (a small PFO in ~25 % is ignored)."
+  }
+ ]
+}

@@ -7,6 +7,7 @@
 //   scripts/reference/term_neonate_72h.json    (docs/TermNeonateReference.md, the default)
 //   scripts/reference/term_neonate_12h.json    (docs/TermTransitionReference.md)
 //   scripts/reference/tof_pink.json, tof.json, tof_severe.json, tof_pa.json   (docs/TofReference.md)
+//   scripts/reference/adult_female.json        (docs/AdultFemaleReference.md; adds the pvr, svr, hepatic_total, icp, cpp read-outs)
 //   The probe also reads rows no current set uses (read-outs when the placenta runs, svo2_ra, pda_v_rtl,
 //   spo2_post), for sets made later.
 //
@@ -160,6 +161,7 @@ for (let i = 0; i < steps; i++) {
   add("mv", M.Breathing?.minute_volume);
   add("ds_vol", M.DS?.vol);
   add("gfr", M.Kidneys?.gfr); // pressure-following, so averaged rather than read at the end
+  add("la_pres", M.LA?.pres); add("icp", M.Brain?.icp); add("cpp", M.Brain?.cpp); // PVR (mean LA as the wedge) and the cerebral pressures
   add("urine", M.Kidneys?.urine_flow);
   add("o2_uptake", -((M.GASEX_LL?.flux_o2 ?? 0) + (M.GASEX_RL?.flux_o2 ?? 0))); // mmol per step, +ve = blood takes up O2
   add("co2_out", (M.GASEX_LL?.flux_co2 ?? 0) + (M.GASEX_RL?.flux_co2 ?? 0));
@@ -221,6 +223,10 @@ const model_values = {
   gfr: acc.gfr * 1.73 / bsa, urine: acc.urine * 60 / W,
   pda: perKgMin(acc.AAR_DA), fo: perKgMin(acc.LA_RAIVCI + acc.LA_RASVC),
   // coronary inflow (mL/min, whole heart) and myocardial O2 use (mL/100 g/min)
+  // adult rows: vascular resistances in Wood units (mmHg·min/L), the liver inflow (LS = liver + spleen bed plus the
+  // portal inflow through the gut bed), and the cerebral pressures
+  pvr: (vit.pap_m - acc.la_pres) / ((acc.LL_VEN_PV + acc.RL_VEN_PV) * 60), svr: (vit.map - vit.cvp) / (acc.LV_AA * 60),
+  hepatic_total: perKgMin(acc.AD_LS_ART + acc.AD_INT_ART), icp: acc.icp, cpp: acc.cpp,
   cor_flow: (acc.AA_COR ?? NaN) * 60000, mvo2: (M.Mob?.mob_vo2 ?? NaN) * 60 * O2_ML_PER_MMOL / (M.Mob?.hw ?? NaN) * 100,
   // rows for other reference sets
   lvo_rvo: acc.LV_AA / acc.RV_PA, pda_diam: (M.Pda?.diameter_relative ?? NaN) * (M.Pda?.diameter_pa_max ?? NaN),
