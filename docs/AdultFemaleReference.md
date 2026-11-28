@@ -18,6 +18,13 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 
 ## Decisions (user, 2026-11-27)
 
+- **Blood pressure +5 mmHg (2026-11-28):** the pressures looked somewhat low, so the model is calibrated to a true mean MAP of
+  87 instead of the NHANES-derived 82 (central ~104 / 69); the literature rows below are unchanged. To get the full rise at an
+  unchanged output, the preload lever became a trim to the CMR stroke volume (83 mL; option B) instead of a fixed venous
+  factor, and the generator aims 2 mmHg above 87 because the slow volume controllers let the pressure settle that much
+  lower (option B; the probe judges the settled value: MAP 86.7, SBP 104.3, DBP 68.6). Side effect: RV ejection fraction
+  55.0, just under the 56-66 band (within the CMR range 34-78).
+
 - **Uterus** (added after the first release): non-pregnant, **early follicular** phase. Uterine blood flow 45 mL/min
   (2 x Ziegler 1999 per-artery 22.4, nulliparous, day 9-10; Thaler 1990's 94.5 per artery is an outlier). Uterine O2 use
   from tissue mass at a resting smooth-muscle rate (0.75 mL/100 g/min x ~55 g = 0.41 mL/min, grade C; no human data),
@@ -252,9 +259,9 @@ Rows whose read-out is "none (reference only)" have no model counterpart in the 
 |---|---|---|---|
 | 1 | blood | Hb 13.5 g/dL, P50 26.8 (HbA) | Hb/Hct/P50 in range |
 | 2 | metabolism | whole-body VO2 3.2 incl. Mob (Metabolism ~2.7 + heart ~0.5), RQ 0.82 | VO2 3.2, SvO2 back in range |
-| 3-5 | map, hr, svr | baroreflex held at true mean MAP 82 (+ arch gap), HR held at 65, systemic resistance trimmed | HR 65, MAP 82 |
+| 3-5 | map, hr, svr | baroreflex held at true mean MAP 87 (+5, 2026-11-28; aimed at 89, settles ~87) (+ arch gap), HR held at 65, systemic resistance trimmed; post-fold HR/MAP correction (scripts/_reanchor.mjs) | HR 65, MAP 82 |
 | 6 | artery | aortic elastance x0.6 | central 100/65, pulse pressure ~35 |
-| 7-8 | preload, rvdia | systemic venous unstressed volume x0.95, RV diastolic stiffness x0.75 | EDV 126 mL, SV 83 mL, CO 5.4 L/min, CVP 4.7 |
+| 7-8 | preload, rvdia | systemic venous unstressed volume trimmed to stroke volume 83 mL (was a fixed x0.95 until 2026-11-28), RV diastolic stiffness x0.75 | EDV 126 mL, SV 83 mL, CO 5.4 L/min, CVP 4.7 |
 | 9 | shunt | intrapulmonary shunt resistance x3 (8.5 % -> 3 %) | PaO2 / A-a |
 | 10 | beds | kidney R x0.95, gut x0.92, liver+spleen x1.95, Mob coronary extraction 0.74 | organ flows on target |
 | 11 | kidney | Kf trimmed to GFR 109, water reabsorption 0.990 | GFR 109, urine ~1.1 mL/kg/h |

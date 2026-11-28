@@ -17,6 +17,11 @@ Absolute values from other cohorts are cross-checks only; absolute targets only 
 
 ## Decisions (user, 2026-11-27)
 
+- **Blood pressure +5 mmHg (2026-11-28):** the non-pregnant base is calibrated to MAP 87 (was 82), so the derived pregnancy
+  pressures move +5 with it (36 / 30 wk MAP 87, DBP 67; 24 wk MAP 83, DBP 66). With the higher pressure the slow controllers
+  let heart rate settle ~2.4 bpm and renal blood flow ~10 % below the generator's aim, so it aims that much higher (settle
+  offsets, user option B). Settled: 24 wk MAP 83.2 / HR 74.2, 30 wk 86.1 / 77.7, 36 wk 85.6 / 78.1; no row flagged.
+
 - **Separate scenario** at **36 weeks**, **left lateral**, fetus = **O2 sink** (no fetal circulation).
 - **Haemodynamics from recent non-invasive data (option B):** cardiac output x1.31 at the early third-trimester peak
   (Meah 2016, meta-analysis of 39 studies) -> 7.1 L/min; heart rate +13 bpm (Mahendru 2014, pre-conception -> 33 wk,

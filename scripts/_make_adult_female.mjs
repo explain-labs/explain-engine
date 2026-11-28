@@ -181,6 +181,9 @@ function addUterus(def) {
     def.models[r.name] = r;
   }
   for (const [fam, n] of [["systemic_arterioles", "UT_ART"], ["systemic_capillaries", "UT_CAP"], ["systemic_venules", "UT_VEN"]]) if (!C[fam].includes(n)) C[fam].push(n);
+  // the uterine drain UT_VEN_VLB belongs to VLB (docs/Uterus.md): VLB drives the resistors of the inputs it lists, so list UT_VEN
+  // (without it the drain kept the fixed resistance it was cloned with; harmless at 45 mL/min, found in the pregnancy work)
+  if (!C.components.VLB.inputs.includes("UT_VEN")) C.components.VLB.inputs.push("UT_VEN");
   // waveform: a non-pregnant uterine artery has a high-resistance Doppler spectrum (PI ~3, RI ~0.88, little end-diastolic
   // flow). The inflow resistor follows UT_ART's resistance, so the arteriole's share of the bed resistance is moved into
   // the capillary (total kept) and the arteriole made more compliant: it fills in systole in front of the high resistance.
@@ -206,9 +209,15 @@ function addUterus(def) {
 const HB = Number(opt("--hb", 13.5)); // g/dL
 const VO2_TOTAL = Number(opt("--vo2", 3.2)); // mL/kg/min, whole body
 const RQ = Number(opt("--rq", 0.82));
-const MAP_TARGET = Number(opt("--map", 82));
+// true mean MAP: reference 82 (NHANES) + 5 = 87 (user decision 2026-11-28: "the blood pressure of the adult females is somewhat
+// too low"). The generator aims MAP_SETTLE_OFFSET above it (user option B): the slow volume controllers (interstitial
+// filtration, kidney autoregulation, hormones, maintenance balance), anchored before the post-fold correction, let the pressure
+// settle ~2 mmHg below the generator's target (target 87 -> 85.0 after load). The probe still judges the settled value.
+const MAP_GOAL = Number(opt("--map", 87)), MAP_SETTLE_OFFSET = Number(opt("--map-offset", 2));
+const MAP_TARGET = MAP_GOAL + MAP_SETTLE_OFFSET;
 const HR_TARGET = Number(opt("--hr", 65));
-const VEN_U = Number(opt("--ven-u", 0.95)); // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
+const VEN_U = Number(opt("--ven-u", 0.95));
+const SV_TARGET = (5.4 * 1000) / 65; // mL: CO 5.4 L/min at HR 65 (user decision 2026-11-27; CMR SV 83 mL) // grid 2026-11-27 (with rvdia): 1.0/0.95/0.9/0.85
 const BED = { kid: Number(opt("--kid-r", 0.95)), int: Number(opt("--int-r", 0.92)), ls: Number(opt("--ls-r", 1.95)), cor_ext: Number(opt("--cor-ext", 0.74)) }; // prototypes 2026-11-27: kid 0.77 -> renal 13.8 (15.9 after the kf lever -> 0.87; 15.5 after the chemistry lever -> 0.95); int 0.92 -> gut 13.3; ls 1.76/1.95 -> 7.5/6.9; cor_ext 0.70/0.74 -> 257/238 mL/min
 const KF = Number(opt("--kf", 0.46));
 const GFR_TARGET = Number(opt("--gfr", 109)); // mL/min/1.73 m2 (Pottel 2017)
@@ -306,11 +315,21 @@ const LEVERS = {
   // 7. preload: after the size seed the ventricles fill ~10 % short of the CMR end-diastolic volumes at a low left
   //    filling pressure (LA ~5 vs wedge ~10). Venous tone: the unstressed volume of the systemic veins and venules is
   //    lowered, moving blood from the unstressed into the stressed pool (same blood volume).
+  //    2026-11-28 (user, option B): no longer a fixed factor but a trim to the CMR stroke volume (CO 5.4 L/min / HR 65 =
+  //    ~83 mL): with the pressure raised 5 mmHg by the SVR trim, a fixed filling let stroke volume and output fall (~4 %)
+  //    and the pressure rose only ~3.5-4 mmHg. Starts at x0.95 (the earlier fixed value), then trimmed while settling.
   preload: {
-    why: `systemic venous + venular unstressed volume x${VEN_U}`,
+    why: `systemic venous + venular unstressed volume trimmed to stroke volume ${SV_TARGET.toFixed(1)} mL (start x${VEN_U})`,
+    settle: true,
     apply(M) {
-      const C = M.Circulation;
-      for (const n of [...C.systemic_veins, ...C.systemic_venules]) M[n].u_vol *= VEN_U;
+      const C = M.Circulation, names = [...C.systemic_veins, ...C.systemic_venules].filter((n) => n !== "UT_VEN");
+      if (!this._done) { for (const n of names) M[n].u_vol *= VEN_U; this._done = true; this._f = VEN_U; return; }
+      const a = RA.avgOver(ctx, 10, () => ({ q: M.LV_AA.flow, hr: M.Monitor.heart_rate }));
+      const sv = (a.q * 60 * 1000) / a.hr; // mL
+      const f = Math.min(Math.max(Math.pow(sv / SV_TARGET, 1.0), 0.97), 1.03); // SV low -> less unstressed volume -> more filling
+      for (const n of names) M[n].u_vol *= f;
+      this._f *= f;
+      this.why = `venous unstressed volume x${this._f.toFixed(3)} (stroke volume ${sv.toFixed(1)} -> ${SV_TARGET.toFixed(1)} mL)`;
     },
   },  // 8. right-ventricular diastolic compliance: the size seed scaled RV diastolic stiffness by the CVP ratio (x1.67), but
   //    the baby's RV fills at an end-diastolic pressure of ~9 mmHg and an adult RV at ~4-5, so the RV came out too
@@ -520,6 +539,7 @@ dbg("before baro");
 RA.reanchorBaroreflex(ctx);
 eng.calc(60);
 dbg("after baro");
+RA.postFoldCorrection(ctx, { hr: active.includes("hr") ? HR_TARGET : null, map: active.includes("svr") ? MAP_TARGET : null, slow: true }); // (2026-11-28: MAP had settled 1.2 below target)
 RA.reanchorChemoreflex(ctx);
 RA.reanchorBrain(ctx);
 RA.relearnHeartFunction(ctx); dbg("after HF relearn");

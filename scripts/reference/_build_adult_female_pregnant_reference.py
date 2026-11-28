@@ -8,6 +8,8 @@ measured within one longitudinal study, pre-pregnancy/early -> ~36 wk; absolute 
 Hb with iron, GFR x1.28 (inulin), PaCO2 ~32, uterine flow ~700 mL/min.
 """
 import json, sys
+# 2026-11-28 (user): the non-pregnant model is calibrated 5 mmHg above the NHANES-derived MAP 82 (true mean 87, DBP +5), so
+# the derived pregnancy pressures move +5 with it (pregnant = non-pregnant base x the within-study change).
 # Per gestational age. 36 wk: the released set (2026-11-27). 30 wk (user 2026-11-27): the same studies at ~28-32 wk;
 # interpolated rows marked in the notes; plasma volume scaled from de Haas 2017 (x1.40, the 36-wk source) not Aguree 2019.
 PROFILES = {
@@ -25,13 +27,13 @@ PROFILES = {
           ut_note="Absolute values differ ~2x between the studies; only their ratio is used.",
           pl=375, pi=0.94, utvo2=7.4, utvo2_lo=6, utvo2_hi=9, utvo2_method="fetus 0.67 kg (Hadlock 1991) x 6.6 mL/kg/min + placenta ~3",
           vo2=1.18, vo2_note="BMR x1.18 (Butte 2004, 22-wk visit, interpolated)", mv=1.24, vt=1.24, frc=0.95, frc_note="~x0.95 (interpolated)", crs=0.96, rrs=0.60,
-          co=round(5.4 * 1.31 * 1.27 / 1.29, 2), hr=74, map=78, dbp=61, pvr=0.68, alb=38.3,
+          co=round(5.4 * 1.31 * 1.27 / 1.29, 2), hr=74, map=83, dbp=66, pvr=0.68, alb=38.3,
           hr_row=("Mulder 2021 meta-analysis bins: +10.7 bpm (22-28 wk) vs +14.6 (29-35 wk); the 24/30 step applied to the 30-wk 78",
                   "-4 bpm vs 30 wk (Mulder 2021 within-series)", ["mulder2021","adult_female"], "B", "Monitor.heart_rate", "User decision 2026-11-28: within-series step from the calibrated 30-wk values."),
           co_row=("meta-analysis, studies with a non-pregnant reference (105 studies)", "x1.27 vs x1.29 at 29-35 wk (Mulder 2021); the 24/30 step applied to the 30-wk 7.07 L/min",
                   ["mulder2021","meah2016"], "B", "LV_AA flow", "~6.96 L/min. SVR lowest at 22-28 wk (-25 %, Mulder; Clapp 1997 at 24 wk)."),
           map_row=("arm cuff, mixed posture (BP meta-analysis), mid-pregnancy low point", "-4", ["dehaas2022","adult_female"], "B", "mean of AA pressure",
-                   "User decision 78. Clapp 1997 places the low point at 16 wk (-6); by 24 wk pressure may be recovering.")),
+                   "User decision 78, +5 with the non-pregnant base (83; 2026-11-28). Clapp 1997 places the low point at 16 wk (-6); by 24 wk pressure may be recovering.")),
  30: dict(W=68.4, rbf=1.45, rbf_lo=1.3, rbf_hi=1.6, rbf_note="~x1.45 (interpolated; falls in the 3rd trimester, Dunlop 1981)",
           pv=1.40, rcm=0.237, bv_method="plasma x1.40 (de Haas 2017 scaled to ~30 wk) + red cells +237 mL (Taylor & Lind 1979, interpolated)",
           hb=12.0, hct=35.5, hb_ratio="x0.89 (with iron)", gfr=1.27, gfr_method="inulin clearance, 22 and 34 wk vs postpartum (n=12), interpolated",
@@ -96,11 +98,11 @@ else: row("lvo",H,"Cardiac output","mL/kg/min",r1(CO*1000/W),None,r1(CO*0.8*1000
 row("rvo",H,"Right ventricular output","mL/kg/min",r1(CO*1000/W),None,r1(CO*0.8*1000/W),r1(CO*1.2*1000/W),"as lvo","","",["meah2016"],"A/B","RV_PA flow","")
 row("lv_sv",H,"LV stroke volume","mL/kg",r1(CO*1000/HR/W,2),None,None,None,None,"derived CO / HR","x1.09 (derived)",["meah2016","mahendru2014"],"B (derived)","Heart.lv_sv",f"{CO*1000/HR:.0f} mL.")
 row("lv_edv",H,"LV end-diastolic volume","mL/kg",r1(127*1.29/W,2),None,None,None,None,"CMR ~34 wk vs postpartum","x1.29 (Ducas 2014)",["ducas2014"],"B","Heart.lv_edv","Reference only in spirit: Ducas's CO rise (+85 %) is an outlier against option B; expect the model's EDV lower.")
-if "map_row" in P: row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",P["map"],None,66,90,"base range shifted",*P["map_row"])
-else: row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",82,None,70,94,"base range narrowed","intra-arterial (Clark); pre-conception cohort recovering by the 3rd trimester","x1.00",["clark1989","mahendru2014","adult_female"],"B","mean of AA pressure","")
-if "dbp" in P: row("dbp",H,"Diastolic BP","mmHg",P["dbp"],None,48,76,"base range shifted","arm cuff, mixed posture (BP meta-analysis)","-4 (mid-pregnancy)",["dehaas2022"],"B","Monitor abp_pre diastolic","")
-else: row("dbp",H,"Diastolic BP","mmHg",62,None,50,78,"base range shifted","seated cuff, pre-pregnancy cohort (n=570)","x0.96",["wang2013"],"B","Monitor abp_pre diastolic","")
-row("svr",H,"Systemic vascular resistance","WU",r1((P.get("map", 82)-4)/CO),None,None,None,None,"derived (MAP - CVP)/CO","~x0.76 (Clark reports x0.79)",["clark1989","meah2016"],"C (derived)","(map_mean - cvp)/LVO","")
+if "map_row" in P: row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",P["map"],None,71,95,"base range shifted",*P["map_row"])
+else: row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",87,None,75,99,"base range narrowed","intra-arterial (Clark); pre-conception cohort recovering by the 3rd trimester","x1.00",["clark1989","mahendru2014","adult_female"],"B","mean of AA pressure","")
+if "dbp" in P: row("dbp",H,"Diastolic BP","mmHg",P["dbp"],None,53,81,"base range shifted","arm cuff, mixed posture (BP meta-analysis)","-4 (mid-pregnancy)",["dehaas2022"],"B","Monitor abp_pre diastolic","")
+else: row("dbp",H,"Diastolic BP","mmHg",67,None,55,83,"base range shifted","seated cuff, pre-pregnancy cohort (n=570)","x0.96",["wang2013"],"B","Monitor abp_pre diastolic","")
+row("svr",H,"Systemic vascular resistance","WU",r1((P.get("map", 87)-4)/CO),None,None,None,None,"derived (MAP - CVP)/CO","~x0.76 (Clark reports x0.79)",["clark1989","meah2016"],"C (derived)","(map_mean - cvp)/LVO","")
 row("cvp",H,"Central venous pressure","mmHg",4,None,2,7,"base range","PA catheter, left lateral (n=10)","x1.00",["clark1989","adult_female"],"B","Monitor CVP","")
 row("pawp",H,"Pulmonary artery wedge pressure","mmHg",10.1,None,None,13,"base","PA catheter","x1.00",["clark1989","adult_female"],"B","mean LA pressure","")
 if "pvr" in P: row("pvr",H,"Pulmonary vascular resistance","WU",r1(0.86*P["pvr"],2),None,None,None,None,"scaled from the 30-wk decision (no mid-pregnancy invasive data)",f"x{P['pvr']}",["clark1989","adult_female"],"C","(pap_m - LA)/Qp","")
