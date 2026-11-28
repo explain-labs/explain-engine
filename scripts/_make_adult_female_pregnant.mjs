@@ -1,9 +1,9 @@
-// Generate adult_female_pregnant_<ga>wk (30 or 36): the calibrated non-pregnant adult_female at 30 or 36 weeks of a healthy singleton
+// Generate adult_female_pregnant_<ga>wk (24, 30 or 36): the calibrated non-pregnant adult_female at 24, 30 or 36 weeks of a healthy singleton
 // pregnancy, lying left lateral (no aortocaval compression), with the fetus represented as an O2 sink in the placenta.
 // Reference values: docs/PregnancyReference.md and scripts/reference/adult_female_pregnant_36wk.json; check with
 //   node scripts/probe_term_reference.mjs adult_female_pregnant_36wk --ref scripts/reference/adult_female_pregnant_36wk.json [--file OUT]
 //
-//   node scripts/_make_adult_female_pregnant.mjs [--ga 30|36] [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
+//   node scripts/_make_adult_female_pregnant.mjs [--ga 24|30|36] [--settle 300] [--final 600] [--write | --out FILE] [--levers none|all|a,b,...]
 //
 // User decisions 2026-11-27: a separate scenario derived from the released adult_female (as the 1/12/24 h babies derive
 // from the 72 h baby), 36 weeks, left lateral, fetus = O2 sink (no fetal circulation); targets = the non-pregnant reference
@@ -32,6 +32,11 @@ const SOURCE = "adult_female";
 // released set; 30 wk (user 2026-11-27) the same studies at ~28-32 wk, several rows interpolated. The pregnant uterus and the
 // intervillous volume at 30 wk are scaled with the uterine flow (~x0.8; grade C, no direct data).
 const PROFILES = {
+  // 24 wk (user 2026-11-28): mid-pregnancy BP / SVR nadir (de Haas 2022, MAP -4); CO and HR as the Mulder 2021 within-series step
+  // from the calibrated 30-wk values; renal plasma flow at Dunlop's plateau; uterus (x11) and intervillous volume scaled with
+  // the uterine flow (~x0.63 of 36 wk; grade C)
+  24: { weight: 65.9, ut_grow: 11, ivs: 0.095, bv: 2.26 * (1 + 0.40 * 0.29 / 0.42) + 1.51 + 0.125, hb: 12.1, ut: 440, pl: 375, utvo2: 7.4,
+    rbf: 850 * 1.6, gfr: 105 * 1.25, vo2: 192 * 1.18, raw: 0.6, crs: 86, frc: 2.3 * 0.95, map: 78, hr: 74, co: 5.4 * 1.31 * 1.27 / 1.29, alb: 38.3 },
   36: { weight: 71.0, ut_grow: 18, ivs: 0.15, bv: 3.768 * 1.37, hb: 12.2, ut: 700, pl: 600, utvo2: 22,
     rbf: 850 * 1.35, gfr: 105 * 1.28, vo2: 192 * 1.26, raw: 0.5, crs: 81, frc: 2.3 * 0.825 },
   30: { weight: 68.4, ut_grow: 14, ivs: 0.12, bv: 2.26 * 1.40 + 1.51 + 0.237, hb: 12.0, ut: 570, pl: 485, utvo2: 14,
@@ -115,11 +120,11 @@ function applyPregnancy(def) {
 }
 
 // --- maternal levers on the live model (step 4, added one at a time) ----------------------------------------------------
-const BLOOD = { bv: PF.bv, hb: PF.hb, albumin: 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
+const BLOOD = { bv: PF.bv, hb: PF.hb, albumin: PF.alb ?? 37.2, na: 136 }; // L, g/dL, g/L, mmol/L (docs/PregnancyReference.md)
 const HB_GDL_PER_MMOL = 1.611;
 const UTPL = { ut: Number(opt("--ut-flow", PF.ut)), pl: Number(opt("--pl-flow", PF.pl)), vo2: Number(opt("--utpl-vo2", PF.utvo2)) }; // mL/min, mL O2/min
-const MAP_TARGET = Number(opt("--map", 82)), HR_TARGET = Number(opt("--hr", 78));
-const SV_TARGET = (5.4 * 1.31 * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
+const MAP_TARGET = Number(opt("--map", PF.map ?? 82)), HR_TARGET = Number(opt("--hr", PF.hr ?? 78));
+const SV_TARGET = ((PF.co ?? 5.4 * 1.31) * 1000) / HR_TARGET; // mL: CO 7.07 L/min (Meah 2016 x1.31) / HR 78
 const KID = { rbf: Math.round(PF.rbf), gfr: Math.round(PF.gfr) }; // mL/min (docs/PregnancyReference.md)
 const PCO2_TARGET = Number(opt("--pco2", 32)), RR_TARGET = Number(opt("--rr", 15));
 const LUNG = { raw: PF.raw, ccw_el: 200 / (1 / (1 / PF.crs - 1 / 164)), frc: PF.frc }; // x, x (~1.25 at 36 wk), L
@@ -359,15 +364,34 @@ RA.reanchorMaintenance(ctx);
 for (let t = 0; t < PRE_FOLD; t += 60) { eng.calc(60); settleLevers.forEach((k) => LEVERS[k].apply(M, model)); }
 RA.reanchorBaroreflex(ctx);
 eng.calc(60);
-// heart rate after the fold: the last trims leave a small pressure error at the fold, so the folded reflex can bake in a
-// few bpm of braking (HR ~73 instead of 78); with the reflex now neutral the resting rate is nudged back to the target
-if (active.includes("hr")) {
-  for (let i = 0; i < 4; i++) {
-    const hr = RA.avgOver(ctx, 10, () => ({ hr: M.Monitor.heart_rate })).hr;
-    if (Math.abs(hr - HR_TARGET) < 0.3) break;
-    M.Heart.heart_rate_ref *= HR_TARGET / hr;
+// heart rate and pressure after the fold: the last trims leave a small error at the fold, so the folded reflex can bake in a
+// few bpm of braking (HR ~73 instead of 78) and the pressure drifts back up (24 wk: MAP 81.5 instead of 78); with the reflex
+// now neutral, the resting rate and the systemic resistance are nudged back to their targets together
+if (active.includes("hr") || active.includes("svr")) {
+  for (let i = 0; i < 5; i++) {
+    const a = RA.avgOver(ctx, 10, () => ({ hr: M.Monitor.heart_rate, map: M.AA.pres, cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2 }));
+    const dHr = Math.abs(a.hr - HR_TARGET), dMap = Math.abs(a.map - MAP_TARGET);
+    if (dHr < 0.3 && dMap < 0.3) break;
+    if (active.includes("hr")) M.Heart.heart_rate_ref *= HR_TARGET / a.hr;
+    if (active.includes("svr")) { const f = (MAP_TARGET - a.cvp) / (a.map - a.cvp); for (const n of model.scaler_config.blood_systemic.resistance) M[n].r_factor_scaling_ps *= f; }
     eng.calc(50);
-    log.push(`post-fold heart rate ${hr.toFixed(1)} -> heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)}`);
+    log.push(`post-fold HR ${a.hr.toFixed(1)} / MAP ${a.map.toFixed(1)} -> heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)}, SVR scaling ${M.AA.r_factor_scaling_ps.toFixed(3)}`);
+  }
+  // the nudges moved the pressure off the folded reflex's set-point, which would pull it back after load (probe: MAP 80.4 at
+  // 24 wk, HR 76.7 at 36): re-anchor the baroreflex once more at the corrected state (its effectors are near neutral, so the
+  // second fold only re-finds the set-point)
+  RA.reanchorBaroreflex(ctx);
+  eng.calc(60);
+  // the second fold can still catch a little braking (HR 3-4 bpm low): a heart-rate-only nudge with the reflex neutral
+  // (small enough that the pressure moves < ~1 mmHg)
+  if (active.includes("hr")) {
+    for (let i = 0; i < 3; i++) {
+      const hr = RA.avgOver(ctx, 10, () => ({ hr: M.Monitor.heart_rate })).hr;
+      if (Math.abs(hr - HR_TARGET) < 0.3) break;
+      M.Heart.heart_rate_ref *= HR_TARGET / hr;
+      eng.calc(50);
+      log.push(`post-second-fold HR ${hr.toFixed(1)} -> heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)}`);
+    }
   }
 }
 RA.reanchorChemoreflex(ctx);

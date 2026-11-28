@@ -1,5 +1,5 @@
-"""Builds scripts/reference/adult_female_pregnant_<ga>wk.json (docs/PregnancyReference.md) for 30 or 36 weeks.
-Usage: python3 scripts/reference/_build_adult_female_pregnant_reference.py --ga 30|36 scripts/reference/adult_female_pregnant_<ga>wk.json
+"""Builds scripts/reference/adult_female_pregnant_<ga>wk.json (docs/PregnancyReference.md) for 24, 30 or 36 weeks.
+Usage: python3 scripts/reference/_build_adult_female_pregnant_reference.py --ga 24|30|36 scripts/reference/adult_female_pregnant_<ga>wk.json
 
 Rule (user, 2026-11-27): target = the calibrated non-pregnant adult_female reference (or model value where noted) x the change
 measured within one longitudinal study, pre-pregnancy/early -> ~36 wk; absolute values only where she has no counterpart
@@ -18,6 +18,20 @@ PROFILES = {
           pl=600, pi=0.69, utvo2=22, utvo2_lo=18, utvo2_hi=26,
           utvo2_method="fetus 2.8 kg x 6.6 mL/kg/min + placenta ~5 (in vitro ~10 mL/min/kg); Metcalfe 24.5 at term",
           vo2=1.26, vo2_note="BMR x1.26 (Forsum x1.30)", mv=1.34, vt=1.27, frc=0.825, frc_note="x0.80-0.85", crs=0.9, rrs=0.5),
+ 24: dict(W=65.9, rbf=1.6, rbf_lo=1.45, rbf_hi=1.75, rbf_note="~x1.6 (Dunlop 1981: renal plasma flow +80 % plateau at 16-26 wk, haematocrit-corrected)",
+          pv=1 + 0.40 * (0.29 / 0.42), rcm=0.125, bv_method="plasma x1.28 (Aguree 2019 24/30-wk step on the 30-wk x1.40) + red cells +125 mL (Taylor & Lind 1979, iron, interpolated)",
+          hb=12.1, hct=36, hb_ratio="x0.90 (with iron)", gfr=1.25, gfr_method="inulin clearance, 22.3 wk vs postpartum (n=12)",
+          ut=440, ut_lo=310, ut_hi=610, ut_method="Doppler volume flow, longitudinal (Flo 2010 299 at 22 wk, Konje 2001 513 at 20 wk): ratio 0.63 to 36 wk applied to 700",
+          ut_note="Absolute values differ ~2x between the studies; only their ratio is used.",
+          pl=375, pi=0.94, utvo2=7.4, utvo2_lo=6, utvo2_hi=9, utvo2_method="fetus 0.67 kg (Hadlock 1991) x 6.6 mL/kg/min + placenta ~3",
+          vo2=1.18, vo2_note="BMR x1.18 (Butte 2004, 22-wk visit, interpolated)", mv=1.24, vt=1.24, frc=0.95, frc_note="~x0.95 (interpolated)", crs=0.96, rrs=0.60,
+          co=round(5.4 * 1.31 * 1.27 / 1.29, 2), hr=74, map=78, dbp=61, pvr=0.68, alb=38.3,
+          hr_row=("Mulder 2021 meta-analysis bins: +10.7 bpm (22-28 wk) vs +14.6 (29-35 wk); the 24/30 step applied to the 30-wk 78",
+                  "-4 bpm vs 30 wk (Mulder 2021 within-series)", ["mulder2021","adult_female"], "B", "Monitor.heart_rate", "User decision 2026-11-28: within-series step from the calibrated 30-wk values."),
+          co_row=("meta-analysis, studies with a non-pregnant reference (105 studies)", "x1.27 vs x1.29 at 29-35 wk (Mulder 2021); the 24/30 step applied to the 30-wk 7.07 L/min",
+                  ["mulder2021","meah2016"], "B", "LV_AA flow", "~6.96 L/min. SVR lowest at 22-28 wk (-25 %, Mulder; Clapp 1997 at 24 wk)."),
+          map_row=("arm cuff, mixed posture (BP meta-analysis), mid-pregnancy low point", "-4", ["dehaas2022","adult_female"], "B", "mean of AA pressure",
+                   "User decision 78. Clapp 1997 places the low point at 16 wk (-6); by 24 wk pressure may be recovering.")),
  30: dict(W=68.4, rbf=1.45, rbf_lo=1.3, rbf_hi=1.6, rbf_note="~x1.45 (interpolated; falls in the 3rd trimester, Dunlop 1981)",
           pv=1.40, rcm=0.237, bv_method="plasma x1.40 (de Haas 2017 scaled to ~30 wk) + red cells +237 mL (Taylor & Lind 1979, interpolated)",
           hb=12.0, hct=35.5, hb_ratio="x0.89 (with iron)", gfr=1.27, gfr_method="inulin clearance, 22 and 34 wk vs postpartum (n=12), interpolated",
@@ -57,6 +71,8 @@ S = {
  "templeton1976": ("Templeton A, Kelman GR. Maternal blood-gases, PAO2-PaO2, physiological shunt and VD/VT in normal pregnancy. Br J Anaesth 1976", None, "10937"),
  "jensen2005": ("Jensen D et al. Mechanisms of ventilatory response to CO2 in pregnancy. 2005", None, "15677521"),
  "craig1975": ("Craig DB, Toole MA. Airway closure in pregnancy (FRC, n=24). Can Anaesth Soc J 1975;22:665", None, "1201469"),
+ "mulder2021": ("Mulder E et al. Haemodynamic adaptation to pregnancy: a meta-analysis of studies with a non-pregnant reference. BJOG 2021", None, "33630403"),
+ "dehaas2022": ("de Haas S et al. Blood pressure adjustments throughout healthy and hypertensive pregnancy: a systematic review and meta-analysis. 2022", None, "34929556"),
  "hadlock1991": ("Hadlock FP et al. In utero analysis of fetal growth: a sonographic weight standard. Radiology 1991;181:129-33", "10.1148/radiology.181.1.1887021", "1887021"),
  "gee1967": ("Gee JB et al. Pulmonary mechanics during pregnancy (n=10). J Clin Invest 1967", None, None),
  "mills1998": ("Mills JL et al. Physiological reduction in fasting plasma glucose concentration in the first trimester (n=361). 1998", None, "9751245"),
@@ -71,25 +87,31 @@ def row(key, group, label, unit, mean=None, sd=None, low=None, high=None, range_
                   notes=(f"Change: {ratio}. " if ratio else "") + notes))
 r1 = lambda x, d=1: round(x, d)
 H, B, R, Bl, M_, U = "hemodynamics", "breathing", "gases", "blood", "metabolism", "uterus"
-CO = 5.4 * 1.31  # L/min
-HR = 65 + 13
-row("hr",H,"Heart rate","bpm",HR,None,65,95,"base range shifted","non-invasive, pre-conception -> 33 wk","+13 +/- 11 bpm (Mahendru 2014, n=54)",["mahendru2014","adult_female"],"B","Monitor.heart_rate","Base 65 (user decision). Clark 1989 invasive x1.17 (76) as a cross-check; other studies x1.26-1.29.")
-row("lvo",H,"Cardiac output","mL/kg/min",r1(CO*1000/W),None,r1(CO*0.8*1000/W),r1(CO*1.2*1000/W),"target +/- 20 %","meta-analysis of echo / impedance / rebreathing","x1.31 at the early 3rd-trimester peak (Meah 2016, 39 studies)",["meah2016","mahendru2014","perry2019","clark1989"],"A/B","LV_AA flow",f"{CO:.2f} L/min (base 5.4, user decision). Plateau/slight fall after ~35 wk (Perry 2019 NICOM). Clark invasive x1.43 (7.7 L/min) cross-check.")
+CO = P.get("co", 5.4 * 1.31)  # L/min
+HR = P.get("hr", 65 + 13)
+if "hr_row" in P: row("hr",H,"Heart rate","bpm",HR,None,65,95,"base range shifted",*P["hr_row"])
+else: row("hr",H,"Heart rate","bpm",HR,None,65,95,"base range shifted","non-invasive, pre-conception -> 33 wk","+13 +/- 11 bpm (Mahendru 2014, n=54)",["mahendru2014","adult_female"],"B","Monitor.heart_rate","Base 65 (user decision). Clark 1989 invasive x1.17 (76) as a cross-check; other studies x1.26-1.29.")
+if "co_row" in P: row("lvo",H,"Cardiac output","mL/kg/min",r1(CO*1000/W),None,r1(CO*0.8*1000/W),r1(CO*1.2*1000/W),"target +/- 20 %",*P["co_row"])
+else: row("lvo",H,"Cardiac output","mL/kg/min",r1(CO*1000/W),None,r1(CO*0.8*1000/W),r1(CO*1.2*1000/W),"target +/- 20 %","meta-analysis of echo / impedance / rebreathing","x1.31 at the early 3rd-trimester peak (Meah 2016, 39 studies)",["meah2016","mahendru2014","perry2019","clark1989"],"A/B","LV_AA flow",f"{CO:.2f} L/min (base 5.4, user decision). Plateau/slight fall after ~35 wk (Perry 2019 NICOM). Clark invasive x1.43 (7.7 L/min) cross-check.")
 row("rvo",H,"Right ventricular output","mL/kg/min",r1(CO*1000/W),None,r1(CO*0.8*1000/W),r1(CO*1.2*1000/W),"as lvo","","",["meah2016"],"A/B","RV_PA flow","")
 row("lv_sv",H,"LV stroke volume","mL/kg",r1(CO*1000/HR/W,2),None,None,None,None,"derived CO / HR","x1.09 (derived)",["meah2016","mahendru2014"],"B (derived)","Heart.lv_sv",f"{CO*1000/HR:.0f} mL.")
 row("lv_edv",H,"LV end-diastolic volume","mL/kg",r1(127*1.29/W,2),None,None,None,None,"CMR ~34 wk vs postpartum","x1.29 (Ducas 2014)",["ducas2014"],"B","Heart.lv_edv","Reference only in spirit: Ducas's CO rise (+85 %) is an outlier against option B; expect the model's EDV lower.")
-row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",82,None,70,94,"base range narrowed","intra-arterial (Clark); pre-conception cohort recovering by the 3rd trimester","x1.00",["clark1989","mahendru2014","adult_female"],"B","mean of AA pressure","")
-row("dbp",H,"Diastolic BP","mmHg",62,None,50,78,"base range shifted","seated cuff, pre-pregnancy cohort (n=570)","x0.96",["wang2013"],"B","Monitor abp_pre diastolic","")
-row("svr",H,"Systemic vascular resistance","WU",r1((82-4)/CO),None,None,None,None,"derived (MAP - CVP)/CO","~x0.76 (Clark reports x0.79)",["clark1989","meah2016"],"C (derived)","(map_mean - cvp)/LVO","")
+if "map_row" in P: row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",P["map"],None,66,90,"base range shifted",*P["map_row"])
+else: row("map_mean",H,"Mean arterial pressure (true mean)","mmHg",82,None,70,94,"base range narrowed","intra-arterial (Clark); pre-conception cohort recovering by the 3rd trimester","x1.00",["clark1989","mahendru2014","adult_female"],"B","mean of AA pressure","")
+if "dbp" in P: row("dbp",H,"Diastolic BP","mmHg",P["dbp"],None,48,76,"base range shifted","arm cuff, mixed posture (BP meta-analysis)","-4 (mid-pregnancy)",["dehaas2022"],"B","Monitor abp_pre diastolic","")
+else: row("dbp",H,"Diastolic BP","mmHg",62,None,50,78,"base range shifted","seated cuff, pre-pregnancy cohort (n=570)","x0.96",["wang2013"],"B","Monitor abp_pre diastolic","")
+row("svr",H,"Systemic vascular resistance","WU",r1((P.get("map", 82)-4)/CO),None,None,None,None,"derived (MAP - CVP)/CO","~x0.76 (Clark reports x0.79)",["clark1989","meah2016"],"C (derived)","(map_mean - cvp)/LVO","")
 row("cvp",H,"Central venous pressure","mmHg",4,None,2,7,"base range","PA catheter, left lateral (n=10)","x1.00",["clark1989","adult_female"],"B","Monitor CVP","")
 row("pawp",H,"Pulmonary artery wedge pressure","mmHg",10.1,None,None,13,"base","PA catheter","x1.00",["clark1989","adult_female"],"B","mean LA pressure","")
-row("pvr",H,"Pulmonary vascular resistance","WU",r1(0.86*0.66,2),None,None,None,None,"PA catheter","x0.66",["clark1989","adult_female"],"B","(pap_m - LA)/Qp","")
+if "pvr" in P: row("pvr",H,"Pulmonary vascular resistance","WU",r1(0.86*P["pvr"],2),None,None,None,None,"scaled from the 30-wk decision (no mid-pregnancy invasive data)",f"x{P['pvr']}",["clark1989","adult_female"],"C","(pap_m - LA)/Qp","")
+else: row("pvr",H,"Pulmonary vascular resistance","WU",r1(0.86*0.66,2),None,None,None,None,"PA catheter","x0.66",["clark1989","adult_female"],"B","(pap_m - LA)/Qp","")
 row("pap_m",H,"Mean PAP","mmHg",12.8,None,None,20,"base","PA catheter (derived unchanged)","~x1.0",["clark1989","adult_female"],"C","Monitor PAP","")
 row("renal",H,"Renal blood flow","mL/kg/min",r1(850*P["rbf"]/W),None,r1(850*P["rbf_lo"]/W),r1(850*P["rbf_hi"]/W),"derived range","effective renal plasma flow, 3rd trimester",P["rbf_note"],["dunlop1981"],"C","AD_KID_ART flow",f"~{850*P['rbf']:.0f} mL/min.")
 row("blood_volume",Bl,"Blood volume","mL/kg",r1(BV*1000/W),None,None,None,None,P["bv_method"],f"x{BV/3.768:.2f} (derived)",["dehaas2017","taylor1979","adult_female"],"B","sum of blood compartments",f"{BV:.2f} L. Two studies combined (breaks the one-study rule).")
 row("hb",Bl,"Haemoglobin","g/dL",P["hb"],None,11.0,13.5,"derived","red cell mass / blood volume",P["hb_ratio"],["taylor1979","dehaas2017","murphy2002"],"B/C","Blood composition","User decision: with iron. Murphy 2002 Hct only -4 % (conflict noted).")
 row("hct",Bl,"Haematocrit","%",P["hct"],None,33,40,"derived","",P["hb_ratio"].split(" ")[0],["taylor1979","dehaas2017"],"B/C","hb / MCHC","")
-row("albumin",Bl,"Albumin","g/L",37.2,None,32,42,"derived","pre-pregnancy -> 32 wk (n=93)","x0.866",["murphy2002","adult_female"],"B","AA solutes.albumin","Colloid osmotic pressure x0.86 (Clark): ~21.5 mmHg.")
+if "alb" in P: row("albumin",Bl,"Albumin","g/L",P["alb"],None,33,43,"derived","pre-pregnancy -> 20 / 32 wk (n=93), interpolated",f"x{P['alb']/43:.2f}",["murphy2002","adult_female"],"A/B","AA solutes.albumin","")
+else: row("albumin",Bl,"Albumin","g/L",37.2,None,32,42,"derived","pre-pregnancy -> 32 wk (n=93)","x0.866",["murphy2002","adult_female"],"B","AA solutes.albumin","Colloid osmotic pressure x0.86 (Clark): ~21.5 mmHg.")
 row("na",Bl,"Sodium","mmol/L",136,None,132,140,"derived","plasma osmolality -10 mOsm/kg","-4",["davison1981"],"C","AA solutes.na","")
 row("gfr_abs",Bl,"GFR (absolute, not indexed)","mL/min",round(105*P["gfr"]),None,round(105*1.15),round(105*1.5),"inulin to Dunlop",P["gfr_method"],f"x{P['gfr']} (Dunlop x1.5)",["saxena2012","dunlop1981","adult_female"],"B","Kidneys.gfr","User decision: inulin (Saxena). Pregnancy GFR is not indexed to 1.73 m2.")
 row("ut_flow",U,"Uterine blood flow","mL/min",P["ut"],None,P["ut_lo"],P["ut_hi"],"absolute range across methods",P["ut_method"],"~9-10 % of CO",["flo2010","konje2001","metcalfe1955"],"B/C","Uterus.ut_blood_flow",P["ut_note"])
