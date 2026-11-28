@@ -480,7 +480,7 @@
    ],
    "grade": "B (derived)",
    "model_readout": "mean of AA pressure",
-   "notes": "User decision 2026-11-27 (option A). DBP + PP/3 on the model's aortic waveform reads ~6 mmHg below its true mean, so the clinical-formula row is reference-only."
+   "notes": "User decision 2026-11-27 (option A). DBP + PP/3 on the model's aortic waveform reads ~6 mmHg below its true mean, so the clinical-formula row is reference-only. MODEL CALIBRATED TO 87 (+5 mmHg on systolic and diastolic; user decision 2026-11-28: the pressures looked somewhat low)."
   },
   {
    "key": "map",

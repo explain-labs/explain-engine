@@ -150,3 +150,39 @@ export function reanchorMaintenance(ctx) {
   for (const s of K.filterable_solutes) fl[s] = +(M.AA.solutes[s] * (1 - K._solute_reabs(s)) / (1 - frw)).toFixed(3);
   log.push(`Fluids.fluids.${F.maintenance_fluid} ${before} -> ${JSON.stringify(fl)}`);
 }
+
+// Heart rate and pressure after the baroreflex fold: the last trims leave a small error at the fold, so the folded reflex can
+// bake in a few bpm of braking and let the pressure drift back (pregnancy 24 wk: MAP 81.5 instead of 78). With the reflex
+// neutral: nudge the resting rate and the systemic resistance (ModelScaler blood_systemic.resistance scaling layer) to their
+// targets together, re-anchor the baroreflex once more at that state (otherwise it pulls them back after load), then a last
+// heart-rate-only nudge. targets: { hr: bpm | null, map: true mean mmHg | null, slow: re-anchor kidney + hormones afterwards }.
+export function postFoldCorrection(ctx, targets) {
+  const { eng, M, model, log } = ctx;
+  if (targets.hr == null && targets.map == null) return;
+  for (let i = 0; i < 5; i++) {
+    const a = avgOver(ctx, 10, () => ({ hr: M.Monitor.heart_rate, map: M.AA.pres, cvp: (M.RAIVCI.pres + M.RASVC.pres) / 2 }));
+    const okHr = targets.hr == null || Math.abs(a.hr - targets.hr) < 0.3, okMap = targets.map == null || Math.abs(a.map - targets.map) < 0.3;
+    if (okHr && okMap) break;
+    if (targets.hr != null) M.Heart.heart_rate_ref *= targets.hr / a.hr;
+    if (targets.map != null) { const f = (targets.map - a.cvp) / (a.map - a.cvp); for (const n of model.scaler_config.blood_systemic.resistance) M[n].r_factor_scaling_ps *= f; }
+    eng.calc(50);
+    log.push(`post-fold HR ${a.hr.toFixed(1)} / MAP ${a.map.toFixed(1)} -> heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)}, SVR scaling ${M.AA.r_factor_scaling_ps.toFixed(3)}`);
+  }
+  reanchorBaroreflex(ctx);
+  eng.calc(60);
+  if (targets.hr != null) {
+    for (let i = 0; i < 3; i++) {
+      const hr = avgOver(ctx, 10, () => ({ hr: M.Monitor.heart_rate })).hr;
+      if (Math.abs(hr - targets.hr) < 0.3) break;
+      M.Heart.heart_rate_ref *= targets.hr / hr;
+      eng.calc(50);
+      log.push(`post-second-fold HR ${hr.toFixed(1)} -> heart_rate_ref ${M.Heart.heart_rate_ref.toFixed(2)}`);
+    }
+  }
+  // the kidney (myogenic / TGF) and hormone (renin-angiotensin, volume) set-points were anchored before the fold, at the
+  // pre-correction pressure: at the corrected pressure they constrict the kidney and let renin fall, SVR eases and the
+  // pressure drifts back (adult +5 mmHg, 2026-11-28: MAP 86.7 -> 83.3 over the final settle, GFR 100 -> 81). Re-anchor them.
+  // Optional (targets.slow): used by adult_female; in the pregnancies, whose kidney is trimmed through the final settle, it ran
+  // after the last heart-rate nudge and cost 3-5 bpm and renal flow (2026-11-28), so they leave it off.
+  if (targets.map != null && targets.slow) { reanchorKidney(ctx); reanchorHormonesGlucose(ctx); }
+}
